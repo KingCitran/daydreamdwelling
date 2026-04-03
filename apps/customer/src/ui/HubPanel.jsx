@@ -1,0 +1,134 @@
+import { styles } from './styles/appStyles'
+
+export default function HubPanel({
+  compact, vw,
+  zoomRef,
+  showMeasurements, setShowMeasurements,
+  showGrid, setShowGrid,
+  panelOpen, setPanelOpen,
+  styleOpen, setStyleOpen,
+  setHubOpen,
+  roomPanelOpen, setRoomPanelOpen,
+  itemCount,
+  windowPickerOpen, setWindowPickerOpen,
+  doorPickerOpen, setDoorPickerOpen,
+  wallPickerTypeKey,
+  canUndo, canRedo, undo, redo,
+  saveBookmark, bookmark, restoreBookmark,
+  exportRoom, importRef, importRoom,
+  screenshotRef,
+  bgColor, setBgColor,
+  lightMood, setLightMood,
+}) {
+  return (
+    <div style={{ ...styles.hubPanel, width: compact ? Math.min(220, vw - 60) : 234 }}>
+      <p style={styles.hubSectionLabel}>View</p>
+      <div style={styles.hubBtnRow}>
+        <button style={styles.hubBtn} onClick={() => { zoomRef.current = Math.min(120, zoomRef.current + 10) }}>＋ Zoom In</button>
+        <button style={styles.hubBtn} onClick={() => { zoomRef.current = Math.max(15, zoomRef.current - 10) }}>－ Zoom Out</button>
+      </div>
+      <div style={styles.hubBtnRow}>
+        <button
+          style={{ ...styles.hubBtn, ...(showMeasurements ? styles.hubBtnActive : {}) }}
+          onClick={() => setShowMeasurements(v => !v)}
+        >📐 Measure</button>
+        <button
+          style={{ ...styles.hubBtn, ...(showGrid ? styles.hubBtnActive : {}) }}
+          onClick={() => setShowGrid(v => !v)}
+        >{showGrid ? '▦ Grid On' : '▢ Grid Off'}</button>
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>Panels</p>
+      <div style={styles.hubBtnRow}>
+        <button
+          style={{ ...styles.hubBtn, ...(panelOpen ? styles.hubBtnActive : {}) }}
+          onClick={() => { setPanelOpen(p => !p); setStyleOpen(false); setHubOpen(false) }}
+        >⚙ Layout</button>
+        <button
+          style={{ ...styles.hubBtn, ...(styleOpen ? styles.hubBtnActive : {}) }}
+          onClick={() => { setStyleOpen(p => !p); setPanelOpen(false); setHubOpen(false) }}
+        >🎨 Style</button>
+        <button
+          style={{ ...styles.hubBtn, ...(roomPanelOpen ? styles.hubBtnActive : {}) }}
+          onClick={() => { setRoomPanelOpen(v => !v); setHubOpen(false) }}
+        >🏠 Room{itemCount > 0 ? ` (${itemCount})` : ''}</button>
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>Place</p>
+      <div style={styles.hubBtnRow}>
+        <button
+          style={{ ...styles.hubBtn, ...(windowPickerOpen || wallPickerTypeKey === 'window' ? styles.hubBtnActive : {}) }}
+          onClick={() => { setWindowPickerOpen(v => !v); setDoorPickerOpen(false); setHubOpen(false) }}
+        >🪟 Window</button>
+        <button
+          style={{ ...styles.hubBtn, ...(doorPickerOpen || wallPickerTypeKey === 'door' ? styles.hubBtnActive : {}) }}
+          onClick={() => { setDoorPickerOpen(v => !v); setWindowPickerOpen(false); setHubOpen(false) }}
+        >🚪 Door</button>
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>History</p>
+      <div style={styles.hubBtnRow}>
+        <button
+          style={{ ...styles.hubBtn, ...(!canUndo ? styles.hubBtnDisabled : {}) }}
+          onClick={undo} disabled={!canUndo}
+        >↩ Undo</button>
+        <button
+          style={{ ...styles.hubBtn, ...(!canRedo ? styles.hubBtnDisabled : {}) }}
+          onClick={redo} disabled={!canRedo}
+        >↪ Redo</button>
+      </div>
+      <div style={styles.hubBtnRow}>
+        <button style={styles.hubBtn} onClick={saveBookmark}>📌 Bookmark</button>
+        {bookmark && (
+          <button style={{ ...styles.hubBtn, ...styles.hubRestoreBtn }} onClick={restoreBookmark}>↺ Restore</button>
+        )}
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>File</p>
+      <div style={styles.hubBtnRow}>
+        <button style={styles.hubBtn} onClick={exportRoom}>💾 Save</button>
+        <label style={{ ...styles.hubBtn, ...styles.hubLabel }}>
+          📂 Load
+          <input ref={importRef} type="file" accept=".json"
+            style={{ display: 'none' }} onChange={importRoom} />
+        </label>
+      </div>
+      <div style={styles.hubBtnRow}>
+        <button style={styles.hubBtn} onClick={() => screenshotRef.current?.()}>📷 Screenshot</button>
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>Background</p>
+      <div style={styles.hubBgRow}>
+        {['#1a1a2e','#0a0a0a','#2a1e1a','#1a2e1a','#f5f0e8','#e8ecf0'].map(c => (
+          <button key={c} title={c}
+            style={{ ...styles.hubBgSwatch, background: c, ...(bgColor === c ? styles.hubBgSwatchActive : {}) }}
+            onClick={() => setBgColor(c)}
+          />
+        ))}
+        <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)}
+          style={styles.hubBgPicker} title="Custom colour" />
+      </div>
+
+      <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>Lighting Mood</p>
+      <div style={styles.hubBtnRow}>
+        {[
+          { id: 'bright',  label: '☀ Bright'  },
+          { id: 'day',     label: '🌤 Day'     },
+          { id: 'evening', label: '🌆 Evening' },
+          { id: 'cozy',    label: '🕯 Cozy'    },
+        ].map(({ id, label }) => (
+          <button key={id}
+            style={{ ...styles.hubBtn, ...(lightMood === id ? styles.hubBtnActive : {}) }}
+            onClick={() => setLightMood(id)}
+          >{label}</button>
+        ))}
+      </div>
+    </div>
+  )
+}

@@ -1,5 +1,17 @@
 import { ITEM_CATALOGUE } from '../data/items'
 
+export const DIAMOND_MAP = [
+  { tl: 'W', tr: 'N', br: 'E', bl: 'S' }, // q0 — default view
+  { tl: 'N', tr: 'E', br: 'S', bl: 'W' }, // q1 — 90°
+  { tl: 'E', tr: 'S', br: 'W', bl: 'N' }, // q2 — 180°
+  { tl: 'S', tr: 'W', br: 'N', bl: 'E' }, // q3 — 270°
+]
+
+export function roomQuadrant(ry) {
+  const r = ((ry % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+  return Math.floor((r + Math.PI / 4) / (Math.PI / 2)) % 4
+}
+
 // All occupied cells for an item, in ½-ft integer units
 export function makeGrid(w, d) {
   const s = new Set()
