@@ -1,0 +1,15 @@
+{
+  "name": "daydreamdwelling",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:customer": "npm run dev --workspace=apps/customer",
+    "dev:seller": "npm run dev --workspace=apps/seller",
+    "build:customer": "npm run build --workspace=apps/customer",
+    "build:seller": "npm run build --workspace=apps/seller"
+  }
+}
