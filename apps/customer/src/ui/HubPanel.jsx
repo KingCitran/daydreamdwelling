@@ -16,6 +16,7 @@ export default function HubPanel({
   canUndo, canRedo, undo, redo,
   saveBookmark, bookmark, restoreBookmark,
   exportRoom, importRef, importRoom,
+  onCloudSave, onCloudLoad, isSignedIn,
   screenshotRef,
   bgColor, setBgColor,
   lightMood, setLightMood,
@@ -88,11 +89,22 @@ export default function HubPanel({
       </div>
 
       <div style={styles.hubDivider} />
+      <p style={styles.hubSectionLabel}>Cloud</p>
+      <div style={styles.hubBtnRow}>
+        <button style={styles.hubBtn} onClick={onCloudSave} title={isSignedIn ? 'Save to cloud' : 'Sign in to save'}>
+          ☁ {isSignedIn ? 'Save' : 'Save (sign in)'}
+        </button>
+        <button style={styles.hubBtn} onClick={onCloudLoad} title={isSignedIn ? 'Load from cloud' : 'Sign in to load'}>
+          📂 My Rooms
+        </button>
+      </div>
+
+      <div style={styles.hubDivider} />
       <p style={styles.hubSectionLabel}>File</p>
       <div style={styles.hubBtnRow}>
-        <button style={styles.hubBtn} onClick={exportRoom}>💾 Save</button>
+        <button style={styles.hubBtn} onClick={exportRoom}>💾 Export</button>
         <label style={{ ...styles.hubBtn, ...styles.hubLabel }}>
-          📂 Load
+          📂 Import
           <input ref={importRef} type="file" accept=".json"
             style={{ display: 'none' }} onChange={importRoom} />
         </label>

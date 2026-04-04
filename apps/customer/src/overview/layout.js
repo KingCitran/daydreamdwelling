@@ -141,6 +141,24 @@ export function computeRoomLayout(allRoomsData, SCALE = 14, GAP = 28) {
     }
   }
 
+  // Place any rooms not reachable via doors (newly added rooms with no connections yet)
+  const unvisited = roomIds.filter(id => !visited.has(id))
+  if (unvisited.length) {
+    const placedVals = Object.values(positions)
+    const bottomY = placedVals.length
+      ? Math.max(...placedVals.map(p => p.y + p.h)) + GAP
+      : 0
+    let curX = 0
+    for (const id of unvisited) {
+      const room = allRoomsData[id]
+      if (!room) continue
+      const rw = room.gridW * SCALE
+      const rh = room.gridD * SCALE
+      positions[id] = { x: curX, y: bottomY, w: rw, h: rh }
+      curX += rw + GAP
+    }
+  }
+
   if (Object.keys(positions).length === 0) return { positions, totalW: 0, totalH: 0 }
 
   const allX = Object.values(positions).map(p => p.x)
