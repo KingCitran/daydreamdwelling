@@ -1,44 +1,54 @@
+import { useTheme } from '@shared/ThemeProvider'
+
 export default function SiteHeader({ cartCount, onNavigate, currentPage }) {
+  const theme = useTheme()
+
   return (
-    <header style={s.header}>
-      <div style={s.inner}>
-        <button style={s.logo} onClick={() => onNavigate('home')}>
-          <span style={s.logoLeaf}>🌿</span>
-          <span style={s.logoText}>DaydreamDwelling</span>
-          <span style={s.logoSub}>Outdoor & Garden</span>
+    <header style={{ background: theme.navBg, backdropFilter: 'blur(16px)', borderBottom: `1px solid ${theme.navBorder}`, position: 'sticky', top: 0, zIndex: 100 }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 62, display: 'flex', alignItems: 'center', gap: 24 }}>
+
+        <button style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }} onClick={() => onNavigate('home')}>
+          <span style={{ fontSize: 18, color: theme.accent }}>✦</span>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: theme.text, lineHeight: 1.2 }}>DaydreamDwelling</div>
+            <div style={{ fontSize: 9, color: theme.textSoft, fontWeight: 500, letterSpacing: '0.5px' }}>Outdoor & Garden</div>
+          </div>
         </button>
 
-        <nav style={s.nav}>
-          <button style={{ ...s.navLink, ...(currentPage === 'home'   ? s.navActive : {}) }} onClick={() => onNavigate('home')}>Home</button>
-          <button style={{ ...s.navLink, ...(currentPage === 'browse' ? s.navActive : {}) }} onClick={() => onNavigate('browse')}>Shop All</button>
+        <nav style={{ display: 'flex', gap: 2, flex: 1 }}>
           {[
-            { label: 'Furniture',  cat: 'furniture' },
-            { label: 'Planters',   cat: 'planters'  },
-            { label: 'Lighting',   cat: 'lighting'  },
-            { label: 'Decor',      cat: 'decor'     },
-          ].map(({ label, cat }) => (
-            <button key={cat} style={s.navLink} onClick={() => onNavigate('browse', { category: cat })}>{label}</button>
-          ))}
+            { label: 'Home',      page: 'home'   },
+            { label: 'Shop All',  page: 'browse' },
+            { label: 'Furniture', page: 'browse', cat: 'furniture' },
+            { label: 'Planters',  page: 'browse', cat: 'planters'  },
+            { label: 'Lighting',  page: 'browse', cat: 'lighting'  },
+            { label: 'Decor',     page: 'browse', cat: 'decor'     },
+          ].map(({ label, page, cat }) => {
+            const isActive = currentPage === page && !cat
+            return (
+              <button
+                key={label}
+                style={{ background: isActive ? `${theme.accent}18` : 'none', border: 'none', color: isActive ? theme.accent : theme.textSoft, fontSize: 13, fontWeight: isActive ? 600 : 500, padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                onClick={() => onNavigate(page, cat ? { category: cat } : {})}
+              >
+                {label}
+              </button>
+            )
+          })}
         </nav>
 
-        <button style={s.cartBtn} onClick={() => onNavigate('cart')}>
-          🛒 Cart {cartCount > 0 && <span style={s.cartBadge}>{cartCount}</span>}
+        <button
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: theme.accent, color: theme.accentText, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, cursor: 'pointer', position: 'relative' }}
+          onClick={() => onNavigate('cart')}
+        >
+          <span>Cart</span>
+          {cartCount > 0 && (
+            <span style={{ background: '#ff6b3a', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+              {cartCount}
+            </span>
+          )}
         </button>
       </div>
     </header>
   )
-}
-
-const s = {
-  header:    { background: '#fff', borderBottom: '1px solid #e0dbd0', position: 'sticky', top: 0, zIndex: 100 },
-  inner:     { maxWidth: 1200, margin: '0 auto', padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', gap: 24 },
-  logo:      { display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 },
-  logoLeaf:  { fontSize: 22 },
-  logoText:  { fontSize: 17, fontWeight: 700, color: '#2a3a1a' },
-  logoSub:   { fontSize: 10, color: '#7a9a6a', fontWeight: 500, background: '#eef4ea', padding: '2px 7px', borderRadius: 10 },
-  nav:       { display: 'flex', gap: 4, flex: 1 },
-  navLink:   { background: 'none', border: 'none', color: '#5a6a4a', fontSize: 13, fontWeight: 500, padding: '6px 10px', borderRadius: 6, cursor: 'pointer' },
-  navActive: { background: '#eef4ea', color: '#2a5a1a', fontWeight: 600 },
-  cartBtn:   { display: 'flex', alignItems: 'center', gap: 6, background: '#2a5a1a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, position: 'relative' },
-  cartBadge: { background: '#ff6b3a', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 },
 }

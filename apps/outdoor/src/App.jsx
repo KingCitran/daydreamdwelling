@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AuthProvider } from '@shared/auth/AuthContext'
+import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
 import SiteHeader  from './ui/SiteHeader'
 import HomePage    from './pages/HomePage'
 import BrowsePage  from './pages/BrowsePage'
@@ -10,12 +11,15 @@ import useCart     from './hooks/useCart'
 export default function App() {
   return (
     <AuthProvider>
-      <OutdoorApp />
+      <ThemeProvider appKey="outdoor">
+        <OutdoorApp />
+      </ThemeProvider>
     </AuthProvider>
   )
 }
 
 function OutdoorApp() {
+  const theme = useTheme()
   const [page,      setPage]      = useState('home')
   const [pageProps, setPageProps] = useState({})
   const cart = useCart()
@@ -27,7 +31,7 @@ function OutdoorApp() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: theme.bg, color: theme.text }}>
       <SiteHeader cartCount={cart.cartCount} onNavigate={navigate} currentPage={page} />
       <main style={{ flex: 1 }}>
         {page === 'home'    && <HomePage    onNavigate={navigate} />}
@@ -35,13 +39,9 @@ function OutdoorApp() {
         {page === 'product' && <ProductPage onNavigate={navigate} productId={pageProps.productId} cart={cart} />}
         {page === 'cart'    && <CartPage    onNavigate={navigate} cart={cart} />}
       </main>
-      <footer style={s.footer}>
-        <p>© 2025 DaydreamDwelling · <span style={{ color: '#7a9a6a' }}>Outdoor & Garden</span></p>
+      <footer style={{ padding: '24px 40px', background: theme.surface, borderTop: `1px solid ${theme.surfaceBorder}`, color: theme.textSoft, fontSize: 12, textAlign: 'center', marginTop: 'auto' }}>
+        <p>© 2025 DaydreamDwelling · <span style={{ color: theme.accent }}>Outdoor & Garden</span></p>
       </footer>
     </div>
   )
-}
-
-const s = {
-  footer: { padding: '24px 40px', background: '#2a3a1a', color: '#aabba0', fontSize: 12, textAlign: 'center', marginTop: 'auto' },
 }

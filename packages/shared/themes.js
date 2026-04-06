@@ -1,0 +1,172 @@
+/**
+ * DaydreamDwelling — Shared Mood Color Tokens
+ *
+ * Each mood defines a full color palette used by all 3 apps.
+ * Components use useTheme() to get the active palette — never hardcode colors.
+ *
+ * Tokens:
+ *   bg            — page/app background
+ *   surface       — card / panel background (rgba)
+ *   surfaceBorder — card border (rgba)
+ *   navBg         — sticky header background (rgba + blur)
+ *   navBorder     — header bottom border
+ *   text          — primary text
+ *   textSoft      — secondary / muted text
+ *   accent        — primary action color (buttons, links, active states)
+ *   accentText    — text on accent-colored buttons
+ *   glow          — rgba for atmospheric orb / glow effects
+ */
+
+export const MOOD_THEMES = {
+  'Golden Hour': {
+    bg:            '#fdf5e4',
+    surface:       'rgba(255,252,240,0.75)',
+    surfaceBorder: 'rgba(200,155,60,0.2)',
+    navBg:         'rgba(253,245,228,0.92)',
+    navBorder:     'rgba(200,155,60,0.12)',
+    text:          '#2e1e08',
+    textSoft:      '#8a6a30',
+    accent:        '#c87820',
+    accentText:    '#fff',
+    glow:          'rgba(220,150,40,0.18)',
+  },
+  'Bright Day': {
+    bg:            '#f7faf4',
+    surface:       'rgba(255,255,255,0.78)',
+    surfaceBorder: 'rgba(100,160,90,0.18)',
+    navBg:         'rgba(247,250,244,0.92)',
+    navBorder:     'rgba(100,160,90,0.12)',
+    text:          '#182814',
+    textSoft:      '#5a7a48',
+    accent:        '#3a7a4a',
+    accentText:    '#fff',
+    glow:          'rgba(70,170,70,0.15)',
+  },
+  'Cozy Evening': {
+    bg:            '#1c0f07',
+    surface:       'rgba(60,28,10,0.65)',
+    surfaceBorder: 'rgba(200,120,40,0.2)',
+    navBg:         'rgba(20,10,4,0.92)',
+    navBorder:     'rgba(200,120,40,0.12)',
+    text:          '#f0d8b0',
+    textSoft:      '#a87840',
+    accent:        '#d4882a',
+    accentText:    '#fff',
+    glow:          'rgba(220,130,40,0.2)',
+  },
+  'Moonlight': {
+    bg:            '#090c16',
+    surface:       'rgba(255,255,255,0.04)',
+    surfaceBorder: 'rgba(130,155,220,0.15)',
+    navBg:         'rgba(7,9,20,0.92)',
+    navBorder:     'rgba(130,155,220,0.1)',
+    text:          '#c8d0e8',
+    textSoft:      '#6070a8',
+    accent:        '#5070c8',
+    accentText:    '#fff',
+    glow:          'rgba(80,100,200,0.18)',
+  },
+  'Dark Academia': {
+    bg:            '#130d07',
+    surface:       'rgba(50,32,12,0.65)',
+    surfaceBorder: 'rgba(180,138,55,0.2)',
+    navBg:         'rgba(14,9,4,0.92)',
+    navBorder:     'rgba(180,138,55,0.12)',
+    text:          '#e8d8a8',
+    textSoft:      '#a08838',
+    accent:        '#b88828',
+    accentText:    '#1a1004',
+    glow:          'rgba(180,128,38,0.18)',
+  },
+  'Cottagecore Dawn': {
+    bg:            '#fdf0ee',
+    surface:       'rgba(255,248,246,0.78)',
+    surfaceBorder: 'rgba(200,138,128,0.2)',
+    navBg:         'rgba(253,240,238,0.92)',
+    navBorder:     'rgba(200,138,128,0.12)',
+    text:          '#3a1816',
+    textSoft:      '#9a5e58',
+    accent:        '#c06858',
+    accentText:    '#fff',
+    glow:          'rgba(220,138,120,0.18)',
+  },
+  'Coastal Morning': {
+    bg:            '#f0f6fc',
+    surface:       'rgba(255,255,255,0.78)',
+    surfaceBorder: 'rgba(70,138,200,0.18)',
+    navBg:         'rgba(240,246,252,0.92)',
+    navBorder:     'rgba(70,138,200,0.12)',
+    text:          '#0c1e40',
+    textSoft:      '#4070a8',
+    accent:        '#1a60b8',
+    accentText:    '#fff',
+    glow:          'rgba(60,128,200,0.18)',
+  },
+  'Dream State': {
+    bg:            '#ede9ff',
+    surface:       'rgba(255,255,255,0.65)',
+    surfaceBorder: 'rgba(180,158,220,0.2)',
+    navBg:         'rgba(237,233,255,0.92)',
+    navBorder:     'rgba(180,158,220,0.12)',
+    text:          '#2a1848',
+    textSoft:      '#8a78a8',
+    accent:        '#7a48cc',
+    accentText:    '#fff',
+    glow:          'rgba(158,118,240,0.18)',
+  },
+  'Neon Nights': {
+    bg:            '#07070f',
+    surface:       'rgba(255,255,255,0.04)',
+    surfaceBorder: 'rgba(158,55,240,0.2)',
+    navBg:         'rgba(5,5,12,0.92)',
+    navBorder:     'rgba(158,55,240,0.12)',
+    text:          '#e8e0ff',
+    textSoft:      '#7855c8',
+    accent:        '#9828f0',
+    accentText:    '#fff',
+    glow:          'rgba(158,38,240,0.22)',
+  },
+  'Candlelight': {
+    bg:            '#0f0902',
+    surface:       'rgba(58,28,6,0.65)',
+    surfaceBorder: 'rgba(220,158,58,0.18)',
+    navBg:         'rgba(10,6,1,0.92)',
+    navBorder:     'rgba(220,158,58,0.1)',
+    text:          '#f0d8a0',
+    textSoft:      '#a07530',
+    accent:        '#e09828',
+    accentText:    '#1a0c02',
+    glow:          'rgba(238,158,38,0.2)',
+  },
+  'Greenhouse': {
+    bg:            '#07100a',
+    surface:       'rgba(255,255,255,0.04)',
+    surfaceBorder: 'rgba(75,158,75,0.15)',
+    navBg:         'rgba(5,10,6,0.92)',
+    navBorder:     'rgba(75,158,75,0.1)',
+    text:          '#c8e8c8',
+    textSoft:      '#558855',
+    accent:        '#389848',
+    accentText:    '#fff',
+    glow:          'rgba(58,148,58,0.18)',
+  },
+  'Studio': {
+    bg:            '#f4f4f4',
+    surface:       'rgba(255,255,255,0.88)',
+    surfaceBorder: 'rgba(0,0,0,0.1)',
+    navBg:         'rgba(244,244,244,0.96)',
+    navBorder:     'rgba(0,0,0,0.08)',
+    text:          '#101010',
+    textSoft:      '#646464',
+    accent:        '#181818',
+    accentText:    '#fff',
+    glow:          'rgba(0,0,0,0.07)',
+  },
+}
+
+// Per-app default mood (shown before profile loads / for logged-out users)
+export const APP_MOOD_DEFAULTS = {
+  customer: 'Golden Hour',
+  outdoor:  'Bright Day',
+  seller:   'Dream State',
+}
