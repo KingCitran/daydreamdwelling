@@ -24,11 +24,13 @@ import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation from './hooks/useRoomNavigation'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
+import { ThemeProvider } from '@shared/ThemeProvider'
 import AuthModal from './ui/AuthModal'
 import SaveRoomModal from './ui/SaveRoomModal'
 import LoadRoomModal from './ui/LoadRoomModal'
 import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
+import LandingPage from './pages/LandingPage'
 
 const DEFAULT_wallHeight = 8
 
@@ -42,7 +44,19 @@ function loadSaved() {
 }
 
 export default function App() {
-  return <AuthProvider><AppInner /></AuthProvider>
+  return (
+    <AuthProvider>
+      <ThemeProvider appKey="customer">
+        <Gate />
+      </ThemeProvider>
+    </AuthProvider>
+  )
+}
+
+function Gate() {
+  const [inBuilder, setInBuilder] = useState(false)
+  if (inBuilder) return <AppInner />
+  return <LandingPage onEnter={() => setInBuilder(true)} />
 }
 
 function AppInner() {
