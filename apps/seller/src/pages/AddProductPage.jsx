@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
+import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
 const BLANK_SIZE   = { label: '', price: '' }
@@ -9,6 +10,7 @@ const CATEGORIES = ['seating', 'tables', 'storage', 'beds', 'lighting', 'surface
 
 export default function AddProductPage({ productId, onDone }) {
   const { user } = useAuth()
+  const t        = useTheme()
   const isEdit   = !!productId
 
   const [label,    setLabel]    = useState('')
@@ -93,6 +95,7 @@ export default function AddProductPage({ productId, onDone }) {
     }
   }
 
+  const s = makeStyles(t)
   return (
     <div style={{ maxWidth: 700 }}>
       <div style={s.pageHeader}>
@@ -104,25 +107,25 @@ export default function AddProductPage({ productId, onDone }) {
       </div>
 
       <form onSubmit={handleSave} style={s.form}>
-        <Section title="Basic Info">
-          <Field label="Product name *">
+        <Section title="Basic Info" t={t}>
+          <Field t={t} label="Product name *">
             <input style={s.input} value={label} onChange={e => setLabel(e.target.value)} required placeholder="e.g. Luxe Velvet Sofa" />
           </Field>
           <Row>
-            <Field label="Brand">
+            <Field t={t} label="Brand">
               <input style={s.input} value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. Studio Nord" />
             </Field>
-            <Field label="Category">
+            <Field t={t} label="Category">
               <select style={s.input} value={category} onChange={e => setCategory(e.target.value)}>
                 <option value="">Select category…</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
             </Field>
           </Row>
-          <Field label="Description">
+          <Field t={t} label="Description">
             <textarea style={{ ...s.input, height: 90, resize: 'vertical' }} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe your product — materials, style, what makes it special…" />
           </Field>
-          <Field label="Preview gradient (temporary — image upload coming soon)">
+          <Field t={t} label="Preview gradient (temporary — image upload coming soon)">
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ width: 44, height: 44, borderRadius: 8, background: gradient, flexShrink: 0, border: '1px solid rgba(180,160,220,0.3)' }} />
               <input style={{ ...s.input, flex: 1 }} value={gradient} onChange={e => setGradient(e.target.value)} placeholder="linear-gradient(135deg,#c4a8ff,#f0a8d8)" />
@@ -130,13 +133,13 @@ export default function AddProductPage({ productId, onDone }) {
           </Field>
         </Section>
 
-        <Section title="Sizes & Prices">
+        <Section title="Sizes & Prices" t={t}>
           {sizes.map((sz, i) => (
             <Row key={i}>
-              <Field label="Size label">
+              <Field t={t} label="Size label">
                 <input style={s.input} value={sz.label} onChange={e => setSizeField(i, 'label', e.target.value)} placeholder="e.g. Small / 3-seat / 60in" />
               </Field>
-              <Field label="Price ($)">
+              <Field t={t} label="Price ($)">
                 <input style={s.input} type="number" min="0" value={sz.price} onChange={e => setSizeField(i, 'price', e.target.value)} placeholder="0" />
               </Field>
               {sizes.length > 1 && (
@@ -147,13 +150,13 @@ export default function AddProductPage({ productId, onDone }) {
           <button type="button" style={s.addRowBtn} onClick={() => setSizes(prev => [...prev, { ...BLANK_SIZE }])}>+ Add size</button>
         </Section>
 
-        <Section title="Color Swatches">
+        <Section title="Color Swatches" t={t}>
           {swatches.map((sw, i) => (
             <Row key={i}>
-              <Field label="Color name">
+              <Field t={t} label="Color name">
                 <input style={s.input} value={sw.name} onChange={e => setSwatchField(i, 'name', e.target.value)} placeholder="e.g. Midnight Blue" />
               </Field>
-              <Field label="Color">
+              <Field t={t} label="Color">
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input type="color" value={sw.hex} onChange={e => setSwatchField(i, 'hex', e.target.value)} style={{ width: 42, height: 42, border: '1px solid rgba(180,160,220,0.3)', borderRadius: 8, background: 'none', cursor: 'pointer', padding: 2 }} />
                   <input style={{ ...s.input, flex: 1 }} value={sw.hex} onChange={e => setSwatchField(i, 'hex', e.target.value)} placeholder="#888888" />
@@ -167,8 +170,8 @@ export default function AddProductPage({ productId, onDone }) {
           <button type="button" style={s.addRowBtn} onClick={() => setSwatches(prev => [...prev, { ...BLANK_SWATCH }])}>+ Add swatch</button>
         </Section>
 
-        <Section title="Tags & Visibility">
-          <Field label="Tags (comma-separated)">
+        <Section title="Tags & Visibility" t={t}>
+          <Field t={t} label="Tags (comma-separated)">
             <input style={s.input} value={tags} onChange={e => setTags(e.target.value)} placeholder="modern, oak, bestseller, japandi" />
           </Field>
           <label style={s.checkLabel}>
@@ -187,31 +190,33 @@ export default function AddProductPage({ productId, onDone }) {
   )
 }
 
-function Section({ title, children }) {
+function Section({ title, children, t }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.65)', backdropFilter: 'blur(12px)', border: '1px solid rgba(180,160,220,0.2)', borderRadius: 14, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 2px 12px rgba(140,100,200,0.06)' }}>
-      <h3 style={{ fontSize: 11, fontWeight: 700, color: '#9a78cc', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>{title}</h3>
+    <div style={{ background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <h3 style={{ fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>{title}</h3>
       {children}
     </div>
   )
 }
-function Field({ label, children }) {
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: '#6a5a8a' }}>{label}</label>{children}</div>
+function Field({ label, children, t }) {
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: t.textSoft }}>{label}</label>{children}</div>
 }
 function Row({ children }) {
   return <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>{children}</div>
 }
 
-const s = {
-  pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  pageTitle:  { fontSize: 26, fontWeight: 700, color: '#3a2a5a', marginBottom: 4 },
-  pageSubtitle:{ fontSize: 13, color: '#9a88bb' },
-  cancelBtn:  { padding: '8px 16px', background: 'transparent', border: '1px solid rgba(180,160,220,0.4)', borderRadius: 8, color: '#7a6a9a', fontSize: 13, cursor: 'pointer' },
-  form:       { display: 'flex', flexDirection: 'column', gap: 14 },
-  input:      { padding: '10px 12px', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(180,160,220,0.35)', borderRadius: 8, color: '#3a2a5a', fontSize: 13, outline: 'none', width: '100%' },
-  removeBtn:  { padding: '8px 10px', background: 'transparent', border: '1px solid rgba(220,140,140,0.4)', borderRadius: 7, color: '#c06060', fontSize: 12, alignSelf: 'flex-end', marginBottom: 1, flexShrink: 0, cursor: 'pointer' },
-  addRowBtn:  { alignSelf: 'flex-start', padding: '7px 14px', background: 'transparent', border: '1px solid rgba(180,160,220,0.35)', borderRadius: 7, color: '#8a78aa', fontSize: 12, cursor: 'pointer' },
-  checkLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#4a3a6a', cursor: 'pointer' },
-  error:      { fontSize: 12, color: '#c05050', background: 'rgba(220,100,100,0.08)', border: '1px solid rgba(220,100,100,0.25)', borderRadius: 8, padding: '10px 14px' },
-  saveBtn:    { padding: '14px 0', background: 'linear-gradient(135deg,#c4a8ff,#f0a8d8)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s' },
+function makeStyles(t) {
+  return {
+    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+    pageTitle:  { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
+    pageSubtitle:{ fontSize: 13, color: t.textSoft },
+    cancelBtn:  { padding: '8px 16px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 13, cursor: 'pointer' },
+    form:       { display: 'flex', flexDirection: 'column', gap: 14 },
+    input:      { padding: '10px 12px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontSize: 13, outline: 'none', width: '100%' },
+    removeBtn:  { padding: '8px 10px', background: 'transparent', border: '1px solid rgba(220,140,140,0.4)', borderRadius: 7, color: '#c06060', fontSize: 12, alignSelf: 'flex-end', marginBottom: 1, flexShrink: 0, cursor: 'pointer' },
+    addRowBtn:  { alignSelf: 'flex-start', padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.textSoft, fontSize: 12, cursor: 'pointer' },
+    checkLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.text, cursor: 'pointer' },
+    error:      { fontSize: 12, color: '#c05050', background: 'rgba(220,100,100,0.08)', border: '1px solid rgba(220,100,100,0.25)', borderRadius: 8, padding: '10px 14px' },
+    saveBtn:    { padding: '14px 0', background: t.accent, color: t.accentText, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s' },
+  }
 }

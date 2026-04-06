@@ -9,6 +9,7 @@ import OrdersPage          from './pages/OrdersPage'
 import EarningsPage        from './pages/EarningsPage'
 import SettingsPage        from './pages/SettingsPage'
 import NotificationsPage   from './pages/NotificationsPage'
+import ReviewsPage         from './pages/ReviewsPage'
 import NavBar              from './ui/NavBar'
 
 export default function App() {
@@ -46,6 +47,7 @@ function Shell() {
         {page === 'earnings'        && <EarningsPage />}
         {page === 'settings'        && <SettingsPage />}
         {page === 'notifications'   && <NotificationsPage />}
+        {page === 'reviews'         && <ReviewsPage />}
       </main>
     </div>
   )
