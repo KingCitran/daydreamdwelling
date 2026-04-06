@@ -6,6 +6,7 @@ import ProductsPage   from './pages/ProductsPage'
 import AddProductPage from './pages/AddProductPage'
 import OrdersPage     from './pages/OrdersPage'
 import EarningsPage   from './pages/EarningsPage'
+import SettingsPage   from './pages/SettingsPage'
 import NavBar         from './ui/NavBar'
 
 export default function App() {
@@ -30,14 +31,15 @@ function Shell() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(135deg, #ede9ff 0%, #f9e8ff 50%, #ffeef5 100%)' }}>
       <NavBar page={page} onNavigate={navigate} />
-      <main style={{ flex: 1, padding: '32px 28px', overflowY: 'auto' }}>
+      <main style={{ flex: 1, padding: '36px 32px', overflowY: 'auto' }}>
         {page === 'dashboard'   && <DashboardPage onNavigate={navigate} />}
         {page === 'products'    && <ProductsPage  onNavigate={navigate} />}
         {page === 'add-product' && <AddProductPage productId={editProductId} onDone={() => navigate('products')} />}
         {page === 'orders'      && <OrdersPage />}
         {page === 'earnings'    && <EarningsPage />}
+        {page === 'settings'    && <SettingsPage />}
       </main>
     </div>
   )

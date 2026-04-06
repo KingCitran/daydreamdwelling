@@ -7,6 +7,8 @@ export default function ProductsPage({ onNavigate }) {
   const [products, setProducts] = useState([])
   const [loading,  setLoading]  = useState(true)
   const [deleting, setDeleting] = useState(null)
+  const [search,   setSearch]   = useState('')
+  const [sort,     setSort]     = useState('newest')
 
   async function load() {
     if (!user) return
@@ -40,6 +42,14 @@ export default function ProductsPage({ onNavigate }) {
     return prices.length ? Math.min(...prices) : null
   }
 
+  const filtered = products
+    .filter(p => !search || p.label?.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (sort === 'name') return (a.label ?? '').localeCompare(b.label ?? '')
+      if (sort === 'price') return (minPrice(a) ?? 0) - (minPrice(b) ?? 0)
+      return 0 // newest = DB order
+    })
+
   return (
     <div>
       <div style={s.pageHeader}>
@@ -48,6 +58,15 @@ export default function ProductsPage({ onNavigate }) {
           <p style={s.pageSubtitle}>{products.length} listing{products.length !== 1 ? 's' : ''}</p>
         </div>
         <button style={s.addBtn} onClick={() => onNavigate('add-product')}>+ New product</button>
+      </div>
+
+      <div style={s.toolbar}>
+        <input style={s.search} placeholder="Search products…" value={search} onChange={e => setSearch(e.target.value)} />
+        <select style={s.sortSelect} value={sort} onChange={e => setSort(e.target.value)}>
+          <option value="newest">Newest</option>
+          <option value="name">Name A–Z</option>
+          <option value="price">Price: Low–High</option>
+        </select>
       </div>
 
       {loading ? (
@@ -60,13 +79,14 @@ export default function ProductsPage({ onNavigate }) {
         </div>
       ) : (
         <div style={s.grid}>
-          {products.map(p => {
+          {filtered.map(p => {
             const price = minPrice(p)
             return (
               <div key={p.id} style={s.card}>
                 <div style={s.cardTop}>
-                  <div style={s.cardThumb} />
-                  <div style={{ ...s.statusDot, background: p.is_active ? '#4aff88' : '#666' }} />
+                  <div style={{ ...s.statusPill, background: p.is_active ? '#88d8b0' : '#e0d8f0', color: p.is_active ? '#2a6a4a' : '#9a88bb' }}>
+                    {p.is_active ? 'Active' : 'Inactive'}
+                  </div>
                 </div>
                 <div style={s.cardBody}>
                   <p style={s.cardLabel}>{p.label}</p>
@@ -75,10 +95,10 @@ export default function ProductsPage({ onNavigate }) {
                 </div>
                 <div style={s.cardActions}>
                   <button style={s.actionBtn} onClick={() => onNavigate('add-product', { editProductId: p.id })}>Edit</button>
-                  <button style={{ ...s.actionBtn, color: p.is_active ? '#ffdd88' : '#a0ffcc' }} onClick={() => toggleActive(p)}>
+                  <button style={{ ...s.actionBtn, color: p.is_active ? '#e0944a' : '#5a9a6a' }} onClick={() => toggleActive(p)}>
                     {p.is_active ? 'Deactivate' : 'Activate'}
                   </button>
-                  <button style={{ ...s.actionBtn, color: '#ff9999' }} onClick={() => handleDelete(p.id)} disabled={deleting === p.id}>
+                  <button style={{ ...s.actionBtn, color: '#d06060' }} onClick={() => handleDelete(p.id)} disabled={deleting === p.id}>
                     {deleting === p.id ? '…' : 'Delete'}
                   </button>
                 </div>
@@ -92,22 +112,24 @@ export default function ProductsPage({ onNavigate }) {
 }
 
 const s = {
-  pageHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  pageTitle:   { fontSize: 24, fontWeight: 700, color: '#e0d9ff', marginBottom: 4 },
-  pageSubtitle:{ fontSize: 13, color: '#7878aa' },
-  addBtn:      { padding: '10px 18px', background: 'linear-gradient(135deg, #4a3a7a 0%, #6a4aaa 100%)', color: '#fff', border: '1px solid #9a7aee', borderRadius: 9, fontSize: 13, fontWeight: 600 },
-  dimText:     { fontSize: 13, color: '#5a5a7a' },
-  empty:       { background: '#1a1a2e', border: '1px dashed #3a3a5a', borderRadius: 12, padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
-  emptyTitle:  { fontSize: 16, fontWeight: 600, color: '#e0d9ff' },
+  pageHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  pageTitle:   { fontSize: 26, fontWeight: 700, color: '#3a2a5a', marginBottom: 4 },
+  pageSubtitle:{ fontSize: 13, color: '#9a88bb' },
+  addBtn:      { padding: '10px 18px', background: 'linear-gradient(135deg,#c4a8ff,#f0a8d8)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  toolbar:     { display: 'flex', gap: 10, marginBottom: 20 },
+  search:      { flex: 1, padding: '9px 14px', border: '1px solid rgba(180,160,220,0.3)', borderRadius: 8, fontSize: 13, background: 'rgba(255,255,255,0.6)', color: '#3a2a5a', outline: 'none' },
+  sortSelect:  { padding: '9px 14px', border: '1px solid rgba(180,160,220,0.3)', borderRadius: 8, fontSize: 13, background: 'rgba(255,255,255,0.6)', color: '#3a2a5a', cursor: 'pointer' },
+  dimText:     { fontSize: 13, color: '#9a88bb' },
+  empty:       { background: 'rgba(255,255,255,0.5)', border: '1px dashed rgba(180,140,255,0.3)', borderRadius: 16, padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+  emptyTitle:  { fontSize: 16, fontWeight: 600, color: '#3a2a5a' },
   grid:        { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 },
-  card:        { background: '#1a1a2e', border: '1px solid #2a2a4a', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  cardTop:     { height: 120, background: 'linear-gradient(135deg, #2a2a4a, #1a1a3a)', position: 'relative', flexShrink: 0 },
-  cardThumb:   { width: '100%', height: '100%' },
-  statusDot:   { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: '50%' },
+  card:        { background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(12px)', border: '1px solid rgba(180,160,220,0.2)', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 12px rgba(140,100,200,0.07)' },
+  cardTop:     { height: 100, background: 'linear-gradient(135deg,rgba(196,168,255,0.2),rgba(240,168,216,0.2))', position: 'relative', display: 'flex', alignItems: 'flex-start', padding: 10 },
+  statusPill:  { fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', letterSpacing: '0.3px' },
   cardBody:    { padding: '14px 16px', flex: 1 },
-  cardLabel:   { fontSize: 14, fontWeight: 600, color: '#e0d9ff', marginBottom: 4 },
-  cardBrand:   { fontSize: 11, color: '#7878aa', marginBottom: 6 },
-  cardPrice:   { fontSize: 13, fontWeight: 600, color: '#a0ffcc' },
-  cardActions: { display: 'flex', gap: 0, borderTop: '1px solid #2a2a4a' },
-  actionBtn:   { flex: 1, padding: '8px 0', background: 'transparent', border: 'none', color: '#9090b8', fontSize: 12, borderRight: '1px solid #2a2a4a' },
+  cardLabel:   { fontSize: 14, fontWeight: 600, color: '#3a2a5a', marginBottom: 4 },
+  cardBrand:   { fontSize: 11, color: '#9a88bb', marginBottom: 6 },
+  cardPrice:   { fontSize: 13, fontWeight: 600, color: '#6a4aaa' },
+  cardActions: { display: 'flex', borderTop: '1px solid rgba(180,160,220,0.15)' },
+  actionBtn:   { flex: 1, padding: '9px 0', background: 'transparent', border: 'none', color: '#7a6a9a', fontSize: 12, borderRight: '1px solid rgba(180,160,220,0.15)', cursor: 'pointer', fontWeight: 500 },
 }
