@@ -6,6 +6,7 @@ import Walls from './Walls'
 import Items from './Items'
 import Ceiling from './Ceiling'
 import Measurements from './Measurements'
+import { useMoodControl } from '@shared/ThemeProvider'
 
 const CAM_OFFSET = 18
 const ZOOM_MIN   = 15
@@ -13,11 +14,26 @@ const ZOOM_MAX   = 120
 
 // skyColor = indirect ceiling/sky bounce; groundColor = floor bounce (always darker)
 // keyI/keyC = main directional (window light); fillI/fillC = soft counter-fill
-const MOOD_PRESETS = {
-  bright:  { hemiI: 0.65, skyColor: '#f0f6ff', groundColor: '#c0a870', keyI: 1.6,  keyC: '#fffdf5', fillI: 0.30, fillC: '#d0e8ff' },
+const MOOD_SCENE_PRESETS = {
+  'Golden Hour':      { hemiI: 0.20, skyColor: '#ffb060', groundColor: '#3a1005', keyI: 0.85, keyC: '#ffb840', fillI: 0.12, fillC: '#ffa040' },
+  'Bright Day':       { hemiI: 0.65, skyColor: '#f0f6ff', groundColor: '#c0a870', keyI: 1.60, keyC: '#fffdf5', fillI: 0.30, fillC: '#d0e8ff' },
+  'Cozy Evening':     { hemiI: 0.06, skyColor: '#ff6020', groundColor: '#200808', keyI: 0.20, keyC: '#d04010', fillI: 0.05, fillC: '#ff7030' },
+  'Moonlight':        { hemiI: 0.10, skyColor: '#9098c8', groundColor: '#080814', keyI: 0.32, keyC: '#c8d8ff', fillI: 0.10, fillC: '#8090c0' },
+  'Dark Academia':    { hemiI: 0.06, skyColor: '#7a5010', groundColor: '#120808', keyI: 0.28, keyC: '#d09030', fillI: 0.06, fillC: '#a06820' },
+  'Cottagecore Dawn': { hemiI: 0.35, skyColor: '#ffb0a0', groundColor: '#a05040', keyI: 0.75, keyC: '#ffd0c0', fillI: 0.20, fillC: '#ffb8a8' },
+  'Coastal Morning':  { hemiI: 0.55, skyColor: '#c0e8ff', groundColor: '#6090b0', keyI: 1.30, keyC: '#e8f4ff', fillI: 0.28, fillC: '#b0d8f0' },
+  'Dream State':      { hemiI: 0.45, skyColor: '#e8d0ff', groundColor: '#a080c0', keyI: 0.90, keyC: '#f8e8ff', fillI: 0.22, fillC: '#d8c0f8' },
+  'Neon Nights':      { hemiI: 0.05, skyColor: '#8000ff', groundColor: '#000820', keyI: 0.40, keyC: '#ff00aa', fillI: 0.18, fillC: '#0040ff' },
+  'Candlelight':      { hemiI: 0.03, skyColor: '#ff4000', groundColor: '#100000', keyI: 0.12, keyC: '#ff6010', fillI: 0.03, fillC: '#ff5000' },
+  'Greenhouse':       { hemiI: 0.40, skyColor: '#90d060', groundColor: '#404a10', keyI: 1.00, keyC: '#e0f0c0', fillI: 0.22, fillC: '#a0c060' },
+  'Studio':           { hemiI: 0.80, skyColor: '#ffffff', groundColor: '#d0d0d0', keyI: 1.80, keyC: '#ffffff', fillI: 0.50, fillC: '#f0f0f0' },
+}
+// Legacy fallbacks for old save files
+const MOOD_LEGACY = {
+  bright:  MOOD_SCENE_PRESETS['Bright Day'],
   day:     { hemiI: 0.40, skyColor: '#d8eeff', groundColor: '#a08850', keyI: 1.2,  keyC: '#fffdf0', fillI: 0.18, fillC: '#c8ddf0' },
-  evening: { hemiI: 0.18, skyColor: '#ff9040', groundColor: '#3a1005', keyI: 0.55, keyC: '#ff7030', fillI: 0.08, fillC: '#ff9040' },
-  cozy:    { hemiI: 0.04, skyColor: '#ff5010', groundColor: '#180404', keyI: 0.14, keyC: '#b03008', fillI: 0.04, fillC: '#ff5010' },
+  evening: MOOD_SCENE_PRESETS['Golden Hour'],
+  cozy:    MOOD_SCENE_PRESETS['Cozy Evening'],
 }
 
 function IsometricCamera({ target, zoomRef }) {
@@ -102,7 +118,8 @@ export default function RoomScene({
   onEnterRoom,
   cartHighlight = null,
 }) {
-  const mood     = MOOD_PRESETS[lightMood] ?? MOOD_PRESETS.day
+  const { mood: sharedMood } = useMoodControl()
+  const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
   const groupRef = useRef()
   const currentRY = useRef(0)
 

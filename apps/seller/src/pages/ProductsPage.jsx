@@ -6,21 +6,38 @@ import { supabase } from '@shared/supabase'
 export default function ProductsPage({ onNavigate }) {
   const { user } = useAuth()
   const t        = useTheme()
-  const [products, setProducts] = useState([])
-  const [loading,  setLoading]  = useState(true)
-  const [deleting, setDeleting] = useState(null)
-  const [search,   setSearch]   = useState('')
-  const [sort,     setSort]     = useState('newest')
+  const [products,  setProducts]  = useState([])
+  const [unitsSold, setUnitsSold] = useState({}) // productId → qty
+  const [loading,   setLoading]   = useState(true)
+  const [deleting,  setDeleting]  = useState(null)
+  const [search,    setSearch]    = useState('')
+  const [sort,      setSort]      = useState('newest')
+  const [selected,  setSelected]  = useState(new Set())
+  const [bulking,   setBulking]   = useState(false)
 
   async function load() {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
+    const { data: prods } = await supabase
       .from('products')
       .select('id, label, brand, is_active, created_at, product_sizes(price)')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
-    setProducts(data || [])
+    const rows = prods || []
+    setProducts(rows)
+
+    if (rows.length) {
+      const ids = rows.map(p => p.id)
+      const { data: items } = await supabase
+        .from('order_items')
+        .select('product_id, quantity')
+        .in('product_id', ids)
+      const totals = {}
+      for (const it of items || []) {
+        totals[it.product_id] = (totals[it.product_id] || 0) + it.quantity
+      }
+      setUnitsSold(totals)
+    }
     setLoading(false)
   }
 
@@ -31,11 +48,65 @@ export default function ProductsPage({ onNavigate }) {
     setDeleting(id)
     await supabase.from('products').delete().eq('id', id)
     setDeleting(null)
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
     load()
   }
 
   async function toggleActive(product) {
     await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
+    load()
+  }
+
+  async function handleDuplicate(product) {
+    const { data: src } = await supabase
+      .from('products')
+      .select('*, product_sizes(*)')
+      .eq('id', product.id)
+      .single()
+    if (!src) return
+    const { id: _id, created_at: _ca, ...rest } = src
+    const { data: copy } = await supabase
+      .from('products')
+      .insert({ ...rest, label: `${src.label} (copy)`, is_active: false })
+      .select('id')
+      .single()
+    if (copy && src.product_sizes?.length) {
+      const sizes = src.product_sizes.map(({ id: _sid, product_id: _pid, ...sz }) => ({
+        ...sz, product_id: copy.id,
+      }))
+      await supabase.from('product_sizes').insert(sizes)
+    }
+    load()
+  }
+
+  // ── Bulk actions ────────────────────────────────────────────────────
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filtered.length) setSelected(new Set())
+    else setSelected(new Set(filtered.map(p => p.id)))
+  }
+
+  async function bulkSetActive(active) {
+    setBulking(true)
+    await supabase.from('products').update({ is_active: active }).in('id', [...selected])
+    setSelected(new Set())
+    setBulking(false)
+    load()
+  }
+
+  async function bulkDelete() {
+    if (!window.confirm(`Delete ${selected.size} product(s)? This cannot be undone.`)) return
+    setBulking(true)
+    await supabase.from('products').delete().in('id', [...selected])
+    setSelected(new Set())
+    setBulking(false)
     load()
   }
 
@@ -48,10 +119,13 @@ export default function ProductsPage({ onNavigate }) {
   const filtered = products
     .filter(p => !search || p.label?.toLowerCase().includes(search.toLowerCase()) || p.brand?.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      if (sort === 'name') return (a.label ?? '').localeCompare(b.label ?? '')
-      if (sort === 'price') return (minPrice(a) ?? 0) - (minPrice(b) ?? 0)
+      if (sort === 'name')     return (a.label ?? '').localeCompare(b.label ?? '')
+      if (sort === 'price')    return (minPrice(a) ?? 0) - (minPrice(b) ?? 0)
+      if (sort === 'sold')     return (unitsSold[b.id] || 0) - (unitsSold[a.id] || 0)
       return 0 // newest = DB order
     })
+
+  const allSelected = filtered.length > 0 && selected.size === filtered.length
 
   return (
     <div>
@@ -69,8 +143,20 @@ export default function ProductsPage({ onNavigate }) {
           <option value="newest">Newest</option>
           <option value="name">Name A–Z</option>
           <option value="price">Price: Low–High</option>
+          <option value="sold">Most Sold</option>
         </select>
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div style={s.bulkBar}>
+          <span style={s.bulkCount}>{selected.size} selected</span>
+          <button style={s.bulkBtn} onClick={() => bulkSetActive(true)}  disabled={bulking}>Activate</button>
+          <button style={s.bulkBtn} onClick={() => bulkSetActive(false)} disabled={bulking}>Deactivate</button>
+          <button style={{ ...s.bulkBtn, color: '#d06060' }} onClick={bulkDelete} disabled={bulking}>Delete</button>
+          <button style={s.bulkClear} onClick={() => setSelected(new Set())}>Clear</button>
+        </div>
+      )}
 
       {loading ? (
         <p style={s.dimText}>Loading…</p>
@@ -81,34 +167,55 @@ export default function ProductsPage({ onNavigate }) {
           <button style={s.addBtn} onClick={() => onNavigate('add-product')}>+ New product</button>
         </div>
       ) : (
-        <div style={s.grid}>
-          {filtered.map(p => {
-            const price = minPrice(p)
-            return (
-              <div key={p.id} style={s.card}>
-                <div style={s.cardTop}>
-                  <div style={{ ...s.statusPill, background: p.is_active ? '#88d8b0' : '#e0d8f0', color: p.is_active ? '#2a6a4a' : '#9a88bb' }}>
-                    {p.is_active ? 'Active' : 'Inactive'}
+        <>
+          <div style={s.selectAllRow}>
+            <label style={s.selectAllLabel}>
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{ accentColor: t.accent }} />
+              <span>Select all</span>
+            </label>
+          </div>
+          <div style={s.grid}>
+            {filtered.map(p => {
+              const price  = minPrice(p)
+              const sold   = unitsSold[p.id] || 0
+              const isSelected = selected.has(p.id)
+              return (
+                <div key={p.id} style={{ ...s.card, ...(isSelected ? { outline: `2px solid ${t.accent}` } : {}) }}>
+                  <div style={s.cardTop}>
+                    <div style={{ ...s.statusPill, background: p.is_active ? '#88d8b0' : '#e0d8f0', color: p.is_active ? '#2a6a4a' : '#9a88bb' }}>
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </div>
+                    <div style={s.cardTopRight}>
+                      {sold > 0 && <span style={s.soldBadge}>{sold} sold</span>}
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(p.id)}
+                        style={{ accentColor: t.accent, cursor: 'pointer' }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  <div style={s.cardBody}>
+                    <p style={s.cardLabel}>{p.label}</p>
+                    {p.brand && <p style={s.cardBrand}>{p.brand}</p>}
+                    {price != null && <p style={s.cardPrice}>from ${price.toLocaleString()}</p>}
+                  </div>
+                  <div style={s.cardActions}>
+                    <button style={s.actionBtn} onClick={() => onNavigate('add-product', { editProductId: p.id })}>Edit</button>
+                    <button style={{ ...s.actionBtn, color: p.is_active ? '#e0944a' : '#5a9a6a' }} onClick={() => toggleActive(p)}>
+                      {p.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button style={s.actionBtn} onClick={() => handleDuplicate(p)} title="Duplicate as inactive draft">⎘</button>
+                    <button style={{ ...s.actionBtn, color: '#d06060', borderRight: 'none' }} onClick={() => handleDelete(p.id)} disabled={deleting === p.id}>
+                      {deleting === p.id ? '…' : 'Del'}
+                    </button>
                   </div>
                 </div>
-                <div style={s.cardBody}>
-                  <p style={s.cardLabel}>{p.label}</p>
-                  {p.brand && <p style={s.cardBrand}>{p.brand}</p>}
-                  {price != null && <p style={s.cardPrice}>from ${price.toLocaleString()}</p>}
-                </div>
-                <div style={s.cardActions}>
-                  <button style={s.actionBtn} onClick={() => onNavigate('add-product', { editProductId: p.id })}>Edit</button>
-                  <button style={{ ...s.actionBtn, color: p.is_active ? '#e0944a' : '#5a9a6a' }} onClick={() => toggleActive(p)}>
-                    {p.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button style={{ ...s.actionBtn, color: '#d06060' }} onClick={() => handleDelete(p.id)} disabled={deleting === p.id}>
-                    {deleting === p.id ? '…' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
@@ -116,25 +223,33 @@ export default function ProductsPage({ onNavigate }) {
 
 function makeStyles(t) {
   return {
-    pageHeader:  { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    pageTitle:   { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
-    pageSubtitle:{ fontSize: 13, color: t.textSoft },
-    addBtn:      { padding: '10px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-    toolbar:     { display: 'flex', gap: 10, marginBottom: 20 },
-    search:      { flex: 1, padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' },
-    sortSelect:  { padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, cursor: 'pointer' },
-    dimText:     { fontSize: 13, color: t.textSoft },
-    empty:       { background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
-    emptyTitle:  { fontSize: 16, fontWeight: 600, color: t.text },
-    grid:        { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 },
-    card:        { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-    cardTop:     { height: 100, background: `${t.accent}12`, position: 'relative', display: 'flex', alignItems: 'flex-start', padding: 10 },
-    statusPill:  { fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', letterSpacing: '0.3px' },
-    cardBody:    { padding: '14px 16px', flex: 1 },
-    cardLabel:   { fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 4 },
-    cardBrand:   { fontSize: 11, color: t.textSoft, marginBottom: 6 },
-    cardPrice:   { fontSize: 13, fontWeight: 600, color: t.accent },
-    cardActions: { display: 'flex', borderTop: `1px solid ${t.surfaceBorder}` },
-    actionBtn:   { flex: 1, padding: '9px 0', background: 'transparent', border: 'none', color: t.textSoft, fontSize: 12, borderRight: `1px solid ${t.surfaceBorder}`, cursor: 'pointer', fontWeight: 500 },
+    pageHeader:   { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+    pageTitle:    { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
+    pageSubtitle: { fontSize: 13, color: t.textSoft },
+    addBtn:       { padding: '10px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    toolbar:      { display: 'flex', gap: 10, marginBottom: 12 },
+    search:       { flex: 1, padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' },
+    sortSelect:   { padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, cursor: 'pointer' },
+    bulkBar:      { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: `${t.accent}14`, border: `1px solid ${t.accent}44`, borderRadius: 10, marginBottom: 14 },
+    bulkCount:    { fontSize: 13, fontWeight: 600, color: t.accent, marginRight: 4 },
+    bulkBtn:      { padding: '5px 12px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, fontSize: 12, fontWeight: 600, color: t.text, cursor: 'pointer' },
+    bulkClear:    { marginLeft: 'auto', padding: '5px 10px', background: 'transparent', border: 'none', fontSize: 12, color: t.textSoft, cursor: 'pointer' },
+    selectAllRow: { display: 'flex', alignItems: 'center', marginBottom: 10 },
+    selectAllLabel: { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: t.textSoft, cursor: 'pointer', userSelect: 'none' },
+    dimText:      { fontSize: 13, color: t.textSoft },
+    empty:        { background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+    emptyTitle:   { fontSize: 16, fontWeight: 600, color: t.text },
+    grid:         { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 },
+    card:         { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'outline 0.1s' },
+    cardTop:      { height: 80, background: `${t.accent}12`, position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: 10 },
+    cardTopRight: { display: 'flex', alignItems: 'center', gap: 8 },
+    statusPill:   { fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', letterSpacing: '0.3px' },
+    soldBadge:    { fontSize: 10, fontWeight: 600, color: t.textSoft, background: `${t.textSoft}18`, borderRadius: 20, padding: '2px 8px' },
+    cardBody:     { padding: '14px 16px', flex: 1 },
+    cardLabel:    { fontSize: 14, fontWeight: 600, color: t.text, marginBottom: 4 },
+    cardBrand:    { fontSize: 11, color: t.textSoft, marginBottom: 6 },
+    cardPrice:    { fontSize: 13, fontWeight: 600, color: t.accent },
+    cardActions:  { display: 'flex', borderTop: `1px solid ${t.surfaceBorder}` },
+    actionBtn:    { flex: 1, padding: '9px 0', background: 'transparent', border: 'none', color: t.textSoft, fontSize: 12, borderRight: `1px solid ${t.surfaceBorder}`, cursor: 'pointer', fontWeight: 500 },
   }
 }

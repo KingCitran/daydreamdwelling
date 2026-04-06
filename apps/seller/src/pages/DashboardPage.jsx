@@ -14,48 +14,71 @@ const STAT_COLORS = [
 export default function DashboardPage({ onNavigate }) {
   const { user, profile } = useAuth()
   const t = useTheme()
-  const [stats,   setStats]   = useState(null)
-  const [recent,  setRecent]  = useState([])
-  const [loading, setLoading] = useState(true)
+  const [stats,      setStats]      = useState(null)
+  const [recent,     setRecent]     = useState([])
+  const [topSellers, setTopSellers] = useState([])
+  const [needsAttn,  setNeedsAttn]  = useState([])
+  const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
     if (!user) return
     async function load() {
       setLoading(true)
       const { data: products } = await supabase
-        .from('products').select('id').eq('seller_id', user.id)
-      const productIds = (products || []).map(p => p.id)
+        .from('products').select('id, label').eq('seller_id', user.id)
+      const productIds   = (products || []).map(p => p.id)
+      const productNames = Object.fromEntries((products || []).map(p => [p.id, p.label]))
 
       let revenue = 0, orderCount = 0, pendingCount = 0
-      let recentOrders = []
+      let recentOrders = [], topRows = [], attnOrders = []
 
       if (productIds.length) {
         const { data: items } = await supabase
           .from('order_items')
-          .select('quantity, unit_price, orders(status)')
+          .select('product_id, quantity, unit_price, orders(status)')
           .in('product_id', productIds)
+
+        // revenue + counts
         for (const item of items || []) {
           if (item.orders?.status === 'paid') revenue += item.quantity * item.unit_price
         }
         orderCount = (items || []).length
-        const { count } = await supabase
-          .from('order_items')
-          .select('id', { count: 'exact', head: true })
-          .in('product_id', productIds)
-          .eq('orders.status', 'pending')
-        pendingCount = count || 0
+        pendingCount = (items || []).filter(it => it.orders?.status === 'pending').length
 
-        const { data } = await supabase
+        // top sellers — group by product
+        const totals = {}
+        for (const it of items || []) {
+          totals[it.product_id] = (totals[it.product_id] || 0) + it.quantity
+        }
+        topRows = Object.entries(totals)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([id, qty]) => ({ id, label: productNames[id] ?? '—', qty }))
+
+        // recent orders
+        const { data: ro } = await supabase
           .from('order_items')
-          .select('id, quantity, unit_price, created_at, products(label), orders(status, created_at)')
+          .select('id, quantity, unit_price, created_at, products(label), orders(id, status, created_at)')
           .in('product_id', productIds)
           .order('created_at', { ascending: false })
           .limit(5)
-        recentOrders = data || []
+        recentOrders = ro || []
+
+        // needs attention — paid orders not yet shipped
+        const { data: attn } = await supabase
+          .from('order_items')
+          .select('id, quantity, products(label), orders(id, status, created_at)')
+          .in('product_id', productIds)
+          .eq('orders.status', 'paid')
+          .order('created_at', { ascending: true })
+          .limit(8)
+        attnOrders = (attn || []).filter(it => it.orders?.status === 'paid')
       }
 
       setStats({ revenue, orderCount, pendingCount, productCount: productIds.length })
       setRecent(recentOrders)
+      setTopSellers(topRows)
+      setNeedsAttn(attnOrders)
       setLoading(false)
     }
     load()
@@ -140,6 +163,46 @@ export default function DashboardPage({ onNavigate }) {
             </div>
           </div>
 
+          {/* Needs Attention + Top Sellers row */}
+          {(needsAttn.length > 0 || topSellers.length > 0) && (
+            <div style={{ ...s.twoCol, marginBottom: 20 }}>
+              {needsAttn.length > 0 ? (
+                <div style={s.card}>
+                  <div style={s.cardHeader}>
+                    <h2 style={s.cardTitle}>
+                      <span style={{ color: '#ffc87a', marginRight: 6 }}>⚠</span>
+                      Needs Fulfillment
+                    </h2>
+                    <button style={s.linkBtn} onClick={() => onNavigate('orders')}>View orders →</button>
+                  </div>
+                  {needsAttn.map(item => (
+                    <div key={item.id} style={s.attnRow}>
+                      <div style={s.attnDot} />
+                      <span style={{ flex: 1, fontSize: 13, color: t.text }}>{item.products?.label ?? '—'}</span>
+                      <span style={{ fontSize: 12, color: t.textSoft }}>×{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <div />}
+
+              {topSellers.length > 0 && (
+                <div style={s.card}>
+                  <div style={s.cardHeader}>
+                    <h2 style={s.cardTitle}>Top Sellers</h2>
+                    <button style={s.linkBtn} onClick={() => onNavigate('products')}>All products →</button>
+                  </div>
+                  {topSellers.map((p, i) => (
+                    <div key={p.id} style={s.topRow}>
+                      <span style={s.topRank}>{i + 1}</span>
+                      <span style={{ flex: 1, fontSize: 13, color: t.text, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: t.accent }}>{p.qty} sold</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {stats.productCount === 0 && (
             <div style={{ marginTop: 16, background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: '28px', textAlign: 'center' }}>
               <p style={{ fontSize: 14, color: t.textSoft, marginBottom: 14 }}>You haven't listed any products yet.</p>
@@ -196,5 +259,9 @@ function makeStyles(t) {
     tableRow:   { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8, padding: '10px 0', borderBottom: `1px solid ${t.surfaceBorder}` },
     cell:       { fontSize: 13, color: t.text, display: 'flex', alignItems: 'center' },
     actionBtn:  { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', background: `${t.accent}08`, cursor: 'pointer', width: '100%' },
+    attnRow:    { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: `1px solid ${t.surfaceBorder}` },
+    attnDot:    { width: 8, height: 8, borderRadius: '50%', background: '#ffc87a', flexShrink: 0 },
+    topRow:     { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: `1px solid ${t.surfaceBorder}` },
+    topRank:    { width: 20, fontSize: 11, fontWeight: 700, color: t.textSoft, textAlign: 'center', flexShrink: 0 },
   }
 }

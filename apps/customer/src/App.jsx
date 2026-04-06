@@ -31,6 +31,7 @@ import LoadRoomModal from './ui/LoadRoomModal'
 import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
 import LandingPage from './pages/LandingPage'
+import MoodPicker from '@shared/MoodPicker'
 
 const DEFAULT_wallHeight = 8
 
@@ -689,7 +690,6 @@ function AppInner() {
             isSignedIn={!!user}
             screenshotRef={screenshotRef}
             bgColor={bgColor} setBgColor={setBgColor}
-            lightMood={lightMood} setLightMood={setLightMood}
           />
         )}
 
@@ -711,6 +711,7 @@ function AppInner() {
             style={{ ...styles.bottomBtn, ...(musicOpen ? styles.bottomBtnActive : {}) }}
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
+          <MoodPicker />
           <button style={styles.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>

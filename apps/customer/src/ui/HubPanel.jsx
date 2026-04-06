@@ -19,7 +19,6 @@ export default function HubPanel({
   onCloudSave, onCloudLoad, isSignedIn,
   screenshotRef,
   bgColor, setBgColor,
-  lightMood, setLightMood,
 }) {
   return (
     <div style={{ ...styles.hubPanel, width: compact ? Math.min(220, vw - 60) : 234 }}>
@@ -126,21 +125,6 @@ export default function HubPanel({
           style={styles.hubBgPicker} title="Custom colour" />
       </div>
 
-      <div style={styles.hubDivider} />
-      <p style={styles.hubSectionLabel}>Lighting Mood</p>
-      <div style={styles.hubBtnRow}>
-        {[
-          { id: 'bright',  label: '☀ Bright'  },
-          { id: 'day',     label: '🌤 Day'     },
-          { id: 'evening', label: '🌆 Evening' },
-          { id: 'cozy',    label: '🕯 Cozy'    },
-        ].map(({ id, label }) => (
-          <button key={id}
-            style={{ ...styles.hubBtn, ...(lightMood === id ? styles.hubBtnActive : {}) }}
-            onClick={() => setLightMood(id)}
-          >{label}</button>
-        ))}
-      </div>
     </div>
   )
 }
