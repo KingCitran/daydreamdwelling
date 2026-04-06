@@ -1,4 +1,5 @@
 import { useTheme } from '@shared/ThemeProvider'
+import MoodPicker from '@shared/MoodPicker'
 
 const FEATURES = [
   { icon: '◈', title: '3D room builder',       text: 'Place furniture, adjust walls, switch lighting moods — all in real time.' },
@@ -29,7 +30,8 @@ export default function LandingPage({ onEnter }) {
               <div style={{ fontSize: 9, color: t.textSoft, letterSpacing: '0.5px' }}>Room Builder</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <MoodPicker />
             <a href="http://localhost:5175" target="_blank" rel="noreferrer" style={{ ...s.navLink, color: t.textSoft }}>Outdoor Shop</a>
             <button style={s.navCta} onClick={onEnter}>Open Builder →</button>
           </div>

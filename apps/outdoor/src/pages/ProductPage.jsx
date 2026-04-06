@@ -1,34 +1,32 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@shared/supabase'
+import { useTheme } from '@shared/ThemeProvider'
 
 export default function ProductPage({ productId, cart, onNavigate }) {
-  const [product,      setProduct]      = useState(null)
-  const [loading,      setLoading]      = useState(true)
-  const [sizeIndex,    setSizeIndex]    = useState(0)
-  const [swatchIndex,  setSwatchIndex]  = useState(0)
-  const [added,        setAdded]        = useState(false)
+  const t = useTheme()
+  const [product,     setProduct]     = useState(null)
+  const [loading,     setLoading]     = useState(true)
+  const [sizeIndex,   setSizeIndex]   = useState(0)
+  const [swatchIndex, setSwatchIndex] = useState(0)
+  const [added,       setAdded]       = useState(false)
 
   useEffect(() => {
     if (!productId) return
-    async function load() {
-      setLoading(true)
-      const { data } = await supabase
-        .from('products')
-        .select('*, product_sizes(*), product_swatches(*), product_tags(tag)')
-        .eq('id', productId)
-        .single()
-      setProduct(data)
-      setLoading(false)
-    }
-    load()
+    setLoading(true)
+    supabase
+      .from('products')
+      .select('*, product_sizes(*), product_swatches(*), product_tags(tag)')
+      .eq('id', productId)
+      .single()
+      .then(({ data }) => { setProduct(data); setLoading(false) })
   }, [productId])
 
-  if (loading) return <div style={s.page}><p style={s.dim}>Loading…</p></div>
-  if (!product) return <div style={s.page}><p style={s.dim}>Product not found.</p></div>
+  if (loading) return <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}><p style={{ color: '#9aaa8a', fontSize: 14 }}>Loading…</p></div>
+  if (!product) return <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}><p style={{ color: '#9aaa8a', fontSize: 14 }}>Product not found.</p></div>
 
-  const sizes   = product.product_sizes   || []
+  const sizes   = product.product_sizes    || []
   const swatches = product.product_swatches || []
-  const tags    = product.product_tags    || []
+  const tags    = product.product_tags     || []
   const size    = sizes[sizeIndex]
   const swatch  = swatches[swatchIndex]
 
@@ -39,34 +37,41 @@ export default function ProductPage({ productId, cart, onNavigate }) {
   }
 
   return (
-    <div style={s.page}>
-      <button style={s.backBtn} onClick={() => onNavigate('browse')}>← Back to Browse</button>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <button style={{ background: 'none', border: 'none', color: t.accent, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 20, padding: 0 }} onClick={() => onNavigate('browse')}>
+        ← Back to Browse
+      </button>
 
-      <div style={s.layout}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'flex-start' }}>
+
         {/* Image */}
-        <div style={{ ...s.imgBox, background: product.gradient ?? 'linear-gradient(135deg,#4a8a3a,#2a6a1a)' }} />
+        <div style={{ height: 460, borderRadius: 16, width: '100%', background: product.gradient ?? t.surface, border: `1px solid ${t.surfaceBorder}` }} />
 
         {/* Info */}
-        <div style={s.info}>
-          {product.brand && <p style={s.brand}>{product.brand}</p>}
-          <h1 style={s.title}>{product.label}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {product.brand && (
+            <p style={{ fontSize: 11, fontWeight: 700, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 6 }}>{product.brand}</p>
+          )}
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: t.text, lineHeight: 1.2, marginBottom: 12 }}>{product.label}</h1>
 
           {tags.length > 0 && (
-            <div style={s.tagRow}>
-              {tags.map(t => <span key={t.tag} style={s.tag}>{t.tag}</span>)}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+              {tags.map(tag => (
+                <span key={tag.tag} style={{ fontSize: 11, color: t.accent, background: `${t.accent}14`, padding: '3px 9px', borderRadius: 20 }}>{tag.tag}</span>
+              ))}
             </div>
           )}
 
-          {product.description && <p style={s.desc}>{product.description}</p>}
+          {product.description && <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 16 }}>{product.description}</p>}
 
           {/* Swatches */}
           {swatches.length > 0 && (
-            <div style={s.section}>
-              <p style={s.sectionLabel}>Color: <strong>{swatch?.name}</strong></p>
-              <div style={s.swatchRow}>
+            <div style={{ marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: t.text, marginBottom: 10 }}>Color: <strong>{swatch?.name}</strong></p>
+              <div style={{ display: 'flex', gap: 8 }}>
                 {swatches.map((sw, i) => (
                   <button key={i} title={sw.name}
-                    style={{ ...s.swatch, background: sw.hex_color, outline: i === swatchIndex ? `3px solid #2a5a1a` : '3px solid transparent', outlineOffset: 2 }}
+                    style={{ width: 30, height: 30, borderRadius: '50%', border: `1px solid ${t.surfaceBorder}`, cursor: 'pointer', background: sw.hex_color, outline: i === swatchIndex ? `3px solid ${t.accent}` : '3px solid transparent', outlineOffset: 2 }}
                     onClick={() => setSwatchIndex(i)}
                   />
                 ))}
@@ -76,12 +81,12 @@ export default function ProductPage({ productId, cart, onNavigate }) {
 
           {/* Sizes */}
           {sizes.length > 0 && (
-            <div style={s.section}>
-              <p style={s.sectionLabel}>Size</p>
-              <div style={s.sizeRow}>
+            <div style={{ marginBottom: 18 }}>
+              <p style={{ fontSize: 13, color: t.text, marginBottom: 10 }}>Size</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {sizes.map((sz, i) => (
                   <button key={i}
-                    style={{ ...s.sizeBtn, ...(i === sizeIndex ? s.sizeBtnActive : {}) }}
+                    style={{ padding: '8px 16px', border: `1px solid ${i === sizeIndex ? t.accent : t.surfaceBorder}`, borderRadius: 7, background: i === sizeIndex ? `${t.accent}14` : t.surface, fontSize: 13, cursor: 'pointer', color: i === sizeIndex ? t.accent : t.text, fontWeight: i === sizeIndex ? 600 : 400 }}
                     onClick={() => setSizeIndex(i)}>
                     {sz.label}
                   </button>
@@ -91,22 +96,26 @@ export default function ProductPage({ productId, cart, onNavigate }) {
           )}
 
           {/* Price */}
-          <div style={s.priceRow}>
-            <span style={s.price}>${(size?.price ?? 0).toLocaleString()}</span>
-            <span style={s.priceSub}>Free shipping on orders over $150</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
+            <span style={{ fontSize: 30, fontWeight: 800, color: t.text }}>${(size?.price ?? 0).toLocaleString()}</span>
+            <span style={{ fontSize: 12, color: t.textSoft }}>Free shipping on orders over $150</span>
           </div>
 
           {/* Actions */}
-          <div style={s.actions}>
-            <button style={{ ...s.addBtn, background: added ? '#4a8a3a' : '#2a5a1a' }} onClick={handleAddToCart}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <button
+              style={{ flex: 1, padding: '14px 0', background: added ? t.accent : t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, transition: 'opacity 0.2s', cursor: 'pointer', opacity: added ? 0.8 : 1 }}
+              onClick={handleAddToCart}>
               {added ? '✓ Added to Cart' : 'Add to Cart'}
             </button>
-            <button style={s.cartBtn} onClick={() => { handleAddToCart(); onNavigate('cart') }}>
+            <button
+              style={{ padding: '14px 20px', background: 'transparent', border: `2px solid ${t.accent}`, color: t.accent, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+              onClick={() => { handleAddToCart(); onNavigate('cart') }}>
               Buy Now →
             </button>
           </div>
 
-          <div style={s.trustRow}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 11, color: t.textSoft }}>
             <span>🔒 Secure checkout via Stripe</span>
             <span>🚚 Ships within 3 business days</span>
             <span>⭐ Verified seller</span>
@@ -115,32 +124,4 @@ export default function ProductPage({ productId, cart, onNavigate }) {
       </div>
     </div>
   )
-}
-
-const s = {
-  page:        { maxWidth: 1100, margin: '0 auto', padding: '28px 24px' },
-  backBtn:     { background: 'none', border: 'none', color: '#5a8a4a', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 20, padding: 0 },
-  layout:      { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'flex-start' },
-  imgBox:      { height: 460, borderRadius: 16, width: '100%' },
-  info:        { display: 'flex', flexDirection: 'column', gap: 0 },
-  brand:       { fontSize: 11, fontWeight: 700, color: '#7a8a6a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 6 },
-  title:       { fontSize: 28, fontWeight: 800, color: '#1a2a0a', lineHeight: 1.2, marginBottom: 12 },
-  tagRow:      { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
-  tag:         { fontSize: 11, color: '#5a8a4a', background: '#eef4ea', padding: '3px 9px', borderRadius: 20 },
-  desc:        { fontSize: 14, color: '#4a6a3a', lineHeight: 1.7, marginBottom: 16 },
-  section:     { marginBottom: 18 },
-  sectionLabel:{ fontSize: 13, color: '#2a2a1a', marginBottom: 10 },
-  swatchRow:   { display: 'flex', gap: 8 },
-  swatch:      { width: 30, height: 30, borderRadius: '50%', border: '1px solid #ddd8cc', cursor: 'pointer' },
-  sizeRow:     { display: 'flex', gap: 8, flexWrap: 'wrap' },
-  sizeBtn:     { padding: '8px 16px', border: '1px solid #ddd8cc', borderRadius: 7, background: '#fff', fontSize: 13, cursor: 'pointer', color: '#2a2a1a' },
-  sizeBtnActive:{ borderColor: '#2a5a1a', background: '#eef4ea', color: '#1a4a0a', fontWeight: 600 },
-  priceRow:    { display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 },
-  price:       { fontSize: 30, fontWeight: 800, color: '#1a2a0a' },
-  priceSub:    { fontSize: 12, color: '#7a8a6a' },
-  actions:     { display: 'flex', gap: 10, marginBottom: 16 },
-  addBtn:      { flex: 1, padding: '14px 0', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, transition: 'background 0.2s' },
-  cartBtn:     { padding: '14px 20px', background: 'transparent', border: '2px solid #2a5a1a', color: '#2a5a1a', borderRadius: 10, fontSize: 15, fontWeight: 700 },
-  trustRow:    { display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 11, color: '#7a8a6a' },
-  dim:         { color: '#9aaa8a', fontSize: 14 },
 }

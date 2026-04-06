@@ -1,4 +1,5 @@
 import { useTheme } from '@shared/ThemeProvider'
+import MoodPicker from '@shared/MoodPicker'
 
 export default function SiteHeader({ cartCount, onNavigate, currentPage }) {
   const theme = useTheme()
@@ -36,6 +37,8 @@ export default function SiteHeader({ cartCount, onNavigate, currentPage }) {
             )
           })}
         </nav>
+
+        <MoodPicker />
 
         <button
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: theme.accent, color: theme.accentText, border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, flexShrink: 0, cursor: 'pointer', position: 'relative' }}
