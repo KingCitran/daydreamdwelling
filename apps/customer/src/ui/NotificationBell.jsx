@@ -48,6 +48,7 @@ export default function NotificationBell({ btnStyle }) {
   }, [open])
 
   async function markRead(id) {
+    if (items.find(n => n.id === id)?.read) return
     setItems(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
     await supabase.from('notifications').update({ read: true }).eq('id', id)
   }

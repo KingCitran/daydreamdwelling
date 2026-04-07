@@ -114,8 +114,7 @@ function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeigh
     window.addEventListener('pointerup',   handleUp)
   }
 
-  const isLocked     = item.locked ?? false
-  const outlineColor = isLocked ? '#f0c060' : '#9a7aee'
+  const outlineColor = item.owned ? '#f0c060' : '#9a7aee'
 
   return (
     <mesh
@@ -365,8 +364,7 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
     window.addEventListener('pointerup',   handleUp)
   }
 
-  const isLocked     = item.locked ?? false
-  const outlineColor = isLocked ? '#f0c060' : '#9a7aee'
+  const outlineColor = item.owned ? '#f0c060' : '#9a7aee'
 
   const handleDoubleClick = (e) => {
     e.stopPropagation()
@@ -637,7 +635,7 @@ function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect }) {
       {isSelected && (
         <mesh position={[bx, (wallHeight ?? 8) / 2, bz]}>
           <boxGeometry args={[sw + 0.08, (wallHeight ?? 8) + 0.08, sd + 0.08]} />
-          <meshBasicMaterial color="#9a7aee" wireframe />
+          <meshBasicMaterial color={item.owned ? '#f0c060' : '#9a7aee'} wireframe />
         </mesh>
       )}
     </group>

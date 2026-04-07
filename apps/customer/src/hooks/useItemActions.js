@@ -223,7 +223,7 @@ export default function useItemActions({
   }, [setItems])
 
   const toggleOwned = useCallback((id) => {
-    setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned } : it))
+    setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned, locked: !it.owned } : it))
   }, [setItems])
 
   const toggleLocked = useCallback((id) => {
