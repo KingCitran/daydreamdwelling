@@ -88,7 +88,9 @@ function Gate() {
 function AppInner() {
   const t = useTheme()
   const s = useBuilderStyles()
+  const { mood, setMood } = useMoodControl()
   const [initSave] = useState(loadSaved)
+  const preLightsMoodRef = useRef(null)
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -437,6 +439,18 @@ function AppInner() {
     return blocked
   }, [overviewPositions, allRooms, currentRoomId, gridW, gridD])
 
+  // ── Studio quick-toggle ──────────────────────────────────────────
+  const studioActive = mood === 'Studio Dark' || mood === 'Studio'
+  const toggleStudio = useCallback(() => {
+    if (studioActive) {
+      setMood(preLightsMoodRef.current ?? 'Golden Hour')
+      preLightsMoodRef.current = null
+    } else {
+      preLightsMoodRef.current = mood
+      setMood('Studio Dark')
+    }
+  }, [studioActive, mood, setMood])
+
   // ── Render ───────────────────────────────────────────────────────
   return (
     <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
@@ -738,6 +752,11 @@ function AppInner() {
             style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
+          <button
+            style={{ ...s.bottomBtn, ...(studioActive ? s.bottomBtnActive : {}) }}
+            onClick={toggleStudio}
+            title={studioActive ? 'Restore mood lighting' : 'Studio light — accurate paint preview'}
+          >💡</button>
           <BuilderMoodPicker />
           <NotificationBell btnStyle={s.bottomBtn} />
           <button style={s.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
