@@ -58,7 +58,7 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
 
 // ── Floor item ─────────────────────────────────────────────────────
 function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
-                    onDragStart, onDragEnd, roomRotationRef, activeDragRef }) {
+                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false }) {
   const def        = ITEM_CATALOGUE[item.typeKey]
   const size       = def.sizes[item.sizeIndex]
   const [fw, fd]   = size.footprint
@@ -129,10 +129,10 @@ function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeigh
       <meshStandardMaterial
         color={def.swatches[item.swatchIndex]?.hex ?? def.color}
         roughness={0.76} metalness={0}
-        emissive={lightCfg ? lightCfg.color : '#000000'}
-        emissiveIntensity={lightCfg ? 0.25 : 0}
+        emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
+        emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
       />
-      {lightCfg && (
+      {lightCfg && !lightsOff && (
         <pointLight
           position={[0, lightY, 0]}
           color={lightCfg.color}
@@ -190,7 +190,7 @@ function getWallFaceBounds(wall, wallAnchor, wallU, cells, gridW, gridD) {
 
 // ── Wall item ──────────────────────────────────────────────────────
 function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
-                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom }) {
+                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false }) {
   const def      = ITEM_CATALOGUE[item.typeKey]
   const size     = def.sizes[item.sizeIndex]
   const fw       = item.customW ?? size.footprint[0]
@@ -581,10 +581,10 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
         <meshStandardMaterial
           color={def.swatches[item.swatchIndex]?.hex ?? def.color}
           roughness={0.76} metalness={0}
-          emissive={lightCfg ? lightCfg.color : '#000000'}
-          emissiveIntensity={lightCfg ? 0.25 : 0}
+          emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
+          emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
         />
-        {lightCfg && (
+        {lightCfg && !lightsOff && (
           // Offset light forward (into room) by half the item's depth so it
           // glows outward from the wall rather than being buried inside it.
           <pointLight
@@ -662,6 +662,7 @@ export default function Items({
   ceilingView = false,
   onEnterRoom,
   cartHighlight = null,
+  lightsOff = false,
 }) {
   const activeDragRef = useRef(null)
   const [visibleWalls, setVisibleWalls] = useState(VISIBLE_WALLS[0])
@@ -708,6 +709,7 @@ export default function Items({
           onDoubleClick: onDoubleClickItem,
           onDragStart, onDragEnd,
           roomRotationRef, activeDragRef,
+          lightsOff,
         }
         if (def?.isStairs && item.stairs) {
           return (

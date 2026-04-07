@@ -90,6 +90,7 @@ function AppInner() {
   const s = useBuilderStyles()
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
+  const hasLightFixtures = items.some(it => ITEM_CATALOGUE[it.typeKey]?.category === 'Lighting')
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -741,9 +742,9 @@ function AppInner() {
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
           <button
-            style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}) }}
-            onClick={() => setLightsOff(v => !v)}
-            title={lightsOff ? 'Lights on — restore room lighting' : 'Lights off — see paint in natural daylight'}
+            style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}), ...(hasLightFixtures ? {} : { opacity: 0.35, cursor: 'default' }) }}
+            onClick={() => hasLightFixtures && setLightsOff(v => !v)}
+            title={!hasLightFixtures ? 'Place a lamp or ceiling light first' : lightsOff ? 'Lights on' : 'Lights off'}
           >{lightsOff ? '☀' : '💡'}</button>
           <BuilderMoodPicker />
           <NotificationBell btnStyle={s.bottomBtn} />

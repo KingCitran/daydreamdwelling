@@ -6,6 +6,14 @@ import { ITEM_CATALOGUE } from '../data/items'
 const WALL_T = 0.28
 const DISC_R = 0.18
 
+const CEILING_LIGHT_CONFIG = {
+  recessedLight: { color: '#fff8f0', intensity: 2.5, distance: 10 },
+  chandelier:    { color: '#fff8e0', intensity: 3.5, distance: 14 },
+  pendant:       { color: '#fff8e0', intensity: 2.0, distance: 8  },
+  ceilingFan:    { color: '#fff8e0', intensity: 1.5, distance: 8  },
+}
+const DEFAULT_CEILING_LIGHT = { color: '#fff8e0', intensity: 1.4, distance: 6 }
+
 const _ray = new THREE.Raycaster()
 const _ptr = new THREE.Vector2()
 const _hit = new THREE.Vector3()
@@ -15,8 +23,9 @@ const snapF = v => Math.round(v * 2) / 2   // 0.5 ft grid
 function CeilingItemMarker({
   it, def, size, mx, mz, cy, dropLength, isSelected, isCartHighlighted,
   ceilingView, onSelectItem, onMoveCeilingItem,
-  gridW, gridD, roomRotationRef,
+  gridW, gridD, roomRotationRef, lightsOff = false,
 }) {
+  const lightCfg = CEILING_LIGHT_CONFIG[it.typeKey] ?? DEFAULT_CEILING_LIGHT
   const { camera, gl } = useThree()
   // Ceiling plane lives at Y = cy in local (room) space.
   // Since only the camera moves (no room X-rotation), world Y = cy always.
@@ -67,14 +76,15 @@ function CeilingItemMarker({
           <meshBasicMaterial color="#ffd700" side={THREE.DoubleSide} />
         </mesh>
       )}
-      {/* Point light always active — visible in both views */}
-      <pointLight
-        position={[0, cy - dropLength, 0]}
-        intensity={1.4}
-        distance={6}
-        decay={2}
-        color="#fff8e0"
-      />
+      {!lightsOff && (
+        <pointLight
+          position={[0, cy - dropLength, 0]}
+          intensity={lightCfg.intensity}
+          distance={lightCfg.distance}
+          decay={2}
+          color={lightCfg.color}
+        />
+      )}
 
       {ceilingView && (
         <>
@@ -114,7 +124,7 @@ export default function Ceiling({
   cells, gridW, gridD, wallHeight,
   items, selectedId, onClickCell, onSelectItem,
   ceilingPicker, ceilingView,
-  onMoveCeilingItem, roomRotationRef, cartHighlight = null,
+  onMoveCeilingItem, roomRotationRef, cartHighlight = null, lightsOff = false,
 }) {
   const activeCells = [...cells].map(key => key.split(',').map(Number))
   const ceilingItems = items.filter(it => it.ceiling)
@@ -177,6 +187,7 @@ export default function Ceiling({
             gridW={gridW}
             gridD={gridD}
             roomRotationRef={roomRotationRef}
+            lightsOff={lightsOff}
           />
         )
       })}
