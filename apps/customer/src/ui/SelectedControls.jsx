@@ -1,5 +1,5 @@
 import { ITEM_CATALOGUE } from '../data/items'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 import { DIAMOND_MAP, roomQuadrant } from '../utils/roomGeometry'
 import Stepper from './Stepper'
 
@@ -14,6 +14,7 @@ export default function SelectedControls({
   parallelFaces, onSwapWallFace,
   wallHeight, onAdjustDropLength, onSetPaneConfig, onAdjustWindowSize, onEnterRoom,
 }) {
+  const s          = useBuilderStyles()
   const def        = ITEM_CATALOGUE[item.typeKey]
   const totalSizes = def.sizes.length
   const curSize    = def.sizes[item.sizeIndex]
@@ -31,42 +32,42 @@ export default function SelectedControls({
       display: 'flex', justifyContent: 'center',
       pointerEvents: 'none',
     }}>
-      <div style={{ ...styles.controls, pointerEvents: 'auto', maxWidth: maxW, minWidth: 0 }}>
+      <div style={{ ...s.controls, pointerEvents: 'auto', maxWidth: maxW, minWidth: 0 }}>
 
         {/* ── Row 1: Name / brand (left)  ·  Rating + badges (right) ── */}
-        <div style={styles.ctrlNameRow}>
-          <div style={styles.ctrlNameLeft}>
-            <span style={styles.controlsTitle}>{def.label}</span>
-            {def.brand && <span style={styles.controlsBrand}>{def.brand}</span>}
+        <div style={s.ctrlNameRow}>
+          <div style={s.ctrlNameLeft}>
+            <span style={s.controlsTitle}>{def.label}</span>
+            {def.brand && <span style={s.controlsBrand}>{def.brand}</span>}
           </div>
-          <div style={styles.ctrlNameRight}>
+          <div style={s.ctrlNameRight}>
             {def.rating && (
-              <span style={styles.ctrlRating}>
+              <span style={s.ctrlRating}>
                 ★ {def.rating}
-                {def.reviewCount && <span style={styles.ctrlRatingCount}> ({def.reviewCount})</span>}
+                {def.reviewCount && <span style={s.ctrlRatingCount}> ({def.reviewCount})</span>}
               </span>
             )}
             {(item.owned || item.wishlisted || item.locked) && (
-              <div style={styles.badgeRow}>
-                {item.owned      && <span style={styles.badgeOwned}  title="You own this">✓ owned</span>}
-                {item.wishlisted && <span style={styles.badgeWish}   title="On wishlist">♥ wishlist</span>}
-                {item.locked     && <span style={styles.badgeLocked} title="Position locked">🔒 locked</span>}
+              <div style={s.badgeRow}>
+                {item.owned      && <span style={s.badgeOwned}  title="You own this">✓ owned</span>}
+                {item.wishlisted && <span style={s.badgeWish}   title="On wishlist">♥ wishlist</span>}
+                {item.locked     && <span style={s.badgeLocked} title="Position locked">🔒 locked</span>}
               </div>
             )}
           </div>
         </div>
 
-        <div style={styles.ctrlHDivider} />
+        <div style={s.ctrlHDivider} />
 
         {/* ── Row 2: Position controls  +  Own / Lock / Delete ── */}
-        <div style={styles.ctrlRow}>
+        <div style={s.ctrlRow}>
 
           {/* Wall: SVG cross D-pad */}
           {isWall && !item.locked && (
             <>
-              <div style={styles.wallNudgeGroup}>
-                <span style={styles.sizeLabel}>Move item</span>
-                <div style={styles.diamondWrap}>
+              <div style={s.wallNudgeGroup}>
+                <span style={s.sizeLabel}>Move item</span>
+                <div style={s.diamondWrap}>
                   <svg width="70" height="70" style={{ display: 'block' }}>
                     {[
                       { dir: 'up',    pts: '22,22 48,22 35,8',  cb: () => onMoveWall(item.wallU, item.wallH + 0.25), hide: isDoor },
@@ -89,11 +90,11 @@ export default function SelectedControls({
                 </div>
               </div>
 
-              <div style={styles.ctrlDivider} />
+              <div style={s.ctrlDivider} />
 
-              <div style={styles.wallSideGroup}>
-                <span style={styles.sizeLabel}>Switch wall</span>
-                <div style={styles.diamondWrap}>
+              <div style={s.wallSideGroup}>
+                <span style={s.sizeLabel}>Switch wall</span>
+                <div style={s.diamondWrap}>
                   <svg width="70" height="70" style={{ display: 'block' }}>
                     {[
                       { pos: 'tl', pts: '8,35 35,8 35,17 17,35' },
@@ -122,18 +123,18 @@ export default function SelectedControls({
                 </div>
               </div>
 
-              <div style={styles.ctrlDivider} />
+              <div style={s.ctrlDivider} />
 
               {parallelFaces > 1 && (
                 <>
-                  <div style={styles.wallSideGroup}>
-                    <span style={styles.sizeLabel}>Swap face</span>
-                    <button style={styles.swapFaceBtn} onClick={onSwapWallFace}
+                  <div style={s.wallSideGroup}>
+                    <span style={s.sizeLabel}>Swap face</span>
+                    <button style={s.swapFaceBtn} onClick={onSwapWallFace}
                       title={`${parallelFaces} parallel faces — cycle between them`}>
                       S
                     </button>
                   </div>
-                  <div style={styles.ctrlDivider} />
+                  <div style={s.ctrlDivider} />
                 </>
               )}
             </>
@@ -142,28 +143,28 @@ export default function SelectedControls({
           {/* Window pane config + size */}
           {isWindow && (
             <>
-              <div style={styles.ctrlDivider} />
-              <div style={styles.wallSideGroup}>
-                <span style={styles.sizeLabel}>Panes</span>
+              <div style={s.ctrlDivider} />
+              <div style={s.wallSideGroup}>
+                <span style={s.sizeLabel}>Panes</span>
                 <div style={{ display: 'grid', gridTemplateColumns: '26px 48px 26px', gridTemplateRows: '20px 56px 20px', gap: 2, alignItems: 'center', justifyItems: 'center' }}>
                   <div />
-                  <button style={styles.paneStep} onClick={() => onSetPaneConfig(item.paneCols ?? 1, Math.min(4, (item.paneRows ?? 2) + 1))}>▲</button>
+                  <button style={s.paneStep} onClick={() => onSetPaneConfig(item.paneCols ?? 1, Math.min(4, (item.paneRows ?? 2) + 1))}>▲</button>
                   <span style={{ fontSize: 9, color: '#7070a0', whiteSpace: 'nowrap' }}>{item.paneRows ?? 2}r</span>
-                  <button style={styles.paneStep} onClick={() => onSetPaneConfig(Math.max(1, (item.paneCols ?? 1) - 1), item.paneRows ?? 2)}>◀</button>
+                  <button style={s.paneStep} onClick={() => onSetPaneConfig(Math.max(1, (item.paneCols ?? 1) - 1), item.paneRows ?? 2)}>◀</button>
                   <div style={{ display: 'grid', gridTemplateColumns: `repeat(${item.paneCols ?? 1}, 1fr)`, gridTemplateRows: `repeat(${item.paneRows ?? 2}, 1fr)`, gap: 2, width: 44, height: 52, background: '#c8a870', padding: 3, borderRadius: 3, border: '1.5px solid #8a6840' }}>
                     {Array.from({ length: (item.paneCols ?? 1) * (item.paneRows ?? 2) }).map((_, i) => (
                       <div key={i} style={{ background: '#a8d8f8', opacity: 0.75, borderRadius: 1 }} />
                     ))}
                   </div>
-                  <button style={styles.paneStep} onClick={() => onSetPaneConfig(Math.min(4, (item.paneCols ?? 1) + 1), item.paneRows ?? 2)}>▶</button>
+                  <button style={s.paneStep} onClick={() => onSetPaneConfig(Math.min(4, (item.paneCols ?? 1) + 1), item.paneRows ?? 2)}>▶</button>
                   <span style={{ fontSize: 9, color: '#7070a0', whiteSpace: 'nowrap' }}>{item.paneCols ?? 1}c</span>
-                  <button style={styles.paneStep} onClick={() => onSetPaneConfig(item.paneCols ?? 1, Math.max(1, (item.paneRows ?? 2) - 1))}>▼</button>
+                  <button style={s.paneStep} onClick={() => onSetPaneConfig(item.paneCols ?? 1, Math.max(1, (item.paneRows ?? 2) - 1))}>▼</button>
                   <div />
                 </div>
               </div>
-              <div style={styles.ctrlDivider} />
-              <div style={styles.wallSideGroup}>
-                <span style={styles.sizeLabel}>Size</span>
+              <div style={s.ctrlDivider} />
+              <div style={s.wallSideGroup}>
+                <span style={s.sizeLabel}>Size</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ fontSize: 10, color: '#7070a0', minWidth: 14 }}>W</span>
@@ -185,8 +186,8 @@ export default function SelectedControls({
           {/* Ceiling: drop length slider */}
           {isCeiling && !item.locked && (
             <>
-              <div style={styles.wallSideGroup}>
-                <span style={styles.sizeLabel}>Drop length</span>
+              <div style={s.wallSideGroup}>
+                <span style={s.sizeLabel}>Drop length</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input type="range"
                     min={0.05} max={wallHeight - 0.1} step={0.05}
@@ -194,39 +195,39 @@ export default function SelectedControls({
                     onChange={e => onAdjustDropLength(parseFloat(e.target.value))}
                     style={{ width: 90 }}
                   />
-                  <span style={styles.sizeLabel}>{(item.dropLength ?? curSize.defaultDropLength ?? 0.6).toFixed(2)} ft</span>
+                  <span style={s.sizeLabel}>{(item.dropLength ?? curSize.defaultDropLength ?? 0.6).toFixed(2)} ft</span>
                 </div>
               </div>
-              <div style={styles.ctrlDivider} />
+              <div style={s.ctrlDivider} />
             </>
           )}
 
           {/* Floor: rotate button */}
           {!isWall && !isCeiling && !item.locked && (
             <>
-              <button style={styles.rotateBtn} onClick={onRotate} title="Rotate 90°">↻ Rotate</button>
-              <div style={styles.ctrlDivider} />
+              <button style={s.rotateBtn} onClick={onRotate} title="Rotate 90°">↻ Rotate</button>
+              <div style={s.ctrlDivider} />
             </>
           )}
 
           {/* Own / Lock / Delete */}
-          <div style={styles.actionRow}>
-            <button style={{ ...styles.actionBtn, ...(item.owned ? styles.iconOwned : {}) }}
+          <div style={s.actionRow}>
+            <button style={{ ...s.actionBtn, ...(item.owned ? s.iconOwned : {}) }}
               onClick={onToggleOwned}
               title={item.owned ? 'Unmark as owned' : 'Mark as owned'}>✓ Own</button>
-            <button style={{ ...styles.actionBtn, ...(item.locked ? styles.iconLocked : styles.iconUnlocked) }}
+            <button style={{ ...s.actionBtn, ...(item.locked ? s.iconLocked : s.iconUnlocked) }}
               onClick={onToggleLocked}
               title={item.locked ? 'Click to unlock' : 'Click to lock position'}>
               {item.locked ? '🔒 Locked' : '🔓 Unlocked'}
             </button>
             {!item.owned && (
-              <button style={{ ...styles.actionBtn, ...styles.iconDelete }}
+              <button style={{ ...s.actionBtn, ...s.iconDelete }}
                 onClick={onDelete} title="Delete">🗑 Delete</button>
             )}
           </div>
           {isDoor && isWall && (
             <button
-              style={{ ...styles.actionBtn, borderColor: '#6090ff', color: '#a0c0ff', marginTop: 4 }}
+              style={{ ...s.actionBtn, borderColor: '#6090ff', color: '#a0c0ff', marginTop: 4 }}
               onClick={onEnterRoom}
               title="Double-click door to enter connected room"
             >
@@ -235,17 +236,17 @@ export default function SelectedControls({
           )}
         </div>
 
-        <div style={styles.ctrlHDivider} />
+        <div style={s.ctrlHDivider} />
 
         {/* ── Row 3: Color  ·  Size  ·  Qty  ·  Wish  ·  Cart  ·  Details ── */}
-        <div style={styles.ctrlRow}>
-          <div style={styles.swatchRow}>
+        <div style={s.ctrlRow}>
+          <div style={s.swatchRow}>
             {def.swatches.map((sw, i) => (
               <button key={sw.name} title={sw.name}
                 style={{
-                  ...styles.swatchBtn,
+                  ...s.swatchBtn,
                   background: sw.hex,
-                  ...(i === item.swatchIndex ? styles.swatchBtnActive : {}),
+                  ...(i === item.swatchIndex ? s.swatchBtnActive : {}),
                 }}
                 onClick={() => onRecolor(i)} />
             ))}
@@ -253,38 +254,38 @@ export default function SelectedControls({
 
           {!item.locked && totalSizes > 1 && (
             <>
-              <div style={styles.ctrlDivider} />
-              <div style={styles.sizeCycle}>
-                <span style={styles.sizeLabel}>Size</span>
-                <button style={styles.cycleArrow}
+              <div style={s.ctrlDivider} />
+              <div style={s.sizeCycle}>
+                <span style={s.sizeLabel}>Size</span>
+                <button style={s.cycleArrow}
                   onClick={() => onResize((item.sizeIndex - 1 + totalSizes) % totalSizes)}>‹</button>
-                <span style={styles.cycleLabel}>{curSize.label}<span style={styles.cyclePrice}> ${curSize.price}</span></span>
-                <button style={styles.cycleArrow}
+                <span style={s.cycleLabel}>{curSize.label}<span style={s.cyclePrice}> ${curSize.price}</span></span>
+                <button style={s.cycleArrow}
                   onClick={() => onResize((item.sizeIndex + 1) % totalSizes)}>›</button>
               </div>
             </>
           )}
 
-          <div style={styles.ctrlDivider} />
-          <div style={styles.qtyRow}>
-            <span style={styles.sizeLabel}>Qty</span>
-            <button style={styles.qtyBtn} onClick={onDecrementQty} title="Remove one">−</button>
-            <span style={styles.qtyNum}>{groupQty}</span>
-            <button style={styles.qtyBtn} onClick={onIncrementQty} title="Add one">+</button>
+          <div style={s.ctrlDivider} />
+          <div style={s.qtyRow}>
+            <span style={s.sizeLabel}>Qty</span>
+            <button style={s.qtyBtn} onClick={onDecrementQty} title="Remove one">−</button>
+            <span style={s.qtyNum}>{groupQty}</span>
+            <button style={s.qtyBtn} onClick={onIncrementQty} title="Add one">+</button>
           </div>
 
-          <div style={styles.ctrlDivider} />
+          <div style={s.ctrlDivider} />
           {!item.owned && (
-            <button style={{ ...styles.actionBtn, ...styles.iconWish }}
+            <button style={{ ...s.actionBtn, ...s.iconWish }}
               onClick={onToggleWishlist}
               title={item.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             >{item.wishlisted ? '♥' : '♡'} Wish</button>
           )}
           {!item.owned && (
-            <button style={{ ...styles.actionBtn, ...styles.iconCart }}
+            <button style={{ ...s.actionBtn, ...s.iconCart }}
               onClick={onAddToCart} title="Add to cart">🛒 Cart</button>
           )}
-          <button style={{ ...styles.actionBtn, ...styles.iconInfo }}
+          <button style={{ ...s.actionBtn, ...s.iconInfo }}
             onClick={onShowDetails} title="View details">ℹ Details</button>
         </div>
 

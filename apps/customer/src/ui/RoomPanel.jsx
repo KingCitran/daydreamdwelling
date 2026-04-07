@@ -1,30 +1,31 @@
 import { ITEM_CATALOGUE } from '../data/items'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 
 export default function RoomPanel({ items, onSelectItem, onToggleWishlist }) {
+  const s = useBuilderStyles()
   return (
-    <div style={styles.roomPanel}>
-      <div style={styles.roomPanelHeader}>
-        <span style={styles.roomPanelTitle}>In Room</span>
-        <span style={styles.roomPanelCount}>{items.length} item{items.length !== 1 ? 's' : ''}</span>
+    <div style={s.roomPanel}>
+      <div style={s.roomPanelHeader}>
+        <span style={s.roomPanelTitle}>In Room</span>
+        <span style={s.roomPanelCount}>{items.length} item{items.length !== 1 ? 's' : ''}</span>
       </div>
-      <div style={styles.roomPanelList}>
+      <div style={s.roomPanelList}>
         {items.length === 0
-          ? <p style={styles.roomPanelEmpty}>No items placed yet.</p>
+          ? <p style={s.roomPanelEmpty}>No items placed yet.</p>
           : items.map(it => {
               const def = ITEM_CATALOGUE[it.typeKey]
               return (
-                <div key={it.id} style={styles.roomPanelItem} onClick={() => onSelectItem(it.id)}>
-                  <div style={{ ...styles.roomPanelThumb, background: def.gradient }} />
-                  <div style={styles.roomPanelInfo}>
-                    <p style={styles.roomPanelName}>{def.label}</p>
-                    <p style={styles.roomPanelMeta}>
+                <div key={it.id} style={s.roomPanelItem} onClick={() => onSelectItem(it.id)}>
+                  <div style={{ ...s.roomPanelThumb, background: def.gradient }} />
+                  <div style={s.roomPanelInfo}>
+                    <p style={s.roomPanelName}>{def.label}</p>
+                    <p style={s.roomPanelMeta}>
                       {def.sizes[it.sizeIndex].label} · {def.swatches[it.swatchIndex].name}
                     </p>
                   </div>
-                  {it.locked     && <span style={styles.roomPanelIcon}>🔒</span>}
+                  {it.locked     && <span style={s.roomPanelIcon}>🔒</span>}
                   {it.wishlisted && (
-                    <button style={styles.roomPanelUnwish}
+                    <button style={s.roomPanelUnwish}
                       onClick={e => { e.stopPropagation(); onToggleWishlist(it.id) }}
                       title="Remove from wishlist"
                     >♥</button>

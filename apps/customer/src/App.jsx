@@ -7,7 +7,7 @@ import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
 import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
 import RoomOverview from './overview/RoomOverview'
-import { styles } from './ui/styles/appStyles'
+import { useBuilderStyles } from './ui/styles/appStyles'
 import MusicPanel from './ui/MusicPanel'
 import WallPicker from './ui/WallPicker'
 import WindowSizePicker from './ui/WindowSizePicker'
@@ -62,6 +62,7 @@ function Gate() {
 
 function AppInner() {
   const t = useTheme()
+  const s = useBuilderStyles()
   const [initSave] = useState(loadSaved)
 
   const nextItemIdRef = useRef(null)
@@ -412,7 +413,7 @@ function AppInner() {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ ...styles.app, background: t.bg, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+    <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }}>
         <RoomScene
@@ -587,11 +588,11 @@ function AppInner() {
       )}
 
       {ceilingPicker && (
-        <div style={styles.ceilingBanner}>
-          <span style={styles.ceilingBannerText}>
+        <div style={s.ceilingBanner}>
+          <span style={s.ceilingBannerText}>
             Click a ceiling cell to place {ITEM_CATALOGUE[ceilingPicker.typeKey].label}
           </span>
-          <button style={styles.ceilingBannerCancel}
+          <button style={s.ceilingBannerCancel}
             onClick={() => { setCeilingPicker(null); setCeilingView(false) }}>
             Cancel
           </button>
@@ -660,7 +661,7 @@ function AppInner() {
         />
       )}
 
-      <div style={styles.leftColumn}>
+      <div style={s.leftColumn}>
         {roomPanelOpen && (
           <RoomPanel
             items={items}
@@ -693,40 +694,40 @@ function AppInner() {
           />
         )}
 
-        <div style={styles.bottomBar}>
+        <div style={s.bottomBar}>
           {roomStack.length > 0 && (
-            <button style={{ ...styles.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>
+            <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>
               ← Back
             </button>
           )}
           <button
-            style={{ ...styles.bottomBtn, ...(drawerOpen ? styles.bottomBtnActive : {}) }}
+            style={{ ...s.bottomBtn, ...(drawerOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setDrawerOpen(v => !v)}
           >{drawerOpen ? '✕' : '🛍'} Shop</button>
           <button
-            style={{ ...styles.bottomBtn, ...(hubOpen ? styles.bottomBtnActive : {}) }}
+            style={{ ...s.bottomBtn, ...(hubOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setHubOpen(v => !v)}
           >{hubOpen ? '✕' : '🛠'} Tools</button>
           <button
-            style={{ ...styles.bottomBtn, ...(musicOpen ? styles.bottomBtnActive : {}) }}
+            style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
           <BuilderMoodPicker />
-          <button style={styles.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
+          <button style={s.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>
-          <button style={styles.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)}>↻</button>
+          <button style={s.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)}>↻</button>
           <button
-            style={{ ...styles.bottomBtn, ...(ceilingView ? styles.bottomBtnActive : {}) }}
+            style={{ ...s.bottomBtn, ...(ceilingView ? s.bottomBtnActive : {}) }}
             onClick={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
             title={ceilingView ? 'Floor view' : 'Ceiling view'}
           >{ceilingView ? '▾ Floor' : '▴ Ceiling'}</button>
-          <button style={styles.bottomBtn} onClick={() => setTarget(r => r + Math.PI / 2)}>↺</button>
+          <button style={s.bottomBtn} onClick={() => setTarget(r => r + Math.PI / 2)}>↺</button>
           {cartCount > 0 && (
             <button
-              style={{ ...styles.bottomBtn, ...styles.bottomCartBtn }}
+              style={{ ...s.bottomBtn, ...s.bottomCartBtn }}
               onClick={() => { setDrawerOpen(true); setDrawerTab('cart') }}
-            >🛒 <span style={styles.cartBadge}>{cartCount}</span></button>
+            >🛒 <span style={s.cartBadge}>{cartCount}</span></button>
           )}
         </div>
       </div>

@@ -14,19 +14,20 @@ const ZOOM_MAX   = 120
 
 // skyColor = indirect ceiling/sky bounce; groundColor = floor bounce (always darker)
 // keyI/keyC = main directional (window light); fillI/fillC = soft counter-fill
+// Goal: atmosphere without color-casting walls — keep keyC near-white, raise hemiI in dark moods
 const MOOD_SCENE_PRESETS = {
-  'Golden Hour':      { hemiI: 0.20, skyColor: '#ffb060', groundColor: '#3a1005', keyI: 0.85, keyC: '#ffb840', fillI: 0.12, fillC: '#ffa040' },
-  'Bright Day':       { hemiI: 0.65, skyColor: '#f0f6ff', groundColor: '#c0a870', keyI: 1.60, keyC: '#fffdf5', fillI: 0.30, fillC: '#d0e8ff' },
-  'Cozy Evening':     { hemiI: 0.06, skyColor: '#ff6020', groundColor: '#200808', keyI: 0.20, keyC: '#d04010', fillI: 0.05, fillC: '#ff7030' },
-  'Moonlight':        { hemiI: 0.10, skyColor: '#9098c8', groundColor: '#080814', keyI: 0.32, keyC: '#c8d8ff', fillI: 0.10, fillC: '#8090c0' },
-  'Dark Academia':    { hemiI: 0.06, skyColor: '#7a5010', groundColor: '#120808', keyI: 0.28, keyC: '#d09030', fillI: 0.06, fillC: '#a06820' },
-  'Cottagecore Dawn': { hemiI: 0.35, skyColor: '#ffb0a0', groundColor: '#a05040', keyI: 0.75, keyC: '#ffd0c0', fillI: 0.20, fillC: '#ffb8a8' },
-  'Coastal Morning':  { hemiI: 0.55, skyColor: '#c0e8ff', groundColor: '#6090b0', keyI: 1.30, keyC: '#e8f4ff', fillI: 0.28, fillC: '#b0d8f0' },
-  'Dream State':      { hemiI: 0.45, skyColor: '#e8d0ff', groundColor: '#a080c0', keyI: 0.90, keyC: '#f8e8ff', fillI: 0.22, fillC: '#d8c0f8' },
-  'Neon Nights':      { hemiI: 0.05, skyColor: '#8000ff', groundColor: '#000820', keyI: 0.40, keyC: '#ff00aa', fillI: 0.18, fillC: '#0040ff' },
-  'Candlelight':      { hemiI: 0.03, skyColor: '#ff4000', groundColor: '#100000', keyI: 0.12, keyC: '#ff6010', fillI: 0.03, fillC: '#ff5000' },
-  'Greenhouse':       { hemiI: 0.40, skyColor: '#90d060', groundColor: '#404a10', keyI: 1.00, keyC: '#e0f0c0', fillI: 0.22, fillC: '#a0c060' },
-  'Studio':           { hemiI: 0.80, skyColor: '#ffffff', groundColor: '#d0d0d0', keyI: 1.80, keyC: '#ffffff', fillI: 0.50, fillC: '#f0f0f0' },
+  'Golden Hour':      { hemiI: 0.35, skyColor: '#d4b080', groundColor: '#4a2010', keyI: 0.75, keyC: '#ffe0b0', fillI: 0.20, fillC: '#f8d890' },
+  'Bright Day':       { hemiI: 0.55, skyColor: '#e8f0f8', groundColor: '#b8a870', keyI: 1.20, keyC: '#fffdf8', fillI: 0.28, fillC: '#e0ecf8' },
+  'Cozy Evening':     { hemiI: 0.22, skyColor: '#9a5830', groundColor: '#1e0808', keyI: 0.40, keyC: '#f0b870', fillI: 0.14, fillC: '#d09050' },
+  'Moonlight':        { hemiI: 0.28, skyColor: '#a0a8c0', groundColor: '#0a0c18', keyI: 0.42, keyC: '#dce8f8', fillI: 0.16, fillC: '#9098b8' },
+  'Dark Academia':    { hemiI: 0.22, skyColor: '#9a8050', groundColor: '#160c04', keyI: 0.48, keyC: '#f0d888', fillI: 0.14, fillC: '#c8a858' },
+  'Cottagecore Dawn': { hemiI: 0.40, skyColor: '#f0c0b0', groundColor: '#9a5040', keyI: 0.72, keyC: '#ffe8d8', fillI: 0.22, fillC: '#f0cabb' },
+  'Coastal Morning':  { hemiI: 0.50, skyColor: '#c0e0f0', groundColor: '#6090b0', keyI: 1.10, keyC: '#f0f8ff', fillI: 0.28, fillC: '#c0d8f0' },
+  'Dream State':      { hemiI: 0.45, skyColor: '#ccc0e8', groundColor: '#9078b0', keyI: 0.82, keyC: '#f8f0ff', fillI: 0.22, fillC: '#d8c8f4' },
+  'Neon Nights':      { hemiI: 0.18, skyColor: '#401890', groundColor: '#000820', keyI: 0.48, keyC: '#e070d0', fillI: 0.20, fillC: '#2040c0' },
+  'Candlelight':      { hemiI: 0.18, skyColor: '#9a5828', groundColor: '#0e0000', keyI: 0.32, keyC: '#f8b060', fillI: 0.12, fillC: '#e09050' },
+  'Greenhouse':       { hemiI: 0.40, skyColor: '#88c868', groundColor: '#384010', keyI: 0.88, keyC: '#ecf8d0', fillI: 0.22, fillC: '#a8cc78' },
+  'Studio':           { hemiI: 0.60, skyColor: '#f8f8f8', groundColor: '#c0c0c0', keyI: 1.30, keyC: '#ffffff', fillI: 0.40, fillC: '#f0f0f0' },
 }
 // Legacy fallbacks for old save files
 const MOOD_LEGACY = {

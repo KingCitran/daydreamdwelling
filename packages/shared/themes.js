@@ -15,6 +15,14 @@
  *   accent        — primary action color (buttons, links, active states)
  *   accentText    — text on accent-colored buttons
  *   glow          — rgba for atmospheric orb / glow effects
+ *
+ * Builder-specific tokens (always dark — for panels overlaid on the 3D scene):
+ *   canvasBg      — 3D canvas / app wrapper background (always very dark)
+ *   panelBg       — builder panel / card background
+ *   panelSurface  — elevated elements within panels (buttons, list items)
+ *   panelBorder   — border color for builder panels
+ *   panelText     — primary text on dark builder panels
+ *   panelTextSoft — muted text on dark builder panels
  */
 
 export const MOOD_THEMES = {
@@ -29,6 +37,12 @@ export const MOOD_THEMES = {
     accent:        '#c87820',
     accentText:    '#fff',
     glow:          'rgba(220,150,40,0.18)',
+    canvasBg:      '#0f0a04',
+    panelBg:       '#1e1508',
+    panelSurface:  '#2a1e0e',
+    panelBorder:   'rgba(180,130,40,0.35)',
+    panelText:     '#f2e4c0',
+    panelTextSoft: '#9a7840',
   },
   'Bright Day': {
     bg:            '#f7faf4',
@@ -41,6 +55,12 @@ export const MOOD_THEMES = {
     accent:        '#3a7a4a',
     accentText:    '#fff',
     glow:          'rgba(70,170,70,0.15)',
+    canvasBg:      '#061008',
+    panelBg:       '#0e1c0c',
+    panelSurface:  '#162814',
+    panelBorder:   'rgba(60,140,60,0.3)',
+    panelText:     '#c8e8c0',
+    panelTextSoft: '#5a9050',
   },
   'Cozy Evening': {
     bg:            '#1c0f07',
@@ -53,6 +73,12 @@ export const MOOD_THEMES = {
     accent:        '#d4882a',
     accentText:    '#fff',
     glow:          'rgba(220,130,40,0.2)',
+    canvasBg:      '#100806',
+    panelBg:       '#1e1008',
+    panelSurface:  '#2c1a0c',
+    panelBorder:   'rgba(180,90,30,0.35)',
+    panelText:     '#f0d0a0',
+    panelTextSoft: '#a07040',
   },
   'Moonlight': {
     bg:            '#090c16',
@@ -65,6 +91,12 @@ export const MOOD_THEMES = {
     accent:        '#5070c8',
     accentText:    '#fff',
     glow:          'rgba(80,100,200,0.18)',
+    canvasBg:      '#06080e',
+    panelBg:       '#0e1220',
+    panelSurface:  '#161c30',
+    panelBorder:   'rgba(100,130,210,0.28)',
+    panelText:     '#c0cce8',
+    panelTextSoft: '#5060a0',
   },
   'Dark Academia': {
     bg:            '#130d07',
@@ -77,6 +109,12 @@ export const MOOD_THEMES = {
     accent:        '#b88828',
     accentText:    '#1a1004',
     glow:          'rgba(180,128,38,0.18)',
+    canvasBg:      '#0a0806',
+    panelBg:       '#180f08',
+    panelSurface:  '#241608',
+    panelBorder:   'rgba(160,120,45,0.32)',
+    panelText:     '#e8d8a8',
+    panelTextSoft: '#9a8038',
   },
   'Cottagecore Dawn': {
     bg:            '#fdf0ee',
@@ -89,6 +127,12 @@ export const MOOD_THEMES = {
     accent:        '#c06858',
     accentText:    '#fff',
     glow:          'rgba(220,138,120,0.18)',
+    canvasBg:      '#100808',
+    panelBg:       '#1c1008',
+    panelSurface:  '#281810',
+    panelBorder:   'rgba(180,100,90,0.32)',
+    panelText:     '#f0d8d0',
+    panelTextSoft: '#9a6060',
   },
   'Coastal Morning': {
     bg:            '#f0f6fc',
@@ -101,6 +145,12 @@ export const MOOD_THEMES = {
     accent:        '#1a60b8',
     accentText:    '#fff',
     glow:          'rgba(60,128,200,0.18)',
+    canvasBg:      '#060c14',
+    panelBg:       '#0c1622',
+    panelSurface:  '#141e30',
+    panelBorder:   'rgba(60,120,185,0.32)',
+    panelText:     '#c0d8f0',
+    panelTextSoft: '#4878a8',
   },
   'Dream State': {
     bg:            '#ede9ff',
@@ -113,6 +163,12 @@ export const MOOD_THEMES = {
     accent:        '#7a48cc',
     accentText:    '#fff',
     glow:          'rgba(158,118,240,0.18)',
+    canvasBg:      '#100e20',
+    panelBg:       '#1a1830',
+    panelSurface:  '#242040',
+    panelBorder:   'rgba(150,120,210,0.32)',
+    panelText:     '#e0d8ff',
+    panelTextSoft: '#8878b8',
   },
   'Neon Nights': {
     bg:            '#07070f',
@@ -125,6 +181,12 @@ export const MOOD_THEMES = {
     accent:        '#9828f0',
     accentText:    '#fff',
     glow:          'rgba(158,38,240,0.22)',
+    canvasBg:      '#04040c',
+    panelBg:       '#0a0a18',
+    panelSurface:  '#100e24',
+    panelBorder:   'rgba(140,35,220,0.32)',
+    panelText:     '#e0d8ff',
+    panelTextSoft: '#7060b8',
   },
   'Candlelight': {
     bg:            '#0f0902',
@@ -137,6 +199,12 @@ export const MOOD_THEMES = {
     accent:        '#e09828',
     accentText:    '#1a0c02',
     glow:          'rgba(238,158,38,0.2)',
+    canvasBg:      '#0c0802',
+    panelBg:       '#180e04',
+    panelSurface:  '#221606',
+    panelBorder:   'rgba(200,140,30,0.32)',
+    panelText:     '#f0d8a0',
+    panelTextSoft: '#9a7030',
   },
   'Greenhouse': {
     bg:            '#07100a',
@@ -149,6 +217,12 @@ export const MOOD_THEMES = {
     accent:        '#389848',
     accentText:    '#fff',
     glow:          'rgba(58,148,58,0.18)',
+    canvasBg:      '#040a06',
+    panelBg:       '#0a1410',
+    panelSurface:  '#121e18',
+    panelBorder:   'rgba(60,140,60,0.28)',
+    panelText:     '#c8e8c8',
+    panelTextSoft: '#508850',
   },
   'Studio': {
     bg:            '#f4f4f4',
@@ -161,6 +235,12 @@ export const MOOD_THEMES = {
     accent:        '#181818',
     accentText:    '#fff',
     glow:          'rgba(0,0,0,0.07)',
+    canvasBg:      '#111111',
+    panelBg:       '#1e1e1e',
+    panelSurface:  '#2c2c2c',
+    panelBorder:   'rgba(80,80,80,0.4)',
+    panelText:     '#f0f0f0',
+    panelTextSoft: '#888888',
   },
 }
 

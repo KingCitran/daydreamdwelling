@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { ITEM_CATALOGUE } from '../data/items'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 import Stepper from './Stepper'
 
 export default function WindowSizePicker({ onPick, onCancel }) {
+  const s = useBuilderStyles()
   const [customMode, setCustomMode] = useState(false)
   const [customW, setCustomW] = useState(3)
   const [customH, setCustomH] = useState(4)
@@ -11,10 +12,10 @@ export default function WindowSizePicker({ onPick, onCancel }) {
 
   if (customMode) {
     return (
-      <div style={styles.wallPickerOverlay} onClick={onCancel}>
-        <div style={styles.wallPickerPanel} onClick={e => e.stopPropagation()}>
-          <p style={styles.wallPickerTitle}>Custom Window</p>
-          <p style={styles.wallPickerSub}>Then choose which wall</p>
+      <div style={s.wallPickerOverlay} onClick={onCancel}>
+        <div style={s.wallPickerPanel} onClick={e => e.stopPropagation()}>
+          <p style={s.wallPickerTitle}>Custom Window</p>
+          <p style={s.wallPickerSub}>Then choose which wall</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: '#9090b8', fontSize: 12, minWidth: 46 }}>Width</span>
@@ -35,27 +36,27 @@ export default function WindowSizePicker({ onPick, onCancel }) {
             </div>
           </div>
           <button
-            style={{ ...styles.actionBtn, width: '100%', justifyContent: 'center', marginTop: 8, padding: '10px 14px', boxSizing: 'border-box' }}
+            style={{ ...s.actionBtn, width: '100%', justifyContent: 'center', marginTop: 8, padding: '10px 14px', boxSizing: 'border-box' }}
             onClick={() => onPick(-1, customW, customH)}
           >
             🪟 Place {customW}' × {customH}' →
           </button>
-          <button style={styles.wallPickerCancel} onClick={() => setCustomMode(false)}>← Back</button>
+          <button style={s.wallPickerCancel} onClick={() => setCustomMode(false)}>← Back</button>
         </div>
       </div>
     )
   }
 
   return (
-    <div style={styles.wallPickerOverlay} onClick={onCancel}>
-      <div style={styles.wallPickerPanel} onClick={e => e.stopPropagation()}>
-        <p style={styles.wallPickerTitle}>Window Size</p>
-        <p style={styles.wallPickerSub}>Then choose which wall</p>
+    <div style={s.wallPickerOverlay} onClick={onCancel}>
+      <div style={s.wallPickerPanel} onClick={e => e.stopPropagation()}>
+        <p style={s.wallPickerTitle}>Window Size</p>
+        <p style={s.wallPickerSub}>Then choose which wall</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
           {sizes.map((size, i) => (
             <button
               key={i}
-              style={{ ...styles.actionBtn, justifyContent: 'space-between', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}
+              style={{ ...s.actionBtn, justifyContent: 'space-between', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}
               onClick={() => onPick(i)}
             >
               <span>🪟 {size.label}</span>
@@ -63,13 +64,13 @@ export default function WindowSizePicker({ onPick, onCancel }) {
             </button>
           ))}
           <button
-            style={{ ...styles.actionBtn, justifyContent: 'center', padding: '10px 14px', width: '100%', boxSizing: 'border-box', borderStyle: 'dashed', color: '#9090cc' }}
+            style={{ ...s.actionBtn, justifyContent: 'center', padding: '10px 14px', width: '100%', boxSizing: 'border-box', borderStyle: 'dashed', color: '#9090cc' }}
             onClick={() => setCustomMode(true)}
           >
             ✏️ Custom size…
           </button>
         </div>
-        <button style={styles.wallPickerCancel} onClick={onCancel}>Cancel</button>
+        <button style={s.wallPickerCancel} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   )

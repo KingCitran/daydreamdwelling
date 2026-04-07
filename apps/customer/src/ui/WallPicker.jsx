@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 import { DIAMOND_MAP, roomQuadrant } from '../utils/roomGeometry'
 
 export default function WallPicker({ def, onPick, onCancel, roomRotation }) {
+  const s = useBuilderStyles()
   const [hovered, setHovered] = useState(null)
   const dmap  = DIAMOND_MAP[roomQuadrant(roomRotation ?? 0)]
   const label = { N: 'Back', S: 'Front', W: 'Left', E: 'Right' }
@@ -16,10 +17,10 @@ export default function WallPicker({ def, onPick, onCancel, roomRotation }) {
   const labelPos = { tl: [28,33], tr: [82,33], br: [82,77], bl: [28,77] }
 
   return (
-    <div style={styles.wallPickerOverlay}>
-      <div style={styles.wallPickerPanel}>
-        <p style={styles.wallPickerTitle}>Which wall?</p>
-        <p style={styles.wallPickerSub}>
+    <div style={s.wallPickerOverlay}>
+      <div style={s.wallPickerPanel}>
+        <p style={s.wallPickerTitle}>Which wall?</p>
+        <p style={s.wallPickerSub}>
           <span style={{ color: def.color ?? '#c4a8ff' }}>■</span>{' '}
           {def.label}
         </p>
@@ -65,7 +66,7 @@ export default function WallPicker({ def, onPick, onCancel, roomRotation }) {
           </svg>
         </div>
 
-        <button style={styles.wallPickerCancel} onClick={onCancel}>Cancel</button>
+        <button style={s.wallPickerCancel} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   )

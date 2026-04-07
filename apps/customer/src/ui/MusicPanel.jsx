@@ -1,4 +1,4 @@
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 
 // TODO: Replace url: null entries with real embed URLs when stations are ready
 const STATIONS = [
@@ -11,30 +11,31 @@ const STATIONS = [
 ]
 
 export default function MusicPanel({ station, onStation, onClose, drawerOpen }) {
-  const active = STATIONS.find(s => s.id === station) ?? null
+  const s = useBuilderStyles()
+  const active = STATIONS.find(st => st.id === station) ?? null
 
   return (
-    <div style={{ ...styles.musicPanel, right: drawerOpen ? 376 : 16 }}>
-      <div style={styles.musicHeader}>
-        <span style={styles.musicTitle}>🎵 Music</span>
-        <button style={styles.musicClose} onClick={onClose}>✕</button>
+    <div style={{ ...s.musicPanel, right: drawerOpen ? 376 : 16 }}>
+      <div style={s.musicHeader}>
+        <span style={s.musicTitle}>🎵 Music</span>
+        <button style={s.musicClose} onClick={onClose}>✕</button>
       </div>
 
-      <div style={styles.stationGrid}>
-        {STATIONS.map(s => (
-          <button
-            key={s.id}
-            onClick={() => onStation(station === s.id ? null : s.id)}
-            style={{
-              ...styles.stationCard,
-              ...(station === s.id ? styles.stationCardActive : {}),
-            }}
-          >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>{s.emoji}</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: station === s.id ? '#c4a8ff' : '#e0d9ff' }}>{s.label}</span>
-            <span style={{ fontSize: 10, color: '#7878aa', lineHeight: 1.3 }}>{s.desc}</span>
-          </button>
-        ))}
+      <div style={s.stationGrid}>
+        {STATIONS.map(st => {
+          const isActive = station === st.id
+          return (
+            <button
+              key={st.id}
+              onClick={() => onStation(isActive ? null : st.id)}
+              style={{ ...s.stationCard, ...(isActive ? s.stationCardActive : {}) }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{st.emoji}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? s.musicTitle.color : s.musicClose.color }}>{st.label}</span>
+              <span style={{ fontSize: 10, color: s.musicClose.color, lineHeight: 1.3 }}>{st.desc}</span>
+            </button>
+          )
+        })}
       </div>
 
       {active?.url ? (
@@ -47,12 +48,12 @@ export default function MusicPanel({ station, onStation, onClose, drawerOpen }) 
           style={{ borderRadius: 8, display: 'block', border: 'none' }}
         />
       ) : active ? (
-        <div style={styles.stationComingSoon}>
-          <p style={{ margin: 0, fontSize: 12, color: '#9898cc' }}>🚧 Coming soon</p>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6666aa' }}>{active.label} station launching soon</p>
+        <div style={s.stationComingSoon}>
+          <p style={{ margin: 0, fontSize: 12, color: s.musicTitle.color }}>🚧 Coming soon</p>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: s.musicClose.color }}>{active.label} station launching soon</p>
         </div>
       ) : (
-        <p style={{ margin: 0, fontSize: 11, color: '#6666aa', textAlign: 'center' }}>Pick a station above to start playing</p>
+        <p style={{ margin: 0, fontSize: 11, color: s.musicClose.color, textAlign: 'center' }}>Pick a station above to start playing</p>
       )}
     </div>
   )

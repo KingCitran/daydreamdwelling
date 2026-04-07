@@ -1,18 +1,19 @@
 import { ITEM_CATALOGUE } from '../data/items'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 
 export default function ArchSizePicker({ typeKey, onPick, onCancel }) {
+  const s   = useBuilderStyles()
   const def = ITEM_CATALOGUE[typeKey]
   return (
-    <div style={styles.wallPickerOverlay} onClick={onCancel}>
-      <div style={styles.wallPickerPanel} onClick={e => e.stopPropagation()}>
-        <p style={styles.wallPickerTitle}>{def.label} Size</p>
-        <p style={styles.wallPickerSub}>Then choose which wall</p>
+    <div style={s.wallPickerOverlay} onClick={onCancel}>
+      <div style={s.wallPickerPanel} onClick={e => e.stopPropagation()}>
+        <p style={s.wallPickerTitle}>{def.label} Size</p>
+        <p style={s.wallPickerSub}>Then choose which wall</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
           {def.sizes.map((size, i) => (
             <button
               key={i}
-              style={{ ...styles.actionBtn, justifyContent: 'space-between', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}
+              style={{ ...s.actionBtn, justifyContent: 'space-between', padding: '10px 14px', width: '100%', boxSizing: 'border-box' }}
               onClick={() => onPick(i)}
             >
               <span>{def.label === 'Door' ? '🚪' : '🪟'} {size.label}</span>
@@ -20,7 +21,7 @@ export default function ArchSizePicker({ typeKey, onPick, onCancel }) {
             </button>
           ))}
         </div>
-        <button style={styles.wallPickerCancel} onClick={onCancel}>Cancel</button>
+        <button style={s.wallPickerCancel} onClick={onCancel}>Cancel</button>
       </div>
     </div>
   )

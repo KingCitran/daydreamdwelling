@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { styles } from './styles/appStyles'
+import { useBuilderStyles } from './styles/appStyles'
 
 export default function RoomBanner({ currentRoomId, roomName, allRoomsData, roomNames, onOpenOverview, onNavigate, onRename }) {
+  const s = useBuilderStyles()
   const [dropOpen,  setDropOpen]  = useState(false)
   const [editing,   setEditing]   = useState(false)
   const [draft,     setDraft]     = useState(roomName)
@@ -15,10 +16,10 @@ export default function RoomBanner({ currentRoomId, roomName, allRoomsData, room
   }
 
   return (
-    <div style={styles.roomBannerWrap}>
+    <div style={s.roomBannerWrap}>
       {editing ? (
         <input
-          style={styles.roomBannerInput}
+          style={s.roomBannerInput}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onBlur={commitRename}
@@ -29,25 +30,25 @@ export default function RoomBanner({ currentRoomId, roomName, allRoomsData, room
           autoFocus
         />
       ) : (
-        <button style={styles.roomBannerBtn} onClick={onOpenOverview} title="Click to open overview · double-click to rename">
+        <button style={s.roomBannerBtn} onClick={onOpenOverview} title="Click to open overview · double-click to rename">
           🏠 <span onDoubleClick={e => { e.stopPropagation(); setDraft(roomName); setEditing(true) }}>{roomName}</span>
         </button>
       )}
       {!editing && (
-        <button style={styles.roomBannerEdit}
+        <button style={s.roomBannerEdit}
           onClick={() => { setDraft(roomName); setEditing(true) }}
           title="Rename room">✏</button>
       )}
       {!editing && hasMultiple && (
         <div style={{ position: 'relative' }}>
-          <button style={styles.roomBannerDrop} onClick={() => setDropOpen(v => !v)} title="Switch room">▾</button>
+          <button style={s.roomBannerDrop} onClick={() => setDropOpen(v => !v)} title="Switch room">▾</button>
           {dropOpen && (
-            <div style={styles.roomDropdown}>
+            <div style={s.roomDropdown}>
               {roomIds.map(id => {
                 const name = roomNames[id] || `Room ${id + 1}`
                 const isActive = id === currentRoomId
                 return (
-                  <button key={id} style={{ ...styles.roomDropItem, ...(isActive ? styles.roomDropItemActive : {}) }}
+                  <button key={id} style={{ ...s.roomDropItem, ...(isActive ? s.roomDropItemActive : {}) }}
                     onClick={() => { onNavigate(id); setDropOpen(false) }}
                   >
                     {isActive ? '● ' : '○ '}{name}
