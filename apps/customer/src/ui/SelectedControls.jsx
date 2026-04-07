@@ -26,14 +26,37 @@ export default function SelectedControls({
 
   return (
     <div style={{
-      position: 'absolute', bottom: 90,
-      left: 0, right: 0,
-      display: 'flex', justifyContent: 'center',
-      pointerEvents: 'none',
+      position: 'absolute', top: 14, right: 20,
+      pointerEvents: 'none', zIndex: 40,
     }}>
-      <div style={{ ...s.controls, pointerEvents: 'auto', maxWidth: '760px', minWidth: 0 }}>
+      <div style={{ ...s.controls, pointerEvents: 'auto' }}>
 
-        {/* ── Row 1: Position controls  +  Own / Lock / Delete ── */}
+        {/* ── Name / brand · Rating · Badges ── */}
+        <div style={s.ctrlNameRow}>
+          <div style={s.ctrlNameLeft}>
+            <span style={s.controlsTitle}>{def.label}</span>
+            {def.brand && <span style={s.controlsBrand}>{def.brand}</span>}
+          </div>
+          <div style={s.ctrlNameRight}>
+            {def.rating && (
+              <span style={s.ctrlRating}>
+                ★ {def.rating}
+                {def.reviewCount && <span style={s.ctrlRatingCount}> ({def.reviewCount})</span>}
+              </span>
+            )}
+            {(item.owned || item.wishlisted || item.locked) && (
+              <div style={s.badgeRow}>
+                {item.owned      && <span style={s.badgeOwned}  title="You own this">✓ owned</span>}
+                {item.wishlisted && <span style={s.badgeWish}   title="On wishlist">♥ wishlist</span>}
+                {item.locked     && <span style={s.badgeLocked} title="Position locked">🔒 locked</span>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={s.ctrlHDivider} />
+
+        {/* ── Position controls  +  Own / Lock / Delete ── */}
         <div style={s.ctrlRow}>
 
           {/* Wall: SVG cross D-pad */}
