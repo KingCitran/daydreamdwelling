@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { ITEM_CATALOGUE } from '../../data/items'
-import { s } from './shopStyles'
+import { useShopStyles } from './shopStyles'
 
 export default function WishlistTab({ items, onOpenModal, onToggleWishlist }) {
+  const s = useShopStyles()
   const [shared, setShared] = useState(false)
 
   if (items.length === 0) {

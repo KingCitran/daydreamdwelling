@@ -1,7 +1,8 @@
 import { ITEM_CATALOGUE } from '../../data/items'
-import { s } from './shopStyles'
+import { useShopStyles } from './shopStyles'
 
 export default function CartTab({ cart, onIncrement, onDecrement, onRemove, cartHighlight, onCartHighlight, onCheckout }) {
+  const s = useShopStyles()
   if (cart.length === 0) {
     return (
       <div style={s.cartEmpty}>

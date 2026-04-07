@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { ALL_STYLES, ALL_ROOMS, ALL_THEMES, ALL_COLOR_FAMILIES } from '../../data/items'
 import { MAX_PRICE, ALL_TYPES } from './shopData'
-import { s } from './shopStyles'
+import { useShopStyles } from './shopStyles'
 
 const CHIP_PREVIEW = 4
 
 function SearchableChipGroup({ label, allValues, active, onToggle }) {
+  const s = useShopStyles()
   const [q, setQ] = useState('')
   const [expanded, setExpanded] = useState(false)
 
@@ -40,6 +41,7 @@ function SearchableChipGroup({ label, allValues, active, onToggle }) {
 }
 
 export default function FilterPanel({ filters, filtersOpen, setFiltersOpen, hasActiveFilters, setFilter, toggleMulti, setFilters }) {
+  const s = useShopStyles()
   return (
     <div style={s.filterSection}>
       <button style={s.filterToggle} onClick={() => setFiltersOpen(v => !v)}>

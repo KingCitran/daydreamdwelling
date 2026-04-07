@@ -24,14 +24,14 @@ import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation from './hooks/useRoomNavigation'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
-import { ThemeProvider } from '@shared/ThemeProvider'
+import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
 import AuthModal from './ui/AuthModal'
 import SaveRoomModal from './ui/SaveRoomModal'
 import LoadRoomModal from './ui/LoadRoomModal'
 import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
 import LandingPage from './pages/LandingPage'
-import MoodPicker from '@shared/MoodPicker'
+import BuilderMoodPicker from './ui/BuilderMoodPicker'
 
 const DEFAULT_wallHeight = 8
 
@@ -61,6 +61,7 @@ function Gate() {
 }
 
 function AppInner() {
+  const t = useTheme()
   const [initSave] = useState(loadSaved)
 
   const nextItemIdRef = useRef(null)
@@ -411,7 +412,7 @@ function AppInner() {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ ...styles.app, background: bgColor, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+    <div style={{ ...styles.app, background: t.bg, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }}>
         <RoomScene
@@ -689,7 +690,6 @@ function AppInner() {
             onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
             isSignedIn={!!user}
             screenshotRef={screenshotRef}
-            bgColor={bgColor} setBgColor={setBgColor}
           />
         )}
 
@@ -711,7 +711,7 @@ function AppInner() {
             style={{ ...styles.bottomBtn, ...(musicOpen ? styles.bottomBtnActive : {}) }}
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
-          <MoodPicker />
+          <BuilderMoodPicker />
           <button style={styles.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>

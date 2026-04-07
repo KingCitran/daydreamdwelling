@@ -4,11 +4,12 @@ import {
   SHOP_MODES, OBJECT_BUCKETS, ROOM_BUCKETS, VIBE_BUCKETS, COLOR_BUCKETS, FUNCTION_BUCKETS,
   CATEGORY_META, SUBCATEGORY_META, MAX_PRICE, initFilters, toggle, matchesFilters, matchesSearch,
 } from './shopData'
-import { s } from './shopStyles'
+import { useShopStyles } from './shopStyles'
 import ProductCard from './ProductCard'
 import FilterPanel from './FilterPanel'
 
 function SubcatGrid({ items: srcItems, onSelect }) {
+  const s = useShopStyles()
   const subcats = [...new Set(srcItems.map(([, def]) => def.subcategory).filter(Boolean))]
   return (
     <div style={s.subcatGrid}>
@@ -28,6 +29,7 @@ function SubcatGrid({ items: srcItems, onSelect }) {
 }
 
 function ItemList({ items: srcItems, onPlace, onOpenModal, gridW, gridD, colorFamilies }) {
+  const s = useShopStyles()
   return (
     <div style={s.catItemList}>
       {srcItems.length === 0
@@ -41,6 +43,7 @@ function ItemList({ items: srcItems, onPlace, onOpenModal, gridW, gridD, colorFa
 }
 
 export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
+  const s = useShopStyles()
   // Navigation state
   const [shopMode,       setShopMode]       = useState(null)
   const [modeFilter,     setModeFilter]     = useState(null)

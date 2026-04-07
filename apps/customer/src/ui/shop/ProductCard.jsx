@@ -1,6 +1,7 @@
-import { s } from './shopStyles'
+import { useShopStyles } from './shopStyles'
 
 export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW, gridD, colorFamilies }) {
+  const s = useShopStyles()
   const isFinish = def.isFloorFinish || def.isWallFinish
   const roomSqFt = gridW && gridD ? Math.round(gridW * gridD) : null
 

@@ -1,4 +1,5 @@
-import { s } from './shop/shopStyles'
+import { useShopStyles } from './shop/shopStyles'
+import { useTheme } from '@shared/ThemeProvider'
 import BrowseTab   from './shop/BrowseTab'
 import CartTab     from './shop/CartTab'
 import WishlistTab from './shop/WishlistTab'
@@ -16,6 +17,8 @@ export default function ShopDrawer({
   onCheckout,
   drawerWidth,
 }) {
+  const s = useShopStyles()
+  const t = useTheme()
   const cartCount = cart.reduce((sum, c) => sum + c.qty, 0)
   const crumbMode = null // future: could pass browsing state up if needed
 
@@ -53,7 +56,7 @@ export default function ShopDrawer({
       )}
 
       {/* Seller's Hub footer */}
-      <div style={{ padding: '8px 14px 14px', borderTop: '1px solid #3a3a5a', flexShrink: 0 }}>
+      <div style={{ padding: '8px 14px 14px', borderTop: `1px solid ${t.surfaceBorder}`, flexShrink: 0 }}>
         <div
           role="button" tabIndex={0}
           onClick={() => window.open('https://your-domain.com/sell', '_blank')}

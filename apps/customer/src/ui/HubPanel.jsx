@@ -18,7 +18,6 @@ export default function HubPanel({
   exportRoom, importRef, importRoom,
   onCloudSave, onCloudLoad, isSignedIn,
   screenshotRef,
-  bgColor, setBgColor,
 }) {
   return (
     <div style={{ ...styles.hubPanel, width: compact ? Math.min(220, vw - 60) : 234 }}>
@@ -110,19 +109,6 @@ export default function HubPanel({
       </div>
       <div style={styles.hubBtnRow}>
         <button style={styles.hubBtn} onClick={() => screenshotRef.current?.()}>📷 Screenshot</button>
-      </div>
-
-      <div style={styles.hubDivider} />
-      <p style={styles.hubSectionLabel}>Background</p>
-      <div style={styles.hubBgRow}>
-        {['#1a1a2e','#0a0a0a','#2a1e1a','#1a2e1a','#f5f0e8','#e8ecf0'].map(c => (
-          <button key={c} title={c}
-            style={{ ...styles.hubBgSwatch, background: c, ...(bgColor === c ? styles.hubBgSwatchActive : {}) }}
-            onClick={() => setBgColor(c)}
-          />
-        ))}
-        <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)}
-          style={styles.hubBgPicker} title="Custom colour" />
       </div>
 
     </div>
