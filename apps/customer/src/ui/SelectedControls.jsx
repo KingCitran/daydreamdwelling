@@ -27,7 +27,7 @@ export default function SelectedControls({
   const maxW = 'calc(100% - 40px)'
   return (
     <div style={{
-      position: 'absolute', bottom: 20,
+      position: 'absolute', bottom: 90,
       left: 0, right: 0,
       display: 'flex', justifyContent: 'center',
       pointerEvents: 'none',

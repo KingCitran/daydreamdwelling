@@ -221,8 +221,8 @@ export function makeShopStyles(t) {
     swatchRow: { display: 'flex', gap: 5, marginTop: 2 },
     swatch: { width: 12, height: 12, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' },
     tileBtns: { display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' },
-    tilePlace: { flex: 1, padding: '7px 0', background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
-    tileApply: { flex: 1, padding: '7px 0', background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
+    tilePlace: { flex: 1, padding: '7px 0', background: `${t.accent}22`, color: t.accent, border: `1px solid ${t.accent}66`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
+    tileApply: { flex: 1, padding: '7px 0', background: `${t.accent}22`, color: t.accent, border: `1px solid ${t.accent}66`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
     tileDetail: { flex: 1, fontSize: 12, color: t.textSoft, textAlign: 'center', userSelect: 'none' },
   }
 }

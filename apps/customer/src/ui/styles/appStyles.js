@@ -26,8 +26,9 @@ export function makeBuilderStyles(t) {
     bottomBtn: {
       padding: '10px 18px',
       background: t.navBg, color: t.text,
-      border: `1px solid ${t.surfaceBorder}`, borderRadius: 8,
+      border: `1.5px solid ${t.surfaceBorder}`, borderRadius: 8,
       cursor: 'pointer', fontSize: 14,
+      boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
     },
     bottomBtnActive: {
       background: accentTint, borderColor: t.accent,
@@ -40,9 +41,10 @@ export function makeBuilderStyles(t) {
       background: '#1a3a2a', borderColor: '#3a8a5a', color: '#a0ffcc',
     },
     hubPanel: {
-      background: t.navBg, border: `1px solid ${t.surfaceBorder}`,
+      background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
       borderRadius: 10, padding: '12px 14px 14px',
       width: 234, display: 'flex', flexDirection: 'column', gap: 7,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
     },
     hubSectionLabel: {
       margin: '2px 0 2px', fontSize: 10, fontWeight: 600,
@@ -85,9 +87,10 @@ export function makeBuilderStyles(t) {
       cursor: 'pointer', background: 'transparent',
     },
     roomPanel: {
-      background: t.navBg, border: `1px solid ${t.surfaceBorder}`,
+      background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
       borderRadius: 10, width: 280, maxHeight: 320,
       display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
     },
     roomPanelHeader: {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -120,10 +123,11 @@ export function makeBuilderStyles(t) {
       fontSize: 11, fontWeight: 700, flexShrink: 0,
     },
     controls: {
-      background: t.navBg, border: `1px solid ${t.surfaceBorder}`,
+      background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
       borderRadius: 12, padding: '10px 14px',
       display: 'flex', flexDirection: 'column', gap: 8,
       minWidth: 600, maxWidth: 'calc(100vw - 40px)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
     },
     ctrlRow:     { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
     ctrlNameRow:      { display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

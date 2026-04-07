@@ -29,7 +29,7 @@ export const MOOD_THEMES = {
   'Golden Hour': {
     bg:            '#fdf5e4',
     surface:       'rgba(255,252,240,0.75)',
-    surfaceBorder: 'rgba(200,155,60,0.2)',
+    surfaceBorder: 'rgba(200,155,60,0.35)',
     navBg:         'rgba(253,245,228,0.92)',
     navBorder:     'rgba(200,155,60,0.12)',
     text:          '#2e1e08',
@@ -47,7 +47,7 @@ export const MOOD_THEMES = {
   'Bright Day': {
     bg:            '#f7faf4',
     surface:       'rgba(255,255,255,0.78)',
-    surfaceBorder: 'rgba(100,160,90,0.18)',
+    surfaceBorder: 'rgba(100,160,90,0.32)',
     navBg:         'rgba(247,250,244,0.92)',
     navBorder:     'rgba(100,160,90,0.12)',
     text:          '#182814',
@@ -119,7 +119,7 @@ export const MOOD_THEMES = {
   'Cottagecore Dawn': {
     bg:            '#fdf0ee',
     surface:       'rgba(255,248,246,0.78)',
-    surfaceBorder: 'rgba(200,138,128,0.2)',
+    surfaceBorder: 'rgba(200,138,128,0.35)',
     navBg:         'rgba(253,240,238,0.92)',
     navBorder:     'rgba(200,138,128,0.12)',
     text:          '#3a1816',
@@ -137,7 +137,7 @@ export const MOOD_THEMES = {
   'Coastal Morning': {
     bg:            '#f0f6fc',
     surface:       'rgba(255,255,255,0.78)',
-    surfaceBorder: 'rgba(70,138,200,0.18)',
+    surfaceBorder: 'rgba(70,138,200,0.32)',
     navBg:         'rgba(240,246,252,0.92)',
     navBorder:     'rgba(70,138,200,0.12)',
     text:          '#0c1e40',
@@ -155,7 +155,7 @@ export const MOOD_THEMES = {
   'Dream State': {
     bg:            '#ede9ff',
     surface:       'rgba(255,255,255,0.65)',
-    surfaceBorder: 'rgba(180,158,220,0.2)',
+    surfaceBorder: 'rgba(180,158,220,0.35)',
     navBg:         'rgba(237,233,255,0.92)',
     navBorder:     'rgba(180,158,220,0.12)',
     text:          '#2a1848',
@@ -227,7 +227,7 @@ export const MOOD_THEMES = {
   'Studio': {
     bg:            '#f4f4f4',
     surface:       'rgba(255,255,255,0.88)',
-    surfaceBorder: 'rgba(0,0,0,0.1)',
+    surfaceBorder: 'rgba(0,0,0,0.22)',
     navBg:         'rgba(244,244,244,0.96)',
     navBorder:     'rgba(0,0,0,0.08)',
     text:          '#101010',

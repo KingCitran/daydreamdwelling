@@ -15,12 +15,14 @@ export const MOODS = [
   { key: 'Candlelight',      label: 'Candlelight',      desc: 'Very warm, flickering glow, romantic', icon: '🕯' },
   { key: 'Greenhouse',       label: 'Greenhouse',       desc: 'Natural warm light, green cast',       icon: '🌿' },
   { key: 'Studio',           label: 'Studio',           desc: 'Neutral flat light, true colors',      icon: '🔲' },
+  { key: 'Studio Dark',      label: 'Studio Dark',      desc: 'Even flat studio light, dark neutral', icon: '⬛' },
 ]
 
 // Per-app default overrides (used when no user preference is set)
 const APP_DEFAULTS = {
-  outdoor: 'Bright Day',
-  seller:  'Dream State', // always locked, never user-controlled
+  customer: 'Studio Dark',
+  outdoor:  'Bright Day',
+  seller:   'Dream State', // always locked, never user-controlled
 }
 
 /**
