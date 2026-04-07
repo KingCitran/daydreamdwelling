@@ -107,14 +107,16 @@ export function makeShopStyles(t) {
     modeCard: {
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '14px 16px', borderRadius: 12,
-      border: '1px solid rgba(255,255,255,0.07)',
-      cursor: 'pointer', transition: 'opacity 0.15s',
+      background: t.surface,
+      border: `1px solid ${t.surfaceBorder}`,
+      borderLeft: `3px solid ${t.textSoft}`,
+      cursor: 'pointer', transition: 'background 0.15s',
     },
     modeEmoji:   { fontSize: 26, flexShrink: 0, lineHeight: 1 },
     modeText:    { display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 0 },
-    modeLabel:   { fontSize: 14, fontWeight: 700, color: '#e0d9ff' },   // stays white — on dark gradient cards
-    modeTagline: { fontSize: 11, color: '#9898cc', lineHeight: 1.4 },   // stays muted — on dark gradient cards
-    modeArrow:   { fontSize: 20, color: '#7878aa', flexShrink: 0 },
+    modeLabel:   { fontSize: 14, fontWeight: 700, color: t.text },
+    modeTagline: { fontSize: 11, color: t.textSoft, lineHeight: 1.4 },
+    modeArrow:   { fontSize: 20, color: t.textSoft, flexShrink: 0 },
 
     p1Content: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, padding: 14 },
 

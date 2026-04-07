@@ -177,7 +177,7 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
         <div style={{ ...s.slidePanel, transform: panelTransform(0) }}>
           <div style={s.modeList}>
             {SHOP_MODES.map(mode => (
-              <div key={mode.key} style={{ ...s.modeCard, background: `linear-gradient(135deg, ${mode.accent} 0%, #1e1e2e 100%)` }}
+              <div key={mode.key} style={{ ...s.modeCard, borderLeftColor: mode.accent }}
                 onClick={() => setShopMode(mode.key)}
               >
                 <span style={s.modeEmoji}>{mode.emoji}</span>

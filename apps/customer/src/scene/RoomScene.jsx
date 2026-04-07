@@ -16,7 +16,7 @@ const ZOOM_MAX   = 120
 // keyI/keyC = main directional (window light); fillI/fillC = soft counter-fill
 // Goal: atmosphere without color-casting walls — keep keyC near-white, raise hemiI in dark moods
 const MOOD_SCENE_PRESETS = {
-  'Golden Hour':      { hemiI: 0.35, skyColor: '#d4b080', groundColor: '#4a2010', keyI: 0.75, keyC: '#ffe0b0', fillI: 0.20, fillC: '#f8d890' },
+  'Golden Hour':      { hemiI: 0.28, skyColor: '#c8a870', groundColor: '#4a2010', keyI: 0.80, keyC: '#fff4e0', fillI: 0.18, fillC: '#f0ddb0' },
   'Bright Day':       { hemiI: 0.55, skyColor: '#e8f0f8', groundColor: '#b8a870', keyI: 1.20, keyC: '#fffdf8', fillI: 0.28, fillC: '#e0ecf8' },
   'Cozy Evening':     { hemiI: 0.22, skyColor: '#9a5830', groundColor: '#1e0808', keyI: 0.40, keyC: '#f0b870', fillI: 0.14, fillC: '#d09050' },
   'Moonlight':        { hemiI: 0.28, skyColor: '#a0a8c0', groundColor: '#0a0c18', keyI: 0.42, keyC: '#dce8f8', fillI: 0.16, fillC: '#9098b8' },

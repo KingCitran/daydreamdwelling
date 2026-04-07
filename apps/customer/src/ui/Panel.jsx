@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import { useTheme } from '@shared/ThemeProvider'
 
 const FLOOR_PRESETS = [
   { label: 'Small 10×10',     w: 10, d: 10 },
@@ -9,6 +10,8 @@ const FLOOR_PRESETS = [
 const HEIGHT_PRESETS = [8, 9, 10]
 
 export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, wallHeight, onSetWallHeight, neighborCells }) {
+  const t = useTheme()
+  const s = makeStyles(t)
   const [draftW, setDraftW] = useState(gridW)
   const [draftD, setDraftD] = useState(gridD)
   const [draftH, setDraftH] = useState(wallHeight)
@@ -36,26 +39,26 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
   const stopPaint = () => { painting.current = null }
 
   return (
-    <div style={styles.panel}>
-      <p style={styles.sectionLabel}>Floor Plan</p>
-      <p style={styles.hint}>Click or drag to toggle cells</p>
+    <div style={s.panel}>
+      <p style={s.sectionLabel}>Floor Plan</p>
+      <p style={s.hint}>Click or drag to toggle cells</p>
 
-      <div style={styles.gridCenter}>
+      <div style={s.gridCenter}>
         <div
-          style={styles.gridWrap}
+          style={s.gridWrap}
           onMouseLeave={stopPaint}
           onMouseUp={stopPaint}
           onContextMenu={e => e.preventDefault()}
         >
           {Array.from({ length: gridD }, (_, row) => (
-            <div key={row} style={styles.gridRow}>
+            <div key={row} style={s.gridRow}>
               {Array.from({ length: gridW }, (_, col) => {
                 const key = `${col},${row}`
                 const active   = cells.has(key)
                 const neighbor = neighborCells?.has(key) ?? false
-                const bgColor  = neighbor ? '#2e3040'
+                const bgColor  = neighbor ? t.surface
                                : active   ? '#c0b49e'
-                               :             '#1a1a2e'
+                               :             t.bg
                 return (
                   <div
                     key={col}
@@ -63,7 +66,7 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
                     style={{
                       width: cellPx, height: cellPx,
                       background: bgColor,
-                      border: `1px solid ${neighbor ? '#404060' : '#3a3a55'}`,
+                      border: `1px solid ${t.surfaceBorder}`,
                       boxSizing: 'border-box',
                       cursor: neighbor ? 'not-allowed' : 'crosshair',
                       flexShrink: 0,
@@ -79,31 +82,31 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
         </div>
       </div>
 
-      <p style={{ ...styles.sectionLabel, marginTop: 14 }}>Quick Size</p>
-      <div style={styles.presetRow}>
+      <p style={{ ...s.sectionLabel, marginTop: 14 }}>Quick Size</p>
+      <div style={s.presetRow}>
         {FLOOR_PRESETS.map(({ label, w, d }) => (
           <button
             key={label}
-            style={styles.presetBtn}
+            style={s.presetBtn}
             onClick={() => { setDraftW(w); setDraftD(d); onApplyGrid(w, d) }}
           >{label}</button>
         ))}
       </div>
 
-      <p style={{ ...styles.sectionLabel, marginTop: 14 }}>Custom (ft)</p>
-      <div style={styles.inputRow}>
+      <p style={{ ...s.sectionLabel, marginTop: 14 }}>Custom (ft)</p>
+      <div style={s.inputRow}>
         <input
           type="number" min={4} max={30} value={draftW}
-          style={styles.input}
+          style={s.input}
           onChange={e => setDraftW(Math.min(30, Math.max(4, Number(e.target.value) || 4)))}
         />
-        <span style={styles.x}>×</span>
+        <span style={s.x}>×</span>
         <input
           type="number" min={4} max={30} value={draftD}
-          style={styles.input}
+          style={s.input}
           onChange={e => setDraftD(Math.min(30, Math.max(4, Number(e.target.value) || 4)))}
         />
-        <button style={styles.applyBtn}
+        <button style={s.applyBtn}
           onClick={() => onApplyGrid(
             Math.min(30, Math.max(4, draftW)),
             Math.min(30, Math.max(4, draftD)),
@@ -111,25 +114,25 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
         >Apply</button>
       </div>
 
-      <div style={styles.divider} />
-      <p style={styles.sectionLabel}>Wall Height (ft)</p>
-      <div style={styles.presetRow}>
+      <div style={s.divider} />
+      <p style={s.sectionLabel}>Wall Height (ft)</p>
+      <div style={s.presetRow}>
         {HEIGHT_PRESETS.map(h => (
           <button
             key={h}
-            style={{ ...styles.presetBtn, ...(wallHeight === h ? styles.presetBtnActive : {}) }}
+            style={{ ...s.presetBtn, ...(wallHeight === h ? s.presetBtnActive : {}) }}
             onClick={() => { setDraftH(h); onSetWallHeight(h) }}
           >{h} ft</button>
         ))}
       </div>
-      <div style={{ ...styles.inputRow, marginTop: 6 }}>
+      <div style={{ ...s.inputRow, marginTop: 6 }}>
         <input
           type="number" min={6} max={20} value={draftH}
-          style={styles.input}
+          style={s.input}
           onChange={e => setDraftH(Math.min(20, Math.max(6, Number(e.target.value) || 8)))}
         />
-        <span style={styles.x}>ft</span>
-        <button style={styles.applyBtn}
+        <span style={s.x}>ft</span>
+        <button style={s.applyBtn}
           onClick={() => {
             const h = Math.min(20, Math.max(6, draftH))
             setDraftH(h)
@@ -142,43 +145,46 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
   )
 }
 
-const styles = {
-  panel: {
-    position: 'absolute', top: 20, left: 20, width: 248,
-    background: '#2a2a3d', border: '1px solid #4a4a6a',
-    borderRadius: 10, padding: '14px 14px 16px',
-    userSelect: 'none',
-  },
-  sectionLabel: {
-    margin: '0 0 5px', fontSize: 10, fontWeight: 600,
-    textTransform: 'uppercase', letterSpacing: '1px', color: '#7878aa',
-  },
-  hint: { margin: '0 0 8px', fontSize: 11, color: '#555770' },
-  gridCenter: { display: 'flex', justifyContent: 'center' },
-  gridWrap: {
-    display: 'inline-flex', flexDirection: 'column',
-    maxHeight: 216, overflowX: 'hidden', overflowY: 'auto',
-    border: '1px solid #4a4a6a', borderRadius: 3,
-    lineHeight: 0, scrollbarWidth: 'thin',
-  },
-  gridRow: { display: 'flex' },
-  divider: { borderTop: '1px solid #3a3a55', margin: '14px 0 10px' },
-  presetRow: { display: 'flex', gap: 5, flexWrap: 'wrap' },
-  presetBtn: {
-    padding: '4px 9px', background: '#3a3a55', color: '#d0cfff',
-    border: '1px solid #4a4a6a', borderRadius: 5, cursor: 'pointer', fontSize: 11,
-  },
-  presetBtnActive: {
-    background: '#5050a0', borderColor: '#8080d0', color: '#ffffff',
-  },
-  inputRow: { display: 'flex', alignItems: 'center', gap: 6 },
-  input: {
-    width: 46, padding: '5px 6px', background: '#1e1e2e', color: '#e0d9ff',
-    border: '1px solid #4a4a6a', borderRadius: 4, fontSize: 13,
-  },
-  x: { color: '#7878aa', fontSize: 13 },
-  applyBtn: {
-    padding: '5px 10px', background: '#3a3a55', color: '#d0cfff',
-    border: '1px solid #4a4a6a', borderRadius: 4, cursor: 'pointer', fontSize: 12,
-  },
+function makeStyles(t) {
+  const accentTint = `${t.accent}22`
+  return {
+    panel: {
+      position: 'absolute', top: 20, left: 20, width: 248,
+      background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
+      borderRadius: 10, padding: '14px 14px 16px',
+      userSelect: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+    },
+    sectionLabel: {
+      margin: '0 0 5px', fontSize: 10, fontWeight: 600,
+      textTransform: 'uppercase', letterSpacing: '1px', color: t.textSoft,
+    },
+    hint: { margin: '0 0 8px', fontSize: 11, color: t.textSoft },
+    gridCenter: { display: 'flex', justifyContent: 'center' },
+    gridWrap: {
+      display: 'inline-flex', flexDirection: 'column',
+      maxHeight: 216, overflowX: 'hidden', overflowY: 'auto',
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 3,
+      lineHeight: 0, scrollbarWidth: 'thin',
+    },
+    gridRow: { display: 'flex' },
+    divider: { borderTop: `1px solid ${t.surfaceBorder}`, margin: '14px 0 10px' },
+    presetRow: { display: 'flex', gap: 5, flexWrap: 'wrap' },
+    presetBtn: {
+      padding: '4px 9px', background: t.surface, color: t.text,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 5, cursor: 'pointer', fontSize: 11,
+    },
+    presetBtnActive: {
+      background: accentTint, borderColor: t.accent, color: t.accent,
+    },
+    inputRow: { display: 'flex', alignItems: 'center', gap: 6 },
+    input: {
+      width: 46, padding: '5px 6px', background: t.bg, color: t.text,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 4, fontSize: 13,
+    },
+    x: { color: t.textSoft, fontSize: 13 },
+    applyBtn: {
+      padding: '5px 10px', background: t.surface, color: t.text,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 4, cursor: 'pointer', fontSize: 12,
+    },
+  }
 }

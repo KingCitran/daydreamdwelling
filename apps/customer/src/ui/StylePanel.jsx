@@ -1,4 +1,10 @@
 import { useState, useRef, useCallback } from 'react'
+import { useTheme } from '@shared/ThemeProvider'
+
+function useStyles() {
+  const t = useTheme()
+  return makeStyles(t)
+}
 
 const PALETTE = [
   { label: 'Whites',       chips: ['#f7f3ee','#ede8df','#e0d8cc','#d4cab8','#c8bca8','#b8a890'] },
@@ -43,6 +49,7 @@ function hexToHsv(hex) {
 
 // ── Gradient color picker (lazy — only mounted when expanded) ──
 function GradientPicker({ value, onChange }) {
+  const s = useStyles()
   const [hue, setHue] = useState(() => hexToHsv(value)[0])
   const [sat, setSat] = useState(() => hexToHsv(value)[1])
   const [bri, setBri] = useState(() => hexToHsv(value)[2])
@@ -135,6 +142,7 @@ function GradientPicker({ value, onChange }) {
 
 // ── Combined palette + optional gradient picker ────────────────
 function PaintPalette({ value, onChange }) {
+  const s = useStyles()
   const [hexInput, setHexInput]   = useState(value)
   const [showMore, setShowMore]   = useState(false)
 
@@ -193,6 +201,7 @@ function PaintPalette({ value, onChange }) {
 
 // ── StylePanel ─────────────────────────────────────────────────
 export default function StylePanel({ floorColor, wallColor, onFloorColor, onWallColor }) {
+  const s = useStyles()
   const [target, setTarget] = useState('floor')
 
   return (
@@ -216,54 +225,58 @@ export default function StylePanel({ floorColor, wallColor, onFloorColor, onWall
 }
 
 // ── Styles ─────────────────────────────────────────────────────
-const s = {
-  panel: {
-    position: 'absolute', top: 20, left: 20, width: 248,
-    background: '#2a2a3d', border: '1px solid #4a4a6a',
-    borderRadius: 10, padding: '14px 14px 16px',
-    userSelect: 'none', maxHeight: 'calc(100vh - 48px)',
-    overflowY: 'auto', scrollbarWidth: 'thin',
-  },
-  header:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  title:    { margin: 0, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: '#7878aa' },
-  tabs:     { display: 'flex', gap: 4 },
-  tab: {
-    padding: '3px 10px', background: '#3a3a55', color: '#9090bb',
-    border: '1px solid #4a4a6a', borderRadius: 5, cursor: 'pointer', fontSize: 11,
-  },
-  tabActive: { background: '#4a4a7a', color: '#e0d9ff', borderColor: '#7878aa' },
-  row:      { marginBottom: 5 },
-  rowLabel: { display: 'block', fontSize: 9, color: '#6060a0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 },
-  chips:    { display: 'flex', gap: 3 },
-  chip: {
-    flex: 1, height: 22, borderRadius: 3,
-    border: '2px solid transparent', cursor: 'pointer', padding: 0,
-    transition: 'transform 0.1s',
-  },
-  chipActive: {
-    border: '2px solid #fff', outline: '2px solid #9898cc',
-    outlineOffset: 1, transform: 'scale(1.12)', zIndex: 1, position: 'relative',
-  },
-  customRow: { display: 'flex', gap: 7, marginTop: 8, alignItems: 'center' },
-  preview:  { width: 28, height: 28, borderRadius: 5, flexShrink: 0, border: '1px solid #4a4a6a' },
-  hexInput: {
-    flex: 1, background: '#1e1e2e', color: '#e0d9ff',
-    border: '1px solid #4a4a6a', borderRadius: 4,
-    padding: '5px 8px', fontSize: 12, fontFamily: 'monospace',
-  },
-  moreBtn: {
-    width: '100%', marginTop: 8, padding: '6px 0',
-    background: '#222236', color: '#7878aa',
-    border: '1px solid #3a3a5a', borderRadius: 5,
-    cursor: 'pointer', fontSize: 11,
-  },
-  gradWrap: { marginTop: 10 },
-  gradArea: {
-    position: 'relative', width: '100%', height: 110,
-    borderRadius: 5, overflow: 'hidden', cursor: 'crosshair',
-  },
-  hueStrip: {
-    position: 'relative', height: 14, marginTop: 6, borderRadius: 7, cursor: 'crosshair',
-    background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)',
-  },
+function makeStyles(t) {
+  const accentTint = `${t.accent}22`
+  return {
+    panel: {
+      position: 'absolute', top: 20, left: 20, width: 248,
+      background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
+      borderRadius: 10, padding: '14px 14px 16px',
+      userSelect: 'none', maxHeight: 'calc(100vh - 48px)',
+      overflowY: 'auto', scrollbarWidth: 'thin',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+    },
+    header:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+    title:    { margin: 0, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: t.textSoft },
+    tabs:     { display: 'flex', gap: 4 },
+    tab: {
+      padding: '3px 10px', background: t.surface, color: t.textSoft,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 5, cursor: 'pointer', fontSize: 11,
+    },
+    tabActive: { background: accentTint, color: t.text, borderColor: t.accent },
+    row:      { marginBottom: 5 },
+    rowLabel: { display: 'block', fontSize: 9, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 },
+    chips:    { display: 'flex', gap: 3 },
+    chip: {
+      flex: 1, height: 22, borderRadius: 3,
+      border: '2px solid transparent', cursor: 'pointer', padding: 0,
+      transition: 'transform 0.1s',
+    },
+    chipActive: {
+      border: '2px solid #fff', outline: '2px solid rgba(128,128,128,0.6)',
+      outlineOffset: 1, transform: 'scale(1.12)', zIndex: 1, position: 'relative',
+    },
+    customRow: { display: 'flex', gap: 7, marginTop: 8, alignItems: 'center' },
+    preview:  { width: 28, height: 28, borderRadius: 5, flexShrink: 0, border: `1px solid ${t.surfaceBorder}` },
+    hexInput: {
+      flex: 1, background: t.bg, color: t.text,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 4,
+      padding: '5px 8px', fontSize: 12, fontFamily: 'monospace',
+    },
+    moreBtn: {
+      width: '100%', marginTop: 8, padding: '6px 0',
+      background: t.surface, color: t.textSoft,
+      border: `1px solid ${t.surfaceBorder}`, borderRadius: 5,
+      cursor: 'pointer', fontSize: 11,
+    },
+    gradWrap: { marginTop: 10 },
+    gradArea: {
+      position: 'relative', width: '100%', height: 110,
+      borderRadius: 5, overflow: 'hidden', cursor: 'crosshair',
+    },
+    hueStrip: {
+      position: 'relative', height: 14, marginTop: 6, borderRadius: 7, cursor: 'crosshair',
+      background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)',
+    },
+  }
 }

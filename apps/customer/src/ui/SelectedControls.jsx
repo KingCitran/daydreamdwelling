@@ -24,7 +24,6 @@ export default function SelectedControls({
   const isDoor     = !!def.door
   const dmap       = DIAMOND_MAP[roomQuadrant(roomRotation ?? 0)]
 
-  const maxW = 'calc(100% - 40px)'
   return (
     <div style={{
       position: 'absolute', bottom: 90,
@@ -32,34 +31,9 @@ export default function SelectedControls({
       display: 'flex', justifyContent: 'center',
       pointerEvents: 'none',
     }}>
-      <div style={{ ...s.controls, pointerEvents: 'auto', maxWidth: maxW, minWidth: 0 }}>
+      <div style={{ ...s.controls, pointerEvents: 'auto', maxWidth: '760px', minWidth: 0 }}>
 
-        {/* ── Row 1: Name / brand (left)  ·  Rating + badges (right) ── */}
-        <div style={s.ctrlNameRow}>
-          <div style={s.ctrlNameLeft}>
-            <span style={s.controlsTitle}>{def.label}</span>
-            {def.brand && <span style={s.controlsBrand}>{def.brand}</span>}
-          </div>
-          <div style={s.ctrlNameRight}>
-            {def.rating && (
-              <span style={s.ctrlRating}>
-                ★ {def.rating}
-                {def.reviewCount && <span style={s.ctrlRatingCount}> ({def.reviewCount})</span>}
-              </span>
-            )}
-            {(item.owned || item.wishlisted || item.locked) && (
-              <div style={s.badgeRow}>
-                {item.owned      && <span style={s.badgeOwned}  title="You own this">✓ owned</span>}
-                {item.wishlisted && <span style={s.badgeWish}   title="On wishlist">♥ wishlist</span>}
-                {item.locked     && <span style={s.badgeLocked} title="Position locked">🔒 locked</span>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div style={s.ctrlHDivider} />
-
-        {/* ── Row 2: Position controls  +  Own / Lock / Delete ── */}
+        {/* ── Row 1: Position controls  +  Own / Lock / Delete ── */}
         <div style={s.ctrlRow}>
 
           {/* Wall: SVG cross D-pad */}
@@ -236,9 +210,7 @@ export default function SelectedControls({
           )}
         </div>
 
-        <div style={s.ctrlHDivider} />
-
-        {/* ── Row 3: Color  ·  Size  ·  Qty  ·  Wish  ·  Cart  ·  Details ── */}
+        {/* ── Row 2: Color  ·  Size  ·  Qty  ·  Wish  ·  Cart  ·  Details ── */}
         <div style={s.ctrlRow}>
           <div style={s.swatchRow}>
             {def.swatches.map((sw, i) => (
