@@ -3,6 +3,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { MOODS } from '@shared/useMood'
 import { MOOD_THEMES } from '@shared/themes'
 import MoodPicker from '@shared/MoodPicker'
+import { supabase } from '@shared/supabase'
 
 const T = 'background 1s ease, border-color 1s ease, color 1s ease, opacity 1s ease'
 
@@ -23,8 +24,10 @@ export default function LandingPage({ onEnter }) {
   const s = makeStyles(t)
   const [idxA, setIdxA] = useState(0)
   const [idxB, setIdxB] = useState(7)
-  const [email,  setEmail]  = useState('')
-  const [joined, setJoined] = useState(false)
+  const [email,   setEmail]   = useState('')
+  const [joined,  setJoined]  = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [waitlistErr, setWaitlistErr] = useState('')
 
   useEffect(() => {
     const a = setInterval(() => setIdxA(i => (i + 1) % MOODS.length), 4000)
@@ -141,13 +144,29 @@ export default function LandingPage({ onEnter }) {
           {joined ? (
             <p style={{ fontSize: 18, color: t.accent, fontWeight: 700 }}>You're on the list. ✦</p>
           ) : (
-            <form onSubmit={e => { e.preventDefault(); if (email.trim()) setJoined(true) }}
-              style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <input
-                style={{ flex: 1, maxWidth: 300, padding: '12px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' }}
-                type="email" placeholder="your@email.com"
-                value={email} onChange={e => setEmail(e.target.value)} required />
-              <button type="submit" style={s.heroCta}>Join →</button>
+            <form onSubmit={async e => {
+              e.preventDefault()
+              if (!email.trim() || submitting) return
+              setSubmitting(true)
+              setWaitlistErr('')
+              const { error } = await supabase.from('waitlist').insert({ email: email.trim() })
+              setSubmitting(false)
+              if (!error || error.code === '23505') {
+                setJoined(true)
+              } else {
+                setWaitlistErr('Something went wrong. Try again.')
+              }
+            }} style={{ display: 'flex', gap: 10, justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <input
+                  style={{ flex: 1, maxWidth: 300, padding: '12px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' }}
+                  type="email" placeholder="your@email.com"
+                  value={email} onChange={e => setEmail(e.target.value)} required />
+                <button type="submit" style={{ ...s.heroCta, opacity: submitting ? 0.6 : 1 }} disabled={submitting}>
+                  {submitting ? '...' : 'Join →'}
+                </button>
+              </div>
+              {waitlistErr && <p style={{ fontSize: 12, color: '#e57373', margin: 0 }}>{waitlistErr}</p>}
             </form>
           )}
         </div>
