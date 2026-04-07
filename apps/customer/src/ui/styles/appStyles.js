@@ -9,7 +9,7 @@ export function makeBuilderStyles(t) {
   return {
     app: {
       width: '100vw', height: '100vh',
-      background: t.canvasBg,
+      background: t.bg,
       fontFamily: 'system-ui, sans-serif',
       overflow: 'hidden',
     },

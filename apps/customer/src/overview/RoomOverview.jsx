@@ -4,33 +4,10 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { computeRoomLayout } from './layout'
 import OverviewRoomGroup from './OverviewRoomGroup'
 import { ITEM_CATALOGUE } from '../data/items'
+import { useBuilderStyles } from '../ui/styles/appStyles'
 
 const SNAP_DIST = 1.5  // feet — how close to snap to wall-flush position
 const GRID_STEP = 1    // feet — grid snap increment during drag
-
-const overviewStyles = {
-  overviewOverlay: {
-    position: 'fixed', inset: 0, zIndex: 300,
-    background: 'rgba(10,10,20,0.92)', backdropFilter: 'blur(4px)',
-    display: 'flex', flexDirection: 'column',
-    fontFamily: 'system-ui, sans-serif',
-  },
-  overviewHeader: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 20px', borderBottom: '1px solid #3a3a5a', flexShrink: 0,
-  },
-  overviewTitle: { fontSize: 16, fontWeight: 700, color: '#e0d9ff' },
-  overviewHeaderBtn: {
-    padding: '6px 14px', borderRadius: 6,
-    background: '#3a3a55', border: '1px solid #5a5a8a', color: '#c0b8ff',
-    fontSize: 12, cursor: 'pointer',
-  },
-  overviewClose: {
-    padding: '6px 12px', borderRadius: 6,
-    background: 'transparent', border: '1px solid #5a5a8a', color: '#8888bb',
-    fontSize: 14, cursor: 'pointer', marginLeft: 8,
-  },
-}
 
 // userZoomedRef is shared between OverviewZoom and OverviewCamera
 // so that manual wheel zoom prevents span-change from resetting it.
@@ -75,6 +52,7 @@ function OverviewCamera({ span, userZoomedRef }) {
 }
 
 export default function RoomOverview({ allRoomsData, currentRoomId, roomNames, showLabels, onToggleLabels, onNavigate, onRename, onDeleteRoom, onClose, layoutOverrides, onSetLayoutOverrides, onUnlinkDoors, onAddRoom, onAddDoor, onAddExteriorDoor, onUpdateRoomShape, onAddStairs }) {
+  const s = useBuilderStyles()
   // Compute unique floor levels (rooms without .level default to 0 = ground floor)
   const allLevels = useMemo(() => {
     const lvls = new Set(Object.values(allRoomsData).map(r => r.level ?? 0))
@@ -326,53 +304,45 @@ export default function RoomOverview({ allRoomsData, currentRoomId, roomNames, s
     lvl === 0 ? 'Ground Floor' : lvl > 0 ? `Floor ${lvl + 1}` : `Basement ${Math.abs(lvl)}`
 
   return (
-    <div style={overviewStyles.overviewOverlay}>
-      <div style={overviewStyles.overviewHeader}>
-        <span style={overviewStyles.overviewTitle}>🏠 Room Map</span>
+    <div style={s.overviewOverlay}>
+      <div style={s.overviewHeader}>
+        <span style={s.overviewTitle}>🏠 Room Map</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {/* Floor / level selector */}
           <select
             value={validLevel}
             onChange={e => setSelectedLevel(Number(e.target.value))}
-            style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
-              background: '#3a3a55', border: '1px solid #5a5a8a', color: '#c0b8ff',
-            }}
+            style={{ ...s.overviewHeaderBtn, padding: '5px 10px', fontSize: 12 }}
           >
             {allLevels.map(lvl => (
               <option key={lvl} value={lvl}>{levelLabel(lvl)}</option>
             ))}
           </select>
           <button
-            style={{
-              ...overviewStyles.overviewHeaderBtn,
-              background: editMode ? '#4a3a8a' : undefined,
-              borderColor: editMode ? '#9a7aee' : undefined,
-              color: editMode ? '#e0d8ff' : undefined,
-            }}
+            style={{ ...s.overviewHeaderBtn, ...(editMode ? s.hubBtnActive : {}) }}
             onClick={() => setEditMode(m => !m)}
           >
             {editMode ? 'Editing...' : 'Edit Layout'}
           </button>
           {editMode && (
             <button
-              style={{ ...overviewStyles.overviewHeaderBtn, color: '#ff9090' }}
+              style={{ ...s.overviewHeaderBtn, color: '#ff9090' }}
               onClick={() => onSetLayoutOverrides({})}
               title="Reset all rooms to auto-computed positions"
             >
               Reset
             </button>
           )}
-          <button style={overviewStyles.overviewHeaderBtn} onClick={onToggleLabels}>
+          <button style={s.overviewHeaderBtn} onClick={onToggleLabels}>
             {showLabels ? 'Labels On' : 'Labels Off'}
           </button>
-          <button style={overviewStyles.overviewClose} onClick={onClose}>✕ Close</button>
+          <button style={s.overviewClose} onClick={onClose}>✕ Close</button>
         </div>
       </div>
       {editMode && (
         <div style={{
-          padding: '4px 14px', fontSize: 11, color: '#a090cc',
-          background: 'rgba(40,30,70,0.7)', borderBottom: '1px solid #3a3060',
+          padding: '4px 14px', fontSize: 11, color: s.overviewClose.color,
+          background: s.hubPanel.background, borderBottom: s.overviewHeader.borderBottom,
           textAlign: 'center',
         }}>
           Drag rooms to reposition. Rooms snap to wall alignment when released.

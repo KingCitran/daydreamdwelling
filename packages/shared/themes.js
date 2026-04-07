@@ -242,11 +242,29 @@ export const MOOD_THEMES = {
     panelText:     '#f0f0f0',
     panelTextSoft: '#888888',
   },
+  'Studio Dark': {
+    bg:            '#181818',
+    surface:       'rgba(255,255,255,0.05)',
+    surfaceBorder: 'rgba(255,255,255,0.1)',
+    navBg:         'rgba(18,18,18,0.96)',
+    navBorder:     'rgba(255,255,255,0.08)',
+    text:          '#f0f0f0',
+    textSoft:      '#808080',
+    accent:        '#c0c0c0',
+    accentText:    '#111111',
+    glow:          'rgba(200,200,200,0.07)',
+    canvasBg:      '#101010',
+    panelBg:       '#1e1e1e',
+    panelSurface:  '#2a2a2a',
+    panelBorder:   'rgba(120,120,120,0.3)',
+    panelText:     '#f0f0f0',
+    panelTextSoft: '#808080',
+  },
 }
 
 // Per-app default mood (shown before profile loads / for logged-out users)
 export const APP_MOOD_DEFAULTS = {
-  customer: 'Golden Hour',
+  customer: 'Studio Dark',
   outdoor:  'Bright Day',
   seller:   'Dream State',
 }

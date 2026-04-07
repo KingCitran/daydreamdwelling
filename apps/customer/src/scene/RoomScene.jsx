@@ -28,6 +28,7 @@ const MOOD_SCENE_PRESETS = {
   'Candlelight':      { hemiI: 0.18, skyColor: '#9a5828', groundColor: '#0e0000', keyI: 0.32, keyC: '#f8b060', fillI: 0.12, fillC: '#e09050' },
   'Greenhouse':       { hemiI: 0.40, skyColor: '#88c868', groundColor: '#384010', keyI: 0.88, keyC: '#ecf8d0', fillI: 0.22, fillC: '#a8cc78' },
   'Studio':           { hemiI: 0.60, skyColor: '#f8f8f8', groundColor: '#c0c0c0', keyI: 1.30, keyC: '#ffffff', fillI: 0.40, fillC: '#f0f0f0' },
+  'Studio Dark':      { hemiI: 0.50, skyColor: '#d8d8d8', groundColor: '#808080', keyI: 1.10, keyC: '#ffffff', fillI: 0.35, fillC: '#f0f0f0' },
 }
 // Legacy fallbacks for old save files
 const MOOD_LEGACY = {
