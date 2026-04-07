@@ -90,7 +90,6 @@ function AppInner() {
   const s = useBuilderStyles()
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
-  const hasLightFixtures = items.some(it => ITEM_CATALOGUE[it.typeKey]?.category === 'Lighting')
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -438,6 +437,8 @@ function AppInner() {
     }
     return blocked
   }, [overviewPositions, allRooms, currentRoomId, gridW, gridD])
+
+  const hasLightFixtures = items.some(it => ITEM_CATALOGUE[it.typeKey]?.category === 'Lighting')
 
   // ── Render ───────────────────────────────────────────────────────
   return (
