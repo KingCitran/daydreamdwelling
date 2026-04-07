@@ -8,6 +8,13 @@ import { useShopStyles } from './shopStyles'
 import ProductCard from './ProductCard'
 import FilterPanel from './FilterPanel'
 
+function applySort(items, sort) {
+  if (sort === 'price_asc')  return [...items].sort((a, b) => (a[1].price ?? 0) - (b[1].price ?? 0))
+  if (sort === 'price_desc') return [...items].sort((a, b) => (b[1].price ?? 0) - (a[1].price ?? 0))
+  if (sort === 'rating')     return [...items].sort((a, b) => (b[1].rating ?? 0) - (a[1].rating ?? 0))
+  return items
+}
+
 function SubcatGrid({ items: srcItems, onSelect }) {
   const s = useShopStyles()
   const subcats = [...new Set(srcItems.map(([, def]) => def.subcategory).filter(Boolean))]
@@ -42,7 +49,7 @@ function ItemList({ items: srcItems, onPlace, onOpenModal, gridW, gridD, colorFa
   )
 }
 
-export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
+export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD, roomItemKeys }) {
   const s = useShopStyles()
   // Navigation state
   const [shopMode,       setShopMode]       = useState(null)
@@ -59,6 +66,19 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [search,      setSearch]      = useState('')
   const [searchScope, setSearchScope] = useState('context')
+  const [sort,        setSort]        = useState('featured')
+  const [recentKeys,  setRecentKeys]  = useState(
+    () => JSON.parse(localStorage.getItem('ddd_recent_viewed') || '[]')
+  )
+
+  function trackAndOpen(typeKey) {
+    setRecentKeys(prev => {
+      const next = [typeKey, ...prev.filter(k => k !== typeKey)].slice(0, 8)
+      localStorage.setItem('ddd_recent_viewed', JSON.stringify(next))
+      return next
+    })
+    onOpenModal(typeKey)
+  }
 
   const setFilter   = (key, val) => setFilters(f => ({ ...f, [key]: val }))
   const toggleMulti = (key, val) => setFilters(f => ({ ...f, [key]: toggle(f[key], val) }))
@@ -132,7 +152,7 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
     ? COLOR_BUCKETS.find(b => b.key === modeFilter)?.families ?? null
     : null
 
-  const itemListProps = { onPlace, onOpenModal, gridW, gridD, colorFamilies: activeFamilies }
+  const itemListProps = { onPlace, onOpenModal: trackAndOpen, gridW, gridD, colorFamilies: activeFamilies, roomItemKeys }
 
   return (<>
     {/* Search bar */}
@@ -160,12 +180,21 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
         hasActiveFilters={hasActiveFilters} setFilter={setFilter} toggleMulti={toggleMulti} setFilters={setFilters} />
     )}
 
+    {/* Sort row — visible when browsing a category or searching */}
+    {(shopMode !== null || searchTerm) && (
+      <div style={s.sortRow}>
+        {[['featured','Featured'],['price_asc','Price ↑'],['price_desc','Price ↓'],['rating','Top rated']].map(([val, lbl]) => (
+          <button key={val} style={{ ...s.sortBtn, ...(sort === val ? s.sortBtnActive : {}) }} onClick={() => setSort(val)}>{lbl}</button>
+        ))}
+      </div>
+    )}
+
     {/* Flat search results */}
     {searchTerm ? (
       <div style={s.list}>
         {searchResults.length === 0
           ? <p style={s.emptyMsg}>No results for "{search}"</p>
-          : searchResults.map(([key, def]) => <ProductCard key={key} typeKey={key} def={def} {...itemListProps} colorFamilies={activeFamilies} />)
+          : applySort(searchResults, sort).map(([key, def]) => <ProductCard key={key} typeKey={key} def={def} {...itemListProps} colorFamilies={activeFamilies} />)
         }
       </div>
 
@@ -175,6 +204,23 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
 
         {/* P0: Mode selection (home) */}
         <div style={{ ...s.slidePanel, transform: panelTransform(0) }}>
+          {recentKeys.length > 0 && (
+            <div style={s.recentRow}>
+              <span style={s.recentLabel}>Recently viewed</span>
+              <div style={s.recentScroll}>
+                {recentKeys.map(key => {
+                  const def = ITEM_CATALOGUE[key]
+                  if (!def) return null
+                  return (
+                    <div key={key} style={s.recentCard} onClick={() => trackAndOpen(key)}>
+                      <div style={{ ...s.recentThumb, background: def.gradient }} />
+                      <span style={s.recentCardLabel}>{def.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           <div style={s.modeList}>
             {SHOP_MODES.map(mode => (
               <div key={mode.key} style={{ ...s.modeCard, borderLeftColor: mode.accent }}
@@ -285,7 +331,7 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
             </div>
           )}
           {(shopMode === 'room' || shopMode === 'function') && modeFilter && <SubcatGrid items={contextItems} onSelect={setSelectedSubcat} />}
-          {(shopMode === 'vibe' || shopMode === 'color') && modeFilter && <ItemList items={contextItems} {...itemListProps} />}
+          {(shopMode === 'vibe' || shopMode === 'color') && modeFilter && <ItemList items={applySort(contextItems, sort)} {...itemListProps} />}
         </div>
 
         {/* P3: Subcats (Object) / Items (Room, Function) */}
@@ -295,7 +341,7 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
             <span style={s.panelTitle}>{shopMode === 'object' ? (selectedCat ?? '') : (selectedSubcat ?? '')}</span>
           </div>
           {shopMode === 'object' && selectedCat && <SubcatGrid items={contextItems} onSelect={setSelectedSubcat} />}
-          {(shopMode === 'room' || shopMode === 'function') && <ItemList items={contextItems} {...itemListProps} />}
+          {(shopMode === 'room' || shopMode === 'function') && <ItemList items={applySort(contextItems, sort)} {...itemListProps} />}
         </div>
 
         {/* P4: Items (Object final) */}
@@ -304,7 +350,7 @@ export default function BrowseTab({ onPlace, onOpenModal, gridW, gridD }) {
             <button style={s.backBtn} onClick={() => setSelectedSubcat(null)}>← Back</button>
             <span style={s.panelTitle}>{selectedSubcat ?? ''}</span>
           </div>
-          {shopMode === 'object' && <ItemList items={contextItems} {...itemListProps} />}
+          {shopMode === 'object' && <ItemList items={applySort(contextItems, sort)} {...itemListProps} />}
         </div>
 
       </div>

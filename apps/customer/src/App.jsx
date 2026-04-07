@@ -61,7 +61,7 @@ export default function App() {
 
 function Gate() {
   const [inBuilder, setInBuilder] = useState(false)
-  const [quizDone]                = useState(() => !!localStorage.getItem('ddd_quiz_done'))
+  const quizDone                  = !!localStorage.getItem('ddd_quiz_done')
   const { setMood }               = useMoodControl()
   const { user }                  = useAuth()
 
@@ -111,6 +111,7 @@ function AppInner() {
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
   const [items,      setItems]      = useState(initSave?.items ?? [])
   const [selectedId, setSelectedId] = useState(null)
+  const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
 
   // ── UI state ─────────────────────────────────────────────────────
   const [panelOpen,        setPanelOpen]        = useState(false)
@@ -783,6 +784,7 @@ function AppInner() {
             onCartHighlight={setCartHighlight}
             onCheckout={() => setCheckoutOpen(true)}
             drawerWidth={drawerWidth}
+            roomItemKeys={roomItemKeys}
           />
         </div>
       </div>

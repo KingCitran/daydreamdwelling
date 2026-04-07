@@ -1,6 +1,6 @@
 import { useShopStyles } from './shopStyles'
 
-export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW, gridD, colorFamilies }) {
+export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW, gridD, colorFamilies, roomItemKeys }) {
   const s = useShopStyles()
   const isFinish = def.isFloorFinish || def.isWallFinish
   const roomSqFt = gridW && gridD ? Math.round(gridW * gridD) : null
@@ -20,11 +20,12 @@ export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW,
           {matchedSwatch && <span style={{ ...s.thumbSwatchPip, background: matchedSwatch.hex }} title={matchedSwatch.name} />}
           {isFinish && <span style={s.thumbFinishBadge}>{def.isFloorFinish ? '🪵' : '🏠'}</span>}
         </span>
+        {roomItemKeys?.has(typeKey) && <span style={s.inRoomBadge}>In room</span>}
       </div>
       <div style={s.tileBody}>
         <div style={s.tileMeta}>
           <span style={s.tileBrand}>{def.brand}</span>
-          <span style={s.tileRating}>★ {def.rating}</span>
+          <span style={s.tileRating}>★ {def.rating}{def.reviewCount ? ` (${def.reviewCount})` : ''}</span>
         </div>
         <p style={s.tileLabel}>{def.label}</p>
         {isFinish ? (

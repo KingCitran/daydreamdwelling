@@ -16,6 +16,7 @@ export default function ShopDrawer({
   cartHighlight, onCartHighlight,
   onCheckout,
   drawerWidth,
+  roomItemKeys,
 }) {
   const s = useShopStyles()
   const t = useTheme()
@@ -52,7 +53,7 @@ export default function ShopDrawer({
         <WishlistTab items={wishlistedItems} onOpenModal={onOpenModal} onToggleWishlist={onToggleWishlist} />
       )}
       {activeTab === 'shop' && (
-        <BrowseTab onPlace={onPlace} onOpenModal={onOpenModal} gridW={gridW} gridD={gridD} />
+        <BrowseTab onPlace={onPlace} onOpenModal={onOpenModal} gridW={gridW} gridD={gridD} roomItemKeys={roomItemKeys} />
       )}
 
       {/* Seller's Hub footer */}

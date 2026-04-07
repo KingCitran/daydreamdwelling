@@ -226,5 +226,21 @@ export function makeShopStyles(t) {
     tilePlace: { flex: 1, padding: '7px 0', background: `${t.accent}22`, color: t.accent, border: `1px solid ${t.accent}66`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
     tileApply: { flex: 1, padding: '7px 0', background: `${t.accent}22`, color: t.accent, border: `1px solid ${t.accent}66`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 },
     tileDetail: { flex: 1, fontSize: 12, color: t.textSoft, textAlign: 'center', userSelect: 'none' },
+
+    // Sort row
+    sortRow:       { display: 'flex', gap: 4, padding: '6px 10px 2px', flexWrap: 'wrap' },
+    sortBtn:       { fontSize: 11, padding: '3px 9px', borderRadius: 20, border: `1px solid ${t.surfaceBorder}`, background: 'none', color: t.textSoft, cursor: 'pointer', letterSpacing: '0.02em' },
+    sortBtnActive: { borderColor: t.accent, color: t.accent, background: `${t.accent}14` },
+
+    // In room badge (positioned absolute inside thumb)
+    inRoomBadge: { position: 'absolute', bottom: 6, left: 6, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: `${t.accent}dd`, color: t.accentText, padding: '2px 6px', borderRadius: 4, pointerEvents: 'none' },
+
+    // Recently viewed row
+    recentRow:       { padding: '8px 10px 4px' },
+    recentLabel:     { fontSize: 10, color: t.textSoft, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 },
+    recentScroll:    { display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 },
+    recentCard:      { flexShrink: 0, width: 68, cursor: 'pointer', borderRadius: 8, overflow: 'hidden', border: `1px solid ${t.surfaceBorder}`, background: t.surface },
+    recentThumb:     { width: '100%', height: 48 },
+    recentCardLabel: { display: 'block', fontSize: 10, color: t.text, padding: '4px 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   }
 }
