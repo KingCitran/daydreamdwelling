@@ -32,6 +32,11 @@ import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
 import LandingPage from './pages/LandingPage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
+import QuizPage from './ui/onboarding/QuizPage'
+import NotificationBell from './ui/NotificationBell'
+import { useMoodControl } from '@shared/ThemeProvider'
+import { MOOD_TO_TAGS } from '@shared/moodTags'
+import { supabase } from '@shared/supabase'
 
 const DEFAULT_wallHeight = 8
 
@@ -56,7 +61,27 @@ export default function App() {
 
 function Gate() {
   const [inBuilder, setInBuilder] = useState(false)
+  const [quizDone]                = useState(() => !!localStorage.getItem('ddd_quiz_done'))
+  const { setMood }               = useMoodControl()
+  const { user }                  = useAuth()
+
+  async function completeQuiz(mood) {
+    setMood(mood)
+    localStorage.setItem('ddd_quiz_done', '1')
+    localStorage.setItem('ddd_style_tags', JSON.stringify(MOOD_TO_TAGS[mood] ?? []))
+    if (user) {
+      await supabase.from('profiles').update({ style_tags: MOOD_TO_TAGS[mood] ?? [] }).eq('id', user.id)
+    }
+    setInBuilder(true)
+  }
+
+  function skipQuiz() {
+    localStorage.setItem('ddd_quiz_done', '1')
+    setInBuilder(true)
+  }
+
   if (inBuilder) return <AppInner />
+  if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
   return <LandingPage onEnter={() => setInBuilder(true)} />
 }
 
@@ -713,6 +738,7 @@ function AppInner() {
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
           <BuilderMoodPicker />
+          <NotificationBell btnStyle={s.bottomBtn} />
           <button style={s.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>

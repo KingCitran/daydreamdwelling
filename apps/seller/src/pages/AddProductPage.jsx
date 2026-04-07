@@ -85,7 +85,7 @@ export default function AddProductPage({ productId, onDone }) {
       }
       const tagArr = tags.split(',').map(t => t.trim()).filter(Boolean)
       if (tagArr.length) {
-        await supabase.from('product_tags').insert(tagArr.map(tag => ({ product_id: pid, tag })))
+        await supabase.from('product_tags').insert(tagArr.map(tag => ({ product_id: pid, tag_type: 'style', value: tag })))
       }
       onDone()
     } catch (err) {
