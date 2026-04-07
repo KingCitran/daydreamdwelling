@@ -30,6 +30,9 @@ const MOOD_SCENE_PRESETS = {
   'Studio':           { hemiI: 0.60, skyColor: '#f8f8f8', groundColor: '#c0c0c0', keyI: 1.30, keyC: '#ffffff', fillI: 0.40, fillC: '#f0f0f0' },
   'Studio Dark':      { hemiI: 0.50, skyColor: '#d8d8d8', groundColor: '#808080', keyI: 1.10, keyC: '#ffffff', fillI: 0.35, fillC: '#f0f0f0' },
 }
+// Flat neutral daylight used when room fixtures are toggled off
+const DAYLIGHT_PRESET = { hemiI: 0.55, skyColor: '#e8f0f8', groundColor: '#b8a870', keyI: 1.20, keyC: '#fffdf8', fillI: 0.28, fillC: '#e0ecf8' }
+
 // Legacy fallbacks for old save files
 const MOOD_LEGACY = {
   bright:  MOOD_SCENE_PRESETS['Bright Day'],
@@ -119,9 +122,11 @@ export default function RoomScene({
   onMoveCeilingItem,
   onEnterRoom,
   cartHighlight = null,
+  lightsOff = false,
 }) {
   const { mood: sharedMood } = useMoodControl()
-  const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
+  const moodPreset = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
+  const mood = lightsOff ? DAYLIGHT_PRESET : moodPreset
   const groupRef = useRef()
   const currentRY = useRef(0)
 

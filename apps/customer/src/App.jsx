@@ -88,9 +88,8 @@ function Gate() {
 function AppInner() {
   const t = useTheme()
   const s = useBuilderStyles()
-  const { mood, setMood } = useMoodControl()
   const [initSave] = useState(loadSaved)
-  const preLightsMoodRef = useRef(null)
+  const [lightsOff, setLightsOff] = useState(false)
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -439,18 +438,6 @@ function AppInner() {
     return blocked
   }, [overviewPositions, allRooms, currentRoomId, gridW, gridD])
 
-  // ── Studio quick-toggle ──────────────────────────────────────────
-  const studioActive = mood === 'Studio Dark' || mood === 'Studio'
-  const toggleStudio = useCallback(() => {
-    if (studioActive) {
-      setMood(preLightsMoodRef.current ?? 'Golden Hour')
-      preLightsMoodRef.current = null
-    } else {
-      preLightsMoodRef.current = mood
-      setMood('Studio Dark')
-    }
-  }, [studioActive, mood, setMood])
-
   // ── Render ───────────────────────────────────────────────────────
   return (
     <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
@@ -483,6 +470,7 @@ function AppInner() {
           onMoveCeilingItem={moveCeilingItem}
           onEnterRoom={enterRoom}
           cartHighlight={cartHighlight}
+          lightsOff={lightsOff}
         />
       </Canvas>
 
@@ -753,10 +741,10 @@ function AppInner() {
             onClick={() => setMusicOpen(v => !v)}
           >🎵</button>
           <button
-            style={{ ...s.bottomBtn, ...(studioActive ? s.bottomBtnActive : {}) }}
-            onClick={toggleStudio}
-            title={studioActive ? 'Restore mood lighting' : 'Studio light — accurate paint preview'}
-          >💡</button>
+            style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}) }}
+            onClick={() => setLightsOff(v => !v)}
+            title={lightsOff ? 'Lights on — restore room lighting' : 'Lights off — see paint in natural daylight'}
+          >{lightsOff ? '☀' : '💡'}</button>
           <BuilderMoodPicker />
           <NotificationBell btnStyle={s.bottomBtn} />
           <button style={s.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
