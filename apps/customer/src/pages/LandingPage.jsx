@@ -63,7 +63,10 @@ export default function LandingPage({ onEnter }) {
           <p style={s.eyebrow}>Free 3D Room Builder</p>
           <h1 style={s.heroTitle}>Design the room<br />you've been dreaming of.</h1>
           <p style={s.heroSub}>Build your space in 3D. Set the perfect mood. Buy the real furniture.</p>
-          <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
+            <button style={s.browseCta} onClick={onEnter}>Browse Marketplace →</button>
+          </div>
           <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from independent sellers</p>
         </div>
       </div>
@@ -314,6 +317,7 @@ function makeStyles(t) {
     heroTitle:      { fontSize: 56, fontWeight: 800, color: t.text, lineHeight: 1.08, marginBottom: 20, fontFamily: 'Georgia, "Times New Roman", serif' },
     heroSub:        { fontSize: 17, color: t.textSoft, lineHeight: 1.6, marginBottom: 32 },
     heroCta:        { padding: '14px 28px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+    browseCta:      { padding: '14px 28px', background: 'transparent', color: t.accent, border: `1.5px solid ${t.accent}`, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
     heroNote:       { fontSize: 11, color: t.textSoft, marginTop: 14 },
     showcase:       { background: '#07070d', padding: '52px 40px 32px', borderTop: `1px solid rgba(255,255,255,0.05)` },
     showcaseInner:  { maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 28, justifyContent: 'center' },
