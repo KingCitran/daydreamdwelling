@@ -1,7 +1,8 @@
-import { ITEM_CATALOGUE } from '../../data/items'
+import { ITEM_CATALOGUE as STATIC_CATALOGUE } from '../../data/items'
 import { useShopStyles } from './shopStyles'
 
-export default function CartTab({ cart, onIncrement, onDecrement, onRemove, cartHighlight, onCartHighlight, onCheckout }) {
+export default function CartTab({ cart, catalogue, onIncrement, onDecrement, onRemove, cartHighlight, onCartHighlight, onCheckout }) {
+  const ITEM_CATALOGUE = catalogue ?? STATIC_CATALOGUE
   const s = useShopStyles()
   if (cart.length === 0) {
     return (
@@ -13,14 +14,19 @@ export default function CartTab({ cart, onIncrement, onDecrement, onRemove, cart
     )
   }
 
-  const total = cart.reduce((sum, c) => sum + ITEM_CATALOGUE[c.typeKey].sizes[c.sizeIndex].price * c.qty, 0)
+  const total = cart.reduce((sum, c) => {
+    const def   = ITEM_CATALOGUE[c.typeKey]
+    const price = def?.sizes?.[c.sizeIndex]?.price ?? 0
+    return sum + price * c.qty
+  }, 0)
 
   return (
     <div style={s.cartList}>
       {cart.map(entry => {
         const def  = ITEM_CATALOGUE[entry.typeKey]
-        const size = def.sizes[entry.sizeIndex]
-        const sw   = def.swatches[entry.swatchIndex]
+        if (!def) return null
+        const size = def?.sizes?.[entry.sizeIndex]
+        const sw   = def?.swatches?.[entry.swatchIndex]
         const isHL = !!(cartHighlight &&
           entry.typeKey    === cartHighlight.typeKey &&
           entry.sizeIndex  === cartHighlight.sizeIndex &&
@@ -31,11 +37,11 @@ export default function CartTab({ cart, onIncrement, onDecrement, onRemove, cart
             title="Click to highlight in room"
             onClick={() => onCartHighlight?.(isHL ? null : { typeKey: entry.typeKey, sizeIndex: entry.sizeIndex, swatchIndex: entry.swatchIndex })}
           >
-            <div style={{ ...s.cartThumb, background: def.gradient }} />
+            <div style={{ ...s.cartThumb, background: def?.gradient ?? def?.color ?? '#9a7aee' }} />
             <div style={s.cartInfo}>
-              <p style={s.cartLabel}>{def.label}</p>
-              <p style={s.cartMeta}>{size.label} · {sw.name}</p>
-              <p style={s.cartLineTotal}>${(size.price * entry.qty).toLocaleString()}</p>
+              <p style={s.cartLabel}>{def?.label ?? entry.typeKey}</p>
+              <p style={s.cartMeta}>{size?.label ?? ''} · {sw?.name ?? ''}</p>
+              <p style={s.cartLineTotal}>${((size?.price ?? 0) * entry.qty).toLocaleString()}</p>
             </div>
             <div style={s.cartControls}>
               <div style={s.qtyRow}>

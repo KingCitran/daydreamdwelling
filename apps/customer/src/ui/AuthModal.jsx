@@ -36,7 +36,7 @@ export default function AuthModal({ onClose }) {
   }
 
   return (
-    <div style={st.backdrop} onClick={onClose}>
+    <div style={st.backdrop} onClick={!loading && !error ? onClose : undefined}>
       <div style={st.card} onClick={e => e.stopPropagation()}>
         <div style={st.header}>
           <span style={st.logo}>✦ DaydreamDwelling</span>

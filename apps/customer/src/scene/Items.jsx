@@ -58,11 +58,13 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
 
 // ── Floor item ─────────────────────────────────────────────────────
 function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
-                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false }) {
-  const def        = ITEM_CATALOGUE[item.typeKey]
-  const size       = def.sizes[item.sizeIndex]
+                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
+  const def        = catalogue[item.typeKey]
+  if (!def || !def.sizes) return null   // live-only product, no 3D geometry
+  const size       = def.sizes[item.sizeIndex] ?? def.sizes[0]
+  if (!size?.footprint || size.footprint[0] === 0) return null  // incomplete dimension data
   const [fw, fd]   = size.footprint
-  const fh         = size.height
+  const fh         = size.height || 1
   const rotated    = item.rotation === 90 || item.rotation === 270
   const effectiveW = rotated ? fd : fw
   const effectiveD = rotated ? fw : fd
@@ -127,7 +129,7 @@ function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeigh
     >
       <boxGeometry args={[fw, fh, fd]} />
       <meshStandardMaterial
-        color={def.swatches[item.swatchIndex]?.hex ?? def.color}
+        color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
         roughness={0.76} metalness={0}
         emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
         emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
@@ -190,12 +192,14 @@ function getWallFaceBounds(wall, wallAnchor, wallU, cells, gridW, gridD) {
 
 // ── Wall item ──────────────────────────────────────────────────────
 function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
-                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false }) {
-  const def      = ITEM_CATALOGUE[item.typeKey]
-  const size     = def.sizes[item.sizeIndex]
+                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
+  const def      = catalogue[item.typeKey]
+  if (!def || !def.sizes) return null
+  const size     = def.sizes[item.sizeIndex] ?? def.sizes[0]
+  if (!size?.footprint) return null
   const fw       = item.customW ?? size.footprint[0]
   const fd       = size.footprint[1]
-  const fh       = item.customH ?? size.height
+  const fh       = item.customH ?? (size.height || 1)
   const lightCfg = LIGHT_CONFIG[item.typeKey] ?? null
 
   const { camera, gl } = useThree()
@@ -377,7 +381,7 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
     const FRAME = 0.08
     const MULL  = FRAME * 0.7   // mullion thickness
     const frameColor = '#d0c8b8'
-    const glassHex   = def.swatches[item.swatchIndex]?.hex ?? '#c0e8ff'
+    const glassHex   = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
 
     const cols = Math.max(1, item.paneCols ?? 1)
     const rows = Math.max(1, item.paneRows ?? 2)
@@ -473,7 +477,7 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
     const CASING_T   = 0.04      // casing protrusion from wall face
     const frameColor = '#c8a870'
     const casingColor = '#b89860'
-    const panelColor = def.swatches[item.swatchIndex]?.hex ?? '#c8a870'
+    const panelColor = def.swatches?.[item.swatchIndex]?.hex ?? '#c8a870'
     const innerW     = fw - 2 * FRAME
 
     const isUnlinked = item.wasLinked === true && !item.connectedRoomId && !def.entryway
@@ -579,7 +583,7 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
       >
         <boxGeometry args={[fw, fh, fd]} />
         <meshStandardMaterial
-          color={def.swatches[item.swatchIndex]?.hex ?? def.color}
+          color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
           roughness={0.76} metalness={0}
           emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
           emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
@@ -613,8 +617,8 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
 }
 
 // ── Stair mesh ──────────────────────────────────────────────────────
-function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect }) {
-  const def   = ITEM_CATALOGUE[item.typeKey]
+function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, catalogue = ITEM_CATALOGUE }) {
+  const def   = catalogue[item.typeKey]
   const color = def.swatches?.[item.swatchIndex]?.hex ?? def.color
   const sw    = item.stairW ?? 3
   const sd    = item.stairD ?? 4
@@ -663,6 +667,7 @@ export default function Items({
   onEnterRoom,
   cartHighlight = null,
   lightsOff = false,
+  catalogue = ITEM_CATALOGUE,
 }) {
   const activeDragRef = useRef(null)
   const [visibleWalls, setVisibleWalls] = useState(VISIBLE_WALLS[0])
@@ -695,7 +700,7 @@ export default function Items({
         // Ceiling items are rendered by Ceiling.jsx (disc marker + point light)
         if (item.ceiling) return null
 
-        const def    = ITEM_CATALOGUE[item.typeKey]
+        const def    = catalogue[item.typeKey]
         const isCartHighlighted = !!(cartHighlight &&
           item.typeKey === cartHighlight.typeKey &&
           item.sizeIndex === cartHighlight.sizeIndex &&
@@ -710,7 +715,9 @@ export default function Items({
           onDragStart, onDragEnd,
           roomRotationRef, activeDragRef,
           lightsOff,
+          catalogue,
         }
+        if (!def) return null   // UUID item not yet in catalogue — skip until async load completes
         if (def?.isStairs && item.stairs) {
           return (
             <StairMesh
@@ -720,6 +727,7 @@ export default function Items({
               gridW={gridW} gridD={gridD}
               wallHeight={wallHeight}
               onSelect={onSelectItem}
+              catalogue={catalogue}
             />
           )
         }

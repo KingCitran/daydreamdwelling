@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { ITEM_CATALOGUE } from '../../data/items'
 import { useTheme } from '@shared/ThemeProvider'
+import SellerModal from './SellerModal'
 
-export default function ProductModal({ typeKey, onPlace, onAddToCart, onWishlist, onClose }) {
+export default function ProductModal({ typeKey, catalogue, onPlace, onAddToCart, onWishlist, onClose, onOpenModal }) {
   const t = useTheme()
   const ms = makeModalStyles(t)
-  const def = ITEM_CATALOGUE[typeKey]
-  const [sizeIndex,   setSizeIndex]   = useState(0)
-  const [swatchIndex, setSwatchIndex] = useState(0)
-  const [tagInput,    setTagInput]    = useState('')
-  const [tagSent,     setTagSent]     = useState(false)
+  const def = (catalogue ?? ITEM_CATALOGUE)[typeKey]
+  const [sizeIndex,    setSizeIndex]    = useState(0)
+  const [swatchIndex,  setSwatchIndex]  = useState(0)
+  const [tagInput,     setTagInput]     = useState('')
+  const [tagSent,      setTagSent]      = useState(false)
+  const [sellerOpen,   setSellerOpen]   = useState(false)
 
   if (!def) return null
   const isFinish = def.isFloorFinish || def.isWallFinish
@@ -26,7 +28,10 @@ export default function ProductModal({ typeKey, onPlace, onAddToCart, onWishlist
         <div style={{ ...ms.thumb, background: def.gradient }} />
         <div style={ms.body}>
           <div style={ms.brandRow}>
-            <span style={ms.brand}>{def.brand}</span>
+            {def._sellerId
+              ? <button style={ms.brandBtn} onClick={() => setSellerOpen(true)}>{def.brand} →</button>
+              : <span style={ms.brand}>{def.brand}</span>
+            }
             <span style={ms.rating}>★ {def.rating} <span style={ms.ratingCount}>({def.reviewCount})</span></span>
           </div>
           <p style={ms.title}>{def.label}</p>
@@ -84,10 +89,22 @@ export default function ProductModal({ typeKey, onPlace, onAddToCart, onWishlist
               </>
             )}
           </div>
+          {def.shop_url && (
+            <a href={def.shop_url} target="_blank" rel="noopener noreferrer" style={ms.buyNowBtn}>
+              Buy Now →
+            </a>
+          )}
           {!isFinish && <button style={ms.placeBtn} onClick={() => { onPlace(typeKey, sizeIndex, swatchIndex); onClose() }}>Place Only</button>}
           <button style={ms.closeBtn} onClick={onClose}>Close</button>
         </div>
       </div>
+      {sellerOpen && def._sellerId && (
+        <SellerModal
+          sellerId={def._sellerId}
+          onOpenProduct={key => { setSellerOpen(false); onClose(); onOpenModal?.(key) }}
+          onClose={() => setSellerOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -100,6 +117,7 @@ function makeModalStyles(t) {
     body:         { overflowY: 'auto', padding: '16px 22px 22px', display: 'flex', flexDirection: 'column', gap: 8 },
     brandRow:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     brand:        { fontSize: 11, color: t.textSoft },
+    brandBtn:     { fontSize: 11, color: t.accent, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline' },
     rating:       { fontSize: 11, color: '#f0c060' },
     ratingCount:  { color: t.textSoft },
     title:        { margin: 0, fontSize: 20, fontWeight: 700, color: t.text },
@@ -129,6 +147,7 @@ function makeModalStyles(t) {
     actionRow:    { display: 'flex', gap: 8, marginTop: 4 },
     cartBtn:      { flex: 1, padding: '11px 0', fontSize: 14, fontWeight: 600, background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 8, cursor: 'pointer' },
     wishlistBtn:  { flex: 1, padding: '11px 0', fontSize: 14, fontWeight: 600, background: 'transparent', color: '#ff7aa0', border: '1px solid rgba(200,100,130,0.4)', borderRadius: 8, cursor: 'pointer' },
+    buyNowBtn:    { display: 'block', width: '100%', padding: '11px 0', fontSize: 14, fontWeight: 600, background: '#2a9a6a', color: '#fff', border: '1px solid #2a9a6a', borderRadius: 8, cursor: 'pointer', textAlign: 'center', textDecoration: 'none' },
     placeBtn:     { width: '100%', padding: '9px 0', fontSize: 12, background: 'transparent', color: t.textSoft, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, cursor: 'pointer' },
     closeBtn:     { width: '100%', padding: '9px 0', fontSize: 12, background: 'transparent', color: t.textSoft, border: 'none', cursor: 'pointer', marginTop: 2 },
   }

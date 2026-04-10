@@ -1,11 +1,13 @@
 import { ITEM_CATALOGUE } from '../data/items'
 import useCheckout from '../hooks/useCheckout'
 
-export default function CheckoutModal({ cart, onClose }) {
-  const { startCheckout, loading, error } = useCheckout({ cart })
+export default function CheckoutModal({ cart, catalogue, onClose }) {
+  const { startCheckout, loading, error } = useCheckout({ cart, catalogue })
+  const cat = catalogue ?? ITEM_CATALOGUE
 
   const total = cart.reduce((sum, c) => {
-    const price = ITEM_CATALOGUE[c.typeKey]?.sizes[c.sizeIndex]?.price ?? 0
+    const def   = cat[c.typeKey] ?? ITEM_CATALOGUE[c.typeKey]
+    const price = def?.sizes?.[c.sizeIndex]?.price ?? 0
     return sum + price * c.qty
   }, 0)
 
@@ -20,20 +22,20 @@ export default function CheckoutModal({ cart, onClose }) {
 
         <div style={st.itemList}>
           {cart.map(entry => {
-            const def  = ITEM_CATALOGUE[entry.typeKey]
-            const size = def?.sizes[entry.sizeIndex]
-            const sw   = def?.swatches[entry.swatchIndex]
+            const def  = cat[entry.typeKey] ?? ITEM_CATALOGUE[entry.typeKey]
+            const size = def?.sizes?.[entry.sizeIndex]
+            const sw   = def?.swatches?.[entry.swatchIndex]
             if (!def || !size || !sw) return null
             return (
               <div key={`${entry.typeKey}-${entry.sizeIndex}-${entry.swatchIndex}`} style={st.item}>
-                <div style={{ ...st.itemThumb, background: def.gradient }} />
+                <div style={{ ...st.itemThumb, background: def?.gradient ?? def?.color ?? '#9a7aee' }} />
                 <div style={st.itemInfo}>
                   <span style={st.itemName}>{def.label}</span>
                   <span style={st.itemMeta}>{size.label} · {sw.name}</span>
                 </div>
                 <div style={st.itemRight}>
                   <span style={st.itemQty}>×{entry.qty}</span>
-                  <span style={st.itemPrice}>${(size.price * entry.qty).toLocaleString()}</span>
+                  <span style={st.itemPrice}>${((size?.price ?? 0) * entry.qty).toLocaleString()}</span>
                 </div>
               </div>
             )

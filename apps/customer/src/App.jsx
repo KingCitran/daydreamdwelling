@@ -23,13 +23,16 @@ import usePersistence from './hooks/usePersistence'
 import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation from './hooks/useRoomNavigation'
+import useShopProducts from './hooks/useShopProducts'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
 import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
 import AuthModal from './ui/AuthModal'
+import AccountModal from './ui/AccountModal'
 import SaveRoomModal from './ui/SaveRoomModal'
 import LoadRoomModal from './ui/LoadRoomModal'
 import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
+import OrderSuccessBanner from './ui/OrderSuccessBanner'
 import LandingPage from './pages/LandingPage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import QuizPage from './ui/onboarding/QuizPage'
@@ -60,7 +63,8 @@ export default function App() {
 }
 
 function Gate() {
-  const [inBuilder, setInBuilder] = useState(false)
+  const isCheckoutRedirect        = new URLSearchParams(window.location.search).get('checkout') != null
+  const [inBuilder, setInBuilder] = useState(isCheckoutRedirect)
   const quizDone                  = !!localStorage.getItem('ddd_quiz_done')
   const { setMood }               = useMoodControl()
   const { user }                  = useAuth()
@@ -88,6 +92,7 @@ function Gate() {
 function AppInner() {
   const t = useTheme()
   const s = useBuilderStyles()
+  const catalogue = useShopProducts()
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
 
@@ -137,16 +142,23 @@ function AppInner() {
   const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
   const [layoutOverrides,     setLayoutOverrides]     = useState({})
   const [bookmark,        setBookmark]        = useState(null)
-  const [authModalOpen,   setAuthModalOpen]   = useState(false)
+  const [authModalOpen,    setAuthModalOpen]    = useState(false)
+  const [accountModalOpen, setAccountModalOpen] = useState(false)
   const [saveModalOpen,   setSaveModalOpen]   = useState(false)
   const [loadModalOpen,   setLoadModalOpen]   = useState(false)
   const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
   const [checkoutOpen,    setCheckoutOpen]    = useState(false)
+  const [orderSuccess,    setOrderSuccess]    = useState(false)
   const { user } = useAuth()
 
   // ── Multi-room state ─────────────────────────────────────────────
-  const [allRooms,      setAllRooms]      = useState({})
-  const [currentRoomId, setCurrentRoomId] = useState(0)
+  const [allRooms,      setAllRooms]      = useState(() => {
+    if (!initSave?.allRooms) return {}
+    return Object.fromEntries(
+      Object.entries(initSave.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+    )
+  })
+  const [currentRoomId, setCurrentRoomId] = useState(initSave?.currentRoomId ?? 0)
   const [roomStack,     setRoomStack]     = useState([])
   const nextRoomIdRef = useRef(1)
   const [roomNames, setRoomNamesState] = useState(initSave?.roomNames ?? {})
@@ -180,6 +192,7 @@ function AppInner() {
 
   const { importRef, exportRoom, importRoom } = usePersistence({
     gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+    allRooms, currentRoomId,
     nextItemIdRef,
     setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setWallColor, setSelectedId,
   })
@@ -203,6 +216,7 @@ function AppInner() {
     nextItemIdRef,
     selectedId,
     getRoomName,
+    catalogue,
   })
 
   const cloudSave = useCloudSave({
@@ -210,6 +224,32 @@ function AppInner() {
     floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
     allRooms, currentRoomId,
   })
+
+  const handleLoadRoom = useCallback(async (roomId) => {
+    const { data, error } = await cloudSave.loadRoom(roomId)
+    if (error || !data) return
+    setGridW(data.gridW); setGridD(data.gridD)
+    if (data.wallHeight) setWallHeight(data.wallHeight)
+    setCells(new Set(data.cells))
+    setItems(data.items ?? [])
+    setCart(data.cart ?? [])
+    if (data.floorColor) setFloorColor(data.floorColor)
+    if (data.wallColor)  setWallColor(data.wallColor)
+    if (data.bgColor)    setBgColor(data.bgColor)
+    if (data.musicStation !== undefined) setMusicStation(data.musicStation)
+    if (data.lightMood)  setLightMood(data.lightMood)
+    if (data.roomNames)  setRoomNamesState(data.roomNames)
+    if (data.allRooms) {
+      const restored = Object.fromEntries(
+        Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+      )
+      setAllRooms(restored)
+    }
+    if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id)) + 1
+    setSelectedId(null)
+    setCloudRoomId(roomId)
+    setLoadModalOpen(false)
+  }, [cloudSave]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom,
@@ -263,9 +303,9 @@ function AppInner() {
     setGridW(w); setGridD(d); setCells(makeGrid(w, d))
     setItems(prev => prev.map(it => {
       if (!it.wall) return it
-      const def     = ITEM_CATALOGUE[it.typeKey]
-      const size    = def.sizes[it.sizeIndex]
-      const fw      = size.footprint[0]
+      const def     = catalogue[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
+      const size    = def?.sizes?.[it.sizeIndex] ?? def?.sizes?.[0]
+      const fw      = size?.footprint?.[0] ?? 1
       const wallLen = (it.wall === 'N' || it.wall === 'S') ? w : d
       const wallU   = Math.max(fw / 2, Math.min(wallLen - fw / 2, it.wallU ?? wallLen / 2))
       const anchor  = it.wall === 'N' ? 0 : it.wall === 'S' ? d - 1 : it.wall === 'W' ? 0 : w - 1
@@ -294,6 +334,7 @@ function AppInner() {
     if (status === 'success') {
       setCart([])
       setDrawerTab('shop')
+      setOrderSuccess(true)
       window.history.replaceState({}, '', window.location.pathname)
     } else if (status === 'cancelled') {
       setDrawerOpen(true)
@@ -473,6 +514,7 @@ function AppInner() {
           onEnterRoom={enterRoom}
           cartHighlight={cartHighlight}
           lightsOff={lightsOff}
+          catalogue={catalogue}
         />
       </Canvas>
 
@@ -533,16 +575,19 @@ function AppInner() {
       {activeModal && (
         <ProductModal
           typeKey={activeModal}
+          catalogue={catalogue}
           onPlace={placeItem}
           onAddToCart={handleModalAddToCart}
           onWishlist={placeAndWishlist}
           onClose={() => setActiveModal(null)}
+          onOpenModal={setActiveModal}
         />
       )}
 
       {selectedItem && (
         <SelectedControls
           item={selectedItem}
+          catalogue={catalogue}
           drawerOpen={drawerOpen}
           roomRotation={targetRotation}
           onShowDetails={() => setActiveModal(selectedItem.typeKey)}
@@ -629,8 +674,10 @@ function AppInner() {
         </div>
       )}
 
-      {authModalOpen && <AuthModal onClose={() => setAuthModalOpen(false)} />}
-      {checkoutOpen  && <CheckoutModal cart={cart} onClose={() => setCheckoutOpen(false)} />}
+      {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
+      {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
+      {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
+      {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
 
       {saveModalOpen && (
         <SaveRoomModal
@@ -654,31 +701,7 @@ function AppInner() {
           onFetch={cloudSave.fetchRooms}
           onClose={() => setLoadModalOpen(false)}
           onDelete={cloudSave.deleteRoom}
-          onLoad={async (roomId) => {
-            const { data, error } = await cloudSave.loadRoom(roomId)
-            if (error || !data) return
-            setGridW(data.gridW); setGridD(data.gridD)
-            if (data.wallHeight) setWallHeight(data.wallHeight)
-            setCells(new Set(data.cells))
-            setItems(data.items ?? [])
-            setCart(data.cart ?? [])
-            if (data.floorColor) setFloorColor(data.floorColor)
-            if (data.wallColor)  setWallColor(data.wallColor)
-            if (data.bgColor)    setBgColor(data.bgColor)
-            if (data.musicStation !== undefined) setMusicStation(data.musicStation)
-            if (data.lightMood)  setLightMood(data.lightMood)
-            if (data.roomNames)  setRoomNamesState(data.roomNames)
-            if (data.allRooms) {
-              const restored = Object.fromEntries(
-                Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
-              )
-              setAllRooms(restored)
-            }
-            if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id)) + 1
-            setSelectedId(null)
-            setCloudRoomId(roomId)
-            setLoadModalOpen(false)
-          }}
+          onLoad={handleLoadRoom}
         />
       )}
 
@@ -749,7 +772,9 @@ function AppInner() {
           >{lightsOff ? '☀' : '💡'}</button>
           <BuilderMoodPicker />
           <NotificationBell btnStyle={s.bottomBtn} />
-          <button style={s.bottomBtn} onClick={() => setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
+          <button style={s.bottomBtn}
+            onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+            title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>
           <button style={s.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)}>↻</button>
@@ -781,6 +806,7 @@ function AppInner() {
             onTabChange={setDrawerTab}
             onPlace={placeItem}
             onOpenModal={setActiveModal}
+            catalogue={catalogue}
             cart={cart}
             onIncrementCart={addToCart}
             onDecrementCart={decrementCart}

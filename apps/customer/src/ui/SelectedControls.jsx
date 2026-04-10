@@ -4,7 +4,7 @@ import { DIAMOND_MAP, roomQuadrant } from '../utils/roomGeometry'
 import Stepper from './Stepper'
 
 export default function SelectedControls({
-  item, drawerOpen, roomRotation,
+  item, catalogue, drawerOpen, roomRotation,
   onShowDetails, onRotate, onDelete,
   onResize, onRecolor,
   onToggleOwned, onToggleLocked,
@@ -15,9 +15,9 @@ export default function SelectedControls({
   wallHeight, onAdjustDropLength, onSetPaneConfig, onAdjustWindowSize, onEnterRoom,
 }) {
   const s          = useBuilderStyles()
-  const def        = ITEM_CATALOGUE[item.typeKey]
-  const totalSizes = def.sizes.length
-  const curSize    = def.sizes[item.sizeIndex]
+  const def        = (catalogue ?? ITEM_CATALOGUE)[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey] ?? {}
+  const totalSizes = def.sizes?.length ?? 0
+  const curSize    = def.sizes?.[item.sizeIndex] ?? def.sizes?.[0] ?? { label: '', price: null, footprint: [1,1], height: 1 }
   const isWall     = !!item.wall
   const isCeiling  = !!item.ceiling
   const isWindow   = !!def.window
@@ -236,7 +236,7 @@ export default function SelectedControls({
         {/* ── Row 2: Color  ·  Size  ·  Qty  ·  Wish  ·  Cart  ·  Details ── */}
         <div style={s.ctrlRow}>
           <div style={s.swatchRow}>
-            {def.swatches.map((sw, i) => (
+            {(def.swatches ?? []).map((sw, i) => (
               <button key={sw.name} title={sw.name}
                 style={{
                   ...s.swatchBtn,

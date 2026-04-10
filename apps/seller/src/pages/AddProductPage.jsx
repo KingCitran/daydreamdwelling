@@ -2,91 +2,160 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import Step1Identity from './listing/Step1Identity'
+import Step2Photos   from './listing/Step2Photos'
+import Step3Sizes    from './listing/Step3Sizes'
+import Step4Swatches from './listing/Step4Swatches'
+import Step5Tags     from './listing/Step5Tags'
+import Step6Shipping from './listing/Step6Shipping'
+import Step7Preview  from './listing/Step7Preview'
 
-const BLANK_SIZE   = { label: '', price: '' }
-const BLANK_SWATCH = { name: '', hex: '#888888' }
+const STEPS = ['Identity', 'Photos', 'Sizes', 'Swatches', 'Tags', 'Shipping', 'Preview']
+const PROCESSING_OPTIONS = [
+  { label: '1 day',     value: 1  },
+  { label: '2–3 days',  value: 3  },
+  { label: '3–5 days',  value: 5  },
+  { label: '1–2 weeks', value: 10 },
+  { label: '2–4 weeks', value: 21 },
+]
 
-const CATEGORIES = ['seating', 'tables', 'storage', 'beds', 'lighting', 'surfaces', 'textiles', 'decor', 'electronics', 'outdoor', 'other']
+export const INITIAL_FORM = {
+  label: '', brand: '', category: '', handmadeType: 'manufactured',
+  makeModel: '', shortDesc: '', fullDesc: '', materials: [], guarantee: '',
+  photos: [],
+  sizes: [{ label: '', wFt: '', wIn: '0', dFt: '', dIn: '0', hFt: '', hIn: '0', price: '' }],
+  swatches: [{ name: '', hex: '#888888', family: '' }],
+  typeKey: '', styleTags: [], roomTags: [], themeTags: [],
+  shippingType: 'flat', flatRate: '', processingDays: 5,
+  shippingRegions: ['domestic'], wattage: '', kelvin: '',
+  active: true,
+}
+
+export { PROCESSING_OPTIONS }
 
 export default function AddProductPage({ productId, onDone }) {
   const { user } = useAuth()
   const t        = useTheme()
   const isEdit   = !!productId
+  const [step,   setStep]   = useState(1)
+  const [form,   setForm]   = useState(INITIAL_FORM)
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState(null)
 
-  const [label,    setLabel]    = useState('')
-  const [brand,    setBrand]    = useState('')
-  const [desc,     setDesc]     = useState('')
-  const [category, setCategory] = useState('')
-  const [gradient, setGradient] = useState('linear-gradient(135deg,#c4a8ff,#f0a8d8)')
-  const [sizes,    setSizes]    = useState([{ ...BLANK_SIZE }])
-  const [swatches, setSwatches] = useState([{ ...BLANK_SWATCH }])
-  const [tags,     setTags]     = useState('')
-  const [active,   setActive]   = useState(true)
-  const [saving,   setSaving]   = useState(false)
-  const [error,    setError]    = useState(null)
+  const update = patch => setForm(prev => ({ ...prev, ...patch }))
 
   useEffect(() => {
     if (!productId) return
-    async function fetch() {
-      const { data: p } = await supabase
+    async function load() {
+      const { data: p, error: loadErr } = await supabase
         .from('products')
-        .select('*, product_sizes(*), product_swatches(*), product_tags(tag)')
-        .eq('id', productId)
-        .single()
-      if (!p) return
-      setLabel(p.label || '')
-      setBrand(p.brand || '')
-      setDesc(p.description || '')
-      setCategory(p.category || '')
-      setGradient(p.gradient || gradient)
-      setActive(p.is_active ?? true)
-      setSizes(p.product_sizes?.length ? p.product_sizes.map(s => ({ label: s.label, price: s.price })) : [{ ...BLANK_SIZE }])
-      setSwatches(p.product_swatches?.length ? p.product_swatches.map(s => ({ name: s.name, hex: s.hex_color })) : [{ ...BLANK_SWATCH }])
-      setTags((p.product_tags || []).map(t => t.tag).join(', '))
+        .select('*, product_sizes(*), product_swatches(*), product_tags(value,tag_type), product_images(*)')
+        .eq('id', productId).single()
+      if (loadErr) { setError(`Load error: ${loadErr.message}`); return }
+      if (!p) { setError('Product not found'); return }
+      const photos = (p.product_images || [])
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(img => {
+          const { data: d } = supabase.storage.from('product-images').getPublicUrl(img.storage_path)
+          return { file: null, url: d.publicUrl, storagePath: img.storage_path, isPrimary: img.is_primary }
+        })
+      setForm({
+        label: p.label || '', brand: p.brand || '', category: p.category || '',
+        handmadeType: p.handmade_type || 'manufactured',
+        makeModel: p.make_model || '', shortDesc: p.short_description || '',
+        fullDesc: p.description || '', materials: p.materials || [], guarantee: p.guarantee || '',
+        photos,
+        sizes: p.product_sizes?.length
+          ? p.product_sizes.map(s => ({ label: s.label, wFt: '', wIn: '0', dFt: '', dIn: '0', hFt: '', hIn: '0', price: s.price }))
+          : INITIAL_FORM.sizes,
+        swatches: p.product_swatches?.length
+          ? p.product_swatches.map(s => ({ name: s.name, hex: s.hex_color || s.hex || '#888888', family: s.family || '' }))
+          : INITIAL_FORM.swatches,
+        typeKey: p.type_key || '',
+        styleTags: (p.product_tags || []).filter(x => x.tag_type === 'style').map(x => x.value),
+        roomTags:  (p.product_tags || []).filter(x => x.tag_type === 'room').map(x => x.value),
+        themeTags: (p.product_tags || []).filter(x => x.tag_type === 'theme').map(x => x.value),
+        shippingType: p.shipping_type || 'flat', flatRate: p.flat_rate || '',
+        processingDays: p.processing_days ?? 5,
+        shippingRegions: p.shipping_regions || ['domestic'],
+        wattage: p.wattage || '', kelvin: p.kelvin || '',
+        active: p.is_active ?? true,
+      })
     }
-    fetch()
+    load()
   }, [productId])
 
-  function setSizeField(i, field, val) {
-    setSizes(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s))
-  }
-  function setSwatchField(i, field, val) {
-    setSwatches(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s))
-  }
-
-  async function handleSave(e) {
-    e.preventDefault()
+  async function handleSave() {
     if (!user) return
     setError(null); setSaving(true)
     try {
+      await supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id', ignoreDuplicates: true })
       const payload = {
-        label: label.trim(), brand: brand.trim() || null, description: desc.trim() || null,
-        category: category || null, gradient, is_active: active, seller_id: user.id,
+        label: form.label.trim(), brand: form.brand.trim() || null,
+        description: form.fullDesc.trim() || null, short_description: form.shortDesc.trim() || null,
+        category: form.category || null, make_model: form.makeModel.trim() || null,
+        handmade_type: form.handmadeType || null,
+        materials: form.materials.length ? form.materials : null,
+        guarantee: form.guarantee.trim() || null, type_key: form.typeKey.trim() || null,
+        shipping_type: form.shippingType, flat_rate: form.flatRate ? Number(form.flatRate) : null,
+        processing_days: form.processingDays || null, shipping_regions: form.shippingRegions,
+        wattage: form.wattage ? Number(form.wattage) : null, kelvin: form.kelvin ? Number(form.kelvin) : null,
+        is_active: form.active, status: form.active ? 'active' : 'draft', seller_id: user.id,
       }
       let pid = productId
       if (isEdit) {
         const { error: err } = await supabase.from('products').update(payload).eq('id', pid)
         if (err) throw err
-        await supabase.from('product_sizes').delete().eq('product_id', pid)
-        await supabase.from('product_swatches').delete().eq('product_id', pid)
-        await supabase.from('product_tags').delete().eq('product_id', pid)
       } else {
         const { data, error: err } = await supabase.from('products').insert(payload).select('id').single()
         if (err) throw err
         pid = data.id
       }
-      const validSizes   = sizes.filter(s => s.label.trim() && s.price !== '')
-      const validSwatches = swatches.filter(s => s.name.trim())
+      // Upload new photos
+      const uploaded = []
+      for (const photo of form.photos) {
+        if (photo.file) {
+          const ext = photo.file.name.split('.').pop()
+          const path = `${pid}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+          const { error: upErr } = await supabase.storage.from('product-images').upload(path, photo.file)
+          if (upErr) throw upErr
+          uploaded.push({ ...photo, storagePath: path })
+        } else {
+          uploaded.push(photo)
+        }
+      }
+      await supabase.from('product_images').delete().eq('product_id', pid)
+      if (uploaded.length) {
+        await supabase.from('product_images').insert(
+          uploaded.map((p, i) => ({ product_id: pid, storage_path: p.storagePath, is_primary: i === 0, sort_order: i }))
+        )
+      }
+      // Sizes
+      await supabase.from('product_sizes').delete().eq('product_id', pid)
+      const validSizes = form.sizes.filter(s => s.label.trim() && s.price !== '')
       if (validSizes.length) {
-        await supabase.from('product_sizes').insert(validSizes.map((s, i) => ({ product_id: pid, label: s.label.trim(), price: Number(s.price), sort_order: i })))
+        await supabase.from('product_sizes').insert(validSizes.map((s, i) => ({
+          product_id: pid, label: s.label.trim(), price: Number(s.price),
+          footprint: [Number(s.wFt || 0) + Number(s.wIn || 0) / 12, Number(s.dFt || 0) + Number(s.dIn || 0) / 12],
+          height: Number(s.hFt || 0) + Number(s.hIn || 0) / 12, sort_order: i,
+        })))
       }
+      // Swatches
+      await supabase.from('product_swatches').delete().eq('product_id', pid)
+      const validSwatches = form.swatches.filter(s => s.name.trim())
       if (validSwatches.length) {
-        await supabase.from('product_swatches').insert(validSwatches.map((s, i) => ({ product_id: pid, name: s.name.trim(), hex_color: s.hex, sort_order: i })))
+        await supabase.from('product_swatches').insert(validSwatches.map((s, i) => ({
+          product_id: pid, name: s.name.trim(), hex_color: s.hex, hex: s.hex, family: s.family || null, sort_order: i,
+        })))
       }
-      const tagArr = tags.split(',').map(t => t.trim()).filter(Boolean)
-      if (tagArr.length) {
-        await supabase.from('product_tags').insert(tagArr.map(tag => ({ product_id: pid, tag_type: 'style', value: tag })))
-      }
+      // Tags
+      await supabase.from('product_tags').delete().eq('product_id', pid)
+      const allTags = [
+        ...form.styleTags.map(v => ({ product_id: pid, tag_type: 'style', value: v })),
+        ...form.roomTags.map(v  => ({ product_id: pid, tag_type: 'room',  value: v })),
+        ...form.themeTags.map(v => ({ product_id: pid, tag_type: 'theme', value: v })),
+      ]
+      if (allTags.length) await supabase.from('product_tags').insert(allTags)
       onDone()
     } catch (err) {
       setError(err.message)
@@ -95,128 +164,62 @@ export default function AddProductPage({ productId, onDone }) {
     }
   }
 
-  const s = makeStyles(t)
+  const steps = [null, Step1Identity, Step2Photos, Step3Sizes, Step4Swatches, Step5Tags, Step6Shipping, Step7Preview]
+  const StepComp = steps[step]
+
   return (
-    <div style={{ maxWidth: 700 }}>
-      <div style={s.pageHeader}>
+    <div style={{ maxWidth: 680 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
-          <h1 style={s.pageTitle}>{isEdit ? 'Edit Product' : 'New Product'}</h1>
-          <p style={s.pageSubtitle}>{isEdit ? 'Update your listing details.' : 'Fill in the details to list your product.'}</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: t.text, marginBottom: 3 }}>
+            {isEdit ? 'Edit Listing' : 'New Listing'}
+          </h1>
+          <p style={{ fontSize: 12, color: t.textSoft }}>Step {step} of 7 — {STEPS[step - 1]}</p>
         </div>
-        <button style={s.cancelBtn} onClick={onDone}>Cancel</button>
+        <button style={{ padding: '8px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 12, cursor: 'pointer' }} onClick={onDone}>
+          Cancel
+        </button>
       </div>
 
-      <form onSubmit={handleSave} style={s.form}>
-        <Section title="Basic Info" t={t}>
-          <Field t={t} label="Product name *">
-            <input style={s.input} value={label} onChange={e => setLabel(e.target.value)} required placeholder="e.g. Luxe Velvet Sofa" />
-          </Field>
-          <Row>
-            <Field t={t} label="Brand">
-              <input style={s.input} value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. Studio Nord" />
-            </Field>
-            <Field t={t} label="Category">
-              <select style={s.input} value={category} onChange={e => setCategory(e.target.value)}>
-                <option value="">Select category…</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-              </select>
-            </Field>
-          </Row>
-          <Field t={t} label="Description">
-            <textarea style={{ ...s.input, height: 90, resize: 'vertical' }} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe your product — materials, style, what makes it special…" />
-          </Field>
-          <Field t={t} label="Preview gradient (temporary — image upload coming soon)">
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 8, background: gradient, flexShrink: 0, border: '1px solid rgba(180,160,220,0.3)' }} />
-              <input style={{ ...s.input, flex: 1 }} value={gradient} onChange={e => setGradient(e.target.value)} placeholder="linear-gradient(135deg,#c4a8ff,#f0a8d8)" />
-            </div>
-          </Field>
-        </Section>
+      <ProgressBar step={step} t={t} />
 
-        <Section title="Sizes & Prices" t={t}>
-          {sizes.map((sz, i) => (
-            <Row key={i}>
-              <Field t={t} label="Size label">
-                <input style={s.input} value={sz.label} onChange={e => setSizeField(i, 'label', e.target.value)} placeholder="e.g. Small / 3-seat / 60in" />
-              </Field>
-              <Field t={t} label="Price ($)">
-                <input style={s.input} type="number" min="0" value={sz.price} onChange={e => setSizeField(i, 'price', e.target.value)} placeholder="0" />
-              </Field>
-              {sizes.length > 1 && (
-                <button type="button" style={s.removeBtn} onClick={() => setSizes(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
-              )}
-            </Row>
-          ))}
-          <button type="button" style={s.addRowBtn} onClick={() => setSizes(prev => [...prev, { ...BLANK_SIZE }])}>+ Add size</button>
-        </Section>
+      <div style={{ marginTop: 20 }}>
+        <StepComp
+          form={form} update={update}
+          onSave={handleSave} saving={saving} error={error} isEdit={isEdit}
+        />
+      </div>
 
-        <Section title="Color Swatches" t={t}>
-          {swatches.map((sw, i) => (
-            <Row key={i}>
-              <Field t={t} label="Color name">
-                <input style={s.input} value={sw.name} onChange={e => setSwatchField(i, 'name', e.target.value)} placeholder="e.g. Midnight Blue" />
-              </Field>
-              <Field t={t} label="Color">
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input type="color" value={sw.hex} onChange={e => setSwatchField(i, 'hex', e.target.value)} style={{ width: 42, height: 42, border: '1px solid rgba(180,160,220,0.3)', borderRadius: 8, background: 'none', cursor: 'pointer', padding: 2 }} />
-                  <input style={{ ...s.input, flex: 1 }} value={sw.hex} onChange={e => setSwatchField(i, 'hex', e.target.value)} placeholder="#888888" />
-                </div>
-              </Field>
-              {swatches.length > 1 && (
-                <button type="button" style={s.removeBtn} onClick={() => setSwatches(prev => prev.filter((_, idx) => idx !== i))}>✕</button>
-              )}
-            </Row>
-          ))}
-          <button type="button" style={s.addRowBtn} onClick={() => setSwatches(prev => [...prev, { ...BLANK_SWATCH }])}>+ Add swatch</button>
-        </Section>
-
-        <Section title="Tags & Visibility" t={t}>
-          <Field t={t} label="Tags (comma-separated)">
-            <input style={s.input} value={tags} onChange={e => setTags(e.target.value)} placeholder="modern, oak, bestseller, japandi" />
-          </Field>
-          <label style={s.checkLabel}>
-            <input type="checkbox" checked={active} onChange={e => setActive(e.target.checked)} style={{ accentColor: '#c4a8ff' }} />
-            List as active (visible to shoppers immediately)
-          </label>
-        </Section>
-
-        {error && <p style={s.error}>{error}</p>}
-
-        <button type="submit" style={{ ...s.saveBtn, opacity: saving ? 0.6 : 1 }} disabled={saving}>
-          {saving ? 'Saving…' : isEdit ? 'Save changes →' : 'Publish product →'}
-        </button>
-      </form>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
+        {step > 1
+          ? <button style={navBtn(t, false)} onClick={() => setStep(s => s - 1)}>← Back</button>
+          : <span />}
+        {step < 7 && (
+          <button style={navBtn(t, true)} onClick={() => setStep(s => s + 1)}>
+            Next →
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
-function Section({ title, children, t }) {
+function ProgressBar({ step, t }) {
   return (
-    <div style={{ background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <h3 style={{ fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>{title}</h3>
-      {children}
+    <div style={{ display: 'flex', gap: 4 }}>
+      {STEPS.map((name, i) => (
+        <div key={name} style={{ flex: 1, height: 4, borderRadius: 4,
+          background: i < step ? t.accent : i === step - 1 ? t.accent : `${t.accent}30` }} />
+      ))}
     </div>
   )
 }
-function Field({ label, children, t }) {
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}><label style={{ fontSize: 12, fontWeight: 600, color: t.textSoft }}>{label}</label>{children}</div>
-}
-function Row({ children }) {
-  return <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>{children}</div>
-}
 
-function makeStyles(t) {
+function navBtn(t, primary) {
   return {
-    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-    pageTitle:  { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
-    pageSubtitle:{ fontSize: 13, color: t.textSoft },
-    cancelBtn:  { padding: '8px 16px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 13, cursor: 'pointer' },
-    form:       { display: 'flex', flexDirection: 'column', gap: 14 },
-    input:      { padding: '10px 12px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontSize: 13, outline: 'none', width: '100%' },
-    removeBtn:  { padding: '8px 10px', background: 'transparent', border: '1px solid rgba(220,140,140,0.4)', borderRadius: 7, color: '#c06060', fontSize: 12, alignSelf: 'flex-end', marginBottom: 1, flexShrink: 0, cursor: 'pointer' },
-    addRowBtn:  { alignSelf: 'flex-start', padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.textSoft, fontSize: 12, cursor: 'pointer' },
-    checkLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: t.text, cursor: 'pointer' },
-    error:      { fontSize: 12, color: '#c05050', background: 'rgba(220,100,100,0.08)', border: '1px solid rgba(220,100,100,0.25)', borderRadius: 8, padding: '10px 14px' },
-    saveBtn:    { padding: '14px 0', background: t.accent, color: t.accentText, border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s' },
+    padding: '11px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
+    background: primary ? t.accent : 'transparent',
+    color: primary ? t.accentText : t.textSoft,
+    border: primary ? 'none' : `1px solid ${t.surfaceBorder}`,
   }
 }

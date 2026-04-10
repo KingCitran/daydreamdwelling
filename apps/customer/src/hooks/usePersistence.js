@@ -5,18 +5,26 @@ const SAVE_KEY = 'room-builder-v1'
 export default function usePersistence({
   gridW, gridD, wallHeight, cells, items, cart,
   floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+  allRooms, currentRoomId,
   nextItemIdRef,
   setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setWallColor, setSelectedId,
 }) {
   const importRef = useRef(null)
 
   useEffect(() => {
+    const serializedAllRooms = Object.fromEntries(
+      Object.entries(allRooms ?? {}).map(([id, room]) => [
+        id,
+        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))] },
+      ])
+    )
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       version: 1, gridW, gridD, wallHeight,
       cells: [...cells],
       items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+      allRooms: serializedAllRooms, currentRoomId,
     }))
-  }, [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames])
+  }, [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId])
 
   const exportRoom = useCallback(() => {
     const data = JSON.stringify({ version: 1, gridW, gridD, cells: [...cells], items, cart, floorColor, wallColor }, null, 2)

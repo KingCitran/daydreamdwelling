@@ -53,7 +53,8 @@ export default function ProductsPage({ onNavigate }) {
   }
 
   async function toggleActive(product) {
-    await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id)
+    const next = !product.is_active
+    await supabase.from('products').update({ is_active: next, status: next ? 'active' : 'draft' }).eq('id', product.id)
     load()
   }
 
@@ -95,7 +96,7 @@ export default function ProductsPage({ onNavigate }) {
 
   async function bulkSetActive(active) {
     setBulking(true)
-    await supabase.from('products').update({ is_active: active }).in('id', [...selected])
+    await supabase.from('products').update({ is_active: active, status: active ? 'active' : 'draft' }).in('id', [...selected])
     setSelected(new Set())
     setBulking(false)
     load()

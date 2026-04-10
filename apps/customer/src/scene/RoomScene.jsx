@@ -120,6 +120,7 @@ export default function RoomScene({
   onEnterRoom,
   cartHighlight = null,
   lightsOff = false,
+  catalogue,
 }) {
   const { mood: sharedMood } = useMoodControl()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
@@ -210,6 +211,7 @@ export default function RoomScene({
           onEnterRoom={onEnterRoom}
           cartHighlight={cartHighlight}
           lightsOff={lightsOff}
+          catalogue={catalogue}
         />
         <Ceiling
           cells={cells}

@@ -4,11 +4,13 @@ import { MOODS } from '@shared/useMood'
 import { MOOD_THEMES } from '@shared/themes'
 import MoodPicker from '@shared/MoodPicker'
 import { supabase } from '@shared/supabase'
+import { LivingRoom, Bedroom } from './LandingRooms'
 
-const T = 'background 1s ease, border-color 1s ease, color 1s ease, opacity 1s ease'
+const SHARE_URL  = 'https://daydreamdwelling.com'
+const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
 
 const FEATURES = [
-  { icon: '◈', title: '3D room builder',   text: 'Place furniture, adjust walls, switch lighting moods — all in real time.' },
+  { icon: '◈', title: '3D room builder',    text: 'Place furniture, adjust walls, switch lighting moods — all in real time.' },
   { icon: '✦', title: 'Buy what you place', text: 'Every item links directly to its seller. Add to cart without leaving the builder.' },
   { icon: '◉', title: '13 mood presets',    text: 'From golden hour warmth to moonlit calm — find the light that fits your life.' },
 ]
@@ -22,12 +24,15 @@ const STEPS = [
 export default function LandingPage({ onEnter }) {
   const t = useTheme()
   const s = makeStyles(t)
-  const [idxA, setIdxA] = useState(0)
-  const [idxB, setIdxB] = useState(7)
-  const [email,   setEmail]   = useState('')
-  const [joined,  setJoined]  = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+
+  const [idxA, setIdxA]               = useState(0)
+  const [idxB, setIdxB]               = useState(7)
+  const [email, setEmail]             = useState('')
+  const [joined, setJoined]           = useState(false)
+  const [submitting, setSubmitting]   = useState(false)
   const [waitlistErr, setWaitlistErr] = useState('')
+  const [waitlistCount, setWaitlistCount] = useState(null)
+  const [copied, setCopied]           = useState(false)
 
   useEffect(() => {
     const a = setInterval(() => setIdxA(i => (i + 1) % MOODS.length), 4000)
@@ -35,13 +40,39 @@ export default function LandingPage({ onEnter }) {
     return () => { clearInterval(a); clearInterval(b) }
   }, [])
 
+  useEffect(() => {
+    supabase.rpc('get_waitlist_count')
+      .then(({ data }) => { if (data) setWaitlistCount(Number(data)) })
+  }, [])
+
   const mtA = MOOD_THEMES[MOODS[idxA].key]
   const mtB = MOOD_THEMES[MOODS[idxB].key]
 
+  async function handleWaitlist(e) {
+    e.preventDefault()
+    if (!email.trim() || submitting) return
+    setSubmitting(true); setWaitlistErr('')
+    const { error } = await supabase.from('waitlist').insert({ email: email.trim() })
+    setSubmitting(false)
+    if (!error || error.code === '23505') {
+      setJoined(true)
+      setWaitlistCount(c => (c ?? 0) + 1)
+    } else {
+      setWaitlistErr('Something went wrong. Try again.')
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(SHARE_URL)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
+
   return (
     <div style={s.page}>
+      <style>{WISPY_KEYFRAMES}</style>
 
-      {/* ── Nav ──────────────────────────────────────────── */}
+      {/* ── Nav ── */}
       <header style={s.nav}>
         <div style={s.navInner}>
           <div style={s.logo}>
@@ -59,31 +90,37 @@ export default function LandingPage({ onEnter }) {
         </div>
       </header>
 
-      {/* ── Hero text ────────────────────────────────────── */}
-      <div style={s.heroText}>
+      {/* ── Hero ── */}
+      <div style={s.heroWrap}>
         <div style={s.heroOrb} />
-        <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-          <p style={s.eyebrow}>Free 3D Room Builder</p>
-          <h1 style={s.heroTitle}>Design the room<br />you've been dreaming of.</h1>
-          <p style={s.heroSub}>Build your space in 3D. Set the perfect mood. Buy the real furniture.</p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
-            <button style={s.browseCta} onClick={onEnter}>Browse Marketplace →</button>
+        <div style={s.heroInner}>
+
+          {/* Left: text */}
+          <div style={s.heroLeft}>
+            <p style={s.eyebrow}>Free 3D Room Builder</p>
+            <h1 style={s.heroTitle}>Design the room<br />you've been<br />dreaming of.</h1>
+            <p style={s.heroSub}>Build your space in 3D. Set the perfect mood.<br />Buy the real furniture from independent sellers.</p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
+              <button style={s.browseCta} onClick={onEnter}>Browse Shop →</button>
+            </div>
+            <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from real sellers</p>
           </div>
-          <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from independent sellers</p>
+
+          {/* Right: animated room */}
+          <div style={s.heroRight}>
+            <div style={{ position: 'relative' }}>
+              <LivingRoom mt={mtA} moodName={MOODS[idxA].key} width={420} height={320} />
+              <div style={s.heroRoomBadge}>
+                <span style={{ color: mtA.accent, transition: 'color 1s ease' }}>✦</span>
+                &nbsp;Mood: <strong style={{ color: mtA.accent, transition: 'color 1s ease' }}>{MOODS[idxA].key}</strong>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Room showcase ────────────────────────────────── */}
-      <div style={s.showcase}>
-        <div style={s.showcaseInner}>
-          <LivingRoom mt={mtA} moodName={MOODS[idxA].key} />
-          <Bedroom    mt={mtB} moodName={MOODS[idxB].key} />
-        </div>
-        <p style={s.showcaseHint}>Two rooms · two moods · cycling live — click any pill below to preview</p>
-      </div>
-
-      {/* ── Mood strip ───────────────────────────────────── */}
+      {/* ── Mood strip ── */}
       <div style={s.moodStrip}>
         <div style={s.moodStripInner}>
           {MOODS.map((m, i) => {
@@ -104,9 +141,36 @@ export default function LandingPage({ onEnter }) {
         </div>
       </div>
 
-      {/* ── Features ─────────────────────────────────────── */}
+      {/* ── Bedroom showcase ── */}
+      <div style={s.showcase}>
+        <Bedroom mt={mtB} moodName={MOODS[idxB].key} width={420} height={320} />
+        <div style={s.showcaseText}>
+          <p style={s.eyebrow}>Every room. Every mood.</p>
+          <h2 style={{ ...s.sectionTitle, marginBottom: 16 }}>Your whole home,<br />designed in 3D.</h2>
+          <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.8, marginBottom: 24 }}>
+            Start with one room and expand into a full house. Each room has its own layout, lighting, and style — connected by doors you can walk through.
+          </p>
+          <button style={s.heroCta} onClick={onEnter}>Try the builder →</button>
+        </div>
+      </div>
+
+      {/* ── Wispy teaser ── */}
+      <div style={s.wispySection}>
+        <div style={s.wispyInner}>
+          <div style={s.wispyCloud}>☁</div>
+          <p style={{ ...s.eyebrow, color: '#c0a8ff' }}>Coming soon</p>
+          <h2 style={{ fontSize: 32, fontWeight: 800, color: '#f0eaff', marginBottom: 12, letterSpacing: '-0.5px' }}>Meet Wispy</h2>
+          <p style={{ fontSize: 15, color: '#a090c8', lineHeight: 1.8, maxWidth: 480, margin: '0 auto 20px' }}>
+            Your personal design companion. She guides you through your first room, cheers you on at milestones, and occasionally suggests that yes — that throw pillow does tie the whole room together.
+          </p>
+          <span style={s.wispyBadge}>Available at launch · No extra cost</span>
+        </div>
+      </div>
+
+      {/* ── Features ── */}
       <div style={s.section}>
         <div style={s.inner}>
+          <h2 style={{ ...s.sectionTitle, textAlign: 'center', marginBottom: 36 }}>Everything in one place</h2>
           <div style={s.featGrid}>
             {FEATURES.map(f => (
               <div key={f.title} style={s.featCard}>
@@ -119,7 +183,7 @@ export default function LandingPage({ onEnter }) {
         </div>
       </div>
 
-      {/* ── How it works ─────────────────────────────────── */}
+      {/* ── How it works ── */}
       <div style={{ ...s.section, background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={s.inner}>
           <h2 style={s.sectionTitle}>How it works</h2>
@@ -135,44 +199,63 @@ export default function LandingPage({ onEnter }) {
         </div>
       </div>
 
-      {/* ── Waitlist ─────────────────────────────────────── */}
-      <div style={{ padding: '80px 40px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 520, margin: '0 auto' }}>
-          <p style={s.eyebrow}>Stay in the loop</p>
-          <h2 style={{ fontSize: 30, fontWeight: 800, color: t.text, marginBottom: 10 }}>Be first when new rooms arrive.</h2>
-          <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 28 }}>New furniture, builder features, and mood drops — straight to your inbox.</p>
+      {/* ── Waitlist ── */}
+      <div style={s.waitlistSection}>
+        <div style={{ maxWidth: 540, margin: '0 auto', textAlign: 'center' }}>
+          <p style={s.eyebrow}>Early access</p>
+          <h2 style={{ fontSize: 34, fontWeight: 800, color: t.text, marginBottom: 10, letterSpacing: '-0.5px' }}>
+            Be among the first<br />through the door.
+          </h2>
+          <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 8 }}>
+            New sellers, builder features, and exclusive mood drops — straight to your inbox.
+          </p>
+          {waitlistCount > 0 && (
+            <p style={{ fontSize: 13, color: t.accent, fontWeight: 600, marginBottom: 24 }}>
+              ✦ {waitlistCount.toLocaleString()} {waitlistCount === 1 ? 'dreamer' : 'dreamers'} already on the list
+            </p>
+          )}
+          {!waitlistCount && <div style={{ marginBottom: 24 }} />}
+
           {joined ? (
-            <p style={{ fontSize: 18, color: t.accent, fontWeight: 700 }}>You're on the list. ✦</p>
+            <div style={s.joinedWrap}>
+              <p style={{ fontSize: 20, color: t.accent, fontWeight: 700, margin: '0 0 6px' }}>You're on the list. ✦</p>
+              <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 24px' }}>We'll be in touch. Share DaydreamDwelling with someone who'd love it:</p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={s.shareBtn}
+                >𝕏 Share on X</a>
+                <a
+                  href={`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(SHARE_URL)}&description=${encodeURIComponent(SHARE_TEXT)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ ...s.shareBtn, background: '#e60023', borderColor: '#e60023' }}
+                >📌 Pin it</a>
+                <button style={{ ...s.shareBtn, background: copied ? '#4a7a5a' : 'transparent', borderColor: copied ? '#4a7a5a' : t.surfaceBorder, color: copied ? '#a0e0b0' : t.textSoft }}
+                  onClick={copyLink}>
+                  {copied ? '✓ Copied!' : '🔗 Copy link'}
+                </button>
+              </div>
+            </div>
           ) : (
-            <form onSubmit={async e => {
-              e.preventDefault()
-              if (!email.trim() || submitting) return
-              setSubmitting(true)
-              setWaitlistErr('')
-              const { error } = await supabase.from('waitlist').insert({ email: email.trim() })
-              setSubmitting(false)
-              if (!error || error.code === '23505') {
-                setJoined(true)
-              } else {
-                setWaitlistErr('Something went wrong. Try again.')
-              }
-            }} style={{ display: 'flex', gap: 10, justifyContent: 'center', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <form onSubmit={handleWaitlist} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', width: '100%', maxWidth: 440 }}>
                 <input
-                  style={{ flex: 1, maxWidth: 300, padding: '12px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' }}
+                  style={s.waitlistInput}
                   type="email" placeholder="your@email.com"
                   value={email} onChange={e => setEmail(e.target.value)} required />
                 <button type="submit" style={{ ...s.heroCta, opacity: submitting ? 0.6 : 1 }} disabled={submitting}>
-                  {submitting ? '...' : 'Join →'}
+                  {submitting ? '…' : 'Join →'}
                 </button>
               </div>
               {waitlistErr && <p style={{ fontSize: 12, color: '#e57373', margin: 0 }}>{waitlistErr}</p>}
+              <p style={{ fontSize: 11, color: t.textSoft, margin: 0 }}>No spam, ever. Unsubscribe any time.</p>
             </form>
           )}
         </div>
       </div>
 
-      {/* ── Outdoor CTA ──────────────────────────────────── */}
+      {/* ── Outdoor CTA ── */}
       <div style={{ ...s.section, borderTop: `1px solid ${t.surfaceBorder}` }}>
         <div style={s.inner}>
           <div style={s.outdoorBand}>
@@ -186,171 +269,63 @@ export default function LandingPage({ onEnter }) {
         </div>
       </div>
 
-      {/* ── Footer ───────────────────────────────────────── */}
+      {/* ── Footer ── */}
       <footer style={{ padding: '24px 40px', borderTop: `1px solid ${t.surfaceBorder}`, color: t.textSoft, fontSize: 12, textAlign: 'center' }}>
-        © 2025 DaydreamDwelling · <span style={{ color: t.accent }}>Room Builder</span>
+        © 2025 DaydreamDwelling &nbsp;·&nbsp; <span style={{ color: t.accent }}>daydreamdwelling.com</span>
+        &nbsp;·&nbsp; <a href="/outdoor" style={{ color: t.textSoft, textDecoration: 'none' }}>Outdoor Shop</a>
+        &nbsp;·&nbsp; <a href="mailto:hello@daydreamdwelling.com" style={{ color: t.textSoft, textDecoration: 'none' }}>Contact</a>
       </footer>
-
     </div>
   )
 }
 
-// ── Room components ──────────────────────────────────────────────────────────
-
-function roomCard(mt) {
-  return {
-    width: 468, height: 356, borderRadius: 16, overflow: 'hidden',
-    position: 'relative', flexShrink: 0,
-    background: mt.bg,
-    border: `1px solid ${mt.surfaceBorder}`,
-    boxShadow: '0 28px 70px rgba(0,0,0,0.55)',
-    transition: T,
+const WISPY_KEYFRAMES = `
+  @keyframes wispyFloat {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50%       { transform: translateY(-14px) scale(1.04); }
   }
-}
-
-function abs(bg, extra = {}) {
-  return { position: 'absolute', background: bg, transition: T, ...extra }
-}
-
-function LivingRoom({ mt, moodName }) {
-  // constants: FH = floor height, WW = left-wall width
-  const FH = 95, WW = 52
-  return (
-    <div style={roomCard(mt)}>
-      {/* Walls + floor */}
-      <div style={abs(mt.navBg,   { top: 0, left: WW, right: 0, bottom: FH })} />
-      <div style={abs(mt.surface, { top: 0, left: 0, width: WW, bottom: FH, opacity: 0.85 })} />
-      <div style={abs(mt.surface, { bottom: 0, left: 0, right: 0, height: FH })} />
-
-      {/* Ceiling light */}
-      <div style={abs(mt.surfaceBorder, { top: 0, left: 225, width: 3, height: 38 })} />
-      <div style={abs(mt.surfaceBorder, { top: 35, left: 207, width: 36, height: 11, borderRadius: '0 0 10px 10px' })} />
-      <div style={{ position: 'absolute', top: 28, left: 150, width: 160, height: 100, borderRadius: '50%', background: `radial-gradient(circle, ${mt.accent}38 0%, transparent 62%)`, transition: T, pointerEvents: 'none' }} />
-
-      {/* Window */}
-      <div style={{ position: 'absolute', bottom: FH + 100, left: 170, width: 138, height: 105, border: `2px solid ${mt.surfaceBorder}`, background: `${mt.accent}09`, borderRadius: 3, transition: T }}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, background: mt.surfaceBorder, transition: T }} />
-        <div style={{ position: 'absolute', left: 0, right: 0, top: '48%', height: 2, background: mt.surfaceBorder, transition: T }} />
-      </div>
-
-      {/* Bookshelf */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH, right: 22, width: 66, height: 188, opacity: 0.48, borderRadius: '2px 2px 0 0' })}>
-        {[48, 96, 142].map(b => <div key={b} style={{ position: 'absolute', bottom: b, left: 0, right: 0, height: 2, background: mt.navBg, opacity: 0.7 }} />)}
-      </div>
-
-      {/* Floor lamp */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH, left: 85, width: 3, height: 148, opacity: 0.65 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 144, left: 73, width: 28, height: 10, borderRadius: '0 0 18px 18px', opacity: 0.75 })} />
-      <div style={{ position: 'absolute', bottom: FH + 88, left: 58, width: 66, height: 60, borderRadius: '50%', background: `radial-gradient(circle, ${mt.accent}48 0%, transparent 68%)`, transition: T }} />
-
-      {/* Plant */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH, left: WW + 12, width: 28, height: 20, borderRadius: '3px 3px 0 0', opacity: 0.5 })} />
-      <div style={{ position: 'absolute', bottom: FH + 16, left: WW + 6, width: 42, height: 42, borderRadius: '50% 55% 48% 52%', background: `${mt.accent}55`, transition: T }} />
-
-      {/* Rug */}
-      <div style={{ position: 'absolute', bottom: FH + 2, left: 120, width: 248, height: 58, borderRadius: 5, background: `${mt.accent}1c`, transition: T }} />
-
-      {/* Sofa arms */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 58, left: 138, width: 18, height: 66, borderRadius: '3px 0 0 3px' })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 58, left: 348, width: 18, height: 66, borderRadius: '0 3px 3px 0' })} />
-      {/* Sofa seat */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 58, left: 156, width: 192, height: 42 })} />
-      {/* Sofa back */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 96, left: 138, width: 228, height: 28, borderRadius: '3px 3px 0 0', opacity: 0.75 })} />
-
-      {/* Coffee table */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 48, left: 192, width: 110, height: 12, borderRadius: '3px 3px 0 0', opacity: 0.45 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 2,  left: 200, width: 94,  height: 48, opacity: 0.28, borderRadius: 2 })} />
-
-      {/* Labels */}
-      <div style={{ position: 'absolute', top: 13, left: WW + 12, fontSize: 10, fontWeight: 700, color: mt.textSoft, letterSpacing: '0.1em', textTransform: 'uppercase', transition: T }}>Living Room</div>
-      <div style={{ position: 'absolute', bottom: 13, right: 14, fontSize: 12, fontWeight: 700, color: mt.accent, transition: T }}>{moodName}</div>
-    </div>
-  )
-}
-
-function Bedroom({ mt, moodName }) {
-  const FH = 95, WW = 52
-  return (
-    <div style={roomCard(mt)}>
-      {/* Walls + floor */}
-      <div style={abs(mt.navBg,   { top: 0, left: WW, right: 0, bottom: FH })} />
-      <div style={abs(mt.surface, { top: 0, left: 0, width: WW, bottom: FH, opacity: 0.85 })} />
-      <div style={abs(mt.surface, { bottom: 0, left: 0, right: 0, height: FH })} />
-
-      {/* Ceiling light */}
-      <div style={abs(mt.surfaceBorder, { top: 0, left: 225, width: 3, height: 38 })} />
-      <div style={abs(mt.surfaceBorder, { top: 35, left: 210, width: 30, height: 10, borderRadius: '0 0 8px 8px' })} />
-      <div style={{ position: 'absolute', top: 28, left: 155, width: 140, height: 90, borderRadius: '50%', background: `radial-gradient(circle, ${mt.accent}38 0%, transparent 62%)`, transition: T, pointerEvents: 'none' }} />
-
-      {/* Window + curtains */}
-      <div style={{ position: 'absolute', bottom: FH + 130, left: 158, width: 118, height: 90, border: `2px solid ${mt.surfaceBorder}`, background: `${mt.accent}09`, borderRadius: 2, transition: T }}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, background: mt.surfaceBorder, transition: T }} />
-      </div>
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 218, left: 144, width: 148, height: 4, borderRadius: 2, opacity: 0.65 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 130, left: 144, width: 20, height: 90, opacity: 0.5 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 130, left: 270, width: 20, height: 90, opacity: 0.5 })} />
-
-      {/* Dresser + mirror */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH, right: 26, width: 62, height: 108, opacity: 0.48, borderRadius: '2px 2px 0 0' })}>
-        {[32, 68].map(b => <div key={b} style={{ position: 'absolute', bottom: b, left: 6, right: 6, height: 2, background: mt.navBg }} />)}
-      </div>
-      <div style={{ position: 'absolute', bottom: FH + 108, right: 36, width: 44, height: 55, border: `2px solid ${mt.surfaceBorder}`, background: `${mt.accent}08`, borderRadius: 3, transition: T }} />
-
-      {/* Rug */}
-      <div style={{ position: 'absolute', bottom: FH + 2, left: 80, width: 258, height: 52, borderRadius: 4, background: `${mt.accent}1c`, transition: T }} />
-
-      {/* Bed */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 82, left: 88, width: 248, height: 36, borderRadius: '4px 4px 0 0', opacity: 0.78 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH,      left: 88, width: 248, height: 84, opacity: 0.38 })} />
-      <div style={{ position: 'absolute', bottom: FH, left: 88, width: 248, height: 68, background: `${mt.accent}24`, transition: T, borderRadius: '0 0 2px 2px' }} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 60, left: 102, width: 78, height: 26, borderRadius: 4, opacity: 0.68 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 60, left: 238, width: 78, height: 26, borderRadius: 4, opacity: 0.68 })} />
-
-      {/* Nightstand + lamp */}
-      <div style={abs(mt.surfaceBorder, { bottom: FH, left: 346, width: 46, height: 50, opacity: 0.48, borderRadius: 3 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 50, left: 358, width: 3, height: 28, opacity: 0.65 })} />
-      <div style={abs(mt.surfaceBorder, { bottom: FH + 74, left: 349, width: 20, height: 8, borderRadius: '50%', opacity: 0.78 })} />
-      <div style={{ position: 'absolute', bottom: FH + 28, left: 330, width: 62, height: 55, borderRadius: '50%', background: `radial-gradient(circle, ${mt.accent}48 0%, transparent 68%)`, transition: T }} />
-
-      {/* Labels */}
-      <div style={{ position: 'absolute', top: 13, left: WW + 12, fontSize: 10, fontWeight: 700, color: mt.textSoft, letterSpacing: '0.1em', textTransform: 'uppercase', transition: T }}>Bedroom</div>
-      <div style={{ position: 'absolute', bottom: 13, right: 14, fontSize: 12, fontWeight: 700, color: mt.accent, transition: T }}>{moodName}</div>
-    </div>
-  )
-}
-
-// ── Styles ───────────────────────────────────────────────────────────────────
+`
 
 function makeStyles(t) {
   return {
     page:           { minHeight: '100vh', background: t.bg, color: t.text },
     nav:            { background: t.navBg, backdropFilter: 'blur(16px)', borderBottom: `1px solid ${t.navBorder}`, position: 'sticky', top: 0, zIndex: 100 },
-    navInner:       { maxWidth: 1100, margin: '0 auto', padding: '0 32px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+    navInner:       { maxWidth: 1160, margin: '0 auto', padding: '0 32px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
     logo:           { display: 'flex', alignItems: 'center', gap: 10 },
     navLink:        { fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: 6 },
     navCta:         { padding: '8px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-    heroText:       { position: 'relative', overflow: 'hidden', padding: '72px 40px 56px', textAlign: 'center' },
-    heroOrb:        { position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)', width: 600, height: 400, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' },
-    eyebrow:        { fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 18 },
-    heroTitle:      { fontSize: 56, fontWeight: 800, color: t.text, lineHeight: 1.08, marginBottom: 20, fontFamily: 'Georgia, "Times New Roman", serif' },
-    heroSub:        { fontSize: 17, color: t.textSoft, lineHeight: 1.6, marginBottom: 32 },
-    heroCta:        { padding: '14px 28px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
-    browseCta:      { padding: '14px 28px', background: 'transparent', color: t.accent, border: `1.5px solid ${t.accent}`, borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
+    heroWrap:       { position: 'relative', overflow: 'hidden', padding: '72px 40px 64px' },
+    heroOrb:        { position: 'absolute', top: -120, left: '30%', width: 700, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' },
+    heroInner:      { maxWidth: 1160, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 60, position: 'relative', zIndex: 1 },
+    heroLeft:       { flex: '1 1 0', minWidth: 0 },
+    heroRight:      { flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 12 },
+    heroRoomBadge:  { position: 'absolute', bottom: 14, left: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#e0d9ff', border: '1px solid rgba(255,255,255,0.08)' },
+    eyebrow:        { fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 16, marginTop: 0 },
+    heroTitle:      { fontSize: 58, fontWeight: 800, color: t.text, lineHeight: 1.06, marginBottom: 20, marginTop: 0, fontFamily: 'Georgia, "Times New Roman", serif' },
+    heroSub:        { fontSize: 16, color: t.textSoft, lineHeight: 1.7, marginBottom: 28, marginTop: 0 },
+    heroCta:        { padding: '13px 26px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
+    browseCta:      { padding: '13px 26px', background: 'transparent', color: t.accent, border: `1.5px solid ${t.accent}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
     heroNote:       { fontSize: 11, color: t.textSoft, marginTop: 14 },
-    showcase:       { background: '#07070d', padding: '52px 40px 32px', borderTop: `1px solid rgba(255,255,255,0.05)` },
-    showcaseInner:  { maxWidth: 1100, margin: '0 auto', display: 'flex', gap: 28, justifyContent: 'center' },
-    showcaseHint:   { textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.28)', marginTop: 22, letterSpacing: '0.05em' },
     moodStrip:      { borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}`, overflowX: 'auto', padding: '0 40px', scrollbarWidth: 'none' },
-    moodStripInner: { display: 'flex', gap: 8, padding: '12px 0', maxWidth: 1100, margin: '0 auto' },
+    moodStripInner: { display: 'flex', gap: 8, padding: '12px 0', maxWidth: 1160, margin: '0 auto' },
     moodPill:       { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s ease' },
-    section:        { padding: '64px 40px' },
-    inner:          { maxWidth: 1100, margin: '0 auto' },
-    sectionTitle:   { fontSize: 28, fontWeight: 700, color: t.text, marginBottom: 36 },
-    featGrid:       { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 28 },
+    showcase:       { maxWidth: 1160, margin: '0 auto', padding: '72px 40px', display: 'flex', alignItems: 'center', gap: 60 },
+    showcaseText:   { flex: '1 1 0', minWidth: 0 },
+    wispySection:   { background: 'linear-gradient(160deg, #0d0a1e 0%, #1a0e30 50%, #0d0a1e 100%)', borderTop: `1px solid rgba(154,122,238,0.2)`, borderBottom: `1px solid rgba(154,122,238,0.2)`, padding: '80px 40px', textAlign: 'center' },
+    wispyInner:     { maxWidth: 580, margin: '0 auto' },
+    wispyCloud:     { fontSize: 72, lineHeight: 1, marginBottom: 20, display: 'block', animation: 'wispyFloat 3.5s ease-in-out infinite' },
+    wispyBadge:     { display: 'inline-block', padding: '6px 16px', background: 'rgba(154,122,238,0.12)', border: '1px solid rgba(154,122,238,0.3)', borderRadius: 20, fontSize: 12, color: '#9a7aee', fontWeight: 600 },
+    section:        { padding: '72px 40px' },
+    inner:          { maxWidth: 1160, margin: '0 auto' },
+    sectionTitle:   { fontSize: 30, fontWeight: 800, color: t.text, marginBottom: 36, marginTop: 0 },
+    featGrid:       { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 },
     featCard:       { display: 'flex', flexDirection: 'column', gap: 10, padding: '24px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16 },
     stepsGrid:      { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 },
     stepCard:       { display: 'flex', flexDirection: 'column' },
+    waitlistSection:{ padding: '88px 40px', textAlign: 'center' },
+    waitlistInput:  { flex: 1, padding: '13px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' },
+    joinedWrap:     { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+    shareBtn:       { padding: '10px 18px', background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' },
     outdoorBand:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32 },
   }
 }

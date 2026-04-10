@@ -12,7 +12,8 @@ export default function Measurements({ gridW, gridD, wallHeight, items, selected
   const sel = items?.find(it => it.id === selectedId) ?? null
   if (sel) {
     const def  = ITEM_CATALOGUE[sel.typeKey]
-    const size = def.sizes[sel.sizeIndex]
+    const size = def?.sizes?.[sel.sizeIndex]
+    if (size) {
     const fw   = sel.customW ?? size.footprint[0]
     const fd   = size.footprint[1]
     const fh   = sel.customH ?? size.height
@@ -71,6 +72,7 @@ export default function Measurements({ gridW, gridD, wallHeight, items, selected
         text: `${ew} × ${ed} ft  h: ${fh} ft`,
       }
     }
+    } // end if (size)
   }
 
   return (

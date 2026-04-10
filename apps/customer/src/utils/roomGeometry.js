@@ -22,10 +22,10 @@ export function makeGrid(w, d) {
 }
 
 // All occupied cells for an item, in ½-ft integer units
-export function getItemCells(item) {
-  const def  = ITEM_CATALOGUE[item.typeKey]
-  const size = def.sizes[item.sizeIndex]
-  const [fw, fd] = size.footprint
+export function getItemCells(item, catalogue = ITEM_CATALOGUE) {
+  const def  = catalogue[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey]
+  const size = def?.sizes?.[item.sizeIndex] ?? def?.sizes?.[0]
+  const [fw, fd] = size?.footprint ?? [1, 1]
   const rotated  = item.rotation === 90 || item.rotation === 270
   const ew = rotated ? fd : fw
   const ed = rotated ? fw : fd
@@ -46,31 +46,31 @@ export function isCeilingItem(def) {
   return !!def.ceiling
 }
 
-export function hasOverlap(items, testId, testItem) {
-  const testCells = getItemCells(testItem)
+export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) {
+  const testCells = getItemCells(testItem, catalogue)
   for (const other of items) {
     if (other.id === testId) continue
     if (other.wall) continue  // wall items don't occupy floor space
-    for (const cell of getItemCells(other))
+    for (const cell of getItemCells(other, catalogue))
       if (testCells.has(cell)) return true
   }
   return false
 }
 
-export function hasWallOverlap(items, testId, testItem) {
-  const def  = ITEM_CATALOGUE[testItem.typeKey]
-  const size = def.sizes[testItem.sizeIndex]
-  const fw   = testItem.customW ?? size.footprint[0]
-  const fh   = testItem.customH ?? size.height
+export function hasWallOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) {
+  const def  = catalogue[testItem.typeKey] ?? ITEM_CATALOGUE[testItem.typeKey]
+  const size = def?.sizes?.[testItem.sizeIndex] ?? def?.sizes?.[0]
+  const fw   = testItem.customW ?? size?.footprint?.[0] ?? 1
+  const fh   = testItem.customH ?? size?.height ?? 1
   for (const other of items) {
     if (other.id === testId || !other.wall || other.wall !== testItem.wall) continue
     // Items on different physical faces (different anchor) cannot collide
     if (testItem.wallAnchor !== undefined && other.wallAnchor !== undefined &&
         testItem.wallAnchor !== other.wallAnchor) continue
-    const oDef  = ITEM_CATALOGUE[other.typeKey]
-    const oSize = oDef.sizes[other.sizeIndex]
-    const oFw   = other.customW ?? oSize.footprint[0]
-    const oFh   = other.customH ?? oSize.height
+    const oDef  = catalogue[other.typeKey] ?? ITEM_CATALOGUE[other.typeKey]
+    const oSize = oDef?.sizes?.[other.sizeIndex] ?? oDef?.sizes?.[0]
+    const oFw   = other.customW ?? oSize?.footprint?.[0] ?? 1
+    const oFh   = other.customH ?? oSize?.height ?? 1
     const uClear = Math.abs(testItem.wallU - other.wallU) >= (fw + oFw) / 2
     const hClear = Math.abs(testItem.wallH - other.wallH) >= (fh + oFh) / 2
     if (!uClear && !hClear) return true
@@ -80,10 +80,10 @@ export function hasWallOverlap(items, testId, testItem) {
 
 // Spiral search for the nearest free grid position near the center.
 // Rotation is always 0 on initial placement, so we use raw footprint.
-export function findFreePosition(existingItems, templateItem, gridW, gridD) {
-  const def  = ITEM_CATALOGUE[templateItem.typeKey]
-  const size = def.sizes[templateItem.sizeIndex]
-  const [fw, fd] = size.footprint
+export function findFreePosition(existingItems, templateItem, gridW, gridD, catalogue = ITEM_CATALOGUE) {
+  const def  = catalogue[templateItem.typeKey] ?? ITEM_CATALOGUE[templateItem.typeKey]
+  const size = def?.sizes?.[templateItem.sizeIndex] ?? def?.sizes?.[0]
+  const [fw, fd] = size?.footprint ?? [1, 1]
   const maxCol = gridW - fw
   const maxRow = gridD - fd
   const cx = Math.floor(maxCol / 2)
@@ -95,7 +95,7 @@ export function findFreePosition(existingItems, templateItem, gridW, gridD) {
         if (Math.abs(dc) !== dist && Math.abs(dr) !== dist) continue // shell only
         const col = Math.max(0, Math.min(maxCol, cx + dc))
         const row = Math.max(0, Math.min(maxRow, cy + dr))
-        if (!hasOverlap(existingItems, templateItem.id, { ...templateItem, col, row }))
+        if (!hasOverlap(existingItems, templateItem.id, { ...templateItem, col, row }, catalogue))
           return { col, row }
       }
     }

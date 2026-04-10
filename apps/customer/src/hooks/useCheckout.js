@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { supabase } from '@shared/supabase'
 import { ITEM_CATALOGUE } from '../data/items'
 
-export default function useCheckout({ cart }) {
+export default function useCheckout({ cart, catalogue }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
 
@@ -10,16 +10,17 @@ export default function useCheckout({ cart }) {
     if (!cart.length) return
     setLoading(true); setError(null)
 
+    const cat   = catalogue ?? ITEM_CATALOGUE
     const items = cart.map(entry => {
-      const def  = ITEM_CATALOGUE[entry.typeKey]
-      const size = def.sizes[entry.sizeIndex]
-      const sw   = def.swatches[entry.swatchIndex]
+      const def  = cat[entry.typeKey] ?? ITEM_CATALOGUE[entry.typeKey]
+      const size = def?.sizes?.[entry.sizeIndex]
+      const sw   = def?.swatches?.[entry.swatchIndex]
       return {
         typeKey:    entry.typeKey,
-        label:      def.label,
-        sizeLabel:  size.label,
-        swatchName: sw.name,
-        unitPrice:  size.price,
+        label:      def?.label ?? entry.typeKey,
+        sizeLabel:  size?.label ?? '',
+        swatchName: sw?.name ?? '',
+        unitPrice:  size?.price ?? 0,
         qty:        entry.qty,
       }
     })
@@ -41,7 +42,7 @@ export default function useCheckout({ cart }) {
     } finally {
       setLoading(false)
     }
-  }, [cart])
+  }, [cart, catalogue])
 
   return { startCheckout, loading, error }
 }

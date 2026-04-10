@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { ITEM_CATALOGUE } from '../data/items'
 import {
   isWallItem, isCeilingItem, hasOverlap, hasWallOverlap,
@@ -17,9 +17,18 @@ export default function useItemActions({
   nextItemIdRef,
   selectedId,
   getRoomName,
+  catalogue,
 }) {
+  // Keep a ref so callbacks always see the latest merged catalogue without re-creating
+  const catalogueRef = useRef(catalogue ?? ITEM_CATALOGUE)
+  useEffect(() => { catalogueRef.current = catalogue ?? ITEM_CATALOGUE }, [catalogue])
+
+  // Resolve a def from merged catalogue (live products) or static catalogue (built-in items)
+  const resolveDef = (typeKey) => catalogueRef.current[typeKey] ?? ITEM_CATALOGUE[typeKey]
+
   const placeItem = useCallback((typeKey, sizeIndex = 0, swatchIndex = 0, wishlisted = false) => {
-    const def = ITEM_CATALOGUE[typeKey]
+    const def = resolveDef(typeKey)
+    if (!def) return
     if (def.isFloorFinish) {
       setFloorColor(def.swatches?.[swatchIndex]?.hex ?? def.surfaceHex)
       return
@@ -43,8 +52,9 @@ export default function useItemActions({
       col: 0, row: 0, rotation: 0,
       layer: def.layer, owned: false, locked: false, wishlisted,
     }
+    const cat = catalogueRef.current
     setItems(prev => {
-      const { col, row } = findFreePosition(prev, template, gridW, gridD)
+      const { col, row } = findFreePosition(prev, template, gridW, gridD, cat)
       return [...prev, { ...template, col, row }]
     })
     setSelectedId(id)
@@ -53,7 +63,8 @@ export default function useItemActions({
   const placeItemOnWall = useCallback((wall) => {
     if (!wallPicker) return
     const { typeKey, sizeIndex, swatchIndex, wishlisted, customW, customH } = wallPicker
-    const def      = ITEM_CATALOGUE[typeKey]
+    const def      = resolveDef(typeKey)
+    if (!def) return
     const id       = nextItemIdRef.current++
     const size     = def.sizes[sizeIndex]
     const fh       = customH ?? size.height
@@ -79,9 +90,10 @@ export default function useItemActions({
   const placeCeilingItem = useCallback((col, row) => {
     if (!ceilingPicker) return
     const { typeKey, sizeIndex, swatchIndex, wishlisted } = ceilingPicker
-    const def = ITEM_CATALOGUE[typeKey]
+    const def = resolveDef(typeKey)
+    if (!def) return
     const id  = nextItemIdRef.current++
-    const defaultDropLength = def.sizes[sizeIndex].defaultDropLength ?? 0.6
+    const defaultDropLength = def.sizes[sizeIndex]?.defaultDropLength ?? 0.6
     setItems(prev => [...prev, {
       id, typeKey, sizeIndex, swatchIndex,
       col, row, rotation: 0,

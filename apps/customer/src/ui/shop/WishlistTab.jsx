@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ITEM_CATALOGUE } from '../../data/items'
+import { ITEM_CATALOGUE as STATIC_CATALOGUE } from '../../data/items'
 import { useShopStyles } from './shopStyles'
 
-export default function WishlistTab({ items, onOpenModal, onToggleWishlist }) {
+export default function WishlistTab({ items, catalogue, onOpenModal, onToggleWishlist }) {
+  const ITEM_CATALOGUE = catalogue ?? STATIC_CATALOGUE
   const s = useShopStyles()
   const [shared, setShared] = useState(false)
 

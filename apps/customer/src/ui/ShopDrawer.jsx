@@ -10,6 +10,7 @@ export { default as ProductModal } from './shop/ProductModal'
 export default function ShopDrawer({
   open, activeTab, onTabChange,
   onPlace, onOpenModal,
+  catalogue,
   cart, onIncrementCart, onDecrementCart, onRemoveFromCart,
   wishlistedItems, onToggleWishlist,
   gridW, gridD,
@@ -46,14 +47,14 @@ export default function ShopDrawer({
 
       {/* Tab content */}
       {activeTab === 'cart' && (
-        <CartTab cart={cart} onIncrement={onIncrementCart} onDecrement={onDecrementCart} onRemove={onRemoveFromCart}
+        <CartTab cart={cart} catalogue={catalogue} onIncrement={onIncrementCart} onDecrement={onDecrementCart} onRemove={onRemoveFromCart}
           cartHighlight={cartHighlight} onCartHighlight={onCartHighlight} onCheckout={onCheckout} />
       )}
       {activeTab === 'wishlist' && (
-        <WishlistTab items={wishlistedItems} onOpenModal={onOpenModal} onToggleWishlist={onToggleWishlist} />
+        <WishlistTab items={wishlistedItems} catalogue={catalogue} onOpenModal={onOpenModal} onToggleWishlist={onToggleWishlist} />
       )}
       {activeTab === 'shop' && (
-        <BrowseTab onPlace={onPlace} onOpenModal={onOpenModal} gridW={gridW} gridD={gridD} roomItemKeys={roomItemKeys} />
+        <BrowseTab onPlace={onPlace} onOpenModal={onOpenModal} catalogue={catalogue} gridW={gridW} gridD={gridD} roomItemKeys={roomItemKeys} />
       )}
 
       {/* Seller's Hub footer */}
