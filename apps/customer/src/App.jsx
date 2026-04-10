@@ -483,7 +483,7 @@ function AppInner() {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+    <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }}>
         <RoomScene
