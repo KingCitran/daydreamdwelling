@@ -33,7 +33,12 @@ import LoadRoomModal from './ui/LoadRoomModal'
 import useCloudSave from './hooks/useCloudSave'
 import CheckoutModal from './ui/CheckoutModal'
 import OrderSuccessBanner from './ui/OrderSuccessBanner'
+import Wispy from './ui/Wispy'
+import useWispy from './hooks/useWispy'
+import WispyCashier from './ui/WispyCashier'
+import useSellerCatalogue from './hooks/useSellerCatalogue'
 import LandingPage from './pages/LandingPage'
+import WispyPreview from './pages/WispyPreview'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
@@ -63,11 +68,13 @@ export default function App() {
 }
 
 function Gate() {
-  const isCheckoutRedirect        = new URLSearchParams(window.location.search).get('checkout') != null
-  const [inBuilder, setInBuilder] = useState(isCheckoutRedirect)
-  const quizDone                  = !!localStorage.getItem('ddd_quiz_done')
-  const { setMood }               = useMoodControl()
-  const { user }                  = useAuth()
+  const params                     = new URLSearchParams(window.location.search)
+  const isCheckoutRedirect         = params.get('checkout') != null
+  const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
+  const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId)
+  const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
+  const { setMood }                = useMoodControl()
+  const { user }                   = useAuth()
 
   async function completeQuiz(mood) {
     setMood(mood)
@@ -84,15 +91,21 @@ function Gate() {
     setInBuilder(true)
   }
 
-  if (inBuilder) return <AppInner />
+  if (params.get('preview') === 'wispy') return <WispyPreview />
+  if (inBuilder) return <AppInner shopBuilderSellerId={shopBuilderSellerId} />
   if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
   return <LandingPage onEnter={() => setInBuilder(true)} />
 }
 
-function AppInner() {
+function AppInner({ shopBuilderSellerId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
-  const catalogue = useShopProducts()
+  const catalogue       = useShopProducts()
+  const sellerCatalogue = useSellerCatalogue(shopBuilderSellerId)
+  // In shop builder mode the shop panel shows only the seller's products.
+  // Room rendering (Items, SelectedControls) uses the full catalogue so any
+  // static items already in the layout still render correctly.
+  const shopPanelCatalogue = shopBuilderSellerId ? (sellerCatalogue ?? {}) : catalogue
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
 
@@ -116,6 +129,7 @@ function AppInner() {
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
   const [items,      setItems]      = useState(initSave?.items ?? [])
+  const { wispyMessage, dismissWispy, showWispy } = useWispy({ itemCount: items.length })
   const [selectedId, setSelectedId] = useState(null)
   const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
 
@@ -250,6 +264,51 @@ function AppInner() {
     setCloudRoomId(roomId)
     setLoadModalOpen(false)
   }, [cloudSave]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Shop builder mode: load existing layout + save helpers ───────
+  const [shopSaving,   setShopSaving]   = useState(false)
+  const [wispyGreeting, setWispyGreeting] = useState(null) // null = use DB default
+
+  useEffect(() => {
+    if (!shopBuilderSellerId) return
+    supabase
+      .from('seller_shops')
+      .select('layout, wispy_greeting')
+      .eq('seller_id', shopBuilderSellerId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        if (data.wispy_greeting) setWispyGreeting(data.wispy_greeting)
+        const d = data.layout
+        if (!d) return
+        if (d.gridW)  setGridW(d.gridW)
+        if (d.gridD)  setGridD(d.gridD)
+        if (d.wallHeight) setWallHeight(d.wallHeight)
+        if (d.cells)  setCells(new Set(d.cells))
+        if (d.items)  setItems(d.items)
+        if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.wallColor)  setWallColor(d.wallColor)
+        if (d.bgColor)    setBgColor(d.bgColor)
+        if (d.lightMood)  setLightMood(d.lightMood)
+        if (d.items?.length > 0)
+          nextItemIdRef.current = Math.max(...d.items.map(it => it.id)) + 1
+        setSelectedId(null)
+      })
+  }, [shopBuilderSellerId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveShopLayout = useCallback(async () => {
+    if (!shopBuilderSellerId || shopSaving) return
+    setShopSaving(true)
+    const layout = {
+      version: 1, gridW, gridD, wallHeight,
+      cells: [...cells], items, floorColor, wallColor, bgColor, lightMood,
+    }
+    await supabase.from('seller_shops').upsert({
+      seller_id: shopBuilderSellerId, layout,
+      updated_at: new Date().toISOString(),
+    })
+    setShopSaving(false)
+  }, [shopBuilderSellerId, shopSaving, gridW, gridD, wallHeight, cells, items, floorColor, wallColor, bgColor, lightMood])
 
   const {
     enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom,
@@ -678,6 +737,10 @@ function AppInner() {
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
+      {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
+      {shopBuilderSellerId && (
+        <WispyCashier greeting={wispyGreeting ?? 'Welcome to my shop! ☁'} />
+      )}
 
       {saveModalOpen && (
         <SaveRoomModal
@@ -748,6 +811,18 @@ function AppInner() {
         )}
 
         <div style={s.bottomBar}>
+          {shopBuilderSellerId && (
+            <button
+              style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }}
+              onClick={saveShopLayout}
+            >{shopSaving ? 'Saving…' : '💾 Save Shop'}</button>
+          )}
+          {shopBuilderSellerId && (
+            <button
+              style={{ ...s.bottomBtn, borderColor: '#7a5a9a', color: '#d0b0ff', background: '#2a1a3a' }}
+              onClick={() => window.close()}
+            >✕ Exit Builder</button>
+          )}
           {roomStack.length > 0 && (
             <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>
               ← Back
@@ -772,6 +847,11 @@ function AppInner() {
           >{lightsOff ? '☀' : '💡'}</button>
           <BuilderMoodPicker />
           <NotificationBell btnStyle={s.bottomBtn} />
+          <button
+            style={{ ...s.bottomBtn, ...(wispyMessage ? s.bottomBtnActive : {}) }}
+            onClick={showWispy}
+            title="Wispy"
+          >☁</button>
           <button style={s.bottomBtn}
             onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
             title={user ? user.email : 'Sign in'}>
@@ -806,7 +886,7 @@ function AppInner() {
             onTabChange={setDrawerTab}
             onPlace={placeItem}
             onOpenModal={setActiveModal}
-            catalogue={catalogue}
+            catalogue={shopPanelCatalogue}
             cart={cart}
             onIncrementCart={addToCart}
             onDecrementCart={decrementCart}

@@ -11,6 +11,7 @@ import SettingsPage        from './pages/SettingsPage'
 import NotificationsPage   from './pages/NotificationsPage'
 import ReviewsPage         from './pages/ReviewsPage'
 import ToolsPage           from './pages/ToolsPage'
+import SellerShopPage      from './pages/SellerShopPage'
 import NavBar              from './ui/NavBar'
 
 export default function App() {
@@ -50,6 +51,7 @@ function Shell() {
         {page === 'notifications'   && <NotificationsPage />}
         {page === 'reviews'         && <ReviewsPage />}
         {page === 'tools'           && <ToolsPage onNavigate={navigate} />}
+        {page === 'shop'            && <SellerShopPage />}
       </main>
     </div>
   )

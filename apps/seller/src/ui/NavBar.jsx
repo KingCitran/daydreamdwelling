@@ -4,6 +4,7 @@ import { useTheme } from '@shared/ThemeProvider'
 const NAV_ITEMS = [
   { key: 'dashboard',     label: 'Dashboard',      icon: '⊞' },
   { key: 'products',      label: 'Products',        icon: '◫' },
+  { key: 'shop',          label: 'My 3D Shop',      icon: '☁' },
   { key: 'orders',        label: 'Orders',          icon: '⊟' },
   { key: 'earnings',      label: 'Earnings',        icon: '◈' },
   { key: 'notifications', label: 'Notifications',   icon: '◉' },
