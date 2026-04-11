@@ -97,7 +97,7 @@ function Gate() {
   if (params.get('profile')) return <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   if (inBuilder) return <AppInner shopBuilderSellerId={shopBuilderSellerId} />
   if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
-  return <LandingPage onEnter={() => setInBuilder(true)} />
+  return <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => { localStorage.setItem('ddd_open_shop', '1'); setInBuilder(true) }} />
 }
 
 function AppInner({ shopBuilderSellerId = null }) {
@@ -109,7 +109,6 @@ function AppInner({ shopBuilderSellerId = null }) {
   // Room rendering (Items, SelectedControls) uses the full catalogue so any
   // static items already in the layout still render correctly.
   const shopPanelCatalogue = shopBuilderSellerId ? (sellerCatalogue ?? {}) : catalogue
-  const ownedKeys = useOwnedItems(user?.id)
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
 
@@ -139,7 +138,10 @@ function AppInner({ shopBuilderSellerId = null }) {
 
   // ── UI state ─────────────────────────────────────────────────────
   const [panelOpen,        setPanelOpen]        = useState(false)
-  const [drawerOpen,       setDrawerOpen]       = useState(true)
+  const [drawerOpen,       setDrawerOpen]       = useState(() => {
+    if (localStorage.getItem('ddd_open_shop')) { localStorage.removeItem('ddd_open_shop'); return true }
+    return true
+  })
   const [drawerTab,        setDrawerTab]        = useState('shop')
   const [roomPanelOpen,    setRoomPanelOpen]    = useState(false)
   const [hubOpen,          setHubOpen]          = useState(false)
@@ -168,6 +170,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const [checkoutOpen,    setCheckoutOpen]    = useState(false)
   const [orderSuccess,    setOrderSuccess]    = useState(false)
   const { user } = useAuth()
+  const ownedKeys = useOwnedItems(user?.id)
 
   // ── Multi-room state ─────────────────────────────────────────────
   const [allRooms,      setAllRooms]      = useState(() => {

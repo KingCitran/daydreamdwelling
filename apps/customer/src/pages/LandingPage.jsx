@@ -21,7 +21,7 @@ const STEPS = [
   { n: '03', title: 'Buy it in the real world',  text: 'When your room feels right, add pieces to cart and check out with the seller.' },
 ]
 
-export default function LandingPage({ onEnter }) {
+export default function LandingPage({ onEnter, onBrowseShop }) {
   const t = useTheme()
   const s = makeStyles(t)
 
@@ -102,7 +102,7 @@ export default function LandingPage({ onEnter }) {
             <p style={s.heroSub}>Build your space in 3D. Set the perfect mood.<br />Buy the real furniture from independent sellers.</p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
-              <button style={s.browseCta} onClick={onEnter}>Browse Shop →</button>
+              <button style={s.browseCta} onClick={onBrowseShop ?? onEnter}>Browse Shop →</button>
             </div>
             <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from real sellers</p>
           </div>
