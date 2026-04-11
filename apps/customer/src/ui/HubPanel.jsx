@@ -110,6 +110,24 @@ export default function HubPanel({
       </div>
       <div style={s.hubBtnRow}>
         <button style={s.hubBtn} onClick={() => screenshotRef.current?.()}>📷 Screenshot</button>
+        <button style={s.hubBtn} onClick={async () => {
+          if (!screenshotRef.current) return
+          screenshotRef.current()
+          // Give the canvas a frame to render, then grab the data
+          await new Promise(r => setTimeout(r, 100))
+          const canvas = document.querySelector('canvas')
+          if (!canvas) return
+          canvas.toBlob(async (blob) => {
+            if (!blob) return
+            const file = new File([blob], 'my-room.png', { type: 'image/png' })
+            if (navigator.share && navigator.canShare?.({ files: [file] })) {
+              navigator.share({ files: [file], title: 'My DaydreamDwelling Room', text: 'Check out my room on DaydreamDwelling!' })
+            } else {
+              const url = URL.createObjectURL(blob)
+              window.open(`https://pinterest.com/pin/create/button/?media=${encodeURIComponent(url)}&description=${encodeURIComponent('My DaydreamDwelling Room')}`, '_blank')
+            }
+          }, 'image/png')
+        }}>🔗 Share</button>
       </div>
 
     </div>

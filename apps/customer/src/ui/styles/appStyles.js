@@ -19,9 +19,11 @@ export function makeBuilderStyles(t) {
       position: 'absolute', bottom: 28, left: 28,
       display: 'flex', flexDirection: 'column', gap: 8,
       alignItems: 'flex-start',
+      maxWidth: 'calc(100vw - 56px)',
     },
     bottomBar: {
-      display: 'flex', flexDirection: 'row', gap: 8,
+      display: 'flex', flexDirection: 'row', gap: 6,
+      flexWrap: 'wrap',
     },
     bottomBtn: {
       padding: '10px 18px',

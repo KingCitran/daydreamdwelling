@@ -42,7 +42,7 @@ function applySort(items, sort) {
   return items
 }
 
-export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, gridD, roomItemKeys }) {
+export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, gridD, roomItemKeys, ownedKeys }) {
   const ITEM_CATALOGUE = catalogue ?? STATIC_CATALOGUE
   const s = useShopStyles()
 
@@ -174,6 +174,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
                     gridW={gridW} gridD={gridD}
                     colorFamilies={activeFamilies}
                     roomItemKeys={roomItemKeys}
+                    ownedKeys={ownedKeys}
                     canPlace={!!STATIC_CATALOGUE[key]}
                   />
                 ))}

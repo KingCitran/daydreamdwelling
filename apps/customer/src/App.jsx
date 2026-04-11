@@ -24,6 +24,7 @@ import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation from './hooks/useRoomNavigation'
 import useShopProducts from './hooks/useShopProducts'
+import useOwnedItems from './hooks/useOwnedItems'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
 import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
 import AuthModal from './ui/AuthModal'
@@ -108,6 +109,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   // Room rendering (Items, SelectedControls) uses the full catalogue so any
   // static items already in the layout still render correctly.
   const shopPanelCatalogue = shopBuilderSellerId ? (sellerCatalogue ?? {}) : catalogue
+  const ownedKeys = useOwnedItems(user?.id)
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
 
@@ -817,13 +819,13 @@ function AppInner({ shopBuilderSellerId = null }) {
             <button
               style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }}
               onClick={saveShopLayout}
-            >{shopSaving ? 'Saving…' : '💾 Save Shop'}</button>
+            >{shopSaving ? '…' : '💾'}{compact ? '' : (shopSaving ? ' Saving' : ' Save Shop')}</button>
           )}
           {shopBuilderSellerId && (
             <button
               style={{ ...s.bottomBtn, borderColor: '#7a5a9a', color: '#d0b0ff', background: '#2a1a3a' }}
               onClick={() => window.close()}
-            >✕ Exit Builder</button>
+            >✕{compact ? '' : ' Exit Builder'}</button>
           )}
           {roomStack.length > 0 && (
             <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>
@@ -833,11 +835,11 @@ function AppInner({ shopBuilderSellerId = null }) {
           <button
             style={{ ...s.bottomBtn, ...(drawerOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setDrawerOpen(v => !v)}
-          >{drawerOpen ? '✕' : '🛍'} Shop</button>
+          >{drawerOpen ? '✕' : '🛍'}{compact ? '' : ' Shop'}</button>
           <button
             style={{ ...s.bottomBtn, ...(hubOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setHubOpen(v => !v)}
-          >{hubOpen ? '✕' : '🛠'} Tools</button>
+          >{hubOpen ? '✕' : '🛠'}{compact ? '' : ' Tools'}</button>
           <button
             style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }}
             onClick={() => setMusicOpen(v => !v)}
@@ -902,6 +904,7 @@ function AppInner({ shopBuilderSellerId = null }) {
             onCheckout={() => setCheckoutOpen(true)}
             drawerWidth={drawerWidth}
             roomItemKeys={roomItemKeys}
+            ownedKeys={ownedKeys}
           />
         </div>
       </div>

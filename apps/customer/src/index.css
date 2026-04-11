@@ -102,6 +102,12 @@ code {
   background: var(--code-bg);
 }
 
+/* ── Mobile builder ── */
+@media (max-width: 700px) {
+  .ddd-bar { gap: 4px !important; bottom: 12px !important; left: 12px !important; }
+  .ddd-bar button { padding: 6px 10px !important; font-size: 12px !important; border-radius: 6px !important; }
+}
+
 /* ── Builder UI polish ── */
 .ddd-tile:hover {
   border-color: rgba(154,122,238,0.5) !important;
