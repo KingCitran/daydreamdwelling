@@ -8,6 +8,7 @@ import { LivingRoom, Bedroom } from './LandingRooms'
 
 const SHARE_URL  = 'https://daydreamdwelling.com'
 const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
+const BLOSSOMS_URL = 'https://daydreamblossoms.com'
 
 const FEATURES = [
   { icon: '◈', title: '3D room builder',    text: 'Place furniture, adjust walls, switch lighting moods — all in real time.' },
@@ -84,31 +85,31 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <MoodPicker />
-            <a href="/outdoor" style={{ ...s.navLink, color: t.textSoft }}>Outdoor Shop</a>
+            <a href={BLOSSOMS_URL} className="ddd-landing-nav-outdoor" style={{ ...s.navLink, color: t.textSoft }}>Daydream Blossoms ✿</a>
             <button style={s.navCta} onClick={onEnter}>Open Builder →</button>
           </div>
         </div>
       </header>
 
       {/* ── Hero ── */}
-      <div style={s.heroWrap}>
+      <div className="ddd-landing-hero-wrap">
         <div style={s.heroOrb} />
-        <div style={s.heroInner}>
+        <div className="ddd-landing-hero">
 
           {/* Left: text */}
-          <div style={s.heroLeft}>
+          <div className="ddd-landing-hero-left">
             <p style={s.eyebrow}>Free 3D Room Builder</p>
-            <h1 style={s.heroTitle}>Design the room<br />you've been<br />dreaming of.</h1>
-            <p style={s.heroSub}>Build your space in 3D. Set the perfect mood.<br />Buy the real furniture from independent sellers.</p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <h1 className="ddd-landing-hero-title" style={{ color: t.text }}>Design the room<br />you've been<br />dreaming of.</h1>
+            <p className="ddd-landing-hero-sub" style={s.heroSub}>Build your space in 3D. Set the perfect mood.<br />Buy the real furniture from independent sellers.</p>
+            <div className="ddd-landing-hero-buttons" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
-              <button style={s.browseCta} onClick={onBrowseShop ?? onEnter}>Browse Shop →</button>
+              <button style={s.browseCta} onClick={onBrowseShop}>Browse Shop →</button>
             </div>
             <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from real sellers</p>
           </div>
 
           {/* Right: animated room */}
-          <div style={s.heroRight}>
+          <div className="ddd-landing-hero-right">
             <div style={{ position: 'relative' }}>
               <LivingRoom mt={mtA} moodName={MOODS[idxA].key} width={420} height={320} />
               <div style={s.heroRoomBadge}>
@@ -142,15 +143,17 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       </div>
 
       {/* ── Bedroom showcase ── */}
-      <div style={s.showcase}>
-        <Bedroom mt={mtB} moodName={MOODS[idxB].key} width={420} height={320} />
-        <div style={s.showcaseText}>
-          <p style={s.eyebrow}>Every room. Every mood.</p>
-          <h2 style={{ ...s.sectionTitle, marginBottom: 16 }}>Your whole home,<br />designed in 3D.</h2>
-          <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.8, marginBottom: 24 }}>
-            Start with one room and expand into a full house. Each room has its own layout, lighting, and style — connected by doors you can walk through.
-          </p>
-          <button style={s.heroCta} onClick={onEnter}>Try the builder →</button>
+      <div className="ddd-landing-showcase-wrap">
+        <div className="ddd-landing-showcase">
+          <Bedroom mt={mtB} moodName={MOODS[idxB].key} width={420} height={320} />
+          <div className="ddd-landing-showcase-text">
+            <p style={s.eyebrow}>Every room. Every mood.</p>
+            <h2 style={{ ...s.sectionTitle, marginBottom: 16 }}>Your whole home,<br />designed in 3D.</h2>
+            <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.8, marginBottom: 24 }}>
+              Start with one room and expand into a full house. Each room has its own layout, lighting, and style — connected by doors you can walk through.
+            </p>
+            <button style={s.heroCta} onClick={onEnter}>Try the builder →</button>
+          </div>
         </div>
       </div>
 
@@ -168,10 +171,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       </div>
 
       {/* ── Features ── */}
-      <div style={s.section}>
+      <div className="ddd-landing-section">
         <div style={s.inner}>
           <h2 style={{ ...s.sectionTitle, textAlign: 'center', marginBottom: 36 }}>Everything in one place</h2>
-          <div style={s.featGrid}>
+          <div className="ddd-landing-feat-grid">
             {FEATURES.map(f => (
               <div key={f.title} style={s.featCard}>
                 <span style={{ fontSize: 22, color: t.accent }}>{f.icon}</span>
@@ -184,10 +187,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       </div>
 
       {/* ── How it works ── */}
-      <div style={{ ...s.section, background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}` }}>
+      <div className="ddd-landing-section" style={{ background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}` }}>
         <div style={s.inner}>
           <h2 style={s.sectionTitle}>How it works</h2>
-          <div style={s.stepsGrid}>
+          <div className="ddd-landing-steps-grid">
             {STEPS.map(step => (
               <div key={step.n} style={s.stepCard}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: t.accent, letterSpacing: '1px', marginBottom: 10 }}>{step.n}</div>
@@ -200,7 +203,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       </div>
 
       {/* ── Waitlist ── */}
-      <div style={s.waitlistSection}>
+      <div className="ddd-landing-waitlist-wrap">
         <div style={{ maxWidth: 540, margin: '0 auto', textAlign: 'center' }}>
           <p style={s.eyebrow}>Early access</p>
           <h2 style={{ fontSize: 34, fontWeight: 800, color: t.text, marginBottom: 10, letterSpacing: '-0.5px' }}>
@@ -255,24 +258,25 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         </div>
       </div>
 
-      {/* ── Outdoor CTA ── */}
-      <div style={{ ...s.section, borderTop: `1px solid ${t.surfaceBorder}` }}>
+      {/* ── Daydream Blossoms CTA ── */}
+      <div className="ddd-landing-section" style={{ borderTop: `1px solid ${t.surfaceBorder}` }}>
         <div style={s.inner}>
-          <div style={s.outdoorBand}>
+          <div className="ddd-landing-outdoor">
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 10 }}>Also from DaydreamDwelling</p>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: t.text, marginBottom: 10 }}>Love your outdoor space too?</h2>
-              <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, maxWidth: 440 }}>Curated outdoor furniture, planters, and decor from independent makers.</p>
+              <h2 style={{ fontSize: 28, fontWeight: 800, color: t.text, marginBottom: 6 }}>Daydream Blossoms ✿</h2>
+              <p style={{ fontSize: 13, fontWeight: 600, color: t.accent, letterSpacing: '0.5px', marginBottom: 10 }}>Outdoor & Garden</p>
+              <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, maxWidth: 440 }}>Soil, sun, and yard planning — plus curated outdoor furniture, planters, and decor from independent makers.</p>
             </div>
-            <a href="/outdoor" style={{ ...s.heroCta, textDecoration: 'none', flexShrink: 0, display: 'inline-block' }}>Explore Outdoor Shop →</a>
+            <a href={BLOSSOMS_URL} style={{ ...s.heroCta, textDecoration: 'none', flexShrink: 0, display: 'inline-block' }}>Visit Daydream Blossoms →</a>
           </div>
         </div>
       </div>
 
       {/* ── Footer ── */}
       <footer style={{ padding: '24px 40px', borderTop: `1px solid ${t.surfaceBorder}`, color: t.textSoft, fontSize: 12, textAlign: 'center' }}>
-        © 2025 DaydreamDwelling &nbsp;·&nbsp; <span style={{ color: t.accent }}>daydreamdwelling.com</span>
-        &nbsp;·&nbsp; <a href="/outdoor" style={{ color: t.textSoft, textDecoration: 'none' }}>Outdoor Shop</a>
+        © {new Date().getFullYear()} DaydreamDwelling &nbsp;·&nbsp; <span style={{ color: t.accent }}>daydreamdwelling.com</span>
+        &nbsp;·&nbsp; <a href={BLOSSOMS_URL} style={{ color: t.textSoft, textDecoration: 'none' }}>Daydream Blossoms</a>
         &nbsp;·&nbsp; <a href="mailto:hello@daydreamdwelling.com" style={{ color: t.textSoft, textDecoration: 'none' }}>Contact</a>
       </footer>
     </div>
@@ -294,14 +298,9 @@ function makeStyles(t) {
     logo:           { display: 'flex', alignItems: 'center', gap: 10 },
     navLink:        { fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: 6 },
     navCta:         { padding: '8px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-    heroWrap:       { position: 'relative', overflow: 'hidden', padding: '72px 40px 64px' },
     heroOrb:        { position: 'absolute', top: -120, left: '30%', width: 700, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' },
-    heroInner:      { maxWidth: 1160, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 60, position: 'relative', zIndex: 1 },
-    heroLeft:       { flex: '1 1 0', minWidth: 0 },
-    heroRight:      { flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 12 },
     heroRoomBadge:  { position: 'absolute', bottom: 14, left: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#e0d9ff', border: '1px solid rgba(255,255,255,0.08)' },
     eyebrow:        { fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 16, marginTop: 0 },
-    heroTitle:      { fontSize: 58, fontWeight: 800, color: t.text, lineHeight: 1.06, marginBottom: 20, marginTop: 0, fontFamily: 'Georgia, "Times New Roman", serif' },
     heroSub:        { fontSize: 16, color: t.textSoft, lineHeight: 1.7, marginBottom: 28, marginTop: 0 },
     heroCta:        { padding: '13px 26px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
     browseCta:      { padding: '13px 26px', background: 'transparent', color: t.accent, border: `1.5px solid ${t.accent}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
@@ -309,23 +308,16 @@ function makeStyles(t) {
     moodStrip:      { borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}`, overflowX: 'auto', padding: '0 40px', scrollbarWidth: 'none' },
     moodStripInner: { display: 'flex', gap: 8, padding: '12px 0', maxWidth: 1160, margin: '0 auto' },
     moodPill:       { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s ease' },
-    showcase:       { maxWidth: 1160, margin: '0 auto', padding: '72px 40px', display: 'flex', alignItems: 'center', gap: 60 },
-    showcaseText:   { flex: '1 1 0', minWidth: 0 },
     wispySection:   { background: 'linear-gradient(160deg, #0d0a1e 0%, #1a0e30 50%, #0d0a1e 100%)', borderTop: `1px solid rgba(154,122,238,0.2)`, borderBottom: `1px solid rgba(154,122,238,0.2)`, padding: '80px 40px', textAlign: 'center' },
     wispyInner:     { maxWidth: 580, margin: '0 auto' },
     wispyCloud:     { fontSize: 72, lineHeight: 1, marginBottom: 20, display: 'block', animation: 'wispyFloat 3.5s ease-in-out infinite' },
     wispyBadge:     { display: 'inline-block', padding: '6px 16px', background: 'rgba(154,122,238,0.12)', border: '1px solid rgba(154,122,238,0.3)', borderRadius: 20, fontSize: 12, color: '#9a7aee', fontWeight: 600 },
-    section:        { padding: '72px 40px' },
     inner:          { maxWidth: 1160, margin: '0 auto' },
     sectionTitle:   { fontSize: 30, fontWeight: 800, color: t.text, marginBottom: 36, marginTop: 0 },
-    featGrid:       { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 },
     featCard:       { display: 'flex', flexDirection: 'column', gap: 10, padding: '24px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16 },
-    stepsGrid:      { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 },
     stepCard:       { display: 'flex', flexDirection: 'column' },
-    waitlistSection:{ padding: '88px 40px', textAlign: 'center' },
     waitlistInput:  { flex: 1, padding: '13px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' },
     joinedWrap:     { display: 'flex', flexDirection: 'column', alignItems: 'center' },
     shareBtn:       { padding: '10px 18px', background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' },
-    outdoorBand:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 32 },
   }
 }

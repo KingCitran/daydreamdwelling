@@ -26,6 +26,10 @@ export default function QuizPage({ onComplete, onSkip }) {
     }
   }
 
+  function handleBack() {
+    if (step > 0) setStep(s => s - 1)
+  }
+
   const resultTheme = result ? MOOD_THEMES[result] : null
 
   return (
@@ -35,7 +39,14 @@ export default function QuizPage({ onComplete, onSkip }) {
           <div style={styles.progressTrack(t)}>
             <div style={styles.progressFill(t, step, QUESTIONS.length)} />
           </div>
-          <p style={styles.stepLabel(t)}>{step + 1} / {QUESTIONS.length}</p>
+          <div style={styles.stepRow}>
+            {step > 0 ? (
+              <button onClick={handleBack} style={styles.backBtn(t)} aria-label="Previous question">← Back</button>
+            ) : (
+              <span />
+            )}
+            <p style={styles.stepLabel(t)}>{step + 1} / {QUESTIONS.length}</p>
+          </div>
 
           <h2 style={styles.question(t)}>{question.text}</h2>
 
@@ -43,6 +54,7 @@ export default function QuizPage({ onComplete, onSkip }) {
             {question.answers.map(answer => (
               <button
                 key={answer.id}
+                className="ddd-quiz-card"
                 style={styles.card(t, answers[question.id] === answer.id)}
                 onClick={() => handleAnswer(answer.id)}
               >
@@ -111,14 +123,29 @@ const styles = {
     borderRadius:   2,
     transition:     'width 0.35s ease',
   }),
+  stepRow: {
+    display:        'flex',
+    alignItems:     'center',
+    justifyContent: 'space-between',
+    width:          '100%',
+    maxWidth:       640,
+    marginBottom:   40,
+  },
   stepLabel: t => ({
     fontSize:       12,
     color:          t.textSoft,
     letterSpacing:  '0.08em',
-    marginBottom:   40,
-    alignSelf:      'flex-start',
-    maxWidth:       640,
-    width:          '100%',
+    margin:         0,
+  }),
+  backBtn: t => ({
+    background:     'none',
+    border:         'none',
+    color:          t.textSoft,
+    fontSize:       13,
+    cursor:         'pointer',
+    padding:        '4px 8px',
+    borderRadius:   6,
+    letterSpacing:  '0.02em',
   }),
   question: t => ({
     fontSize:       'clamp(20px, 4vw, 28px)',
@@ -146,8 +173,7 @@ const styles = {
     cursor:         'pointer',
     textAlign:      'left',
     transform:      selected ? 'scale(1.02)' : 'scale(1)',
-    transition:     'border-color 0.15s, transform 0.15s, background 0.15s',
-    outline:        'none',
+    transition:     'border-color 0.15s, transform 0.15s, background 0.15s, box-shadow 0.15s',
   }),
   cardVisual: answer => ({
     width:          '100%',

@@ -40,7 +40,7 @@ function OutdoorApp() {
         {page === 'cart'    && <CartPage    onNavigate={navigate} cart={cart} />}
       </main>
       <footer style={{ padding: '24px 40px', background: theme.surface, borderTop: `1px solid ${theme.surfaceBorder}`, color: theme.textSoft, fontSize: 12, textAlign: 'center', marginTop: 'auto' }}>
-        <p>© 2025 DaydreamDwelling · <span style={{ color: theme.accent }}>Outdoor & Garden</span></p>
+        <p>© {new Date().getFullYear()} DaydreamDwelling · <span style={{ color: theme.accent }}>Outdoor & Garden</span></p>
       </footer>
     </div>
   )
