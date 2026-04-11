@@ -42,6 +42,7 @@ import LandingPage from './pages/LandingPage'
 import WispyPreview from './pages/WispyPreview'
 import CommunityFeed from './pages/CommunityFeed'
 import ProfilePage from './pages/ProfilePage'
+import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
@@ -75,6 +76,7 @@ function Gate() {
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId)
+  const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
   const { setMood }                = useMoodControl()
   const { user }                   = useAuth()
@@ -97,8 +99,9 @@ function Gate() {
   if (params.get('preview') === 'wispy') return <WispyPreview />
   if (params.get('profile')) return <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   if (inBuilder) return <AppInner shopBuilderSellerId={shopBuilderSellerId} />
+  if (inMarketplace) return <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
-  return <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => { localStorage.setItem('ddd_open_shop', '1'); setInBuilder(true) }} />
+  return <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
 }
 
 function AppInner({ shopBuilderSellerId = null }) {
