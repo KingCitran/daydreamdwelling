@@ -40,6 +40,7 @@ import WispyCashier from './ui/WispyCashier'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import LandingPage from './pages/LandingPage'
 import WispyPreview from './pages/WispyPreview'
+import CommunityFeed from './pages/CommunityFeed'
 import ProfilePage from './pages/ProfilePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import QuizPage from './ui/onboarding/QuizPage'
@@ -164,6 +165,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const [bookmark,        setBookmark]        = useState(null)
   const [authModalOpen,    setAuthModalOpen]    = useState(false)
   const [accountModalOpen, setAccountModalOpen] = useState(false)
+  const [communityOpen,    setCommunityOpen]    = useState(false)
   const [saveModalOpen,   setSaveModalOpen]   = useState(false)
   const [loadModalOpen,   setLoadModalOpen]   = useState(false)
   const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
@@ -742,6 +744,7 @@ function AppInner({ shopBuilderSellerId = null }) {
 
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
+      {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
@@ -859,6 +862,11 @@ function AppInner({ shopBuilderSellerId = null }) {
             onClick={showWispy}
             title="Wispy"
           >☁</button>
+          <button
+            style={{ ...s.bottomBtn, ...(communityOpen ? s.bottomBtnActive : {}) }}
+            onClick={() => setCommunityOpen(v => !v)}
+            title="Community"
+          >🌐</button>
           <button style={s.bottomBtn}
             onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
             title={user ? user.email : 'Sign in'}>

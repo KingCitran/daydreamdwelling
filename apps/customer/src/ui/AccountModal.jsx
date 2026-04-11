@@ -3,7 +3,7 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
-const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Profile']
+const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Pets', 'Profile']
 
 export default function AccountModal({ onClose, onLoadRoom }) {
   const t = useTheme()
@@ -144,6 +144,24 @@ export default function AccountModal({ onClose, onLoadRoom }) {
     })
   }, [tab, user])
 
+  // ── Pets ──────────────────────────────────────────────────────────
+  const [myPets,      setMyPets]      = useState([])
+  const [allPets,     setAllPets]     = useState([])
+  const [petsLoading, setPetsLoading] = useState(false)
+
+  useEffect(() => {
+    if (tab !== 'Pets' || !user) return
+    setPetsLoading(true)
+    Promise.all([
+      supabase.from('user_pets').select('*, pet_types(*)').eq('user_id', user.id),
+      supabase.from('pet_types').select('*').order('rarity'),
+    ]).then(([{ data: mine }, { data: all }]) => {
+      setMyPets(mine ?? [])
+      setAllPets(all ?? [])
+      setPetsLoading(false)
+    })
+  }, [tab, user])
+
   async function handleSignOut() {
     await signOut()
     onClose()
@@ -281,6 +299,43 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                       </span>
                     </div>
                   ))}
+                </>
+              )}
+            </>
+          )}
+
+          {tab === 'Pets' && (
+            <>
+              {petsLoading && <p style={st.hint}>Loading…</p>}
+              {!petsLoading && (
+                <>
+                  {myPets.length > 0 && (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: 11, color: t.textSoft, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>Your Pets</p>
+                      {myPets.map(p => (
+                        <div key={p.id} style={{ ...st.row, borderLeft: `3px solid #70c090` }}>
+                          <span style={{ fontSize: 28, flexShrink: 0 }}>{p.pet_types?.name === 'Cloudlet' ? '☁' : p.pet_types?.name === 'Moonbeam' ? '✨' : p.pet_types?.name === 'Starwhisk' ? '⭐' : p.pet_types?.name === 'Dreamfox' ? '🦊' : '🐉'}</span>
+                          <div style={st.rowInfo}>
+                            <span style={st.rowName}>{p.nickname || p.pet_types?.name}</span>
+                            <span style={st.rowDate}>{p.pet_types?.description}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  <p style={{ margin: '16px 0 8px', fontSize: 11, color: t.textSoft, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px' }}>All Pets</p>
+                  {allPets.map(pt => {
+                    const owned = myPets.some(p => p.pet_type_id === pt.id)
+                    return (
+                      <div key={pt.id} style={{ ...st.row, opacity: owned ? 1 : 0.5 }}>
+                        <span style={{ fontSize: 24, flexShrink: 0 }}>{pt.name === 'Cloudlet' ? '☁' : pt.name === 'Moonbeam' ? '✨' : pt.name === 'Starwhisk' ? '⭐' : pt.name === 'Dreamfox' ? '🦊' : '🐉'}</span>
+                        <div style={st.rowInfo}>
+                          <span style={st.rowName}>{pt.name} {owned && <span style={{ color: '#70c090', fontSize: 10 }}>✓ Owned</span>}</span>
+                          <span style={st.rowDate}>{pt.rarity} · Unlock: tier {pt.unlock_value}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </>
               )}
             </>
