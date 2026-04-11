@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { key: 'earnings',      label: 'Earnings',        icon: '◈' },
   { key: 'notifications', label: 'Notifications',   icon: '◉' },
   { key: 'reviews',       label: 'Reviews',         icon: '✦' },
+  { key: 'discounts',     label: 'Discounts',        icon: '🏷' },
+  { key: 'promoted',      label: 'Promoted',         icon: '📣' },
   { key: 'tools',         label: 'Tools',           icon: '⚒' },
   { key: 'settings',      label: 'Settings',        icon: '⚙' },
 ]

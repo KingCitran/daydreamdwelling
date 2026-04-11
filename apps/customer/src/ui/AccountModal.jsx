@@ -3,7 +3,7 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
-const TABS = ['Rooms', 'Orders', 'Profile']
+const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Profile']
 
 export default function AccountModal({ onClose, onLoadRoom }) {
   const t = useTheme()
@@ -98,6 +98,52 @@ export default function AccountModal({ onClose, onLoadRoom }) {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
+  // ── Wishlists ─────────────────────────────────────────────────────
+  const [wlists,      setWlists]      = useState([])
+  const [wlistLoading, setWlistLoading] = useState(false)
+  const [newListName,  setNewListName]  = useState('')
+  const [newIsGift,    setNewIsGift]    = useState(false)
+
+  useEffect(() => {
+    if (tab !== 'Wishlists' || !user) return
+    setWlistLoading(true)
+    supabase.from('wishlist_lists').select('*, wishlist_items(*)').eq('user_id', user.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => { setWlists(data ?? []); setWlistLoading(false) })
+  }, [tab, user])
+
+  async function createWishlist(e) {
+    e.preventDefault()
+    if (!newListName.trim()) return
+    await supabase.from('wishlist_lists').insert({ user_id: user.id, name: newListName.trim(), is_gift_registry: newIsGift })
+    setNewListName(''); setNewIsGift(false)
+    const { data } = await supabase.from('wishlist_lists').select('*, wishlist_items(*)').eq('user_id', user.id).order('created_at', { ascending: true })
+    setWlists(data ?? [])
+  }
+
+  async function deleteWishlist(id) {
+    await supabase.from('wishlist_lists').delete().eq('id', id)
+    setWlists(prev => prev.filter(l => l.id !== id))
+  }
+
+  // ── Rewards ──────────────────────────────────────────────────────
+  const [points,       setPoints]       = useState(0)
+  const [pointsLog,    setPointsLog]    = useState([])
+  const [rewardsLoading, setRewardsLoading] = useState(false)
+
+  useEffect(() => {
+    if (tab !== 'Rewards' || !user) return
+    setRewardsLoading(true)
+    Promise.all([
+      supabase.rpc('get_loyalty_balance', { uid: user.id }),
+      supabase.from('loyalty_points').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+    ]).then(([{ data: bal }, { data: log }]) => {
+      setPoints(Number(bal) || 0)
+      setPointsLog(log ?? [])
+      setRewardsLoading(false)
+    })
+  }, [tab, user])
+
   async function handleSignOut() {
     await signOut()
     onClose()
@@ -182,6 +228,61 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                   </div>
                 </div>
               ))}
+            </>
+          )}
+
+          {tab === 'Wishlists' && (
+            <>
+              <form onSubmit={createWishlist} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input style={{ ...st.input, flex: 1 }} value={newListName} onChange={e => setNewListName(e.target.value)} placeholder="New list name…" maxLength={40} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: t.textSoft, cursor: 'pointer', flexShrink: 0 }}>
+                  <input type="checkbox" checked={newIsGift} onChange={e => setNewIsGift(e.target.checked)} /> Gift
+                </label>
+                <button type="submit" style={{ ...st.loadBtn, flexShrink: 0 }}>+ Create</button>
+              </form>
+              {wlistLoading && <p style={st.hint}>Loading…</p>}
+              {!wlistLoading && wlists.length === 0 && <p style={st.hint}>No wishlists yet. Create one above.</p>}
+              {wlists.map(list => (
+                <div key={list.id} style={st.row}>
+                  <div style={st.rowInfo}>
+                    <span style={st.rowName}>{list.is_gift_registry ? '🎁 ' : ''}{list.name}</span>
+                    <span style={st.rowDate}>{(list.wishlist_items ?? []).length} items · {list.share_token ? 'Shareable' : 'Private'}</span>
+                  </div>
+                  <div style={st.rowBtns}>
+                    {list.share_token && (
+                      <button style={st.pillBtn} onClick={() => { navigator.clipboard.writeText(`${window.location.origin}?wishlist=${list.share_token}`); }}>
+                        Copy Link
+                      </button>
+                    )}
+                    <button style={st.deleteBtn} onClick={() => deleteWishlist(list.id)} title="Delete">🗑</button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {tab === 'Rewards' && (
+            <>
+              {rewardsLoading ? <p style={st.hint}>Loading…</p> : (
+                <>
+                  <div style={{ textAlign: 'center', padding: '20px 0 16px' }}>
+                    <p style={{ margin: 0, fontSize: 36, fontWeight: 800, color: t.accent }}>{points}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 12, color: t.textSoft }}>Dream Points</p>
+                  </div>
+                  <p style={{ margin: '0 0 12px', fontSize: 11, color: t.textSoft, textAlign: 'center' }}>
+                    Earn points from purchases, posting rooms, and completing tutorials.
+                  </p>
+                  {pointsLog.length === 0 && <p style={st.hint}>No activity yet.</p>}
+                  {pointsLog.map(entry => (
+                    <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${t.surfaceBorder}` }}>
+                      <span style={{ fontSize: 12, color: t.text, textTransform: 'capitalize' }}>{entry.reason.replace('_', ' ')}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: entry.amount > 0 ? '#70c090' : '#ff7a7a' }}>
+                        {entry.amount > 0 ? '+' : ''}{entry.amount}
+                      </span>
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
 
