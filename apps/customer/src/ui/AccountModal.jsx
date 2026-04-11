@@ -14,16 +14,36 @@ export default function AccountModal({ onClose, onLoadRoom }) {
   // ── Profile ───────────────────────────────────────────────────────
   const [displayName, setDisplayName] = useState('')
   const [bio,         setBio]         = useState('')
+  const [avatarUrl,   setAvatarUrl]   = useState(null)
+  const [uploading,   setUploading]   = useState(false)
   const [saving,      setSaving]      = useState(false)
   const [saveMsg,     setSaveMsg]     = useState(null)
 
   useEffect(() => {
     if (!user) return
-    supabase.from('profiles').select('display_name, bio').eq('id', user.id).single()
+    supabase.from('profiles').select('display_name, bio, avatar_url').eq('id', user.id).single()
       .then(({ data }) => {
-        if (data) { setDisplayName(data.display_name ?? ''); setBio(data.bio ?? '') }
+        if (!data) return
+        setDisplayName(data.display_name ?? '')
+        setBio(data.bio ?? '')
+        setAvatarUrl(data.avatar_url ?? null)
       })
   }, [user])
+
+  async function uploadAvatar(e) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${user.id}/avatar.${ext}`
+    const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    if (upErr) { setUploading(false); return }
+    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    const url = urlData.publicUrl + '?t=' + Date.now()
+    await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+    setAvatarUrl(url)
+    setUploading(false)
+  }
 
   async function saveProfile(e) {
     e.preventDefault()
@@ -90,7 +110,11 @@ export default function AccountModal({ onClose, onLoadRoom }) {
         {/* Header */}
         <div style={st.header}>
           <div style={st.headerLeft}>
-            <div style={st.avatar}>{(displayName || user?.email || '?')[0].toUpperCase()}</div>
+            <div style={st.avatar}>
+              {avatarUrl
+                ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                : (displayName || user?.email || '?')[0].toUpperCase()}
+            </div>
             <div>
               <p style={st.headerName}>{displayName || 'My Account'}</p>
               <p style={st.headerEmail}>{user?.email}</p>
@@ -163,6 +187,18 @@ export default function AccountModal({ onClose, onLoadRoom }) {
 
           {tab === 'Profile' && (
             <form style={st.profileForm} onSubmit={saveProfile}>
+              <label style={st.label}>Avatar</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ ...st.avatar, width: 56, height: 56, fontSize: 24 }}>
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                    : (displayName || user?.email || '?')[0].toUpperCase()}
+                </div>
+                <label style={{ ...st.loadBtn, opacity: uploading ? 0.6 : 1, cursor: uploading ? 'default' : 'pointer' }}>
+                  {uploading ? 'Uploading…' : 'Upload Photo'}
+                  <input type="file" accept="image/*" onChange={uploadAvatar} hidden disabled={uploading} />
+                </label>
+              </div>
               <label style={st.label}>Display Name</label>
               <input style={st.input} value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your name" maxLength={80} />
               <label style={st.label}>Bio</label>

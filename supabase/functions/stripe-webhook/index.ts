@@ -185,14 +185,14 @@ Deno.serve(async (req) => {
 
     // Create order_item rows from metadata
     const rawItems = session.metadata?.items
-    let parsedItems: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number }[] = []
+    let parsedItems: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number; sellerId?: string }[] = []
 
     if (rawItems && order) {
       parsedItems = JSON.parse(rawItems)
       const orderItems = parsedItems.map(item => ({
         order_id:         order.id,
         product_id:       null,
-        seller_id:        null,
+        seller_id:        item.sellerId ?? null,
         qty:              item.qty,
         unit_price_cents: Math.round(item.unitPrice * 100),
         type_key:         item.typeKey,
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
       await supabase.from('order_items').insert(orderItems)
     }
 
-    // Send emails
+    // Send customer confirmation email
     const totalCents = session.amount_total ?? 0
     if (customerEmail) {
       await sendEmail(
@@ -210,8 +210,27 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Notify seller(s) — for now send to the platform admin email
-    // When seller accounts are linked to order_items, loop through unique seller emails
+    // Group items by seller and email each one
+    const sellerIds = [...new Set(parsedItems.map(i => i.sellerId).filter(Boolean))] as string[]
+    if (sellerIds.length > 0) {
+      const { data: users } = await supabase.auth.admin.listUsers()
+
+      for (const sellerId of sellerIds) {
+        const sellerItems = parsedItems.filter(i => i.sellerId === sellerId)
+        const sellerTotal = sellerItems.reduce((s, i) => s + Math.round(i.unitPrice * 100) * i.qty, 0)
+        const sellerUser  = users?.users?.find((u: { id: string }) => u.id === sellerId)
+        const sellerEmail = sellerUser?.email
+        if (sellerEmail) {
+          await sendEmail(
+            sellerEmail,
+            `New order — $${(sellerTotal / 100).toFixed(2)}`,
+            sellerEmailHtml(sellerItems, sellerTotal, customerEmail ?? 'Guest'),
+          )
+        }
+      }
+    }
+
+    // Always notify admin too
     const adminEmail = Deno.env.get('ADMIN_EMAIL')
     if (adminEmail) {
       await sendEmail(

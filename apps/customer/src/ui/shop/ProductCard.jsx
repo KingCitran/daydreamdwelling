@@ -13,7 +13,7 @@ export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW,
     : def.gradient
 
   return (
-    <div style={s.tile} onClick={() => onOpenModal(typeKey)}>
+    <div className="ddd-tile" style={s.tile} onClick={() => onOpenModal(typeKey)}>
       <div style={{ ...s.thumb, background: thumbBg, overflow: 'hidden' }}>
         {def.primaryImageUrl && (
           <img
@@ -55,7 +55,7 @@ export default function ProductCard({ typeKey, def, onPlace, onOpenModal, gridW,
         </div>
         <div style={s.tileBtns}>
           {(isFinish || canPlace)
-            ? <button style={isFinish ? s.tileApply : s.tilePlace} onClick={e => { e.stopPropagation(); onPlace(typeKey, 0, 0) }}>
+            ? <button className="ddd-btn" style={isFinish ? s.tileApply : s.tilePlace} onClick={e => { e.stopPropagation(); onPlace(typeKey, 0, 0) }}>
                 {isFinish ? '✓ Apply' : '+ Place'}
               </button>
             : <span style={s.tileDetail}>Shop only</span>

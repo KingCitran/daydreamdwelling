@@ -101,3 +101,36 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* ── Builder UI polish ── */
+.ddd-tile:hover {
+  border-color: rgba(154,122,238,0.5) !important;
+  box-shadow: 0 4px 16px rgba(120,80,220,0.15);
+  transform: translateY(-1px);
+}
+.ddd-card:hover {
+  border-color: rgba(154,122,238,0.4) !important;
+  box-shadow: 0 2px 12px rgba(120,80,220,0.12);
+  transform: translateY(-1px);
+}
+.ddd-btn:hover {
+  filter: brightness(1.15);
+}
+.ddd-bottom-btn:hover {
+  border-color: rgba(154,122,238,0.5) !important;
+  box-shadow: 0 2px 12px rgba(120,80,220,0.2);
+}
+.ddd-checkout:hover {
+  box-shadow: 0 4px 20px rgba(154,122,238,0.5) !important;
+  filter: brightness(1.1);
+}
+.ddd-input:focus {
+  border-color: rgba(154,122,238,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(154,122,238,0.15);
+}
+
+/* Scrollbar styling for shop panels */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(154,122,238,0.25); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(154,122,238,0.45); }

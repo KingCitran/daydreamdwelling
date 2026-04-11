@@ -29,6 +29,7 @@ export function makeBuilderStyles(t) {
       border: `1.5px solid ${t.surfaceBorder}`, borderRadius: 8,
       cursor: 'pointer', fontSize: 14,
       boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+      transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
     },
     bottomBtnActive: {
       background: accentTint, borderColor: t.accent,
@@ -62,6 +63,7 @@ export function makeBuilderStyles(t) {
       border: `1px solid ${t.surfaceBorder}`, borderRadius: 6,
       cursor: 'pointer', fontSize: 12,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
+      transition: 'background 0.2s, border-color 0.2s, color 0.2s',
     },
     hubBtnActive: {
       background: accentTint, borderColor: t.accent, color: t.accent,
@@ -242,7 +244,7 @@ export function makeBuilderStyles(t) {
       border: `1px solid ${t.surfaceBorder}`,
       cursor: 'pointer', fontSize: 12, fontWeight: 600,
       display: 'flex', alignItems: 'center', gap: 4,
-      transition: 'background 0.15s', flexShrink: 0,
+      transition: 'background 0.2s, border-color 0.2s', flexShrink: 0,
     },
     iconRow: { display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 },
     iconBtn: {
@@ -251,7 +253,7 @@ export function makeBuilderStyles(t) {
       border: `1px solid ${t.surfaceBorder}`,
       cursor: 'pointer', fontSize: 13,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'background 0.15s',
+      transition: 'background 0.2s, border-color 0.2s, transform 0.2s',
     },
     iconWish:     { color: '#ff7aa0', borderColor: t.surfaceBorder },
     iconCart:     { background: accentTint, borderColor: t.accent, color: t.accent },

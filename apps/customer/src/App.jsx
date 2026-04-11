@@ -39,6 +39,7 @@ import WispyCashier from './ui/WispyCashier'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import LandingPage from './pages/LandingPage'
 import WispyPreview from './pages/WispyPreview'
+import ProfilePage from './pages/ProfilePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
@@ -92,6 +93,7 @@ function Gate() {
   }
 
   if (params.get('preview') === 'wispy') return <WispyPreview />
+  if (params.get('profile')) return <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   if (inBuilder) return <AppInner shopBuilderSellerId={shopBuilderSellerId} />
   if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
   return <LandingPage onEnter={() => setInBuilder(true)} />

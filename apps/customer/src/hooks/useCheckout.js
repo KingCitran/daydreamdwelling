@@ -22,6 +22,7 @@ export default function useCheckout({ cart, catalogue }) {
         swatchName: sw?.name ?? '',
         unitPrice:  size?.price ?? 0,
         qty:        entry.qty,
+        sellerId:   def?._sellerId ?? null,
       }
     })
 

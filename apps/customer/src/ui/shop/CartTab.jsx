@@ -59,7 +59,7 @@ export default function CartTab({ cart, catalogue, onIncrement, onDecrement, onR
           <span style={s.cartTotalLabel}>Subtotal</span>
           <span style={s.cartTotalPrice}>${total.toLocaleString()}</span>
         </div>
-        <button style={s.checkoutBtn} onClick={onCheckout}>Proceed to Checkout →</button>
+        <button className="ddd-checkout" style={s.checkoutBtn} onClick={onCheckout}>Proceed to Checkout →</button>
         <p style={s.checkoutNote}>Secure payment via Stripe. You'll be redirected to complete your purchase.</p>
       </div>
     </div>

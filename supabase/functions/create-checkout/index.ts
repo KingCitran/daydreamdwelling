@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
       cancel_url:  cancelUrl  ?? `${siteUrl}?checkout=cancelled`,
       // Pass metadata so the webhook can record the order
       metadata: {
-        items: JSON.stringify(items.map((i: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number }) => ({
-          typeKey: i.typeKey, label: i.label, sizeLabel: i.sizeLabel, qty: i.qty, unitPrice: i.unitPrice,
+        items: JSON.stringify(items.map((i: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number; sellerId?: string }) => ({
+          typeKey: i.typeKey, label: i.label, sizeLabel: i.sizeLabel, qty: i.qty, unitPrice: i.unitPrice, sellerId: i.sellerId ?? null,
         }))),
       },
     })
