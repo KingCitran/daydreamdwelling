@@ -87,7 +87,7 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
         {FLOOR_PRESETS.map(({ label, w, d }) => (
           <button
             key={label}
-            style={s.presetBtn}
+            style={{ ...s.presetBtn, ...(gridW === w && gridD === d ? s.presetBtnActive : {}) }}
             onClick={() => { setDraftW(w); setDraftD(d); onApplyGrid(w, d) }}
           >{label}</button>
         ))}
@@ -97,12 +97,14 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
       <div style={s.inputRow}>
         <input
           type="number" min={4} max={30} value={draftW}
+          className="ddd-input"
           style={s.input}
           onChange={e => setDraftW(Math.min(30, Math.max(4, Number(e.target.value) || 4)))}
         />
         <span style={s.x}>×</span>
         <input
           type="number" min={4} max={30} value={draftD}
+          className="ddd-input"
           style={s.input}
           onChange={e => setDraftD(Math.min(30, Math.max(4, Number(e.target.value) || 4)))}
         />
@@ -128,6 +130,7 @@ export default function Panel({ gridW, gridD, cells, onCellToggle, onApplyGrid, 
       <div style={{ ...s.inputRow, marginTop: 6 }}>
         <input
           type="number" min={6} max={20} value={draftH}
+          className="ddd-input"
           style={s.input}
           onChange={e => setDraftH(Math.min(20, Math.max(6, Number(e.target.value) || 8)))}
         />

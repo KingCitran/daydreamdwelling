@@ -8,7 +8,7 @@ import WishlistTab from './shop/WishlistTab'
 export { default as ProductModal } from './shop/ProductModal'
 
 export default function ShopDrawer({
-  open, activeTab, onTabChange,
+  activeTab, onTabChange,
   onPlace, onOpenModal,
   catalogue,
   cart, onIncrementCart, onDecrementCart, onRemoveFromCart,
@@ -16,7 +16,6 @@ export default function ShopDrawer({
   gridW, gridD,
   cartHighlight, onCartHighlight,
   onCheckout,
-  drawerWidth,
   roomItemKeys,
   ownedKeys,
 }) {
@@ -62,8 +61,8 @@ export default function ShopDrawer({
       <div style={{ padding: '8px 14px 14px', borderTop: `1px solid ${t.surfaceBorder}`, flexShrink: 0 }}>
         <div
           role="button" tabIndex={0}
-          onClick={() => window.open('https://your-domain.com/sell', '_blank')}
-          onKeyDown={e => e.key === 'Enter' && window.open('https://your-domain.com/sell', '_blank')}
+          onClick={() => window.open('https://daydreamsellers.com', '_blank')}
+          onKeyDown={e => e.key === 'Enter' && window.open('https://daydreamsellers.com', '_blank')}
           style={{
             padding: '8px 12px', cursor: 'pointer',
             background: 'linear-gradient(135deg, #1a4a2a 0%, #2a6a3a 100%)',

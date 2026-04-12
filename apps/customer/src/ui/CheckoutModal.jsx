@@ -56,6 +56,7 @@ export default function CheckoutModal({ cart, catalogue, onClose }) {
           {error && <p style={st.error}>{error}</p>}
 
           <button
+            className="ddd-checkout"
             style={{ ...st.payBtn, opacity: loading ? 0.6 : 1 }}
             onClick={startCheckout}
             disabled={loading || !cart.length}

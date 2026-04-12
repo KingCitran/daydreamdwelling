@@ -60,18 +60,18 @@ export default function AuthModal({ onClose }) {
             {tab === 'signup' && (
               <div style={st.field}>
                 <label style={st.label}>Display Name</label>
-                <input style={st.input} type="text" placeholder="Your name" value={displayName}
+                <input className="ddd-input" style={st.input} type="text" placeholder="Your name" value={displayName}
                   onChange={e => setDisplayName(e.target.value)} required autoFocus />
               </div>
             )}
             <div style={st.field}>
               <label style={st.label}>Email</label>
-              <input style={st.input} type="email" placeholder="you@example.com" value={email}
+              <input className="ddd-input" style={st.input} type="email" placeholder="you@example.com" value={email}
                 onChange={e => setEmail(e.target.value)} required autoFocus={tab === 'signin'} />
             </div>
             <div style={st.field}>
               <label style={st.label}>Password</label>
-              <input style={st.input} type="password" placeholder="••••••••" value={password}
+              <input className="ddd-input" style={st.input} type="password" placeholder="••••••••" value={password}
                 onChange={e => setPassword(e.target.value)} required minLength={6} />
             </div>
 
