@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
+import { useTheme } from '@shared/ThemeProvider'
 
 export default function AuthModal({ onClose }) {
   const { signIn, signUp, signInWithGoogle } = useAuth()
+  const t = useTheme()
+  const st = makeStyles(t)
   const [tab,          setTab]          = useState('signin') // 'signin' | 'signup'
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
@@ -106,28 +109,30 @@ export default function AuthModal({ onClose }) {
   )
 }
 
-const st = {
-  backdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, fontFamily: 'system-ui, sans-serif' },
-  card: { background: '#1e1e30', border: '1px solid #3a3a5a', borderRadius: 16, width: 380, maxWidth: '92vw', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 14px' },
-  logo: { fontSize: 15, fontWeight: 700, color: '#c0b8ff' },
-  closeBtn: { background: 'transparent', border: 'none', color: '#7878aa', cursor: 'pointer', fontSize: 16, padding: 4, lineHeight: 1 },
-  tabs: { display: 'flex', borderBottom: '1px solid #3a3a5a' },
-  tab: { flex: 1, padding: '10px 0', background: 'transparent', color: '#9898cc', border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-  tabActive: { color: '#e0d9ff', borderBottom: '2px solid #9a7aee' },
-  form: { display: 'flex', flexDirection: 'column', gap: 14, padding: '20px 24px 24px' },
-  field: { display: 'flex', flexDirection: 'column', gap: 5 },
-  label: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#7878aa' },
-  input: { padding: '10px 12px', background: '#2a2a3d', color: '#e0d9ff', border: '1px solid #4a4a6a', borderRadius: 8, fontSize: 14, outline: 'none' },
-  error: { margin: 0, fontSize: 12, color: '#ff7a7a', background: '#3a1a1a', border: '1px solid #7a2a2a', borderRadius: 6, padding: '8px 12px' },
-  submitBtn: { padding: '12px 0', background: '#5a4a8a', color: '#fff', border: '1px solid #9a7aee', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600, transition: 'opacity 0.15s' },
-  divider: { display: 'flex', alignItems: 'center', gap: 10 },
-  dividerText: { fontSize: 11, color: '#5a5a7a', background: '#1e1e30', padding: '0 8px', whiteSpace: 'nowrap', margin: '0 auto' },
-  googleBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 0', background: '#fff', color: '#333', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500 },
-  guestNote: { margin: 0, fontSize: 11, color: '#5a5a7a', textAlign: 'center' },
-  guestLink: { background: 'none', border: 'none', color: '#9a7aee', cursor: 'pointer', fontSize: 11, padding: 0, textDecoration: 'underline' },
-  successBox: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '30px 24px 28px' },
-  successIcon: { fontSize: 40, margin: 0 },
-  successMsg: { margin: 0, fontSize: 16, fontWeight: 700, color: '#e0d9ff', textAlign: 'center' },
-  successSub: { margin: 0, fontSize: 12, color: '#7878aa', textAlign: 'center' },
+function makeStyles(t) {
+  return {
+    backdrop: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, fontFamily: 'system-ui, sans-serif' },
+    card: { background: t.navBg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, width: 380, maxWidth: '92vw', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 14px' },
+    logo: { fontSize: 15, fontWeight: 700, color: t.accent },
+    closeBtn: { background: 'transparent', border: 'none', color: t.textSoft, cursor: 'pointer', fontSize: 16, padding: 4, lineHeight: 1 },
+    tabs: { display: 'flex', borderBottom: `1px solid ${t.surfaceBorder}` },
+    tab: { flex: 1, padding: '10px 0', background: 'transparent', color: t.textSoft, border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+    tabActive: { color: t.text, borderBottom: `2px solid ${t.accent}` },
+    form: { display: 'flex', flexDirection: 'column', gap: 14, padding: '20px 24px 24px' },
+    field: { display: 'flex', flexDirection: 'column', gap: 5 },
+    label: { fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.8px', color: t.textSoft },
+    input: { padding: '10px 12px', background: t.bg, color: t.text, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 14, outline: 'none' },
+    error: { margin: 0, fontSize: 12, color: '#ff7a7a', background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.25)', borderRadius: 6, padding: '8px 12px' },
+    submitBtn: { padding: '12px 0', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600, transition: 'opacity 0.15s' },
+    divider: { display: 'flex', alignItems: 'center', gap: 10 },
+    dividerText: { fontSize: 11, color: t.textSoft, background: t.navBg, padding: '0 8px', whiteSpace: 'nowrap', margin: '0 auto' },
+    googleBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '11px 0', background: '#fff', color: '#333', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 500 },
+    guestNote: { margin: 0, fontSize: 11, color: t.textSoft, textAlign: 'center' },
+    guestLink: { background: 'none', border: 'none', color: t.accent, cursor: 'pointer', fontSize: 11, padding: 0, textDecoration: 'underline' },
+    successBox: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '30px 24px 28px' },
+    successIcon: { fontSize: 40, margin: 0 },
+    successMsg: { margin: 0, fontSize: 16, fontWeight: 700, color: t.text, textAlign: 'center' },
+    successSub: { margin: 0, fontSize: 12, color: t.textSoft, textAlign: 'center' },
+  }
 }
