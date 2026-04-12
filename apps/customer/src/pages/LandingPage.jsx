@@ -5,6 +5,7 @@ import { MOOD_THEMES } from '@shared/themes'
 import MoodPicker from '@shared/MoodPicker'
 import { supabase } from '@shared/supabase'
 import { LivingRoom, Bedroom } from './LandingRooms'
+import DesignerLeaderboard from './DesignerLeaderboard'
 
 const SHARE_URL  = 'https://daydreamdwelling.com'
 const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
@@ -251,6 +252,13 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* ── Designer Leaderboard ── */}
+      <div className="ddd-landing-section">
+        <div style={{ ...s.inner, maxWidth: 640 }}>
+          <DesignerLeaderboard compact />
         </div>
       </div>
 
