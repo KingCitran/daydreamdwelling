@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import RaindropIcon from '@shared/RaindropIcon'
 
 const TIER_NAMES  = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 const TIER_COLORS = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
@@ -124,8 +125,8 @@ export default function DesignerLeaderboard({ compact = false }) {
 
               {/* Stats */}
               <div style={{ display: 'flex', gap: compact ? 8 : 14, alignItems: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: compact ? 11 : 12, color: t.textSoft }}>
-                  ✧ {d.total_hearts}
+                <span style={{ fontSize: compact ? 11 : 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <RaindropIcon size={compact ? 12 : 14} filled color={t.textSoft} /> {d.total_hearts}
                 </span>
                 {!compact && (
                   <span style={{ fontSize: 12, color: t.textSoft }}>

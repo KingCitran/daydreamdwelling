@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
-import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
+import RaindropIcon from '@shared/RaindropIcon'
 
 const STATUS_COLORS = { upcoming: '#70a0ff', active: '#70c090', voting: '#f0c060', judging: '#ff7aa0', complete: '#9a7aee' }
 
 export default function ContestsPage({ onClose }) {
   const t = useTheme()
-  const { user } = useAuth()
   const [contests, setContests] = useState([])
   const [loading, setLoading]   = useState(true)
 
@@ -55,7 +54,7 @@ export default function ContestsPage({ onClose }) {
               {/* Winners */}
               {(c.contest_entries ?? []).filter(e => e.is_winner).map(w => (
                 <div key={w.id} style={{ marginTop: 8, padding: '6px 10px', background: `${t.accent}15`, borderRadius: 8, fontSize: 12, color: t.accent, fontWeight: 600 }}>
-                  🏆 {w.award}: {w.profiles?.display_name ?? 'Unknown'} ({w.vote_count} votes)
+                  <RaindropIcon size={14} filled color={t.accent} /> {w.award}: {w.profiles?.display_name ?? 'Unknown'} ({w.vote_count} <RaindropIcon size={12} filled color={t.accent} />)
                 </div>
               ))}
             </div>

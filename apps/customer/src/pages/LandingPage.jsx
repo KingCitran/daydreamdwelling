@@ -6,6 +6,7 @@ import MoodPicker from '@shared/MoodPicker'
 import { supabase } from '@shared/supabase'
 import { LivingRoom, Bedroom } from './LandingRooms'
 import DesignerLeaderboard from './DesignerLeaderboard'
+import RaindropIcon from '@shared/RaindropIcon'
 
 const SHARE_URL  = 'https://daydreamdwelling.com'
 const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
@@ -184,8 +185,8 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
                   <span style={{ fontSize: 13, color: t.text, fontWeight: 600 }}>
                     {featuredRoom.profiles?.display_name || 'Designer'}
                   </span>
-                  <span style={{ fontSize: 12, color: t.textSoft }}>
-                    ✧ {featuredRoom.heart_count ?? 0} {featuredRoom.heart_count === 1 ? 'raindrop' : 'raindrops'}
+                  <span style={{ fontSize: 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <RaindropIcon size={14} filled color={t.textSoft} /> {featuredRoom.heart_count ?? 0}
                   </span>
                 </div>
                 <button style={s.heroCta} onClick={onEnter}>Explore in the builder →</button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
+import RaindropIcon from '@shared/RaindropIcon'
 
 const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
@@ -48,8 +49,8 @@ export default function CommunityFeed({ onClose }) {
       setMyHearts(prev => new Set([...prev, postId]))
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, heart_count: p.heart_count + 1 } : p))
 
-      // Award loyalty point for hearting
-      await supabase.from('loyalty_points').insert({ user_id: user.id, amount: 1, reason: 'heart', ref_id: postId })
+      // Award loyalty point for raindrop vote
+      await supabase.from('loyalty_points').insert({ user_id: user.id, amount: 1, reason: 'raindrop', ref_id: postId })
     }
   }
 
@@ -123,10 +124,19 @@ function PostCard({ post, t, hearted, onHeart }) {
 
         {/* Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button onClick={onHeart} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: hearted ? '#ff7aa0' : t.textSoft, fontWeight: hearted ? 700 : 400, padding: 0 }}>
-            {hearted ? '❤️' : '🤍'} {post.heart_count}
+          <button onClick={onHeart} style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 5,
+            fontSize: 13, padding: '2px 0',
+            color: hearted ? t.accent : t.textSoft,
+            fontWeight: hearted ? 700 : 400,
+            transition: 'color 0.2s, transform 0.15s',
+            transform: hearted ? 'scale(1.1)' : 'scale(1)',
+          }}>
+            <RaindropIcon size={18} filled={hearted} color={hearted ? t.accent : t.textSoft} />
+            {post.heart_count}
           </button>
-          <span style={{ fontSize: 12, color: t.textSoft }}>🛋 {post.placement_count} placements</span>
+          <span style={{ fontSize: 12, color: t.textSoft }}>◈ {post.placement_count} placed</span>
         </div>
       </div>
     </div>
