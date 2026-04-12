@@ -34,11 +34,22 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [waitlistErr, setWaitlistErr] = useState('')
   const [waitlistCount, setWaitlistCount] = useState(null)
   const [copied, setCopied]           = useState(false)
+  const [featuredRoom, setFeaturedRoom] = useState(null)
 
   useEffect(() => {
     const a = setInterval(() => setIdxA(i => (i + 1) % MOODS.length), 4000)
     const b = setInterval(() => setIdxB(i => (i + 1) % MOODS.length), 5300)
     return () => { clearInterval(a); clearInterval(b) }
+  }, [])
+
+  useEffect(() => {
+    supabase
+      .from('community_posts')
+      .select('*, profiles(display_name, avatar_url, designer_tier)')
+      .eq('is_featured', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => { if (data?.[0]) setFeaturedRoom(data[0]) })
   }, [])
 
   useEffect(() => {
@@ -141,6 +152,47 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           })}
         </div>
       </div>
+
+      {/* ── Daily Featured Room ── */}
+      {featuredRoom && (
+        <div className="ddd-landing-section" style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
+          <div style={s.inner}>
+            <p style={s.eyebrow}>Today's featured room</p>
+            <h2 style={{ ...s.sectionTitle, marginBottom: 20 }}>
+              {featuredRoom.title || 'Community Spotlight'}
+            </h2>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+              {featuredRoom.screenshot_url && (
+                <img
+                  src={featuredRoom.screenshot_url}
+                  alt={featuredRoom.title || 'Featured room'}
+                  style={{ width: '100%', maxWidth: 520, borderRadius: 14, border: `1px solid ${t.surfaceBorder}` }}
+                  loading="lazy"
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 200 }}>
+                {featuredRoom.description && (
+                  <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 16 }}>
+                    {featuredRoom.description}
+                  </p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  {featuredRoom.profiles?.avatar_url && (
+                    <img src={featuredRoom.profiles.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                  )}
+                  <span style={{ fontSize: 13, color: t.text, fontWeight: 600 }}>
+                    {featuredRoom.profiles?.display_name || 'Designer'}
+                  </span>
+                  <span style={{ fontSize: 12, color: t.textSoft }}>
+                    ✧ {featuredRoom.heart_count ?? 0} {featuredRoom.heart_count === 1 ? 'raindrop' : 'raindrops'}
+                  </span>
+                </div>
+                <button style={s.heroCta} onClick={onEnter}>Explore in the builder →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Bedroom showcase ── */}
       <div className="ddd-landing-showcase-wrap">
