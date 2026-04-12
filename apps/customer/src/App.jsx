@@ -38,6 +38,7 @@ import Wispy from './ui/Wispy'
 import useWispy from './hooks/useWispy'
 import WispyCashier from './ui/WispyCashier'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
+import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import WispyPreview from './pages/WispyPreview'
 import CommunityFeed from './pages/CommunityFeed'
@@ -51,6 +52,8 @@ import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
 
 const DEFAULT_wallHeight = 8
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const isUUID = (s) => typeof s === 'string' && UUID_RE.test(s)
 
 function loadSaved() {
   try {
@@ -109,6 +112,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const s = useBuilderStyles()
   const catalogue       = useShopProducts()
   const sellerCatalogue = useSellerCatalogue(shopBuilderSellerId)
+  const { trackInterest, trackIntent } = useProductAnalytics()
   // In shop builder mode the shop panel shows only the seller's products.
   // Room rendering (Items, SelectedControls) uses the full catalogue so any
   // static items already in the layout still render correctly.
@@ -428,12 +432,20 @@ function AppInner({ shopBuilderSellerId = null }) {
   // ── Selection-dependent helpers ──────────────────────────────────
   const selectedItem = items.find(it => it.id === selectedId) ?? null
 
+  // Analytics: track when product detail modal opens (intent level 2)
+  const openProductModal = useCallback((typeKey) => {
+    setActiveModal(typeKey)
+    if (typeKey && isUUID(typeKey)) trackInterest(typeKey)
+  }, [trackInterest])
+
   const placeAndWishlist = useCallback((typeKey, sizeIndex = 0, swatchIndex = 0) => {
     placeItem(typeKey, sizeIndex, swatchIndex, true)
-  }, [placeItem])
+    if (isUUID(typeKey)) trackIntent('add_to_wishlist', typeKey)
+  }, [placeItem, trackIntent])
 
   const handleModalAddToCart = useCallback((typeKey, sizeIndex, swatchIndex) => {
     addToCart(typeKey, sizeIndex, swatchIndex)
+    if (isUUID(typeKey)) trackIntent('add_to_cart', typeKey)
     const inRoom = items.some(
       it => it.typeKey === typeKey && it.sizeIndex === sizeIndex && it.swatchIndex === swatchIndex
     )
@@ -571,7 +583,7 @@ function AppInner({ shopBuilderSellerId = null }) {
           onSelectItem={setSelectedId}
           onMoveItem={moveItem}
           onMoveWallItem={moveWallItem}
-          onDoubleClickItem={setActiveModal}
+          onDoubleClickItem={openProductModal}
           onDragStart={onDragStart}
           onDragEnd={onDragEnd}
           screenshotRef={screenshotRef}
@@ -651,7 +663,7 @@ function AppInner({ shopBuilderSellerId = null }) {
           onAddToCart={handleModalAddToCart}
           onWishlist={placeAndWishlist}
           onClose={() => setActiveModal(null)}
-          onOpenModal={setActiveModal}
+          onOpenModal={openProductModal}
         />
       )}
 
@@ -661,7 +673,7 @@ function AppInner({ shopBuilderSellerId = null }) {
           catalogue={catalogue}
           drawerOpen={drawerOpen}
           roomRotation={targetRotation}
-          onShowDetails={() => setActiveModal(selectedItem.typeKey)}
+          onShowDetails={() => openProductModal(selectedItem.typeKey)}
           onRotate={() => rotateItem(selectedItem.id)}
           onDelete={() => deleteItem(selectedItem.id)}
           onResize={resizeSelectedItem}
@@ -903,7 +915,7 @@ function AppInner({ shopBuilderSellerId = null }) {
             activeTab={drawerTab}
             onTabChange={setDrawerTab}
             onPlace={placeItem}
-            onOpenModal={setActiveModal}
+            onOpenModal={openProductModal}
             catalogue={shopPanelCatalogue}
             cart={cart}
             onIncrementCart={addToCart}
