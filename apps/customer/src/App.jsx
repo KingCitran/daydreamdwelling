@@ -42,6 +42,7 @@ import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import WispyPreview from './pages/WispyPreview'
 import CommunityFeed from './pages/CommunityFeed'
+import ContestsPage from './pages/ContestsPage'
 import ProfilePage from './pages/ProfilePage'
 import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
@@ -173,6 +174,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const [authModalOpen,    setAuthModalOpen]    = useState(false)
   const [accountModalOpen, setAccountModalOpen] = useState(false)
   const [communityOpen,    setCommunityOpen]    = useState(false)
+  const [contestsOpen,     setContestsOpen]     = useState(false)
   const [saveModalOpen,   setSaveModalOpen]   = useState(false)
   const [loadModalOpen,   setLoadModalOpen]   = useState(false)
   const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
@@ -760,6 +762,7 @@ function AppInner({ shopBuilderSellerId = null }) {
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
+      {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
@@ -882,6 +885,11 @@ function AppInner({ shopBuilderSellerId = null }) {
             onClick={() => setCommunityOpen(v => !v)}
             title="Community"
           >🌐</button>
+          <button
+            style={{ ...s.bottomBtn, ...(contestsOpen ? s.bottomBtnActive : {}) }}
+            onClick={() => setContestsOpen(v => !v)}
+            title="Contests"
+          >✦</button>
           <button style={s.bottomBtn}
             onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
             title={user ? user.email : 'Sign in'}>
