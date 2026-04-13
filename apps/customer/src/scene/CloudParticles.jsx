@@ -14,9 +14,9 @@ import * as THREE from 'three'
  */
 
 const CLOUD_LAYERS = [
-  { count: 18, zMin: -32, zMax: -22, yMin: 8, yMax: 26, xSpread: 40, sizeMin: 6, sizeMax: 14, speed: 0.08, opacity: 0.06 },
-  { count: 14, zMin: -22, zMax: -14, yMin: 6, yMax: 22, xSpread: 35, sizeMin: 4, sizeMax: 10, speed: 0.14, opacity: 0.09 },
-  { count: 10, zMin: -14, zMax: -8,  yMin: 4, yMax: 18, xSpread: 28, sizeMin: 2, sizeMax: 7,  speed: 0.22, opacity: 0.07 },
+  { count: 12, zMin: -32, zMax: -22, yMin: 6, yMax: 28, xSpread: 50, sizeMin: 30, sizeMax: 60, driftSpeed: 0.4, opacity: 0.18 },
+  { count: 10, zMin: -22, zMax: -14, yMin: 4, yMax: 24, xSpread: 45, sizeMin: 20, sizeMax: 45, driftSpeed: 0.7, opacity: 0.22 },
+  { count: 8,  zMin: -14, zMax: -8,  yMin: 2, yMax: 20, xSpread: 38, sizeMin: 14, sizeMax: 32, driftSpeed: 1.1, opacity: 0.16 },
 ]
 
 // Future: per-mood cloud presets (fog density, particle count, color overrides, special elements)
@@ -35,20 +35,23 @@ const vertexShader = `
   attribute float aSize;
   attribute float aOpacity;
   attribute float aPhase;
+  attribute float aDrift;
   uniform float uTime;
+  uniform float uXRange;
   varying float vAlpha;
 
   void main() {
     vec3 pos = position;
-    // Gentle drift: sine on x, cosine on y, slower sine on z
-    pos.x += sin(uTime * 0.15 + aPhase * 6.28) * 1.8;
-    pos.y += cos(uTime * 0.1 + aPhase * 4.0) * 0.9;
-    pos.z += sin(uTime * 0.08 + aPhase * 3.5) * 0.6;
+    // Steady left-to-right drift, wrapping around
+    float driftX = mod(pos.x + uTime * aDrift + aPhase * uXRange * 2.0, uXRange * 2.0) - uXRange;
+    pos.x = driftX;
+    // Gentle vertical bob only
+    pos.y += sin(uTime * 0.12 + aPhase * 5.0) * 0.8;
 
     vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
     gl_Position = projectionMatrix * mvPos;
-    // Size attenuation: larger when closer
-    gl_PointSize = aSize * (180.0 / -mvPos.z);
+    // Large soft clouds — orthographic camera so use fixed scale
+    gl_PointSize = aSize * 4.0;
     vAlpha = aOpacity;
   }
 `
@@ -59,30 +62,30 @@ const fragmentShader = `
   varying float vAlpha;
 
   void main() {
-    // Soft radial circle with smooth falloff
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
-    float alpha = smoothstep(0.5, 0.05, dist) * vAlpha * uGlobalOpacity;
-    // Extra soft edge
-    alpha *= smoothstep(0.5, 0.25, dist);
+    // Big soft gaussian-like falloff
+    float alpha = exp(-dist * dist * 8.0) * vAlpha * uGlobalOpacity;
     gl_FragColor = vec4(uColor, alpha);
   }
 `
 
 export default function CloudParticles({ skyColor = '#ccc0e8', accent = '#9a7aee', moodKey = 'Dream State' }) {
   const meshRef = useRef()
-  const matRef = useRef()
   const timeRef = useRef(0)
   const targetColor = useRef(new THREE.Color(skyColor))
   const currentColor = useRef(new THREE.Color(skyColor))
 
   const moodPreset = MOOD_CLOUD_PRESETS[moodKey] ?? { opacityMult: 1.0, tintBlend: 0.2 }
 
-  const { positions, sizes, opacities, phases, count } = useMemo(() => {
+  const maxXSpread = Math.max(...CLOUD_LAYERS.map(l => l.xSpread))
+
+  const { positions, sizes, opacities, phases, drifts } = useMemo(() => {
     const allPositions = []
     const allSizes = []
     const allOpacities = []
     const allPhases = []
+    const allDrifts = []
 
     CLOUD_LAYERS.forEach(layer => {
       for (let i = 0; i < layer.count; i++) {
@@ -91,8 +94,9 @@ export default function CloudParticles({ skyColor = '#ccc0e8', accent = '#9a7aee
         const z = layer.zMin + Math.random() * (layer.zMax - layer.zMin)
         allPositions.push(x, y, z)
         allSizes.push(layer.sizeMin + Math.random() * (layer.sizeMax - layer.sizeMin))
-        allOpacities.push(layer.opacity * (0.6 + Math.random() * 0.4))
+        allOpacities.push(layer.opacity * (0.7 + Math.random() * 0.3))
         allPhases.push(Math.random())
+        allDrifts.push(layer.driftSpeed * (0.7 + Math.random() * 0.6))
       }
     })
 
@@ -101,7 +105,7 @@ export default function CloudParticles({ skyColor = '#ccc0e8', accent = '#9a7aee
       sizes: new Float32Array(allSizes),
       opacities: new Float32Array(allOpacities),
       phases: new Float32Array(allPhases),
-      count: allPositions.length / 3,
+      drifts: new Float32Array(allDrifts),
     }
   }, [])
 
@@ -111,8 +115,9 @@ export default function CloudParticles({ skyColor = '#ccc0e8', accent = '#9a7aee
     geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1))
     geo.setAttribute('aOpacity', new THREE.BufferAttribute(opacities, 1))
     geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1))
+    geo.setAttribute('aDrift', new THREE.BufferAttribute(drifts, 1))
     return geo
-  }, [positions, sizes, opacities, phases])
+  }, [positions, sizes, opacities, phases, drifts])
 
   const material = useMemo(() => {
     // Blend skyColor with accent for warmth
@@ -127,12 +132,13 @@ export default function CloudParticles({ skyColor = '#ccc0e8', accent = '#9a7aee
         uTime: { value: 0 },
         uColor: { value: baseColor },
         uGlobalOpacity: { value: moodPreset.opacityMult },
+        uXRange: { value: maxXSpread },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
-  }, [skyColor, accent, moodPreset.tintBlend, moodPreset.opacityMult])
+  }, [skyColor, accent, moodPreset.tintBlend, moodPreset.opacityMult, maxXSpread])
 
   useFrame((_, delta) => {
     timeRef.current += delta
