@@ -31,7 +31,7 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
     setLoading(true)
     const { data } = await supabase
       .from('contests')
-      .select('*, contest_entries(id, user_id, vote_count, is_winner, award, post_id, profiles(display_name, avatar_url, designer_tier)), sponsor:sponsor_id(display_name)')
+      .select('*, contest_entries(id, user_id, vote_count, is_winner, award, post_id, profiles(display_name, avatar_url, designer_tier), community_posts(screenshot_url, title)), sponsor:sponsor_id(display_name)')
       .order('starts_at', { ascending: false })
       .limit(20)
     setContests(data ?? [])
