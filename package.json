@@ -10,6 +10,8 @@
     "dev:customer": "npm run dev --workspace=apps/customer",
     "dev:seller": "npm run dev --workspace=apps/seller",
     "build:customer": "npm run build --workspace=apps/customer",
-    "build:seller": "npm run build --workspace=apps/seller"
+    "build:seller": "npm run build --workspace=apps/seller",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "build:admin": "npm run build --workspace=apps/admin"
   }
 }

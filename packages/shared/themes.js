@@ -264,7 +264,8 @@ export const MOOD_THEMES = {
 
 // Per-app default mood (shown before profile loads / for logged-out users)
 export const APP_MOOD_DEFAULTS = {
-  customer: 'Studio Dark',
-  outdoor:  'Bright Day',
+  customer: 'Dream State',
+  outdoor:  'Dream State',
   seller:   'Dream State',
+  admin:    'Dream State',
 }
