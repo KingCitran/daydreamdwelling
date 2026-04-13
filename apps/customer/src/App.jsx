@@ -46,9 +46,11 @@ import ContestsPage from './pages/ContestsPage'
 import ProfilePage from './pages/ProfilePage'
 import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
+import ShareToCommunityModal from './ui/ShareToCommunityModal'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
 import { useMoodControl } from '@shared/ThemeProvider'
+import Logo from '@shared/Logo'
 import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
 
@@ -179,6 +181,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const [loadModalOpen,   setLoadModalOpen]   = useState(false)
   const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
   const [checkoutOpen,    setCheckoutOpen]    = useState(false)
+  const [shareToCommunityOpen, setShareToCommunityOpen] = useState(false)
   const [orderSuccess,    setOrderSuccess]    = useState(false)
   const { user } = useAuth()
   const ownedKeys = useOwnedItems(user?.id)
@@ -570,6 +573,11 @@ function AppInner({ shopBuilderSellerId = null }) {
   return (
     <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {/* Brand logo — top left */}
+      <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none', opacity: 0.7 }}>
+        <Logo size={28} color={t.accent} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif" }}>DaydreamDwelling</span>
+      </div>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }}>
         <RoomScene
           targetRotation={targetRotation}
@@ -764,6 +772,7 @@ function AppInner({ shopBuilderSellerId = null }) {
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
       {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
+      {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
       {shopBuilderSellerId && (
@@ -835,78 +844,69 @@ function AppInner({ shopBuilderSellerId = null }) {
             onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
             isSignedIn={!!user}
             screenshotRef={screenshotRef}
+            onShareToCommunity={() => user ? setShareToCommunityOpen(true) : setAuthModalOpen(true)}
           />
         )}
 
         <div style={s.bottomBar}>
+          {/* ── Shop builder mode ── */}
           {shopBuilderSellerId && (
-            <button
-              style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }}
-              onClick={saveShopLayout}
-            >{shopSaving ? '…' : '💾'}{compact ? '' : (shopSaving ? ' Saving' : ' Save Shop')}</button>
-          )}
-          {shopBuilderSellerId && (
-            <button
-              style={{ ...s.bottomBtn, borderColor: '#7a5a9a', color: '#d0b0ff', background: '#2a1a3a' }}
-              onClick={() => window.close()}
-            >✕{compact ? '' : ' Exit Builder'}</button>
-          )}
-          {roomStack.length > 0 && (
-            <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>
-              ← Back
+            <button style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }} onClick={saveShopLayout}>
+              {shopSaving ? '…' : '💾'}{compact ? '' : (shopSaving ? ' Saving' : ' Save')}
             </button>
           )}
-          <button
-            style={{ ...s.bottomBtn, ...(drawerOpen ? s.bottomBtnActive : {}) }}
-            onClick={() => setDrawerOpen(v => !v)}
-          >{drawerOpen ? '✕' : '🛍'}{compact ? '' : ' Shop'}</button>
-          <button
-            style={{ ...s.bottomBtn, ...(hubOpen ? s.bottomBtnActive : {}) }}
-            onClick={() => setHubOpen(v => !v)}
-          >{hubOpen ? '✕' : '🛠'}{compact ? '' : ' Tools'}</button>
-          <button
-            style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }}
-            onClick={() => setMusicOpen(v => !v)}
-          >🎵</button>
-          <button
-            style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}), ...(hasLightFixtures ? {} : { opacity: 0.35, cursor: 'default' }) }}
-            onClick={() => hasLightFixtures && setLightsOff(v => !v)}
-            title={!hasLightFixtures ? 'Place a lamp or ceiling light first' : lightsOff ? 'Lights on' : 'Lights off'}
-          >{lightsOff ? '☀' : '💡'}</button>
+          {shopBuilderSellerId && (
+            <button style={{ ...s.bottomBtn, borderColor: '#7a5a9a', color: '#d0b0ff', background: '#2a1a3a' }} onClick={() => window.close()}>
+              ✕{compact ? '' : ' Exit'}
+            </button>
+          )}
+          {roomStack.length > 0 && <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>←</button>}
+
+          {/* ── Panels ── */}
+          <button style={{ ...s.bottomBtn, ...(drawerOpen ? s.bottomBtnActive : {}) }} onClick={() => setDrawerOpen(v => !v)} title="Shop">
+            {drawerOpen ? '✕' : '🛍'}
+          </button>
+          <button style={{ ...s.bottomBtn, ...(hubOpen ? s.bottomBtnActive : {}) }} onClick={() => setHubOpen(v => !v)} title="Tools">
+            {hubOpen ? '✕' : '🛠'}
+          </button>
+          <button style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }} onClick={() => setMusicOpen(v => !v)} title="Music">🎵</button>
+
+          <div style={s.barDivider} />
+
+          {/* ── View ── */}
+          <button style={s.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)} title="Rotate left">↻</button>
+          <button style={{ ...s.bottomBtn, ...(ceilingView ? s.bottomBtnActive : {}) }} onClick={() => { setCeilingView(v => !v); setCeilingPicker(null) }} title={ceilingView ? 'Floor view' : 'Ceiling view'}>
+            {ceilingView ? '▾' : '▴'}
+          </button>
+          <button style={s.bottomBtn} onClick={() => setTarget(r => r + Math.PI / 2)} title="Rotate right">↺</button>
+
+          <div style={s.barDivider} />
+
+          {/* ── Room ── */}
           <BuilderMoodPicker />
+          <button style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}), ...(hasLightFixtures ? {} : { opacity: 0.35, cursor: 'default' }) }} onClick={() => hasLightFixtures && setLightsOff(v => !v)} title={!hasLightFixtures ? 'Place a lamp first' : lightsOff ? 'Lights on' : 'Lights off'}>
+            {lightsOff ? '☀' : '💡'}
+          </button>
+          <button style={{ ...s.bottomBtn, ...(wispyMessage ? s.bottomBtnActive : {}) }} onClick={showWispy} title="Wispy">☁</button>
+
+          <div style={s.barDivider} />
+
+          {/* ── Social ── */}
+          <button style={{ ...s.bottomBtn, ...(communityOpen ? s.bottomBtnActive : {}) }} onClick={() => setCommunityOpen(v => !v)} title="Community">🌐</button>
+          <button style={{ ...s.bottomBtn, ...(contestsOpen ? s.bottomBtnActive : {}) }} onClick={() => setContestsOpen(v => !v)} title="Contests">✦</button>
           <NotificationBell btnStyle={s.bottomBtn} />
-          <button
-            style={{ ...s.bottomBtn, ...(wispyMessage ? s.bottomBtnActive : {}) }}
-            onClick={showWispy}
-            title="Wispy"
-          >☁</button>
-          <button
-            style={{ ...s.bottomBtn, ...(communityOpen ? s.bottomBtnActive : {}) }}
-            onClick={() => setCommunityOpen(v => !v)}
-            title="Community"
-          >🌐</button>
-          <button
-            style={{ ...s.bottomBtn, ...(contestsOpen ? s.bottomBtnActive : {}) }}
-            onClick={() => setContestsOpen(v => !v)}
-            title="Contests"
-          >✦</button>
-          <button style={s.bottomBtn}
-            onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
-            title={user ? user.email : 'Sign in'}>
+          <button style={s.bottomBtn} onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
             {user ? '👤' : '🔑'}
           </button>
-          <button style={s.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)}>↻</button>
-          <button
-            style={{ ...s.bottomBtn, ...(ceilingView ? s.bottomBtnActive : {}) }}
-            onClick={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
-            title={ceilingView ? 'Floor view' : 'Ceiling view'}
-          >{ceilingView ? '▾ Floor' : '▴ Ceiling'}</button>
-          <button style={s.bottomBtn} onClick={() => setTarget(r => r + Math.PI / 2)}>↺</button>
+
+          {/* ── Cart ── */}
           {cartCount > 0 && (
-            <button
-              style={{ ...s.bottomBtn, ...s.bottomCartBtn }}
-              onClick={() => { setDrawerOpen(true); setDrawerTab('cart') }}
-            >🛒 <span style={s.cartBadge}>{cartCount}</span></button>
+            <>
+              <div style={s.barDivider} />
+              <button style={{ ...s.bottomBtn, ...s.bottomCartBtn }} onClick={() => { setDrawerOpen(true); setDrawerTab('cart') }}>
+                🛒 <span style={s.cartBadge}>{cartCount}</span>
+              </button>
+            </>
           )}
         </div>
       </div>

@@ -6,7 +6,8 @@ import Walls from './Walls'
 import Items from './Items'
 import Ceiling from './Ceiling'
 import Measurements from './Measurements'
-import { useMoodControl } from '@shared/ThemeProvider'
+import { useMoodControl, useTheme } from '@shared/ThemeProvider'
+import CloudParticles from './CloudParticles'
 
 const CAM_OFFSET = 18
 const ZOOM_MIN   = 15
@@ -123,6 +124,7 @@ export default function RoomScene({
   catalogue,
 }) {
   const { mood: sharedMood } = useMoodControl()
+  const t = useTheme()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
   const groupRef = useRef()
   const currentRY = useRef(0)
@@ -172,6 +174,8 @@ export default function RoomScene({
       <directionalLight position={[0, -6, -22]} intensity={0.07} color="#c8d8ff" />
       {/* In ceiling view: upward fill so the ceiling slab is lit */}
       <directionalLight position={[8, -20, 6]} intensity={ceilingView ? mood.keyI * 0.55 : 0.04} color={mood.keyC} />
+
+      <CloudParticles skyColor={mood.skyColor} accent={t.accent} moodKey={sharedMood} />
 
       <group ref={groupRef}>
         <Floor

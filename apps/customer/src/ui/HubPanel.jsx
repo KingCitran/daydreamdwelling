@@ -1,4 +1,5 @@
 import { useBuilderStyles } from './styles/appStyles'
+import { useTheme } from '@shared/ThemeProvider'
 
 export default function HubPanel({
   compact, vw,
@@ -17,9 +18,10 @@ export default function HubPanel({
   saveBookmark, bookmark, restoreBookmark,
   exportRoom, importRef, importRoom,
   onCloudSave, onCloudLoad, isSignedIn,
-  screenshotRef,
+  screenshotRef, onShareToCommunity,
 }) {
   const s = useBuilderStyles()
+  const t = useTheme()
   return (
     <div style={{ ...s.hubPanel, width: compact ? Math.min(220, vw - 60) : 234 }}>
       <p style={s.hubSectionLabel}>View</p>
@@ -132,6 +134,12 @@ export default function HubPanel({
           }, 'image/png')
         }}>🔗 Share</button>
       </div>
+      {isSignedIn && (
+        <button style={{ ...s.hubBtn, background: `${t.accent}15`, borderColor: `${t.accent}40`, color: t.accent, fontWeight: 600 }}
+          onClick={onShareToCommunity}>
+          🌐 Share to Community
+        </button>
+      )}
 
     </div>
   )

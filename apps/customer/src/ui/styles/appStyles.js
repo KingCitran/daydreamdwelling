@@ -36,6 +36,9 @@ export function makeBuilderStyles(t) {
     bottomBtnActive: {
       background: accentTint, borderColor: t.accent,
     },
+    barDivider: {
+      width: 1, height: 24, background: t.surfaceBorder, flexShrink: 0, margin: '0 2px', opacity: 0.5, alignSelf: 'center',
+    },
     bottomCartBtn: {
       background: accentTint, borderColor: t.accent, color: t.text,
       display: 'flex', alignItems: 'center', gap: 6,

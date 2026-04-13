@@ -3,6 +3,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { QUESTIONS, calcResult } from './quizData'
 import { MOODS } from '@shared/useMood'
 import { MOOD_THEMES } from '@shared/themes'
+import Logo from '@shared/Logo'
 
 const MOOD_DESC = Object.fromEntries(MOODS.map(m => [m.key, m.desc]))
 
@@ -34,6 +35,12 @@ export default function QuizPage({ onComplete, onSkip }) {
 
   return (
     <div style={styles.page(t)}>
+      {/* Logo + brand */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, opacity: 0.6 }}>
+        <Logo size={24} color={t.accent} />
+        <span style={{ fontSize: 12, fontWeight: 600, color: t.textSoft, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif" }}>DaydreamDwelling</span>
+      </div>
+
       {!isResult ? (
         <>
           <div style={styles.progressTrack(t)}>
@@ -71,17 +78,26 @@ export default function QuizPage({ onComplete, onSkip }) {
       ) : (
         /* Result screen */
         <div style={styles.resultWrap}>
+          <div style={{ fontSize: 32, opacity: 0.3, marginBottom: -8 }}>✦</div>
           <p style={styles.resultEyebrow(t)}>Your vibe is</p>
-          <div style={styles.resultSwatch(resultTheme)} />
+          <div style={{ position: 'relative' }}>
+            <div style={styles.resultSwatch(resultTheme)} />
+            <div style={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', fontSize: 11, color: '#fff', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)', padding: '4px 12px', borderRadius: 12, whiteSpace: 'nowrap' }}>
+              ✦ {result}
+            </div>
+          </div>
           <h2 style={styles.resultName(t)}>{result}</h2>
           <p style={styles.resultDesc(t)}>{MOOD_DESC[result]}</p>
+          <p style={{ fontSize: 12, color: t.textSoft, margin: 0, fontStyle: 'italic' }}>
+            Wispy is setting up your room with this mood...
+          </p>
 
           <div style={styles.resultActions}>
             <button
               style={styles.enterBtn(t)}
               onClick={() => onComplete(result)}
             >
-              Enter your room
+              ✦ Start building
             </button>
             <button
               style={styles.retakeBtn(t)}
@@ -149,7 +165,8 @@ const styles = {
   }),
   question: t => ({
     fontSize:       'clamp(20px, 4vw, 28px)',
-    fontWeight:     500,
+    fontWeight:     600,
+    fontFamily:     "'Outfit', system-ui, sans-serif",
     color:          t.text,
     textAlign:      'center',
     maxWidth:       560,
@@ -228,7 +245,8 @@ const styles = {
   }),
   resultName: t => ({
     fontSize:       32,
-    fontWeight:     600,
+    fontWeight:     700,
+    fontFamily:     "'Outfit', system-ui, sans-serif",
     color:          t.text,
     margin:         0,
   }),

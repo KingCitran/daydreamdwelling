@@ -7,6 +7,7 @@ import { supabase } from '@shared/supabase'
 import { LivingRoom, Bedroom } from './LandingRooms'
 import DesignerLeaderboard from './DesignerLeaderboard'
 import RaindropIcon from '@shared/RaindropIcon'
+import Logo from '@shared/Logo'
 
 const SHARE_URL  = 'https://daydreamdwelling.com'
 const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
@@ -24,11 +25,22 @@ const STEPS = [
   { n: '03', title: 'Buy it in the real world',  text: 'When your room feels right, add pieces to cart and check out with the seller.' },
 ]
 
+const ROOM_CAROUSEL = [
+  { Room: LivingRoom, mood: 'Golden Hour' },
+  { Room: Bedroom,    mood: 'Moonlight' },
+  { Room: LivingRoom, mood: 'Dream State' },
+  { Room: Bedroom,    mood: 'Cottagecore Dawn' },
+  { Room: LivingRoom, mood: 'Neon Nights' },
+  { Room: Bedroom,    mood: 'Coastal Morning' },
+  { Room: LivingRoom, mood: 'Cozy Evening' },
+  { Room: Bedroom,    mood: 'Dark Academia' },
+]
+
 export default function LandingPage({ onEnter, onBrowseShop }) {
   const t = useTheme()
   const s = makeStyles(t)
 
-  const [idxA, setIdxA]               = useState(0)
+  const [carIdx, setCarIdx]            = useState(0)
   const [idxB, setIdxB]               = useState(7)
   const [email, setEmail]             = useState('')
   const [joined, setJoined]           = useState(false)
@@ -39,7 +51,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [featuredRoom, setFeaturedRoom] = useState(null)
 
   useEffect(() => {
-    const a = setInterval(() => setIdxA(i => (i + 1) % MOODS.length), 4000)
+    const a = setInterval(() => setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length), 6000)
     const b = setInterval(() => setIdxB(i => (i + 1) % MOODS.length), 5300)
     return () => { clearInterval(a); clearInterval(b) }
   }, [])
@@ -59,8 +71,13 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       .then(({ data }) => { if (data) setWaitlistCount(Number(data)) })
   }, [])
 
-  const mtA = MOOD_THEMES[MOODS[idxA].key]
+  const carItem = ROOM_CAROUSEL[carIdx]
+  const mtA = MOOD_THEMES[carItem.mood]
   const mtB = MOOD_THEMES[MOODS[idxB].key]
+  const CarRoom = carItem.Room
+
+  function carPrev() { setCarIdx(i => (i - 1 + ROOM_CAROUSEL.length) % ROOM_CAROUSEL.length) }
+  function carNext() { setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length) }
 
   async function handleWaitlist(e) {
     e.preventDefault()
@@ -90,9 +107,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       <header style={s.nav}>
         <div style={s.navInner}>
           <div style={s.logo}>
-            <span style={{ color: t.accent, fontSize: 20 }}>✦</span>
+            <Logo size={28} color={t.accent} />
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>DaydreamDwelling</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.2, fontFamily: "'Outfit', system-ui, sans-serif" }}>DaydreamDwelling</div>
               <div style={{ fontSize: 9, color: t.textSoft, letterSpacing: '0.5px' }}>Room Builder</div>
             </div>
           </div>
@@ -121,14 +138,28 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from real sellers</p>
           </div>
 
-          {/* Right: animated room */}
+          {/* Right: room carousel with sidewinder arrows */}
           <div className="ddd-landing-hero-right">
-            <div style={{ position: 'relative' }}>
-              <LivingRoom mt={mtA} moodName={MOODS[idxA].key} width={420} height={320} />
-              <div style={s.heroRoomBadge}>
-                <span style={{ color: mtA.accent, transition: 'color 1s ease' }}>✦</span>
-                &nbsp;Mood: <strong style={{ color: mtA.accent, transition: 'color 1s ease' }}>{MOODS[idxA].key}</strong>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={carPrev} style={s.carouselArrow} aria-label="Previous room">‹</button>
+              <div style={{ position: 'relative' }}>
+                <CarRoom mt={mtA} moodName={carItem.mood} width={420} height={320} />
+                <div style={s.heroRoomBadge}>
+                  <span style={{ color: mtA.accent, transition: 'color 1s ease' }}>✦</span>
+                  &nbsp;Mood: <strong style={{ color: mtA.accent, transition: 'color 1s ease' }}>{carItem.mood}</strong>
+                </div>
               </div>
+              <button onClick={carNext} style={s.carouselArrow} aria-label="Next room">›</button>
+            </div>
+            {/* Dot indicators */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14 }}>
+              {ROOM_CAROUSEL.map((_, i) => (
+                <button key={i} onClick={() => setCarIdx(i)} style={{
+                  width: i === carIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0,
+                  background: i === carIdx ? mtA.accent : `${t.textSoft}40`,
+                  cursor: 'pointer', transition: 'all 0.3s ease',
+                }} />
+              ))}
             </div>
           </div>
         </div>
@@ -139,9 +170,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         <div style={s.moodStripInner}>
           {MOODS.map((m, i) => {
             const mc = MOOD_THEMES[m.key]
-            const active = i === idxA || i === idxB
+            const active = m.key === carItem.mood || i === idxB
             return (
-              <button key={m.key} onClick={() => setIdxA(i)} style={{
+              <button key={m.key} onClick={() => { const ci = ROOM_CAROUSEL.findIndex(r => r.mood === m.key); if (ci >= 0) setCarIdx(ci) }} style={{
                 ...s.moodPill,
                 background: active ? `${mc.accent}1a` : 'transparent',
                 border:     `1px solid ${active ? mc.accent : t.surfaceBorder}`,
@@ -361,6 +392,7 @@ function makeStyles(t) {
     navCta:         { padding: '8px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
     heroOrb:        { position: 'absolute', top: -120, left: '30%', width: 700, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' },
     heroRoomBadge:  { position: 'absolute', bottom: 14, left: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#e0d9ff', border: '1px solid rgba(255,255,255,0.08)' },
+    carouselArrow:  { width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)', color: '#e0d9ff', fontSize: 22, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s, border-color 0.2s', flexShrink: 0, lineHeight: 1 },
     eyebrow:        { fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 16, marginTop: 0 },
     heroSub:        { fontSize: 16, color: t.textSoft, lineHeight: 1.7, marginBottom: 28, marginTop: 0 },
     heroCta:        { padding: '13px 26px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },

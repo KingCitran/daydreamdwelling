@@ -10,10 +10,10 @@ export default function SellerShopPage() {
   const { user } = useAuth()
   const t = useTheme()
 
-  const [greeting,    setGreeting]    = useState('Welcome to my shop! ☁')
-  const [lastSaved,   setLastSaved]   = useState(null)
-  const [saving,      setSaving]      = useState(false)
-  const [saved,       setSaved]       = useState(false)
+  const [greetings,  setGreetings]  = useState(['Welcome to my shop! ☁'])
+  const [lastSaved,  setLastSaved]  = useState(null)
+  const [saving,     setSaving]     = useState(false)
+  const [saved,      setSaved]      = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -24,17 +24,37 @@ export default function SellerShopPage() {
       .maybeSingle()
       .then(({ data }) => {
         if (!data) return
-        setGreeting(data.wispy_greeting ?? greeting)
+        // Support both single string (legacy) and JSON array
+        const g = data.wispy_greeting
+        if (Array.isArray(g)) setGreetings(g.length > 0 ? g : ['Welcome to my shop! ☁'])
+        else if (typeof g === 'string') {
+          try { const arr = JSON.parse(g); if (Array.isArray(arr)) setGreetings(arr) }
+          catch { setGreetings([g]) }
+        }
         setLastSaved(data.updated_at ? new Date(data.updated_at) : null)
       })
-  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user])
 
-  async function saveGreeting() {
+  function updateGreeting(idx, val) {
+    setGreetings(prev => prev.map((g, i) => i === idx ? val : g))
+  }
+
+  function addGreeting() {
+    if (greetings.length >= 5) return
+    setGreetings(prev => [...prev, ''])
+  }
+
+  function removeGreeting(idx) {
+    if (greetings.length <= 1) return
+    setGreetings(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  async function saveGreetings() {
     if (!user || saving) return
     setSaving(true)
     await supabase.from('seller_shops').upsert({
       seller_id: user.id,
-      wispy_greeting: greeting,
+      wispy_greeting: JSON.stringify(greetings.filter(g => g.trim())),
       updated_at: new Date().toISOString(),
     })
     setSaving(false)
@@ -48,8 +68,14 @@ export default function SellerShopPage() {
     window.open(url, '_blank', 'noopener')
   }
 
+  const inputStyle = {
+    flex: 1, padding: '10px 12px', borderRadius: 8,
+    background: t.surface, border: `1px solid ${t.surfaceBorder}`,
+    color: t.text, fontSize: 13, outline: 'none', fontFamily: 'inherit',
+  }
+
   return (
-    <div style={{ maxWidth: 640, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 640, fontFamily: "'Outfit', system-ui, sans-serif" }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color: t.text, margin: '0 0 6px' }}>My 3D Shop</h1>
       <p style={{ fontSize: 14, color: t.textSoft, margin: '0 0 32px', lineHeight: 1.6 }}>
         Build a beautiful 3D room that showcases your products. Customers can browse your shop,
@@ -76,51 +102,54 @@ export default function SellerShopPage() {
         </div>
       </div>
 
-      {/* Wispy greeting */}
+      {/* Wispy greetings (multiple) */}
       <div style={{ marginBottom: 28 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: t.text, marginBottom: 8 }}>
-          Wispy's greeting
+          Wispy's Greetings
         </label>
-        <p style={{ fontSize: 12, color: t.textSoft, margin: '0 0 10px', lineHeight: 1.5 }}>
-          This is what Wispy says when a customer enters your shop.
+        <p style={{ fontSize: 12, color: t.textSoft, margin: '0 0 12px', lineHeight: 1.5 }}>
+          Wispy will randomly pick one of these greetings when a customer enters your shop. Add up to 5 variations!
         </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          {greetings.map((g, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: t.textSoft, width: 16, flexShrink: 0 }}>{i + 1}.</span>
+              <input value={g} onChange={e => updateGreeting(i, e.target.value)} maxLength={80} placeholder={`Greeting ${i + 1}...`} style={inputStyle} />
+              {greetings.length > 1 && (
+                <button onClick={() => removeGreeting(i)} style={{ background: 'none', border: 'none', color: t.textSoft, cursor: 'pointer', fontSize: 16, padding: '0 4px', flexShrink: 0 }}>✕</button>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            value={greeting}
-            onChange={e => setGreeting(e.target.value)}
-            maxLength={80}
-            style={{
-              flex: 1, padding: '10px 12px', borderRadius: 8,
-              background: t.surface, border: `1px solid ${t.surfaceBorder}`,
-              color: t.text, fontSize: 13, outline: 'none',
-            }}
-          />
-          <button
-            onClick={saveGreeting}
-            disabled={saving}
-            style={{
-              padding: '10px 18px', borderRadius: 8, cursor: saving ? 'default' : 'pointer',
-              background: saved ? '#1a4a2a' : t.accent,
-              border: `1px solid ${saved ? '#3a8a5a' : t.accent}`,
-              color: saved ? '#a0ffcc' : t.accentText,
-              fontSize: 13, fontWeight: 600, flexShrink: 0,
-            }}
-          >{saved ? '✓ Saved' : saving ? 'Saving…' : 'Save'}</button>
+          {greetings.length < 5 && (
+            <button onClick={addGreeting} style={{
+              padding: '8px 14px', borderRadius: 8, background: 'transparent',
+              border: `1px solid ${t.surfaceBorder}`, color: t.textSoft,
+              fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+            }}>+ Add greeting</button>
+          )}
+          <button onClick={saveGreetings} disabled={saving} style={{
+            padding: '8px 18px', borderRadius: 8, cursor: saving ? 'default' : 'pointer',
+            background: saved ? '#1a4a2a' : t.accent,
+            border: `1px solid ${saved ? '#3a8a5a' : t.accent}`,
+            color: saved ? '#a0ffcc' : t.accentText,
+            fontSize: 13, fontWeight: 600, flexShrink: 0, fontFamily: 'inherit',
+          }}>{saved ? '✓ Saved' : saving ? 'Saving...' : 'Save Greetings'}</button>
         </div>
       </div>
 
       {/* Open builder */}
-      <button
-        onClick={openBuilder}
-        style={{
-          width: '100%', padding: '16px 24px', borderRadius: 12, cursor: 'pointer',
-          background: `linear-gradient(135deg, ${t.accent}, #8040d0)`,
-          border: 'none', color: t.accentText,
-          fontSize: 15, fontWeight: 700,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          boxShadow: `0 4px 20px ${t.accent}40`,
-        }}
-      >
+      <button onClick={openBuilder} style={{
+        width: '100%', padding: '16px 24px', borderRadius: 12, cursor: 'pointer',
+        background: `linear-gradient(135deg, ${t.accent}, #8040d0)`,
+        border: 'none', color: t.accentText,
+        fontSize: 15, fontWeight: 700,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        boxShadow: `0 4px 20px ${t.accent}40`, fontFamily: 'inherit',
+      }}>
         <span style={{ fontSize: 20 }}>☁</span>
         Open Shop Builder
         <span style={{ fontSize: 12, opacity: 0.8 }}>↗</span>

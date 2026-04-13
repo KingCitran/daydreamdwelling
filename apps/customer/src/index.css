@@ -12,7 +12,7 @@
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: 'Outfit', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -105,8 +105,21 @@ code {
 /* ── Mobile builder ── */
 @media (max-width: 700px) {
   .ddd-bar { gap: 4px !important; bottom: 12px !important; left: 12px !important; }
-  .ddd-bar button { padding: 6px 10px !important; font-size: 12px !important; border-radius: 6px !important; }
+  .ddd-bar button { padding: 6px 10px !important; font-size: 12px !important; border-radius: 6px !important; min-height: 44px; min-width: 44px; }
 }
+
+/* Prevent iOS rubber-band bouncing in the builder */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* Mobile touch improvements */
+@media (pointer: coarse) {
+  button { min-height: 44px; min-width: 44px; }
+}
+
+/* Prevent pull-to-refresh on mobile Chrome */
+body { overscroll-behavior-y: contain; }
 
 /* ── Builder UI polish ── */
 .ddd-tile:hover {
@@ -158,7 +171,7 @@ code {
   font-weight: 800;
   line-height: 1.06;
   margin: 0 0 20px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   letter-spacing: -0.5px;
 }
 

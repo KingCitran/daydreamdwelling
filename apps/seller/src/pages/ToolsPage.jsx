@@ -56,7 +56,7 @@ const TOOLS = [
     icon: '🏷️',
     label: 'Discount Creator',
     desc: 'Create % or $ off coupon codes with expiry and usage limits.',
-    phase: 2,
+    cta: 'Manage', page: 'discounts',
   },
   {
     key: 'pricing',
@@ -70,7 +70,7 @@ const TOOLS = [
     icon: '📢',
     label: 'Promoted Listings',
     desc: 'Pay for priority placement in search results.',
-    phase: 2,
+    cta: 'Manage', page: 'promoted',
   },
   {
     key: 'shipping-calc',

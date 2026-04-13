@@ -1,5 +1,6 @@
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
+import Logo from '@shared/Logo'
 
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: '⊞' },
@@ -13,7 +14,7 @@ export default function NavBar({ page, onNavigate }) {
   return (
     <nav style={{ width: 230, background: t.surface, backdropFilter: 'blur(16px)', borderRight: `1px solid ${t.surfaceBorder}`, display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: '100vh' }}>
       <div style={{ padding: '24px 20px 20px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${t.accent}, #c084fc)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff', flexShrink: 0 }}>✦</div>
+        <Logo size={36} color={t.accent} style={{ flexShrink: 0 }} />
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>DaydreamDwelling</div>
           <div style={{ fontSize: 10, color: t.textSoft, letterSpacing: '0.5px' }}>Admin</div>
