@@ -1,6 +1,43 @@
 // CSS-drawn room preview cards used in LandingPage hero + showcase
 const T = 'background 1s ease, border-color 1s ease, color 1s ease, opacity 1s ease'
 
+// Simple fallback room — always renders, no internal furniture
+export function BlankRoom({ mt, moodName, width = 420, height = 320 }) {
+  const FH = Math.round(height * 0.32), WW = Math.round(width * 0.14)
+  return (
+    <div style={{
+      borderRadius: 16, overflow: 'hidden', position: 'relative', flexShrink: 0,
+      background: mt.bg, border: `1px solid ${mt.surfaceBorder}`,
+      boxShadow: '0 28px 70px rgba(0,0,0,0.55)', transition: T,
+      width, height,
+    }}>
+      {/* Back wall */}
+      <div style={{ position: 'absolute', top: 0, left: WW, right: 0, bottom: FH, background: mt.navBg, transition: T }} />
+      {/* Side wall */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: WW, bottom: FH, background: mt.surface, opacity: 0.85, transition: T }} />
+      {/* Floor */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: FH, background: mt.surface, transition: T }} />
+      {/* Window glow */}
+      <div style={{
+        position: 'absolute', top: height * 0.18, left: width * 0.55,
+        width: width * 0.22, height: height * 0.3,
+        background: `linear-gradient(180deg, ${mt.accent}80 0%, ${mt.accent}10 100%)`,
+        borderRadius: 4, boxShadow: `0 0 40px ${mt.accent}60`,
+        transition: T,
+      }} />
+      {/* Mood label */}
+      <div style={{
+        position: 'absolute', bottom: 12, left: 12,
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+        borderRadius: 12, padding: '4px 10px',
+        fontSize: 11, color: '#fff',
+      }}>
+        {moodName}
+      </div>
+    </div>
+  )
+}
+
 export function roomCard(mt) {
   return {
     borderRadius: 16, overflow: 'hidden', position: 'relative', flexShrink: 0,

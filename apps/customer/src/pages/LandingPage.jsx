@@ -4,10 +4,11 @@ import { MOODS } from '@shared/useMood'
 import { MOOD_THEMES } from '@shared/themes'
 import MoodPicker from '@shared/MoodPicker'
 import { supabase } from '@shared/supabase'
-import { LivingRoom, Bedroom } from './LandingRooms'
+import { LivingRoom, Bedroom, BlankRoom } from './LandingRooms'
 import DesignerLeaderboard from './DesignerLeaderboard'
 import RaindropIcon from '@shared/RaindropIcon'
 import Logo from '@shared/Logo'
+import HeroMusic from './HeroMusic'
 
 const SHARE_URL  = 'https://daydreamdwelling.com'
 const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
@@ -26,21 +27,24 @@ const STEPS = [
 ]
 
 const ROOM_CAROUSEL = [
-  { Room: LivingRoom, mood: 'Golden Hour' },
-  { Room: Bedroom,    mood: 'Moonlight' },
-  { Room: LivingRoom, mood: 'Dream State' },
-  { Room: Bedroom,    mood: 'Cottagecore Dawn' },
-  { Room: LivingRoom, mood: 'Neon Nights' },
-  { Room: Bedroom,    mood: 'Coastal Morning' },
-  { Room: LivingRoom, mood: 'Cozy Evening' },
-  { Room: Bedroom,    mood: 'Dark Academia' },
+  { Room: BlankRoom, mood: 'Golden Hour' },
+  { Room: BlankRoom, mood: 'Moonlight' },
+  { Room: BlankRoom, mood: 'Dream State' },
+  { Room: BlankRoom, mood: 'Cottagecore Dawn' },
+  { Room: BlankRoom, mood: 'Neon Nights' },
+  { Room: BlankRoom, mood: 'Coastal Morning' },
+  { Room: BlankRoom, mood: 'Cozy Evening' },
+  { Room: BlankRoom, mood: 'Dark Academia' },
 ]
+// LivingRoom/Bedroom imported for showcase section below
+void LivingRoom; void Bedroom;
 
 export default function LandingPage({ onEnter, onBrowseShop }) {
   const t = useTheme()
   const s = makeStyles(t)
 
   const [carIdx, setCarIdx]            = useState(0)
+  const [carPaused, setCarPaused]      = useState(false)
   const [idxB, setIdxB]               = useState(7)
   const [email, setEmail]             = useState('')
   const [joined, setJoined]           = useState(false)
@@ -51,10 +55,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [featuredRoom, setFeaturedRoom] = useState(null)
 
   useEffect(() => {
-    const a = setInterval(() => setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length), 6000)
+    const a = setInterval(() => { if (!carPaused) setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length) }, 6000)
     const b = setInterval(() => setIdxB(i => (i + 1) % MOODS.length), 5300)
     return () => { clearInterval(a); clearInterval(b) }
-  }, [])
+  }, [carPaused])
 
   useEffect(() => {
     supabase
@@ -142,24 +146,55 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           <div className="ddd-landing-hero-right">
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
               <button onClick={carPrev} style={s.carouselArrow} aria-label="Previous room">‹</button>
-              <div style={{ position: 'relative' }}>
+              <div
+                onClick={onEnter}
+                style={{ position: 'relative', cursor: 'pointer', transition: 'transform 0.3s' }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+              >
                 <CarRoom mt={mtA} moodName={carItem.mood} width={420} height={320} />
+                <div onClick={e => e.stopPropagation()}>
+                  <HeroMusic mood={carItem.mood} accent={mtA.accent} />
+                </div>
                 <div style={s.heroRoomBadge}>
                   <span style={{ color: mtA.accent, transition: 'color 1s ease' }}>✦</span>
                   &nbsp;Mood: <strong style={{ color: mtA.accent, transition: 'color 1s ease' }}>{carItem.mood}</strong>
                 </div>
+                {/* Click to enter hint */}
+                <div style={{
+                  position: 'absolute', bottom: 14, right: 14,
+                  background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+                  borderRadius: 20, padding: '6px 14px',
+                  fontSize: 11, color: '#fff', fontWeight: 600,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  pointerEvents: 'none',
+                }}>
+                  ✦ Click to step inside
+                </div>
               </div>
               <button onClick={carNext} style={s.carouselArrow} aria-label="Next room">›</button>
             </div>
-            {/* Dot indicators */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14 }}>
-              {ROOM_CAROUSEL.map((_, i) => (
-                <button key={i} onClick={() => setCarIdx(i)} style={{
-                  width: i === carIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0,
-                  background: i === carIdx ? mtA.accent : `${t.textSoft}40`,
-                  cursor: 'pointer', transition: 'all 0.3s ease',
-                }} />
-              ))}
+            {/* Dot indicators + pause */}
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {ROOM_CAROUSEL.map((_, i) => (
+                  <button key={i} onClick={() => setCarIdx(i)} style={{
+                    width: i === carIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0,
+                    background: i === carIdx ? mtA.accent : `${t.textSoft}40`,
+                    cursor: 'pointer', transition: 'all 0.3s ease',
+                  }} />
+                ))}
+              </div>
+              <button
+                onClick={() => setCarPaused(p => !p)}
+                title={carPaused ? 'Resume auto-rotate' : 'Pause auto-rotate'}
+                style={{
+                  marginLeft: 6, width: 24, height: 24, borderRadius: '50%',
+                  background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
+                  color: t.textSoft, fontSize: 10, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}
+              >{carPaused ? '▶' : '❚❚'}</button>
             </div>
           </div>
         </div>

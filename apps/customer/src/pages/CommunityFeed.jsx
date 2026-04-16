@@ -3,6 +3,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import RaindropIcon from '@shared/RaindropIcon'
+import CommunityPostDetail from './CommunityPostDetail'
 
 const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
@@ -25,6 +26,7 @@ export default function CommunityFeed({ onClose }) {
   const [posts, setPosts]     = useState([])
   const [loading, setLoading] = useState(true)
   const [myHearts, setMyHearts] = useState(new Set())
+  const [selectedPost, setSelectedPost] = useState(null)
 
   const fetchPosts = useCallback(async () => {
     setLoading(true)
@@ -121,7 +123,7 @@ export default function CommunityFeed({ onClose }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18, marginBottom: 36 }}>
               {featured.map(post => (
-                <PostCard key={post.id} post={post} t={t} hearted={myHearts.has(post.id)} onHeart={() => toggleHeart(post.id)} featured />
+                <PostCard key={post.id} post={post} t={t} hearted={myHearts.has(post.id)} onHeart={() => toggleHeart(post.id)} onOpen={() => setSelectedPost(post)} featured />
               ))}
             </div>
           </>
@@ -133,17 +135,28 @@ export default function CommunityFeed({ onClose }) {
             <h2 style={{ fontSize: 12, fontWeight: 700, color: t.textSoft, margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Latest Rooms</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
               {regular.map(post => (
-                <PostCard key={post.id} post={post} t={t} hearted={myHearts.has(post.id)} onHeart={() => toggleHeart(post.id)} />
+                <PostCard key={post.id} post={post} t={t} hearted={myHearts.has(post.id)} onHeart={() => toggleHeart(post.id)} onOpen={() => setSelectedPost(post)} />
               ))}
             </div>
           </>
         )}
       </div>
+
+      {selectedPost && (
+        <CommunityPostDetail
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onOpenBuilder={(post) => {
+            // Navigate to builder in explore mode for this room
+            window.location.href = `${window.location.pathname}?exploreRoom=${post.id}`
+          }}
+        />
+      )}
     </div>
   )
 }
 
-function PostCard({ post, t, hearted, onHeart, featured = false }) {
+function PostCard({ post, t, hearted, onHeart, onOpen, featured = false }) {
   const profile = post.profiles
   const tier = profile?.designer_tier ?? 0
   const tierName = DESIGNER_TIERS[tier] || ''
@@ -152,9 +165,9 @@ function PostCard({ post, t, hearted, onHeart, featured = false }) {
     <div className="ddd-tile" style={{
       background: t.surface,
       border: `1px solid ${featured ? `${t.accent}40` : t.surfaceBorder}`,
-      borderRadius: 14, overflow: 'hidden',
+      borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
       transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
-    }}>
+    }} onClick={onOpen}>
       {/* Screenshot */}
       <div style={{
         height: 200, background: t.bg, position: 'relative',
@@ -203,17 +216,20 @@ function PostCard({ post, t, hearted, onHeart, featured = false }) {
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10 }}>
-          <button onClick={onHeart} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: 13, padding: '2px 0',
-            color: hearted ? t.accent : t.textSoft,
-            fontWeight: hearted ? 700 : 400,
-            transition: 'color 0.2s, transform 0.15s',
-            transform: hearted ? 'scale(1.1)' : 'scale(1)',
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10 }}>
+          <button onClick={e => { e.stopPropagation(); onHeart() }} title="Drop a raindrop — show this room love" style={{
+            background: hearted ? `${t.accent}15` : `${t.accent}08`,
+            border: `1.5px solid ${hearted ? t.accent : t.surfaceBorder}`,
+            cursor: 'pointer', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 14, padding: '6px 12px',
+            color: hearted ? t.accent : t.text,
+            fontWeight: 700,
+            transition: 'all 0.2s',
+            transform: hearted ? 'scale(1.05)' : 'scale(1)',
+            boxShadow: hearted ? `0 0 0 3px ${t.accent}15` : 'none',
           }}>
-            <RaindropIcon size={18} filled={hearted} color={hearted ? t.accent : t.textSoft} />
+            <RaindropIcon size={22} filled={hearted} color={hearted ? t.accent : t.accent} />
             {post.heart_count}
           </button>
           <span style={{ fontSize: 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 4 }}>

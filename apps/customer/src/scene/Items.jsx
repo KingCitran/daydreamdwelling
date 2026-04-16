@@ -461,8 +461,8 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
           {panes.map(({ px, py }, i) => (
             <mesh key={`pane${i}`} position={[px, py, 0]}>
               <planeGeometry args={[pW - 0.01, pH - 0.01]} />
-              <meshStandardMaterial color={glassHex} transparent opacity={0.32}
-                roughness={0.05} metalness={0.15} side={THREE.DoubleSide} />
+              <meshStandardMaterial color={glassHex} transparent opacity={0.12}
+                roughness={0.05} metalness={0.15} side={THREE.DoubleSide} depthWrite={false} />
             </mesh>
           ))}
         </group>

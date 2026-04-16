@@ -226,12 +226,12 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        {isActive && !hasEntered && user && (
+        {isActive && user && (
           <button onClick={() => onToggleJoin(c.id)} style={{ padding: '8px 16px', borderRadius: 10, background: isJoining ? 'transparent' : t.accent, color: isJoining ? t.textSoft : t.accentText, border: isJoining ? `1px solid ${t.surfaceBorder}` : 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            {isJoining ? 'Cancel' : 'Join this contest'}
+            {isJoining ? 'Cancel' : hasEntered ? '+ Submit another entry' : 'Join this contest'}
           </button>
         )}
-        {isActive && !hasEntered && !user && <span style={{ fontSize: 12, color: t.textSoft, fontStyle: 'italic' }}>Sign in to join</span>}
+        {isActive && !user && <span style={{ fontSize: 12, color: t.textSoft, fontStyle: 'italic' }}>Sign in to join</span>}
         {hasEntered && (
           <span style={{ padding: '6px 14px', borderRadius: 10, background: `${STATUS_COLORS.active}15`, color: STATUS_COLORS.active, fontSize: 12, fontWeight: 700 }}>✓ Entered</span>
         )}
@@ -300,8 +300,18 @@ function EntryRow({ entry, t, user, canVote, voted, onVote }) {
         <span style={{ padding: '3px 8px', borderRadius: 8, background: `${t.accent}15`, color: t.accent, fontSize: 10, fontWeight: 700 }}>{entry.award || 'Winner'}</span>
       )}
       {canVote && !isMine ? (
-        <button onClick={() => onVote(entry)} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: voted ? t.accent : t.textSoft, fontWeight: voted ? 700 : 400, fontSize: 13, padding: '4px 6px', transition: 'color 0.2s, transform 0.15s', transform: voted ? 'scale(1.1)' : 'scale(1)' }}>
-          <RaindropIcon size={18} filled={voted} color={voted ? t.accent : t.textSoft} />
+        <button onClick={() => onVote(entry)} title="Drop your raindrop — 1 vote per room" style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: voted ? `${t.accent}20` : `${t.accent}10`,
+          border: `1.5px solid ${voted ? t.accent : `${t.accent}40`}`,
+          cursor: 'pointer', borderRadius: 10,
+          color: voted ? t.accent : t.text, fontWeight: 700, fontSize: 14,
+          padding: '6px 12px',
+          transition: 'all 0.2s',
+          transform: voted ? 'scale(1.05)' : 'scale(1)',
+          boxShadow: voted ? `0 0 0 3px ${t.accent}15` : 'none',
+        }}>
+          <RaindropIcon size={22} filled={voted} color={t.accent} />
           {entry.vote_count}
         </button>
       ) : (

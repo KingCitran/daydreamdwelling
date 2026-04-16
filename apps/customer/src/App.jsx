@@ -36,6 +36,7 @@ import CheckoutModal from './ui/CheckoutModal'
 import OrderSuccessBanner from './ui/OrderSuccessBanner'
 import Wispy from './ui/Wispy'
 import useWispy from './hooks/useWispy'
+import useWaitingInventory from './hooks/useWaitingInventory'
 import WispyCashier from './ui/WispyCashier'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
@@ -46,6 +47,10 @@ import ContestsPage from './pages/ContestsPage'
 import ProfilePage from './pages/ProfilePage'
 import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
+import SkyBackdrop from './scene/SkyBackdrop'
+import FeedbackButton from './ui/FeedbackButton'
+import ExploreBanner from './ui/ExploreBanner'
+import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
 import ShareToCommunityModal from './ui/ShareToCommunityModal'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
@@ -81,7 +86,8 @@ function Gate() {
   const params                     = new URLSearchParams(window.location.search)
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
-  const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId)
+  const exploreRoomId              = params.get('exploreRoom') || null
+  const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId)
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
   const { setMood }                = useMoodControl()
@@ -103,14 +109,18 @@ function Gate() {
   }
 
   if (params.get('preview') === 'wispy') return <WispyPreview />
-  if (params.get('profile')) return <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  if (inBuilder) return <AppInner shopBuilderSellerId={shopBuilderSellerId} />
-  if (inMarketplace) return <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
-  if (!quizDone) return <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
-  return <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
+
+  let page
+  if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
+  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
+  else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
+  else if (!quizDone) page = <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
+  else page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
+
+  return <>{page}<FeedbackButton /></>
 }
 
-function AppInner({ shopBuilderSellerId = null }) {
+function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
   const catalogue       = useShopProducts()
@@ -122,6 +132,7 @@ function AppInner({ shopBuilderSellerId = null }) {
   const shopPanelCatalogue = shopBuilderSellerId ? (sellerCatalogue ?? {}) : catalogue
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
+  const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -146,6 +157,12 @@ function AppInner({ shopBuilderSellerId = null }) {
   const { wispyMessage, dismissWispy, showWispy } = useWispy({ itemCount: items.length })
   const [selectedId, setSelectedId] = useState(null)
   const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
+
+  // Explore mode + waiting inventory
+  const [exploreData, setExploreData] = useState(null) // { post, designer } when exploring
+  const isExploring = !!exploreRoomId
+  const waitingInventory = useWaitingInventory()
+  const [showWaitingAlert, setShowWaitingAlert] = useState(false)
 
   // ── UI state ─────────────────────────────────────────────────────
   const [panelOpen,        setPanelOpen]        = useState(false)
@@ -259,6 +276,40 @@ function AppInner({ shopBuilderSellerId = null }) {
     floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
     allRooms, currentRoomId,
   })
+
+  // Load explore room if exploreRoomId set
+  useEffect(() => {
+    if (!exploreRoomId) return
+    let cancelled = false
+    ;(async () => {
+      const { data: post } = await supabase
+        .from('community_posts')
+        .select('id, title, room_id, mood, music_station, profiles(display_name)')
+        .eq('id', exploreRoomId).maybeSingle()
+      if (cancelled || !post) return
+      setExploreData({ post, designer: post.profiles?.display_name ?? 'Designer' })
+      if (post.room_id) {
+        const { data: roomRow } = await supabase
+          .from('saved_rooms').select('data').eq('id', post.room_id).maybeSingle()
+        if (cancelled || !roomRow?.data) return
+        const d = roomRow.data
+        if (d.gridW)  setGridW(d.gridW)
+        if (d.gridD)  setGridD(d.gridD)
+        if (d.wallHeight) setWallHeight(d.wallHeight)
+        if (d.cells)  setCells(new Set(d.cells))
+        if (d.items)  setItems(d.items)
+        if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.wallColor)  setWallColor(d.wallColor)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [exploreRoomId])
+
+  // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
+  useEffect(() => {
+    if (isExploring || shopBuilderSellerId) return
+    if (waitingInventory.unseenCount > 0) setShowWaitingAlert(true)
+  }, [isExploring, shopBuilderSellerId, waitingInventory.unseenCount])
 
   const handleLoadRoom = useCallback(async (roomId) => {
     const { data, error } = await cloudSave.loadRoom(roomId)
@@ -573,6 +624,9 @@ function AppInner({ shopBuilderSellerId = null }) {
   return (
     <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {/* Sky backdrop — behind the transparent canvas */}
+      <SkyBackdrop />
+
       {/* Brand logo — top left */}
       <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none', opacity: 0.7 }}>
         <Logo size={28} color={t.accent} />
@@ -608,6 +662,7 @@ function AppInner({ shopBuilderSellerId = null }) {
           cartHighlight={cartHighlight}
           lightsOff={lightsOff}
           catalogue={catalogue}
+          cloudsOn={cloudsOn}
         />
       </Canvas>
 
@@ -775,6 +830,24 @@ function AppInner({ shopBuilderSellerId = null }) {
       {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
+      {isExploring && exploreData && (
+        <ExploreBanner exploreData={exploreData} waitingCount={waitingInventory.count}
+          onExit={() => { window.location.href = window.location.pathname }} />
+      )}
+      {showWaitingAlert && !isExploring && (
+        <WaitingInventoryAlert items={waitingInventory.items}
+          onClose={() => { setShowWaitingAlert(false); waitingInventory.markSeen() }}
+          onAddAllToCart={() => {
+            waitingInventory.items.forEach(it => addToCart(it.typeKey, it.swatchIndex || 0, it.sizeIndex || 0))
+            waitingInventory.clearAll(); setShowWaitingAlert(false)
+          }}
+          onAddAllToWishlist={() => {
+            waitingInventory.items.forEach(it => toggleWishlist(it.typeKey))
+            waitingInventory.clearAll(); setShowWaitingAlert(false)
+          }}
+          onClear={() => { waitingInventory.clearAll(); setShowWaitingAlert(false) }}
+        />
+      )}
       {shopBuilderSellerId && (
         <WispyCashier greeting={wispyGreeting ?? 'Welcome to my shop! ☁'} />
       )}
@@ -888,6 +961,44 @@ function AppInner({ shopBuilderSellerId = null }) {
             {lightsOff ? '☀' : '💡'}
           </button>
           <button style={{ ...s.bottomBtn, ...(wispyMessage ? s.bottomBtnActive : {}) }} onClick={showWispy} title="Wispy">☁</button>
+          <button
+            style={{ ...s.bottomBtn, ...(cloudsOn ? s.bottomBtnActive : {}) }}
+            onClick={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+            title={cloudsOn ? 'Clouds on — click to turn off' : 'Clouds off — click to turn on'}
+          >{cloudsOn ? '⛅' : '◯'}</button>
+
+          {/* Explore-mode save button */}
+          {isExploring && selectedItem && (
+            <button
+              style={{ ...s.bottomBtn, background: `${t.accent}25`, borderColor: t.accent, color: t.accent, fontWeight: 700 }}
+              onClick={() => {
+                const def = ITEM_CATALOGUE[selectedItem.typeKey]
+                waitingInventory.addItem({
+                  typeKey: selectedItem.typeKey,
+                  swatchIndex: selectedItem.swatchIndex,
+                  sizeIndex: selectedItem.sizeIndex,
+                  label: def?.label ?? selectedItem.typeKey,
+                  action: 'place',
+                  fromRoomTitle: exploreData?.post?.title,
+                  fromDesigner: exploreData?.designer,
+                })
+              }}
+              title="Save this item to your inventory"
+            >+ Save</button>
+          )}
+
+          {/* Persistent waiting-inventory badge */}
+          {!isExploring && !showWaitingAlert && waitingInventory.count > 0 && (
+            <button
+              style={{ ...s.bottomBtn, background: `${t.accent}15`, borderColor: t.accent, color: t.accent, position: 'relative' }}
+              onClick={() => setShowWaitingAlert(true)}
+              title={`${waitingInventory.count} items waiting from explored rooms`}
+            >!
+              <span style={{ position: 'absolute', top: -4, right: -4, background: t.accent, color: t.accentText, borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {waitingInventory.count}
+              </span>
+            </button>
+          )}
 
           <div style={s.barDivider} />
 

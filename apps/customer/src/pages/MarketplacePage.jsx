@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import MarketplaceProductModal from '../ui/MarketplaceProductModal'
 
 const CATEGORIES = ['All', 'Seating', 'Tables', 'Storage', 'Bedroom', 'Lighting', 'Flooring', 'Textiles', 'Decor', 'Specialty']
 const SORT_OPTIONS = [
@@ -18,6 +19,7 @@ export default function MarketplacePage({ onEnterBuilder, onBack }) {
   const [search, setSearch]     = useState('')
   const [category, setCategory] = useState('All')
   const [sort, setSort]         = useState('newest')
+  const [selectedProduct, setSelectedProduct] = useState(null)
 
   useEffect(() => {
     supabase
@@ -187,7 +189,7 @@ export default function MarketplacePage({ onEnterBuilder, onBack }) {
               const price = getPrice(product)
               const seller = product.profiles?.display_name ?? 'Seller'
               return (
-                <div key={product.id} className="ddd-tile" style={{
+                <div key={product.id} className="ddd-tile" onClick={() => setSelectedProduct(product)} style={{
                   background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14,
                   overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
                 }}>
@@ -222,6 +224,14 @@ export default function MarketplacePage({ onEnterBuilder, onBack }) {
           </div>
         )}
       </div>
+
+      {selectedProduct && (
+        <MarketplaceProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onEnterBuilder={() => { setSelectedProduct(null); onEnterBuilder?.() }}
+        />
+      )}
     </div>
   )
 }
