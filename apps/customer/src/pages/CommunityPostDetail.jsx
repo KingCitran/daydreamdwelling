@@ -203,20 +203,18 @@ export default function CommunityPostDetail({ post: initialPost, onClose, onOpen
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${t.surfaceBorder}`, marginTop: 4 }}>
-              <button onClick={toggleHeart} disabled={loading} title={!user ? 'Click to sign in and drop a raindrop' : 'Drop a raindrop'} style={{
+              <button onClick={toggleHeart} disabled={loading} style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '11px 20px', borderRadius: 12,
                 background: hearted ? `${t.accent}20` : `${t.accent}10`,
                 border: `2px solid ${hearted ? t.accent : `${t.accent}50`}`,
                 color: hearted ? t.accent : t.text,
-                fontSize: 16, fontWeight: 800, cursor: user ? 'pointer' : 'not-allowed',
+                fontSize: 16, fontWeight: 800, cursor: 'pointer',
                 transition: 'all 0.2s', fontFamily: 'inherit',
-                transform: hearted ? 'scale(1.04)' : 'scale(1)',
-                boxShadow: hearted ? `0 0 0 4px ${t.accent}20, 0 2px 12px ${t.accent}30` : `0 2px 8px ${t.accent}15`,
               }}>
                 <RaindropIcon size={24} filled={hearted} color={t.accent} />
                 {post.heart_count}
-                <span style={{ fontSize: 11, fontWeight: 500, color: t.textSoft, marginLeft: 2 }}>raindrops</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: t.textSoft }}>raindrops</span>
               </button>
             </div>
 

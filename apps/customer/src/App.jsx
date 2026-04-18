@@ -52,6 +52,7 @@ import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
 import ShareToCommunityModal from './ui/ShareToCommunityModal'
+import CommunityApp from './pages/CommunityApp'
 import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
 import { useMoodControl } from '@shared/ThemeProvider'
@@ -109,6 +110,7 @@ function Gate() {
   }
 
   if (params.get('preview') === 'wispy') return <WispyPreview />
+  if (window.location.pathname.startsWith('/community')) return <CommunityApp />
 
   let page
   if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
@@ -832,7 +834,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
       {isExploring && exploreData && (
         <ExploreBanner exploreData={exploreData} waitingCount={waitingInventory.count}
-          onExit={() => { window.location.href = window.location.pathname }} />
+          onExit={() => {
+            const from = new URLSearchParams(window.location.search).get('fromCommunity')
+            window.location.href = from ? `/community/room/${exploreData.post.id}` : window.location.pathname
+          }} />
       )}
       {showWaitingAlert && !isExploring && (
         <WaitingInventoryAlert items={waitingInventory.items}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import RaindropIcon from '@shared/RaindropIcon'
+import RaindropMobile from '../ui/RaindropMobile'
 
 const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
@@ -10,46 +11,46 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
   const canvasRef = useRef(null)
   const audioRef  = useRef(null)
   const cardRefs  = useRef([])
-  const raindrops = useRef([])
   const confettiP = useRef([])
+  const bolts      = useRef([])
   const animRef   = useRef(null)
   const tickRef   = useRef(0)
   const [phase, setPhase] = useState(0)
 
-  const top = entries.slice(0, Math.min(entries.length, 5))
-  const maxVotes = Math.max(...top.map(e => e.vote_count), 1)
-  const winner = top[0]
+  const topRaw = entries.slice(0, Math.min(entries.length, 5))
+  const maxVotes = Math.max(...topRaw.map(e => e.vote_count), 1)
+  const winner = topRaw[0]
+  // Reorder so winner is center: [#2, #1(winner), #3, ...]
+  const top = topRaw.length >= 3
+    ? [topRaw[1], topRaw[0], topRaw[2], ...topRaw.slice(3)]
+    : topRaw
 
   const playThunder = useCallback(() => {
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)()
-      audioRef.current = ctx
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sawtooth'
-      osc.frequency.setValueAtTime(40, ctx.currentTime)
-      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 2)
-      osc.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 3.5)
-      gain.gain.setValueAtTime(0, ctx.currentTime)
-      gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 1)
-      gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 2.5)
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 4)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(); osc.stop(ctx.currentTime + 4)
-      const bufSize = ctx.sampleRate * 0.4
-      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
-      const d = buf.getChannelData(0)
-      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.08))
-      const noise = ctx.createBufferSource()
-      const ng = ctx.createGain()
-      noise.buffer = buf
-      ng.gain.setValueAtTime(0, ctx.currentTime + 2.3)
-      ng.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 2.5)
-      ng.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 3.5)
-      noise.connect(ng).connect(ctx.destination)
-      noise.start(ctx.currentTime + 2.3)
+      const audio = new Audio('/audio/thunder-rumble.mp3')
+      audio.loop = true
+      const peakVol = Math.min(1, 0.4 + Math.log10(Math.max(maxVotes, 1)) / 6)
+      audio.volume = 0
+      audio.play().catch(() => {})
+      let vol = 0
+      let phase = 'in'
+      const tick = setInterval(() => {
+        if (phase === 'in') {
+          vol = Math.min(peakVol, vol + peakVol / 30)
+          audio.volume = vol
+          if (vol >= peakVol) phase = 'hold'
+        } else if (phase === 'out') {
+          vol = Math.max(0, vol - peakVol / 120)
+          audio.volume = vol
+          if (vol <= 0) { clearInterval(tick); audio.pause(); audio.src = '' }
+        }
+      }, 100)
+      audioRef.current = {
+        fadeOut: () => { phase = 'out' },
+        close: () => { clearInterval(tick); audio.pause(); audio.src = '' },
+      }
     } catch { /* audio unsupported */ }
-  }, [])
+  }, [maxVotes])
 
   function spawnRainFromCards() {
     cardRefs.current.forEach((el, i) => {
@@ -74,8 +75,52 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
     })
   }
 
+  function playLightningStrike() {
+    const clips = ['/audio/lightning-strike-1.mp3', '/audio/lightning-strike-2.mp3', '/audio/lightning-strike-3.mp3', '/audio/lightning-strike-4.mp3']
+    const clip = clips[Math.floor(Math.random() * clips.length)]
+    const a = new Audio(clip)
+    a.volume = 0.3 + Math.random() * 0.3
+    a.play().catch(() => {})
+  }
+
+  function spawnLightning() {
+    playLightningStrike()
+    const intensity = Math.min(1, Math.max(0.3, Math.log10(Math.max(maxVotes, 1)) / 4))
+    cardRefs.current.forEach((el, i) => {
+      if (!el || !top[i]) return
+      const rect = el.getBoundingClientRect()
+      const numBolts = i === 0 ? Math.floor(1 + intensity * 2) : (Math.random() < 0.5 ? 1 : 0)
+      for (let b = 0; b < numBolts; b++) {
+        const points = []
+        const startX = rect.left + rect.width * (0.2 + Math.random() * 0.6)
+        const startY = rect.bottom
+        const boltLen = 60 + intensity * 100 + Math.random() * 60
+        let x = startX, y = startY
+        points.push({ x, y })
+        const segments = 4 + Math.floor(intensity * 3)
+        const stepY = boltLen / segments
+        for (let s = 0; s < segments; s++) {
+          x += (Math.random() - 0.5) * 35
+          y += stepY * (0.7 + Math.random() * 0.6)
+          points.push({ x, y })
+          if (Math.random() < 0.3) {
+            const branch = []
+            let bx = x, by = y
+            for (let j = 0; j < 2; j++) {
+              bx += (Math.random() - 0.5) * 25
+              by += stepY * 0.5
+              branch.push({ x: bx, y: by })
+            }
+            points.push({ branch })
+          }
+        }
+        bolts.current.push({ points, life: 1, width: 1 + intensity * 1.2, delay: b * 12 + i * 6 })
+      }
+    })
+  }
+
   function spawnConfetti(cx, cy) {
-    const colors = [t.accent, '#f0c060', '#70c090', '#9a7aee', '#ff7aa0', '#70a0ff', '#fff']
+    const colors = ['#fbbf24', '#f0c060', '#daa520', '#ffd700', '#e8b830', '#fff5cc', '#fffbe6']
     for (let i = 0; i < 150; i++) {
       const angle = Math.random() * Math.PI * 2
       const speed = 4 + Math.random() * 10
@@ -102,14 +147,44 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
 
     const timers = [
       setTimeout(() => setPhase(1), 500),
+      // Drumroll begins — lightning fires in waves as it ramps
       setTimeout(() => { setPhase(2); playThunder() }, 2000),
-      setTimeout(() => spawnRainFromCards(), 2600),
-      setTimeout(() => setPhase(3), 5200),
+      setTimeout(() => spawnLightning(), 2500),
+      setTimeout(() => spawnLightning(), 4000),
+      setTimeout(() => spawnLightning(), 5500),
+      setTimeout(() => spawnLightning(), 7000),
+      setTimeout(() => spawnLightning(), 8000),
+      // Pause after drumroll peak
+      setTimeout(() => setPhase(3), 9000),
+      // Rain drops appear — fade thunder out, fade rain ambient in
+      setTimeout(() => {
+        setPhase(3.5)
+        audioRef.current?.fadeOut?.()
+        try {
+          const rain = new Audio('/audio/rain-ambient.mp3')
+          rain.loop = true
+          rain.volume = 0
+          rain.play().catch(() => {})
+          let rv = 0
+          const rFade = setInterval(() => {
+            rv = Math.min(0.35, rv + 0.35 / 40)
+            rain.volume = rv
+            if (rv >= 0.35) clearInterval(rFade)
+          }, 100)
+          const prevClose = audioRef.current?.close
+          audioRef.current = {
+            ...audioRef.current,
+            close: () => { prevClose?.(); clearInterval(rFade); rain.pause(); rain.src = '' },
+          }
+        } catch {}
+      }, 10200),
+      // Winner announcement + confetti
       setTimeout(() => {
         setPhase(4)
-        const el = cardRefs.current[0]
+        const winIdx = top.findIndex(e => e.id === winner?.id)
+        const el = cardRefs.current[winIdx >= 0 ? winIdx : 0]
         if (el) { const r = el.getBoundingClientRect(); spawnConfetti(r.left + r.width / 2, r.top + r.height / 2) }
-      }, 6800),
+      }, 12000),
     ]
 
     function draw() {
@@ -124,37 +199,6 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
         ctx.beginPath(); ctx.arc(sx, sy, 1.2, 0, Math.PI * 2); ctx.fill()
       }
 
-      // Raindrops
-      raindrops.current.forEach(drop => {
-        drop.age++
-        if (drop.age < drop.delay) return
-        if (drop.y < drop.maxY) drop.y += drop.vy
-        const a = drop.opacity * (drop.y < drop.maxY ? 1 : Math.max(0, 1 - (drop.age - drop.delay) * 0.003))
-        if (a <= 0) return
-
-        ctx.save()
-        ctx.translate(drop.x, drop.y)
-        // Teardrop
-        ctx.fillStyle = t.accent
-        ctx.globalAlpha = a
-        ctx.beginPath()
-        ctx.moveTo(0, -drop.size)
-        ctx.bezierCurveTo(drop.size * 0.7, -drop.size * 0.2, drop.size * 0.7, drop.size * 0.6, 0, drop.size)
-        ctx.bezierCurveTo(-drop.size * 0.7, drop.size * 0.6, -drop.size * 0.7, -drop.size * 0.2, 0, -drop.size)
-        ctx.fill()
-        // Sparkle
-        if (drop.sparkle) {
-          ctx.fillStyle = '#fff'
-          ctx.globalAlpha = a * 0.85
-          const ss = drop.size * 0.35
-          ctx.beginPath()
-          ctx.moveTo(0, -ss); ctx.lineTo(ss * 0.3, -ss * 0.3); ctx.lineTo(ss, 0)
-          ctx.lineTo(ss * 0.3, ss * 0.3); ctx.lineTo(0, ss); ctx.lineTo(-ss * 0.3, ss * 0.3)
-          ctx.lineTo(-ss, 0); ctx.lineTo(-ss * 0.3, -ss * 0.3); ctx.closePath(); ctx.fill()
-        }
-        ctx.restore()
-      })
-
       // Confetti
       confettiP.current = confettiP.current.filter(c => c.life > 0)
       confettiP.current.forEach(c => {
@@ -168,11 +212,54 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
         ctx.restore()
       })
 
-      // Lightning flash
-      if (phase === 2 && tick > 62 && tick < 67) {
-        ctx.fillStyle = 'rgba(180,180,255,0.08)'
-        ctx.fillRect(0, 0, w, h)
-      }
+      // Lightning bolts
+      bolts.current = bolts.current.filter(b => b.life > 0)
+      bolts.current.forEach(bolt => {
+        if (bolt.delay > 0) { bolt.delay--; return }
+        bolt.life -= 0.04
+        const a = bolt.life
+        if (a <= 0) return
+        // Glow around bolt origin
+        if (a > 0.8) {
+          const originPt = bolt.points[0]
+          if (originPt) {
+            const grad = ctx.createRadialGradient(originPt.x, originPt.y, 0, originPt.x, originPt.y, 120)
+            grad.addColorStop(0, `rgba(180,190,230,${(a - 0.8) * 0.6})`)
+            grad.addColorStop(1, 'transparent')
+            ctx.fillStyle = grad
+            ctx.fillRect(originPt.x - 120, originPt.y - 60, 240, 180)
+          }
+        }
+        ctx.save()
+        ctx.strokeStyle = `rgba(200,210,255,${a})`
+        ctx.lineWidth = bolt.width * a
+        ctx.shadowColor = `rgba(150,170,255,${a * 0.8})`
+        ctx.shadowBlur = 20 * a
+        ctx.beginPath()
+        let started = false
+        for (const pt of bolt.points) {
+          if (pt.branch) {
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.strokeStyle = `rgba(180,190,255,${a * 0.5})`
+            ctx.lineWidth = bolt.width * a * 0.4
+            ctx.moveTo(pt.branch[0]?.x ?? 0, pt.branch[0]?.y ?? 0)
+            pt.branch.forEach(bp => ctx.lineTo(bp.x, bp.y))
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.strokeStyle = `rgba(200,210,255,${a})`
+            ctx.lineWidth = bolt.width * a
+            started = false
+          } else if (!started) {
+            ctx.moveTo(pt.x, pt.y)
+            started = true
+          } else {
+            ctx.lineTo(pt.x, pt.y)
+          }
+        }
+        ctx.stroke()
+        ctx.restore()
+      })
 
       animRef.current = requestAnimationFrame(draw)
     }
@@ -202,125 +289,226 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
         <h1 style={{ fontSize: 26, fontWeight: 700, color: '#ddddf0', margin: 0 }}>{contest?.title}</h1>
       </div>
 
-      {/* Entry cards — DOM elements on cloud backgrounds */}
-      <div style={{ position: 'absolute', top: '18%', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 20, padding: '0 20px', zIndex: 2 }}>
+      {/* Entry cards — cloud-shaped with dangling mobiles */}
+      <div style={{ position: 'absolute', top: '12%', left: 0, right: 0, display: 'grid', gridTemplateColumns: `repeat(${top.length}, 280px)`, justifyContent: 'center', gap: 180, zIndex: 2, alignItems: 'start' }}>
         {top.map((entry, i) => {
           const p = entry.profiles
           const tier = p?.designer_tier ?? 0
           const screenshot = entry.community_posts?.screenshot_url
-          const isWinner = i === 0 && phase >= 3
+          const isWinner = entry.id === winner?.id && phase >= 3
 
           return (
             <div key={entry.id} ref={el => cardRefs.current[i] = el} style={{
-              width: Math.min(180, (window.innerWidth - 40) / top.length - 16),
+              width: 280,
               opacity: phase >= 1 ? 1 : 0,
               transform: phase >= 1
                 ? (isWinner ? 'translateY(0) scale(1.12)' : 'translateY(0) scale(1)')
                 : 'translateY(50px) scale(0.9)',
               transition: `all 0.7s cubic-bezier(0.23,1,0.32,1) ${i * 0.12}s`,
               zIndex: isWinner ? 5 : 1,
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
             }}>
-              {/* Cloud glow */}
-              <div style={{
-                position: 'absolute', top: -20, left: -20, right: -20, bottom: -20,
-                background: isWinner
-                  ? `radial-gradient(ellipse at center, ${t.accent}25 0%, transparent 70%)`
-                  : 'radial-gradient(ellipse at center, rgba(140,140,200,0.08) 0%, transparent 70%)',
-                borderRadius: '50%', filter: 'blur(8px)', pointerEvents: 'none',
-              }} />
+              {/* Cloud card */}
+              <div style={{ position: 'relative', width: '100%', paddingTop: 40 }}>
+                {(() => {
+                  const bg = isWinner
+                    ? 'rgba(35,30,62,0.92)'
+                    : 'rgba(25,23,48,0.88)'
+                  const glow = isWinner ? `0 0 30px ${t.accent}18` : '0 0 16px rgba(0,0,0,0.25)'
+                  // Cloud bumps — bottom only, fluffy underside
+                  // Wide, flat cloud — ellipses not circles
+                  const bumps = [
+                    // Far outer
+                    { left: -90, bottom: -14, w: 110, pt: 44, isBottom: true },
+                    { left: 260, bottom: -16, w: 108, pt: 42, isBottom: true },
+                    // Outer
+                    { left: -50, bottom: -20, w: 120, pt: 48, isBottom: true },
+                    { left: 210, bottom: -22, w: 118, pt: 46, isBottom: true },
+                    // Main flat bottom row
+                    { left: -14, bottom: -26, w: 130, pt: 52, isBottom: true },
+                    { left: 60, bottom: -24, w: 126, pt: 50, isBottom: true },
+                    { left: 140, bottom: -28, w: 132, pt: 54, isBottom: true },
+                  ]
+                  return bumps.map((b, bi) => (
+                    <div key={bi} style={{
+                      position: 'absolute', left: b.left,
+                      ...(b.isBottom ? { bottom: b.bottom } : { top: b.top }),
+                      width: b.w, paddingTop: b.pt,
+                      borderRadius: '50%', background: bg, boxShadow: glow, zIndex: 2,
+                    }} />
+                  ))
+                })()}
 
-              {/* Card */}
-              <div style={{
-                position: 'relative', borderRadius: 16, overflow: 'hidden',
-                background: 'rgba(20,20,45,0.75)', backdropFilter: 'blur(16px)',
-                border: `1.5px solid ${isWinner ? `${t.accent}60` : 'rgba(120,120,180,0.2)'}`,
-                boxShadow: isWinner ? `0 0 30px ${t.accent}30, 0 8px 32px rgba(0,0,0,0.4)` : '0 8px 32px rgba(0,0,0,0.3)',
-                transition: 'border-color 0.5s, box-shadow 0.5s',
-              }}>
-                {/* Rank badge */}
+                {/* Cloud glow */}
                 <div style={{
-                  position: 'absolute', top: 8, left: 8, zIndex: 3,
-                  width: 26, height: 26, borderRadius: '50%',
-                  background: i === 0 ? t.accent : 'rgba(30,30,60,0.8)',
-                  color: i === 0 ? '#fff' : 'rgba(180,180,220,0.7)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700, border: '1px solid rgba(120,120,180,0.2)',
-                }}>#{i + 1}</div>
+                  position: 'absolute', top: -40, left: -30, right: -30, bottom: -20,
+                  background: isWinner
+                    ? `radial-gradient(ellipse at 50% 30%, ${t.accent}15 0%, transparent 55%)`
+                    : 'radial-gradient(ellipse at 50% 30%, rgba(140,140,200,0.04) 0%, transparent 55%)',
+                  borderRadius: '50%', filter: 'blur(16px)', pointerEvents: 'none',
+                }} />
 
-                {/* Room screenshot or placeholder */}
-                <div style={{ width: '100%', aspectRatio: '16/11', background: '#12122a', position: 'relative', overflow: 'hidden' }}>
-                  {screenshot ? (
-                    <img src={screenshot} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #15153a, #1a1a40)' }}>
-                      <span style={{ fontSize: 32, opacity: 0.15 }}>✦</span>
-                    </div>
-                  )}
-                  {/* Winner star overlay */}
-                  {isWinner && (
-                    <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 20, filter: 'drop-shadow(0 0 6px rgba(255,200,50,0.5))' }}>★</div>
-                  )}
-                </div>
+                {/* Cloud body — floats above the flat cloud base */}
+                <div style={{
+                  position: 'relative', overflow: 'hidden',
+                  borderRadius: '12px 12px 8px 8px',
+                  marginBottom: 20,
+                  background: isWinner
+                    ? 'rgba(35,30,62,0.92)'
+                    : 'rgba(25,23,48,0.88)',
+                  boxShadow: isWinner
+                    ? `0 0 30px ${t.accent}18, 0 8px 32px rgba(0,0,0,0.35)`
+                    : '0 8px 32px rgba(0,0,0,0.3)',
+                  transition: 'box-shadow 0.5s',
+                }}>
+                  {/* Rank badge */}
+                  <div style={{
+                    position: 'absolute', top: 10, left: 10, zIndex: 3,
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: entry.id === winner?.id ? t.accent : 'rgba(30,30,60,0.85)',
+                    color: entry.id === winner?.id ? '#fff' : 'rgba(180,180,220,0.7)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 700, border: '1.5px solid rgba(120,120,180,0.25)',
+                  }}>#{topRaw.indexOf(entry) + 1}</div>
 
-                {/* Info */}
-                <div style={{ padding: '10px 12px' }}>
-                  {/* Designer name */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
-                      background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 700, color: '#fff',
-                    }}>
-                      {p?.avatar_url
-                        ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : (p?.display_name || '?')[0].toUpperCase()}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#ddddf0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {/* Room screenshot — cloud window */}
+                  <div style={{
+                    margin: '10px 10px 0', borderRadius: '20px 24px 14px 16px',
+                    aspectRatio: '16/11', background: '#10102a', overflow: 'hidden', position: 'relative',
+                  }}>
+                    {screenshot ? (
+                      <img src={screenshot} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 32, opacity: 0.15 }}>✦</span>
+                      </div>
+                    )}
+                    {isWinner && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 22, filter: 'drop-shadow(0 0 8px rgba(255,200,50,0.6))' }}>★</div>
+                    )}
+                  </div>
+
+                  {/* Designer info */}
+                  <div style={{ padding: '10px 14px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
+                        background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 700, color: '#fff',
+                      }}>
+                        {p?.avatar_url
+                          ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : (p?.display_name || '?')[0].toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#ddddf0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {p?.display_name || 'Dreamer'}
                       </div>
                       {tier > 0 && (
-                        <div style={{ fontSize: 9, color: TIER_COLORS[tier], fontWeight: 600 }}>{DESIGNER_TIERS[tier]}</div>
+                        <span style={{ fontSize: 9, color: TIER_COLORS[tier], fontWeight: 600 }}>{DESIGNER_TIERS[tier]}</span>
                       )}
                     </div>
                   </div>
-                  {/* Vote count */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 14, fontWeight: 700, color: isWinner ? t.accent : '#b0b0d0' }}>
-                    <RaindropIcon size={16} filled color={isWinner ? t.accent : '#8080b0'} />
-                    {entry.vote_count}
-                    <span style={{ fontSize: 10, fontWeight: 400, color: '#7070a0' }}>raindrops</span>
-                  </div>
                 </div>
               </div>
+
+              {/* Dangling raindrop mobile — falls from within the cloud */}
+              {phase >= 3.5 && (
+                <div style={{
+                  marginTop: 10,
+                  position: 'relative',
+                  zIndex: 3,
+                  opacity: phase >= 3.5 ? 1 : 0,
+                  transition: 'opacity 0.6s ease',
+                }}>
+                  <RaindropMobile
+                    count={entry.vote_count}
+                    filled
+                    accentColor={isWinner ? t.accent : '#8080b0'}
+                    size="small"
+                    animated
+                    maxCount={maxVotes}
+                    formation="rain-arc"
+                    colorScheme="dreamcloud"
+                    seed={i * 7 + 3}
+                    hideCount
+                  />
+                </div>
+              )}
             </div>
           )
         })}
       </div>
 
-      {/* Winner announcement */}
+      {/* Raindrop stats — aligned row */}
+      {phase >= 3.5 && (
+        <div style={{
+          position: 'absolute', bottom: '22%', left: 0, right: 0, zIndex: 10,
+          display: 'grid', gridTemplateColumns: `repeat(${top.length}, 280px)`, justifyContent: 'center', gap: 180,
+          animation: 'ddd-reveal-up 0.6s ease-out',
+        }}>
+          {top.map(entry => {
+            const isW = entry.id === winner?.id
+            return (
+              <div key={entry.id} style={{ textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <RaindropIcon size={20} filled color={isW ? '#fbbf24' : '#8080b0'} />
+                  <span style={{ fontSize: 22, fontWeight: 700, color: isW ? '#fbbf24' : '#c0c0d0' }}>
+                    {entry.vote_count.toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#7070a0', fontWeight: 500 }}>raindrops</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Winner announcement — gold bar with crown */}
       {phase >= 4 && winner && (
         <div style={{
-          position: 'absolute', bottom: 60, left: 0, right: 0, textAlign: 'center', zIndex: 10,
+          position: 'absolute', bottom: 50, left: 0, right: 0, textAlign: 'center', zIndex: 10,
           animation: 'ddd-reveal-up 0.8s ease-out',
         }}>
           <div style={{
-            display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            padding: '22px 40px', background: 'rgba(15,15,35,0.85)', backdropFilter: 'blur(16px)',
-            borderRadius: 20, border: `1.5px solid ${t.accent}50`,
-            boxShadow: `0 0 40px ${t.accent}20`,
+            display: 'inline-flex', alignItems: 'center', gap: 20,
+            padding: '10px 24px',
+            background: 'linear-gradient(135deg, #2a2010 0%, #1a1508 30%, #2a2010 60%, #1a1508 100%)',
+            borderRadius: 12,
+            border: '1.5px solid rgba(251,191,36,0.4)',
+            boxShadow: '0 0 40px rgba(251,191,36,0.15), inset 0 1px 0 rgba(251,191,36,0.2), inset 0 -1px 0 rgba(251,191,36,0.1)',
+            justifyContent: 'center',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <RaindropIcon size={24} filled color={t.accent} />
-              <span style={{ fontSize: 26, fontWeight: 700, color: t.accent }}>{winner.vote_count}</span>
-              <span style={{ fontSize: 13, color: '#8080b0' }}>raindrops</span>
+            {/* Crown */}
+            <span style={{ fontSize: 28, filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.5))' }}>👑</span>
+            {/* Name */}
+            <span style={{ fontSize: 20, fontWeight: 700, color: '#fbbf24' }}>{winner.profiles?.display_name || 'Dreamer'}</span>
+            <span style={{ color: '#806830', fontSize: 13 }}>·</span>
+            {/* Contest title */}
+            <span style={{ fontSize: 13, color: '#c0a050', fontWeight: 600 }}>{contest?.title}</span>
+            <span style={{ color: '#806830', fontSize: 13 }}>·</span>
+            {/* Winner label */}
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Winner</span>
+            <span style={{ color: '#806830', fontSize: 13 }}>·</span>
+            {/* Raindrop count */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <RaindropIcon size={16} filled color="#fbbf24" />
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#fbbf24' }}>{winner.vote_count.toLocaleString()}</span>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#e0e0f0' }}>{winner.profiles?.display_name || 'Dreamer'}</div>
+            {/* Prize */}
             {contest?.prize_description && (
-              <div style={{ fontSize: 12, color: `${t.accent}cc`, fontWeight: 600 }}>✦ {contest.prize_description}</div>
+              <>
+                <span style={{ color: '#806830', fontSize: 13 }}>·</span>
+                <span style={{ fontSize: 11, color: '#d4a840', fontWeight: 600 }}>✦ {contest.prize_description}</span>
+              </>
             )}
           </div>
         </div>
       )}
+
+      {/* Audio credit */}
+      <div style={{ position: 'absolute', bottom: 8, right: 16, zIndex: 5, fontSize: 9, color: 'rgba(120,120,160,0.5)' }}>
+        Thunder: freesound_community via Pixabay · Lightning: danielmcadams, filmscore via Freesound
+      </div>
 
       <style>{`
         @keyframes ddd-reveal-up {

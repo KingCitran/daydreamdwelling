@@ -2,23 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
-import RaindropIcon from '@shared/RaindropIcon'
 import CommunityPostDetail from './CommunityPostDetail'
-
-const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
-const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
-
-function timeAgo(iso) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins  = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
+import PostCard from './community/PostCard'
 
 export default function CommunityFeed({ onClose }) {
   const t = useTheme()
@@ -156,87 +141,3 @@ export default function CommunityFeed({ onClose }) {
   )
 }
 
-function PostCard({ post, t, hearted, onHeart, onOpen, featured = false }) {
-  const profile = post.profiles
-  const tier = profile?.designer_tier ?? 0
-  const tierName = DESIGNER_TIERS[tier] || ''
-
-  return (
-    <div className="ddd-tile" style={{
-      background: t.surface,
-      border: `1px solid ${featured ? `${t.accent}40` : t.surfaceBorder}`,
-      borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
-      transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.2s',
-    }} onClick={onOpen}>
-      {/* Screenshot */}
-      <div style={{
-        height: 200, background: t.bg, position: 'relative',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-      }}>
-        {post.screenshot_url
-          ? <img src={post.screenshot_url} alt={post.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <span style={{ fontSize: 40, opacity: 0.15 }}>✦</span>}
-        {featured && (
-          <div style={{
-            position: 'absolute', top: 10, left: 10,
-            padding: '3px 10px', borderRadius: 12,
-            background: `${t.accent}cc`, color: t.accentText,
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
-            backdropFilter: 'blur(4px)',
-          }}>✦ Featured</div>
-        )}
-      </div>
-
-      <div style={{ padding: '14px 16px' }}>
-        {/* Author row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, color: t.accentText, overflow: 'hidden', flexShrink: 0,
-          }}>
-            {profile?.avatar_url
-              ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : (profile?.display_name || '?')[0].toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: t.text }}>{profile?.display_name || 'Dreamer'}</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {tierName && <span style={{ fontSize: 10, color: TIER_COLORS[tier], fontWeight: 600 }}>{tierName}</span>}
-              <span style={{ fontSize: 10, color: t.textSoft }}>{timeAgo(post.created_at)}</span>
-            </div>
-          </div>
-        </div>
-
-        <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: t.text }}>{post.title}</h3>
-        {post.description && (
-          <p style={{ margin: '0 0 12px', fontSize: 13, color: t.textSoft, lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-            {post.description}
-          </p>
-        )}
-
-        {/* Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10 }}>
-          <button onClick={e => { e.stopPropagation(); onHeart() }} title="Drop a raindrop — show this room love" style={{
-            background: hearted ? `${t.accent}15` : `${t.accent}08`,
-            border: `1.5px solid ${hearted ? t.accent : t.surfaceBorder}`,
-            cursor: 'pointer', borderRadius: 10,
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 14, padding: '6px 12px',
-            color: hearted ? t.accent : t.text,
-            fontWeight: 700,
-            transition: 'all 0.2s',
-            transform: hearted ? 'scale(1.05)' : 'scale(1)',
-            boxShadow: hearted ? `0 0 0 3px ${t.accent}15` : 'none',
-          }}>
-            <RaindropIcon size={22} filled={hearted} color={hearted ? t.accent : t.accent} />
-            {post.heart_count}
-          </button>
-          <span style={{ fontSize: 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 4 }}>
-            ◈ {post.placement_count} placed
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}

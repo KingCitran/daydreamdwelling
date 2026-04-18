@@ -119,6 +119,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <MoodPicker />
+            <a href="/community" className="ddd-landing-nav-outdoor" style={{ ...s.navLink, color: t.accent }}>Community ✦</a>
             <a href={BLOSSOMS_URL} className="ddd-landing-nav-outdoor" style={{ ...s.navLink, color: t.textSoft }}>Daydream Blossoms ✿</a>
             <button style={s.navCta} onClick={onEnter}>Open Builder →</button>
           </div>
@@ -252,7 +253,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
                     {featuredRoom.profiles?.display_name || 'Designer'}
                   </span>
                   <span style={{ fontSize: 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <RaindropIcon size={14} filled color={t.textSoft} /> {featuredRoom.heart_count ?? 0}
+                    💧 {featuredRoom.heart_count ?? 0} raindrops
                   </span>
                 </div>
                 <button style={s.heroCta} onClick={onEnter}>Explore in the builder →</button>
