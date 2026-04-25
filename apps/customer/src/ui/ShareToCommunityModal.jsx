@@ -37,7 +37,7 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
 
     // Upload screenshot to Supabase Storage
     if (preview) {
-      const path = `community-screenshots/${user.id}/${Date.now()}.png`
+      const path = `${user.id}/${Date.now()}.png`
       const { error: upErr } = await supabase.storage
         .from('community-screenshots')
         .upload(path, preview, { contentType: 'image/png', upsert: false })
@@ -45,8 +45,9 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
       if (!upErr) {
         const { data: urlData } = supabase.storage.from('community-screenshots').getPublicUrl(path)
         screenshotUrl = urlData?.publicUrl
+      } else {
+        console.warn('Screenshot upload failed:', upErr.message)
       }
-      // If upload fails (bucket doesn't exist etc), continue without screenshot
     }
 
     // Insert community post

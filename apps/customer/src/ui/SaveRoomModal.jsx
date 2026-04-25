@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from '@shared/ui/Icon'
 
 export default function SaveRoomModal({ existingName, onSave, onClose, saving }) {
   const [name, setName] = useState(existingName || '')
@@ -28,8 +29,8 @@ export default function SaveRoomModal({ existingName, onSave, onClose, saving })
           {error && <p style={st.error}>{error}</p>}
           <div style={st.btnRow}>
             <button type="button" style={st.cancelBtn} onClick={onClose}>Cancel</button>
-            <button type="submit" style={{ ...st.saveBtn, opacity: saving ? 0.6 : 1 }} disabled={saving}>
-              {saving ? 'Saving…' : '☁ Save'}
+            <button type="submit" style={{ ...st.saveBtn, opacity: saving ? 0.6 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} disabled={saving}>
+              {saving ? 'Saving…' : <><Icon name="save" size={14} /> Save</>}
             </button>
           </div>
         </form>
