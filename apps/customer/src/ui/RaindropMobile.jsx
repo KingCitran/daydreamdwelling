@@ -1,94 +1,44 @@
 import RaindropIcon from '@shared/RaindropIcon'
+import { COLOR_SCHEMES, MOOD_COLOR_SCHEMES } from './raindropSchemes'
 
 const ANIM_CSS = `
 @keyframes ddd-sway-1 { 0%,100% { transform: rotate(-2.5deg) } 50% { transform: rotate(2.5deg) } }
 @keyframes ddd-sway-2 { 0%,100% { transform: rotate(2deg) } 50% { transform: rotate(-2deg) } }
 @keyframes ddd-sway-3 { 0%,100% { transform: rotate(-1.5deg) } 50% { transform: rotate(3deg) } }
+@keyframes ddd-idle-1 { 0%,100% { transform: rotate(-0.6deg) } 50% { transform: rotate(0.6deg) } }
+@keyframes ddd-idle-2 { 0%,100% { transform: rotate(0.4deg) } 50% { transform: rotate(-0.5deg) } }
+@keyframes ddd-idle-3 { 0%,100% { transform: rotate(-0.3deg) } 50% { transform: rotate(0.7deg) } }
 @keyframes ddd-shimmer { 0%,100% { filter: drop-shadow(0 0 2px currentColor) } 50% { filter: drop-shadow(0 0 6px currentColor) } }
 @keyframes ddd-silver { 0%,100% { filter: drop-shadow(0 0 3px rgba(180,190,240,0.5)) } 50% { filter: drop-shadow(0 0 10px rgba(200,210,255,0.9)) } }
 @keyframes ddd-aurora { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 5px rgba(134,239,172,0.6)) } 50% { filter: hue-rotate(40deg) drop-shadow(0 0 10px rgba(134,200,255,0.8)) } 100% { filter: hue-rotate(0deg) drop-shadow(0 0 5px rgba(134,239,172,0.6)) } }
 @keyframes ddd-pearl { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(220,200,255,0.6)) } 25% { filter: hue-rotate(25deg) drop-shadow(0 0 10px rgba(255,200,220,0.7)) } 50% { filter: hue-rotate(-15deg) drop-shadow(0 0 12px rgba(200,220,255,0.8)) } 75% { filter: hue-rotate(10deg) drop-shadow(0 0 8px rgba(220,255,220,0.6)) } 100% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(220,200,255,0.6)) } }
 @keyframes ddd-drip-in { 0% { opacity:0; transform: translateY(-8px) scale(0.6) } 60% { opacity:1; transform: translateY(3px) scale(1.05) } 100% { opacity:1; transform: translateY(0) scale(1) } }
 @keyframes ddd-rain-cycle { 0% { opacity:1; transform: translateY(0) } 70% { opacity:1; transform: translateY(0) } 82% { opacity:0; transform: translateY(12px) } 84% { opacity:0; transform: translateY(-6px) } 96% { opacity:1; transform: translateY(2px) } 100% { opacity:1; transform: translateY(0) } }
-`
-
-const COLOR_SCHEMES = {
-  ocean: [
-    { min: 100000, color: '#f0e0ff', glow: 'rgba(220,200,255,0.6)', anim: 'ddd-pearl 6s ease-in-out infinite' },
-    { min: 50000,  color: '#86efac', glow: 'rgba(134,239,172,0.5)', anim: 'ddd-aurora 4s ease-in-out infinite' },
-    { min: 10000,  color: '#d8daf0', glow: 'rgba(200,210,255,0.5)', anim: 'ddd-silver 2.5s ease-in-out infinite' },
-    { min: 5000,   color: '#f59e0b', glow: 'rgba(245,158,11,0.5)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 1000,   color: '#fbbf24', glow: 'rgba(251,191,36,0.4)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 500,    color: '#f472b6', glow: null, anim: null },
-    { min: 250,    color: '#d946ef', glow: null, anim: null },
-    { min: 100,    color: '#8b5cf6', glow: null, anim: null },
-    { min: 50,     color: '#a78bfa', glow: null, anim: null },
-    { min: 20,     color: '#c4b5fd', glow: null, anim: null },
-    { min: 10,     color: '#5eead4', glow: null, anim: null },
-    { min: 5,      color: '#38bdf8', glow: null, anim: null },
-    { min: 0,      color: '#60a5fa', glow: null, anim: null },
-  ],
-  sunset: [
-    { min: 100000, color: '#fef3c7', glow: 'rgba(254,243,199,0.6)', anim: 'ddd-pearl 6s ease-in-out infinite' },
-    { min: 50000,  color: '#fcd34d', glow: 'rgba(252,211,77,0.5)',  anim: 'ddd-shimmer 3s ease-in-out infinite' },
-    { min: 10000,  color: '#fbbf24', glow: 'rgba(251,191,36,0.5)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 5000,   color: '#f59e0b', glow: 'rgba(245,158,11,0.5)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 1000,   color: '#f97316', glow: 'rgba(249,115,22,0.4)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 500,    color: '#ef4444', glow: null, anim: null },
-    { min: 250,    color: '#f472b6', glow: null, anim: null },
-    { min: 100,    color: '#e879f9', glow: null, anim: null },
-    { min: 50,     color: '#c084fc', glow: null, anim: null },
-    { min: 20,     color: '#a78bfa', glow: null, anim: null },
-    { min: 10,     color: '#818cf8', glow: null, anim: null },
-    { min: 5,      color: '#6366f1', glow: null, anim: null },
-    { min: 0,      color: '#4f46e5', glow: null, anim: null },
-  ],
-  northern: [
-    { min: 100000, color: '#f0fdf4', glow: 'rgba(240,253,244,0.6)', anim: 'ddd-pearl 6s ease-in-out infinite' },
-    { min: 50000,  color: '#bbf7d0', glow: 'rgba(187,247,208,0.5)', anim: 'ddd-aurora 4s ease-in-out infinite' },
-    { min: 10000,  color: '#86efac', glow: 'rgba(134,239,172,0.5)', anim: 'ddd-aurora 3s ease-in-out infinite' },
-    { min: 5000,   color: '#4ade80', glow: 'rgba(74,222,128,0.4)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 1000,   color: '#22d3ee', glow: 'rgba(34,211,238,0.4)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 500,    color: '#2dd4bf', glow: null, anim: null },
-    { min: 250,    color: '#34d399', glow: null, anim: null },
-    { min: 100,    color: '#6ee7b7', glow: null, anim: null },
-    { min: 50,     color: '#67e8f9', glow: null, anim: null },
-    { min: 20,     color: '#7dd3fc', glow: null, anim: null },
-    { min: 10,     color: '#93c5fd', glow: null, anim: null },
-    { min: 5,      color: '#a5b4fc', glow: null, anim: null },
-    { min: 0,      color: '#c4b5fd', glow: null, anim: null },
-  ],
-  ember: [
-    { min: 100000, color: '#fffbeb', glow: 'rgba(255,251,235,0.6)', anim: 'ddd-pearl 6s ease-in-out infinite' },
-    { min: 50000,  color: '#fde68a', glow: 'rgba(253,230,138,0.5)', anim: 'ddd-shimmer 3s ease-in-out infinite' },
-    { min: 10000,  color: '#fbbf24', glow: 'rgba(251,191,36,0.5)',  anim: 'ddd-silver 2.5s ease-in-out infinite' },
-    { min: 5000,   color: '#fb923c', glow: 'rgba(251,146,60,0.5)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 1000,   color: '#f87171', glow: 'rgba(248,113,113,0.4)', anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 500,    color: '#ef4444', glow: null, anim: null },
-    { min: 250,    color: '#dc2626', glow: null, anim: null },
-    { min: 100,    color: '#b91c1c', glow: null, anim: null },
-    { min: 50,     color: '#9a3412', glow: null, anim: null },
-    { min: 20,     color: '#78350f', glow: null, anim: null },
-    { min: 10,     color: '#713f12', glow: null, anim: null },
-    { min: 5,      color: '#854d0e', glow: null, anim: null },
-    { min: 0,      color: '#a16207', glow: null, anim: null },
-  ],
-  dreamcloud: [
-    { min: 100000, color: '#fdf2f8', glow: 'rgba(253,242,248,0.6)', anim: 'ddd-pearl 6s ease-in-out infinite' },
-    { min: 50000,  color: '#f9a8d4', glow: 'rgba(249,168,212,0.5)', anim: 'ddd-aurora 4s ease-in-out infinite' },
-    { min: 10000,  color: '#e879f9', glow: 'rgba(232,121,249,0.5)', anim: 'ddd-silver 2.5s ease-in-out infinite' },
-    { min: 5000,   color: '#c084fc', glow: 'rgba(192,132,252,0.4)', anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 1000,   color: '#8b5cf6', glow: 'rgba(139,92,246,0.4)',  anim: 'ddd-shimmer 2.5s ease-in-out infinite' },
-    { min: 500,    color: '#7c3aed', glow: null, anim: null },
-    { min: 250,    color: '#6366f1', glow: null, anim: null },
-    { min: 100,    color: '#3b82f6', glow: null, anim: null },
-    { min: 50,     color: '#0ea5e9', glow: null, anim: null },
-    { min: 20,     color: '#06b6d4', glow: null, anim: null },
-    { min: 10,     color: '#67e8f9', glow: null, anim: null },
-    { min: 5,      color: '#a5b4fc', glow: null, anim: null },
-    { min: 0,      color: '#c4b5fd', glow: null, anim: null },
-  ],
+@keyframes ddd-flicker { 0%,100% { filter: drop-shadow(0 0 3px rgba(255,255,255,0.7)) brightness(1) } 28% { filter: drop-shadow(0 0 10px rgba(255,255,255,1)) brightness(1.4) } 55% { filter: drop-shadow(0 0 5px rgba(255,255,255,0.85)) brightness(1.1) } 78% { filter: drop-shadow(0 0 8px rgba(255,255,255,1)) brightness(1.3) } }
+@keyframes ddd-rainbow { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 8px currentColor) } 50% { filter: hue-rotate(180deg) drop-shadow(0 0 12px currentColor) } 100% { filter: hue-rotate(360deg) drop-shadow(0 0 8px currentColor) } }
+/* ROYGBIV cycle: red → orange → yellow → green → blue → indigo → violet → red.
+   Apply to a red base color so the rotation lands cleanly on each stop. */
+@keyframes ddd-roygbiv {
+  0%, 100% { filter: hue-rotate(0deg)   drop-shadow(0 0 8px currentColor) }  /* red */
+  14%      { filter: hue-rotate(30deg)  drop-shadow(0 0 10px currentColor) } /* orange */
+  28%      { filter: hue-rotate(60deg)  drop-shadow(0 0 9px currentColor) }  /* yellow */
+  42%      { filter: hue-rotate(120deg) drop-shadow(0 0 10px currentColor) } /* green */
+  57%      { filter: hue-rotate(240deg) drop-shadow(0 0 12px currentColor) } /* blue */
+  71%      { filter: hue-rotate(265deg) drop-shadow(0 0 11px currentColor) } /* indigo */
+  85%      { filter: hue-rotate(290deg) drop-shadow(0 0 10px currentColor) } /* violet */
 }
+/* Coal-cool: red ember coal → blush → pale purple-blue → pale blue → back.
+   Rotates through magenta/violet side (negative hue) to AVOID green entirely.
+   Saturation and brightness shift to keep tones soft/pale during the cool phase. */
+@keyframes ddd-coal-cool {
+  0%, 100% { filter: hue-rotate(0deg)    saturate(1)   brightness(1)   drop-shadow(0 0 4px currentColor) }
+  18%      { filter: hue-rotate(-30deg)  saturate(0.6) brightness(1.3) drop-shadow(0 0 5px rgba(255,200,210,0.6)) }  /* blush */
+  38%      { filter: hue-rotate(-90deg)  saturate(0.45) brightness(1.4) drop-shadow(0 0 6px rgba(220,210,255,0.7)) }  /* pale purple-blue */
+  52%      { filter: hue-rotate(-130deg) saturate(0.4) brightness(1.5) drop-shadow(0 0 7px rgba(180,210,255,0.8)) }  /* pale blue */
+  68%      { filter: hue-rotate(-90deg)  saturate(0.45) brightness(1.4) drop-shadow(0 0 6px rgba(220,210,255,0.7)) }  /* back to pale purple-blue */
+  85%      { filter: hue-rotate(-30deg)  saturate(0.6) brightness(1.3) drop-shadow(0 0 5px rgba(255,200,210,0.6)) }  /* back to blush */
+}
+`
 
 function peakTierIndex(tiers, count) {
   for (let i = 0; i < tiers.length; i++) {
@@ -103,15 +53,26 @@ function colorForDistance(tiers, dist, peakIdx) {
   return tiers[Math.min(idx, tiers.length - 1)]
 }
 
+// Vote count → rendered drop count.
+// Boosted low end so small clouds feel present, slow growth through the
+// hundreds and thousands, then linear jumps after 10k so 10k vs 50k entries
+// look meaningfully different. Caps at 120 drops around 50k votes.
 function scaledDropCount(count, maxCount = 0) {
-  if (count <= 20) return count
+  if (count <= 0) return 0
   if (maxCount > 0 && maxCount > count) {
+    // Legacy relative scaling — only triggered if a caller passes maxCount.
     const ratio = count / maxCount
     return Math.max(15, Math.floor(ratio * 120))
   }
-  if (count <= 100) return Math.floor(20 + (count - 20) * 0.4)
-  if (count <= 1000) return Math.floor(52 + (count - 100) * 0.03)
-  return Math.min(120, Math.floor(80 + Math.log10(count / 1000) * 25))
+  // 1–20 votes: each vote visible, with a +4 floor so even 1 vote shows ~5 drops.
+  if (count <= 20)    return Math.max(5, count + 4)
+  // 21–100: linear, 20→24 → 100→49.
+  if (count <= 100)   return Math.floor(24 + (count - 20) * 0.32)
+  // 100–10,000: slow log growth, 100→48 → 1k→60 → 10k→73.
+  // (Only ~25 extra drops over a 100× vote increase — popular but not winners look similar.)
+  if (count <= 10000) return Math.floor(48 + Math.log10(count / 100) * 12.5)
+  // 10,000+: linear jumps, ~+12 drops per 10k votes. Caps at 120 around 50k.
+  return Math.min(120, Math.floor(73 + (count - 10000) * 0.00118))
 }
 
 function seededRandom(i) {
@@ -182,7 +143,7 @@ function positionDrop(idx, numDrops, formation, isSmall, dynW, sr) {
   }
 }
 
-export default function RaindropMobile({ count, filled, accentColor, size = 'normal', animated = false, matchWidth = false, maxCount = 0, formation = 'arc', colorScheme = 'ocean', seed = 0, hideCount = false }) {
+export default function RaindropMobile({ count, filled, accentColor, size = 'normal', animated = false, matchWidth = false, maxCount = 0, formation = 'arc', colorScheme = 'ocean', seed = 0, hideCount = false, isStatic = false }) {
   const isSmall = size === 'small'
   const baseDropSize = isSmall ? 9 : 13
   const tiers = COLOR_SCHEMES[colorScheme] || COLOR_SCHEMES.ocean
@@ -217,22 +178,58 @@ export default function RaindropMobile({ count, filled, accentColor, size = 'nor
           const longString = r3 < 0.1 ? (isSmall ? 50 : 90) : r3 < 0.3 ? (isSmall ? 20 : 40) : 0
           const stringH = (isSmall ? 6 : 10) + r * (isSmall ? 22 : 40) + longString + pos.y
 
-          const swayAnim = `ddd-sway-${(idx % 3) + 1}`
-          const dur = (3 + r * 2).toFixed(1)
-          const delay = (r2 * 2).toFixed(1)
-          const anims = [`${swayAnim} ${dur}s ease-in-out ${delay}s infinite`]
-          if (animated) {
-            const batch = Math.floor(sr(idx + 200) * Math.ceil(numDrops / 2.5))
-            const rainDelay = (batch * 0.15).toFixed(2)
-            const cycleOffset = sr(idx + 300)
-            const cycleDur = (2.5 + cycleOffset * 2).toFixed(1)
-            const cycleDelay = (parseFloat(rainDelay) + 1 + cycleOffset * 1.5).toFixed(2)
-            anims.unshift(`ddd-drip-in 0.5s ease-out ${rainDelay}s both`)
-            anims.push(`ddd-rain-cycle ${cycleDur}s ease-in-out ${cycleDelay}s 4`)
+          // isStatic skips ALL animations + glow filters (used in dense demo grids).
+          // Default: gentle idle sway runs forever. animated=true adds drip-in + rain cycle.
+          const anims = []
+          if (!isStatic) {
+            const idleAnim = `ddd-idle-${(idx % 3) + 1}`
+            const idleDur = (8 + r * 6).toFixed(1)
+            const idleDelay = (r2 * 5).toFixed(1)
+            anims.push(`${idleAnim} ${idleDur}s ease-in-out ${idleDelay}s infinite`)
+            if (animated) {
+              const swayAnim = `ddd-sway-${(idx % 3) + 1}`
+              const dur = (5 + r * 3).toFixed(1)
+              const batch = Math.floor(sr(idx + 200) * Math.ceil(numDrops / 2.5))
+              const rainDelay = (batch * 0.25).toFixed(2)
+              const cycleOffset = sr(idx + 300)
+              const cycleDur = (5.5 + cycleOffset * 3.5).toFixed(1)
+              const cycleDelay = (parseFloat(rainDelay) + 2 + cycleOffset * 2.5).toFixed(2)
+              anims.unshift(`ddd-drip-in 0.7s ease-out ${rainDelay}s both`)
+              anims.unshift(`${swayAnim} ${dur}s ease-in-out 0s 3`)
+              anims.push(`ddd-rain-cycle ${cycleDur}s ease-in-out ${cycleDelay}s 2`)
+            }
           }
 
-          const glowStyle = tier.glow ? { filter: `drop-shadow(0 0 4px ${tier.glow})` } : {}
-          const animStyle = tier.anim && distFromCenter < 0.35 ? { animation: tier.anim } : {}
+          const glowStyle = tier.glow && !isStatic ? { filter: `drop-shadow(0 0 4px ${tier.glow})` } : {}
+          // Per-tier anim (e.g., ddd-flicker for ember white sparks). Each drop
+          // gets a random delay + duration multiplier so sparks fire sporadically.
+          // EXCEPTIONS:
+          //   ddd-roygbiv / ddd-rainbow → ROUND: drops within a tier sync together,
+          //     but each tier offsets from the previous so the cycle "chases" through
+          //     the cluster like a song sung in rounds.
+          //   ddd-coal-cool → fully synced within tier (all coals cool together).
+          const tierAnimStyle = tier.anim ? (() => {
+            const isRound = /ddd-(roygbiv|rainbow)/.test(tier.anim)
+            const isCoalCool = /ddd-coal-cool/.test(tier.anim)
+            if (isCoalCool) return { animation: tier.anim }
+            if (isRound) {
+              const cycleDurMatch = tier.anim.match(/(\d+(?:\.\d+)?)s/)
+              const cycleDur = cycleDurMatch ? parseFloat(cycleDurMatch[1]) : 18
+              // Tier-based phase so each tier is a "round voice" — drops in the
+              // tier cycle in unison, but neighboring tiers are offset.
+              const tierIdx = tiers.indexOf(tier)
+              const phaseRatio = tiers.length > 1 ? tierIdx / tiers.length : 0
+              const phase = (-phaseRatio * cycleDur).toFixed(2)
+              const phased = tier.anim.replace(/\s+infinite/, ` ${phase}s infinite`)
+              return { animation: phased }
+            }
+            const delay = (sr(idx + 500) * 4.5).toFixed(2)
+            const durMult = 0.7 + sr(idx + 600) * 0.9
+            const randomized = tier.anim
+              .replace(/(\d+(?:\.\d+)?)s/, (_, d) => `${(parseFloat(d) * durMult).toFixed(2)}s`)
+              .replace(/\s+infinite/, ` ${delay}s infinite`)
+            return { animation: randomized }
+          })() : {}
 
           return (
             <div key={idx} style={{
@@ -244,7 +241,7 @@ export default function RaindropMobile({ count, filled, accentColor, size = 'nor
               animation: anims.join(', '),
             }}>
               <div style={{ width: 1, height: stringH, background: `linear-gradient(to bottom, transparent, ${tier.color}35)` }} />
-              <div style={{ ...glowStyle, ...animStyle }}>
+              <div style={{ ...glowStyle, ...tierAnimStyle }}>
                 <RaindropIcon size={dropSize} filled={filled} color={tier.color} />
               </div>
             </div>
