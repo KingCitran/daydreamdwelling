@@ -239,15 +239,17 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
           <h2 style={{ ...s.cardTitle, marginBottom: 14 }}>Quick actions</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
             {[
-              { icon: '+', label: 'Submit New Track',  page: '/community/artists/submit',   color: '#b8a0ff' },
-              { icon: '◈', label: 'Top Up PPC Balance', page: '/community/artists/programs', color: '#f0a8d8' },
-              { icon: '⊟', label: 'Browse Programs',   page: '/community/artists/programs', color: '#ffc87a' },
-              { icon: '◫', label: 'Edit Artist Profile', page: '/community/artists/dashboard', color: '#88d8b0' },
+              { icon: '+', label: 'Submit New Track',          page: '/community/artists/submit',   color: '#b8a0ff' },
+              { icon: '◈', label: 'Top Up PPC Balance',         page: '/community/artists/programs', color: '#f0a8d8' },
+              { icon: '⊟', label: 'Advertising Opportunities', page: '/community/artists/programs', color: '#ffc87a' },
+              { icon: '◫', label: 'Edit Artist Profile',        page: null,                          color: '#88d8b0', soon: true },
             ].map(a => (
-              <button key={a.label} style={s.actionBtn} onClick={() => onNavigate(a.page)}>
+              <button key={a.label} disabled={a.soon} style={{ ...s.actionBtn, opacity: a.soon ? 0.55 : 1, cursor: a.soon ? 'default' : 'pointer' }} onClick={() => a.page && onNavigate(a.page)}>
                 <span style={{ width: 28, height: 28, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0, background: a.color + '30', color: a.color }}>{a.icon}</span>
                 <span style={{ flex: 1, fontSize: 13, color: t.text, fontWeight: 500, textAlign: 'left' }}>{a.label}</span>
-                <span style={{ fontSize: 12, color: t.textSoft }}>→</span>
+                {a.soon
+                  ? <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 8, background: `${t.accent}18`, color: t.accent, letterSpacing: '0.5px' }}>SOON</span>
+                  : <span style={{ fontSize: 12, color: t.textSoft }}>→</span>}
               </button>
             ))}
           </div>
