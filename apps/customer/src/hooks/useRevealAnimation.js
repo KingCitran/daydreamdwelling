@@ -127,12 +127,12 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
 
   function spawnGoldenSparkles(cx, cy, w) {
     const colors = ['#fbbf24', '#fcd34d', '#fde68a', '#ffd700', '#fff5cc', '#fffbe6', '#ffffff']
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 140; i++) {
       goldenRain.current.push({
-        x: cx + (Math.random() - 0.5) * w,
-        y: cy + (Math.random() - 0.5) * 60,
-        vy: 0.3 + Math.random() * 0.8,
-        vx: (Math.random() - 0.5) * 0.5,
+        x: cx + (Math.random() - 0.5) * w * 1.1,
+        y: cy + (Math.random() - 0.5) * 80,
+        vy: 0.9 + Math.random() * 1.6,                    // stronger downward — visible falling
+        vx: (Math.random() - 0.5) * 0.4,
         size: 3 + Math.random() * 6,
         color: colors[Math.floor(Math.random() * colors.length)],
         shimmer: Math.random() * Math.PI * 2,
@@ -140,7 +140,7 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
         rot: Math.random() * Math.PI,
         rotV: (Math.random() - 0.5) * 0.04,
         life: 1,
-        delay: Math.random() * 90,
+        delay: Math.random() * 180,                       // wider stagger so the rain lasts longer
       })
     }
   }
@@ -172,7 +172,15 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
       setTimeout(() => spawnLightning(statsY(), [0, 1, 2], 0.85, 2), 8800),
       setTimeout(() => spawnLightning(statsY(), [0, 1, 2], 0.9, 3), 9050),
       setTimeout(() => spawnLightning(statsY(), [0, 1, 2], 0.95, 3), 9250),
-      setTimeout(() => setPhase(3), 9600),
+      setTimeout(() => {
+        setPhase(3)
+        // Gold sparkle stars rain from the winner's cloud the moment they're revealed.
+        // (Was at 15000ms phase 4 timer, but podiumDone fires at 11200ms and cancels
+        // remaining timers via effect cleanup — sparkles never spawned.)
+        const winIdx = top.findIndex(e => e.id === winner?.id)
+        const el = cardRefs.current[winIdx >= 0 ? winIdx : 0]
+        if (el) { const r = el.getBoundingClientRect(); spawnGoldenSparkles(r.left + r.width / 2, r.top + r.height * 0.4, r.width) }
+      }, 9600),
       setTimeout(() => {
         setPhase(3.5)
         audioRef.current?.fadeLow?.()
@@ -215,12 +223,7 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
           }}
         } catch {}
       }, 11200),
-      setTimeout(() => {
-        setPhase(4)
-        const winIdx = top.findIndex(e => e.id === winner?.id)
-        const el = cardRefs.current[winIdx >= 0 ? winIdx : 0]
-        if (el) { const r = el.getBoundingClientRect(); spawnGoldenSparkles(r.left + r.width / 2, r.top + r.height * 0.4, r.width) }
-      }, 15000),
+      setTimeout(() => setPhase(4), 15000),
     ] : []
 
     const stars = Array.from({ length: 150 }, (_, i) => {
