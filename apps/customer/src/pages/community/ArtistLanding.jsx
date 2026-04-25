@@ -3,7 +3,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 
-export default function ArtistLanding({ onNavigate }) {
+export default function ArtistLanding({ onNavigate, onSignIn }) {
   const t = useTheme()
   const { user } = useAuth()
   const [hasArtistProfile, setHasArtistProfile] = useState(false)
@@ -32,7 +32,7 @@ export default function ArtistLanding({ onNavigate }) {
 
   const primaryCta = hasArtistProfile ? 'Open dashboard →' : user ? 'Claim your artist profile →' : 'Sign in to join'
   const onPrimary = () => {
-    if (!user) return onNavigate('/community')
+    if (!user) return onSignIn?.()
     onNavigate(hasArtistProfile ? '/community/artists/dashboard' : '/community/artists/submit')
   }
 

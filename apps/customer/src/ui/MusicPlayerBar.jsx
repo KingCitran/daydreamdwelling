@@ -2,6 +2,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import useMusicPlayer from '../hooks/useMusicPlayer'
+import TrackTags from './TrackTags'
 
 const DEST_LABELS = {
   spotify:     { label: 'Spotify',     icon: '♫' },
@@ -62,9 +63,12 @@ export default function MusicPlayerBar({ mood, station }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: '#f0eaff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {currentTrack?.title}
             </div>
-            <div style={{ fontSize: 11, color: '#a090c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 11, color: '#a090c8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
               {artist?.artist_name ?? 'Artist'}
             </div>
+            {currentTrack && (
+              <TrackTags trackId={currentTrack.id} descriptiveTags={currentTrack.descriptive_tags ?? []} compact />
+            )}
           </div>
         </div>
 

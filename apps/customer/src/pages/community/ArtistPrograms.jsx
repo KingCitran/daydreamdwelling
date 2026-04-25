@@ -10,7 +10,7 @@ const PACKS = [
   { pack: 100, cents: 10000, label: '$100',clicksAt15: 667 },
 ]
 
-export default function ArtistPrograms({ onNavigate }) {
+export default function ArtistPrograms({ onNavigate, onSignIn }) {
   const { user } = useAuth()
   const t = useTheme()
   const [artist, setArtist] = useState(null)
@@ -43,7 +43,12 @@ export default function ArtistPrograms({ onNavigate }) {
 
   const s = makeStyles(t)
 
-  if (!user) return <div style={{ padding: 48, textAlign: 'center', color: t.textSoft }}>Sign in to view programs.</div>
+  if (!user) return (
+    <div style={{ padding: 48, textAlign: 'center' }}>
+      <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to view programs.</p>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+    </div>
+  )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
 
   if (!artist) {

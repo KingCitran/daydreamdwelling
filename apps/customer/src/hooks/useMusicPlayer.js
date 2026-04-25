@@ -28,7 +28,7 @@ export default function useMusicPlayer({ mood, station, enabled = true }) {
     async function load() {
       let q = supabase
         .from('artist_tracks')
-        .select('id, title, audio_url, duration_seconds, station_tags, mood_tags, artist_id, artist_profiles(artist_name, external_links, preferred_destination)')
+        .select('id, title, audio_url, duration_seconds, station_tags, mood_tags, descriptive_tags, artist_id, artist_profiles(artist_name, external_links, preferred_destination)')
         .eq('approval_status', 'approved')
         .neq('rotation_status', 'removed')
         .limit(40)

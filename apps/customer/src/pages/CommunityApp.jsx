@@ -64,10 +64,11 @@ export default function CommunityApp() {
   } else if (currentSegs[1] === 'profile' && currentSegs[2]) {
     content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
   } else if (currentSegs[1] === 'artists') {
-    if      (currentSegs[2] === 'dashboard') content = <ArtistDashboard onNavigate={navigate} />
-    else if (currentSegs[2] === 'submit')    content = <ArtistSubmit    onNavigate={navigate} />
-    else if (currentSegs[2] === 'programs')  content = <ArtistPrograms  onNavigate={navigate} />
-    else                                      content = <ArtistLanding   onNavigate={navigate} />
+    const openAuth = () => setAuthOpen(true)
+    if      (currentSegs[2] === 'dashboard') content = <ArtistDashboard onNavigate={navigate} onSignIn={openAuth} />
+    else if (currentSegs[2] === 'submit')    content = <ArtistSubmit    onNavigate={navigate} onSignIn={openAuth} />
+    else if (currentSegs[2] === 'programs')  content = <ArtistPrograms  onNavigate={navigate} onSignIn={openAuth} />
+    else                                      content = <ArtistLanding   onNavigate={navigate} onSignIn={openAuth} />
   } else {
     content = <CommunityHome cart={cart} onNavigate={navigate} />
   }

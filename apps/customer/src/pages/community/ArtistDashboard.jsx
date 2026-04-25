@@ -15,7 +15,7 @@ const STAT_COLORS = [
   { color: '#88d8b0', bg: 'rgba(136,216,176,0.12)' },
 ]
 
-export default function ArtistDashboard({ onNavigate }) {
+export default function ArtistDashboard({ onNavigate, onSignIn }) {
   const { user, profile } = useAuth()
   const t = useTheme()
   const [artist,    setArtist]    = useState(null)
@@ -88,7 +88,12 @@ export default function ArtistDashboard({ onNavigate }) {
   const name = artist?.artist_name || profile?.display_name || user?.email?.split('@')[0] || 'Artist'
   const s = makeStyles(t)
 
-  if (!user) return <div style={{ padding: 48, textAlign: 'center', color: t.textSoft }}>Sign in to view your artist dashboard.</div>
+  if (!user) return (
+    <div style={{ padding: 48, textAlign: 'center' }}>
+      <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to view your artist dashboard.</p>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+    </div>
+  )
 
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
 

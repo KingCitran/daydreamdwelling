@@ -10,7 +10,7 @@ const MIN_DURATION = 30
 const MAX_DURATION = 8 * 60
 const MAX_SIZE = 15 * 1024 * 1024
 
-export default function ArtistSubmit({ onNavigate }) {
+export default function ArtistSubmit({ onNavigate, onSignIn }) {
   const { user } = useAuth()
   const t = useTheme()
   const [artist, setArtist] = useState(null)
@@ -30,12 +30,14 @@ export default function ArtistSubmit({ onNavigate }) {
   const [genre, setGenre] = useState('')
   const [stationTags, setStationTags] = useState([])
   const [moodTags, setMoodTags] = useState([])
+  const [descriptiveTags, setDescriptiveTags] = useState('') // free-text comma-separated
   const [audioFile, setAudioFile] = useState(null)
   const [audioDuration, setAudioDuration] = useState(0)
   const [audioError, setAudioError] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [submitMsg, setSubmitMsg] = useState('')
+  const [submittedTrack, setSubmittedTrack] = useState(null)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -129,7 +131,8 @@ export default function ArtistSubmit({ onNavigate }) {
       const audioUrl = pub.publicUrl
 
       // 3. Insert track row — passes auto-screen, status 'pending' for admin review
-      const { error: insertErr } = await supabase.from('artist_tracks').insert({
+      const parsedDescTags = descriptiveTags.split(',').map(s => s.trim().toLowerCase()).filter(Boolean).slice(0, 12)
+      const { data: trackRow, error: insertErr } = await supabase.from('artist_tracks').insert({
         artist_id: user.id,
         title: title.trim(),
         audio_url: audioUrl,
@@ -137,13 +140,16 @@ export default function ArtistSubmit({ onNavigate }) {
         genre: genre.trim() || null,
         station_tags: stationTags,
         mood_tags: moodTags,
+        descriptive_tags: parsedDescTags,
         approval_status: 'pending',
-      })
+      }).select().single()
       if (insertErr) throw insertErr
 
-      setSubmitMsg('Track submitted! It\'ll appear in your dashboard and is queued for admin review (typically within 48h).')
-      setTitle(''); setGenre(''); setStationTags([]); setMoodTags([]); setAudioFile(null); setAudioDuration(0)
+      setSubmittedTrack(trackRow)
+      setSubmitMsg('Track submitted! Queued for admin review (typically within 48h).')
+      setTitle(''); setGenre(''); setStationTags([]); setMoodTags([]); setDescriptiveTags(''); setAudioFile(null); setAudioDuration(0)
       if (fileInputRef.current) fileInputRef.current.value = ''
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       console.error(err)
       setSubmitMsg(`Submission failed: ${err.message ?? 'unknown error'}`)
@@ -154,17 +160,60 @@ export default function ArtistSubmit({ onNavigate }) {
 
   const s = makeStyles(t)
 
-  if (!user) return <div style={{ padding: 48, textAlign: 'center', color: t.textSoft }}>Sign in to submit tracks.</div>
+  if (!user) return (
+    <div style={{ padding: 48, textAlign: 'center' }}>
+      <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to submit tracks.</p>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+    </div>
+  )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
 
   return (
     <div style={{ padding: '32px 0', maxWidth: 720, margin: '0 auto' }}>
+      <style>{`
+        .ddd-artist-form input::placeholder,
+        .ddd-artist-form textarea::placeholder { color: #8a7fb0; opacity: 1; }
+        .ddd-artist-form input:focus,
+        .ddd-artist-form textarea:focus,
+        .ddd-artist-form select:focus { outline: none; border-color: rgba(184,160,255,0.6); box-shadow: 0 0 0 3px rgba(184,160,255,0.18); }
+      `}</style>
       <h1 style={s.pageTitle}>{artist ? 'Submit a new track' : 'Claim your artist profile + submit your first track'}</h1>
       <p style={s.subtitle}>
         Free submission. Auto-screened, then admin-reviewed within 48 hours. You'll see status updates in your dashboard.
       </p>
 
-      <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {submittedTrack && (
+        <div style={{
+          marginBottom: 24, padding: '20px 22px', borderRadius: 16,
+          background: 'rgba(20, 18, 40, 0.85)', border: `1px solid ${t.accent}50`,
+          backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px ${t.accent}20`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 18 }}>✓</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#88d8b0' }}>Track submitted</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#70a0ff20', color: '#70a0ff', letterSpacing: '0.5px' }}>PENDING REVIEW</span>
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#f0eaff', marginBottom: 4 }}>{submittedTrack.title}</div>
+          <div style={{ fontSize: 12, color: '#a090c8', marginBottom: 12 }}>
+            {Math.floor(submittedTrack.duration_seconds / 60)}:{String(submittedTrack.duration_seconds % 60).padStart(2, '0')}
+            {submittedTrack.genre && ` · ${submittedTrack.genre}`}
+          </div>
+          <audio src={submittedTrack.audio_url} controls style={{ width: '100%', marginBottom: 12, height: 36 }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => onNavigate('/community/artists/dashboard')} style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none',
+              background: t.accent, color: t.accentText, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}>View dashboard →</button>
+            <button onClick={() => setSubmittedTrack(null)} style={{
+              padding: '8px 16px', borderRadius: 8,
+              background: 'transparent', border: `1px solid ${t.accent}40`,
+              color: '#d0c8e8', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}>+ Submit another</button>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} className="ddd-artist-form" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         {!artist && (
           <section style={s.card}>
             <h2 style={s.sectionTitle}>Artist profile</h2>
@@ -227,6 +276,13 @@ export default function ArtistSubmit({ onNavigate }) {
               ))}
             </div>
           </Field>
+
+          <Field label="Descriptive tags (your own words \u2014 comma separated, max 12)">
+            <input style={s.input} value={descriptiveTags} onChange={e => setDescriptiveTags(e.target.value)} placeholder="e.g. lush strings, late-night drive, hopeful, instrumental" />
+            <div style={{ marginTop: 6, fontSize: 11, color: '#a090c8' }}>
+              Customers can add their own tags after listening — yours seed the catalog.
+            </div>
+          </Field>
         </section>
 
         <button type="submit" disabled={submitting || !audioFile || !title.trim()} style={{
@@ -255,10 +311,9 @@ export default function ArtistSubmit({ onNavigate }) {
 }
 
 function Field({ label, children }) {
-  const t = useTheme()
   return (
     <label style={{ display: 'block', marginBottom: 14 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: t.textSoft, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.6px' }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#a090c8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
       {children}
     </label>
   )
@@ -266,20 +321,23 @@ function Field({ label, children }) {
 
 function tagBtn(t, active) {
   return {
-    padding: '6px 12px', borderRadius: 16, border: `1px solid ${active ? t.accent : t.surfaceBorder}`,
-    background: active ? `${t.accent}20` : 'transparent',
-    color: active ? t.accent : t.textSoft,
+    padding: '6px 12px', borderRadius: 16, border: `1px solid ${active ? t.accent : 'rgba(255,255,255,0.18)'}`,
+    background: active ? `${t.accent}30` : 'rgba(15,12,30,0.4)',
+    color: active ? '#fff' : '#d0c8e8',
     fontSize: 12, fontWeight: 600, cursor: 'pointer',
   }
 }
 
 function makeStyles(t) {
+  // Solid surface colors so text is legible regardless of room mood gradient.
+  const cardBg  = 'rgba(20, 18, 40, 0.85)'
+  const inputBg = 'rgba(15, 12, 30, 0.75)'
   return {
-    pageTitle:    { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 6 },
-    subtitle:     { fontSize: 13, color: t.textSoft, marginBottom: 28 },
-    card:         { background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: '20px 22px' },
-    sectionTitle: { fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 16 },
-    input:        { width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.bg, color: t.text, fontSize: 13, fontFamily: 'inherit' },
+    pageTitle:    { fontSize: 26, fontWeight: 700, color: '#f0eaff', marginBottom: 6, textShadow: '0 2px 8px rgba(0,0,0,0.4)' },
+    subtitle:     { fontSize: 13, color: '#c0b0e0', marginBottom: 28, textShadow: '0 1px 4px rgba(0,0,0,0.3)' },
+    card:         { background: cardBg, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: '20px 22px', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' },
+    sectionTitle: { fontSize: 16, fontWeight: 700, color: '#f0eaff', marginBottom: 16 },
+    input:        { width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: inputBg, color: '#f0eaff', fontSize: 13, fontFamily: 'inherit' },
     tagGrid:      { display: 'flex', flexWrap: 'wrap', gap: 6 },
   }
 }
