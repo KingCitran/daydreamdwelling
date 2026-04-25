@@ -59,6 +59,14 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
           background: t.accent, color: t.accentText, fontSize: 14, fontWeight: 700,
           cursor: 'pointer', boxShadow: `0 6px 20px ${t.accent}30`,
         }}>{primaryCta}</button>
+
+        <div style={{ marginTop: 14 }}>
+          <button onClick={() => onNavigate('/community/artists/dashboard')} style={{
+            background: 'none', border: 'none', color: t.text, opacity: 0.7,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            textDecoration: 'underline', textUnderlineOffset: 3,
+          }}>Preview the artist dashboard →</button>
+        </div>
       </section>
 
       {/* Value props */}
