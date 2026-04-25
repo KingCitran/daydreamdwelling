@@ -76,16 +76,13 @@ export default function CommunityApp() {
   return (
     <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}>
       <style>{`
-        /* Strip Ember Sunrise's global text-shadow inside the nav — the bar has
-           its own solid backdrop, so the shadow only blurs/muddies text. */
-        .ddd-community-nav h1,
-        .ddd-community-nav h2,
-        .ddd-community-nav p,
-        .ddd-community-nav a,
-        .ddd-community-nav span,
-        .ddd-community-nav button,
-        .ddd-community-nav label,
-        .ddd-community-nav div {
+        /* Strip Ember Sunrise's global text-shadow inside the nav + footer —
+           those bars have their own backdrop, so the shadow only muddies text. */
+        .ddd-community-nav h1, .ddd-community-nav h2, .ddd-community-nav p,
+        .ddd-community-nav a,  .ddd-community-nav span, .ddd-community-nav button,
+        .ddd-community-nav label, .ddd-community-nav div,
+        .ddd-community-foot a, .ddd-community-foot p, .ddd-community-foot span,
+        .ddd-community-foot div {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
@@ -171,15 +168,15 @@ export default function CommunityApp() {
       </main>
 
       {/* Footer */}
-      <footer style={{
+      <footer className="ddd-community-foot" style={{
         borderTop: `1px solid ${t.surfaceBorder}`,
         padding: '32px 24px', marginTop: 48,
-        textAlign: 'center', fontSize: 12, color: t.textSoft,
+        textAlign: 'center', fontSize: 12, color: t.text, opacity: 0.75,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
-          <a href="/" style={{ color: t.textSoft, textDecoration: 'none' }}>Room Builder</a>
-          <a href="https://daydreamsellers.com" style={{ color: t.textSoft, textDecoration: 'none' }}>Sell on Daydream</a>
-          <a href="https://daydreamblossoms.com" style={{ color: t.textSoft, textDecoration: 'none' }}>Daydream Blossoms</a>
+          <a href="/" style={{ color: t.text, textDecoration: 'none' }}>Room Builder</a>
+          <a href="https://daydreamsellers.com" style={{ color: t.text, textDecoration: 'none' }}>Sell on Daydream</a>
+          <a href="https://daydreamblossoms.com" style={{ color: t.text, textDecoration: 'none' }}>Daydream Blossoms</a>
         </div>
         © {new Date().getFullYear()} DaydreamDwelling. All rights reserved.
       </footer>
