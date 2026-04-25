@@ -171,8 +171,18 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
   return (
     <div style={{ padding: '32px 0', maxWidth: 720, margin: '0 auto' }}>
       <style>{`
+        .ddd-artist-form input,
+        .ddd-artist-form textarea,
+        .ddd-artist-form select {
+          -webkit-text-stroke: 0 !important;
+          text-shadow: none !important;
+        }
         .ddd-artist-form input::placeholder,
-        .ddd-artist-form textarea::placeholder { color: ${t.textSoft}; opacity: 0.7; }
+        .ddd-artist-form textarea::placeholder {
+          color: ${t.textSoft}; opacity: 0.65;
+          -webkit-text-stroke: 0 !important;
+          text-shadow: none !important;
+        }
         .ddd-artist-form input:focus,
         .ddd-artist-form textarea:focus,
         .ddd-artist-form select:focus { outline: none; border-color: ${t.accent}; box-shadow: 0 0 0 3px ${t.accent}25; }
@@ -331,36 +341,51 @@ function tagBtn(t, active) {
   }
 }
 
+// Returns a CSS-safe solid color for backgroundColor. Falls back to white when
+// t.bg is a gradient string (Ember's Sunrise) since gradient strings are
+// invalid for the backgroundColor property and would render as transparent.
+function solidBg(t) {
+  const bg = t.bg
+  if (typeof bg === 'string' && /(linear|radial|conic)-gradient/.test(bg)) return '#ffffff'
+  return bg
+}
+
 function makeStyles(t) {
+  // backgroundImage trick: linear-gradient(c, c) renders as a flat color and IS
+  // valid for backgroundImage. Pair with a solid backgroundColor under it so
+  // the card stays opaque even when the page bg is animated/gradient.
+  const surfaceFlat = `linear-gradient(${t.surface}, ${t.surface})`
+  const inputInset  = 'linear-gradient(rgba(0,0,0,0.06), rgba(0,0,0,0.06))'
   return {
-    // Header card gives the title a solid backdrop so it stays legible on
-    // light/animated theme backgrounds (e.g. Ember's Sunrise pastel phase).
-    headerCard:   {
-      backgroundColor: t.bg,
-      backgroundImage: `linear-gradient(${t.surface}, ${t.surface})`,
+    headerCard: {
+      backgroundColor: solidBg(t),
+      backgroundImage: surfaceFlat,
       border: `1px solid ${t.surfaceBorder}`,
       borderRadius: 16, padding: '20px 22px', marginBottom: 24,
     },
     pageTitle:    { fontSize: 24, fontWeight: 700, color: t.text, margin: '0 0 6px' },
     subtitle:     { fontSize: 13, color: t.textSoft, margin: 0 },
-    // Layer t.bg (solid) under t.surface (translucent tint) so the card stays
-    // solid even when the page bg is animated/gradient (Ember's Sunrise).
-    card:         {
-      backgroundColor: t.bg,
-      backgroundImage: `linear-gradient(${t.surface}, ${t.surface})`,
+    card: {
+      backgroundColor: solidBg(t),
+      backgroundImage: surfaceFlat,
       border: `1px solid ${t.surfaceBorder}`,
       borderRadius: 16, padding: '20px 22px',
       boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
     },
     sectionTitle: { fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 16 },
-    // Input gets pure solid t.bg (no surface tint) so it visibly contrasts against the card.
-    // box-sizing fixes overflow — width:100% + padding was bleeding past card edges.
+    // Input layered: solid bg → surface tint → small dark inset so it visibly
+    // recesses below the card surface on any theme.
     input: {
       width: '100%', boxSizing: 'border-box',
       padding: '10px 12px', borderRadius: 8,
       border: `1px solid ${t.surfaceBorder}`,
-      backgroundColor: t.bg, color: t.text,
+      backgroundColor: solidBg(t),
+      backgroundImage: `${inputInset}, ${surfaceFlat}`,
+      color: t.text,
       fontSize: 13, fontFamily: 'inherit',
+      // Ember's global text-stroke makes input text look chunky — undo it just here.
+      WebkitTextStroke: '0',
+      textShadow: 'none',
     },
     tagGrid: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   }
