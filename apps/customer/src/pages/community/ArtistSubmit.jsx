@@ -172,10 +172,10 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
     <div style={{ padding: '32px 0', maxWidth: 720, margin: '0 auto' }}>
       <style>{`
         .ddd-artist-form input::placeholder,
-        .ddd-artist-form textarea::placeholder { color: #8a7fb0; opacity: 1; }
+        .ddd-artist-form textarea::placeholder { color: ${t.textSoft}; opacity: 0.7; }
         .ddd-artist-form input:focus,
         .ddd-artist-form textarea:focus,
-        .ddd-artist-form select:focus { outline: none; border-color: rgba(184,160,255,0.6); box-shadow: 0 0 0 3px rgba(184,160,255,0.18); }
+        .ddd-artist-form select:focus { outline: none; border-color: ${t.accent}; box-shadow: 0 0 0 3px ${t.accent}25; }
       `}</style>
       <h1 style={s.pageTitle}>{artist ? 'Submit a new track' : 'Claim your artist profile + submit your first track'}</h1>
       <p style={s.subtitle}>
@@ -185,16 +185,16 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
       {submittedTrack && (
         <div style={{
           marginBottom: 24, padding: '20px 22px', borderRadius: 16,
-          background: 'rgba(20, 18, 40, 0.85)', border: `1px solid ${t.accent}50`,
+          background: t.surface, border: `1px solid ${t.accent}50`,
           backdropFilter: 'blur(12px)', boxShadow: `0 4px 20px ${t.accent}20`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontSize: 18 }}>✓</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#88d8b0' }}>Track submitted</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#70a0ff20', color: '#70a0ff', letterSpacing: '0.5px' }}>PENDING REVIEW</span>
+            <span style={{ fontSize: 18, color: '#3a8a4a' }}>✓</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Track submitted</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: `${t.accent}20`, color: t.accent, letterSpacing: '0.5px' }}>PENDING REVIEW</span>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#f0eaff', marginBottom: 4 }}>{submittedTrack.title}</div>
-          <div style={{ fontSize: 12, color: '#a090c8', marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>{submittedTrack.title}</div>
+          <div style={{ fontSize: 12, color: t.textSoft, marginBottom: 12 }}>
             {Math.floor(submittedTrack.duration_seconds / 60)}:{String(submittedTrack.duration_seconds % 60).padStart(2, '0')}
             {submittedTrack.genre && ` · ${submittedTrack.genre}`}
           </div>
@@ -207,7 +207,7 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
             <button onClick={() => setSubmittedTrack(null)} style={{
               padding: '8px 16px', borderRadius: 8,
               background: 'transparent', border: `1px solid ${t.accent}40`,
-              color: '#d0c8e8', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              color: t.text, fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}>+ Submit another</button>
           </div>
         </div>
@@ -311,9 +311,10 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
 }
 
 function Field({ label, children }) {
+  const t = useTheme()
   return (
     <label style={{ display: 'block', marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#a090c8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: t.textSoft, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
       {children}
     </label>
   )
@@ -321,23 +322,21 @@ function Field({ label, children }) {
 
 function tagBtn(t, active) {
   return {
-    padding: '6px 12px', borderRadius: 16, border: `1px solid ${active ? t.accent : 'rgba(255,255,255,0.18)'}`,
-    background: active ? `${t.accent}30` : 'rgba(15,12,30,0.4)',
-    color: active ? '#fff' : '#d0c8e8',
+    padding: '6px 12px', borderRadius: 16, border: `1px solid ${active ? t.accent : t.surfaceBorder}`,
+    background: active ? `${t.accent}25` : 'transparent',
+    color: active ? t.accent : t.textSoft,
     fontSize: 12, fontWeight: 600, cursor: 'pointer',
   }
 }
 
 function makeStyles(t) {
-  // Solid surface colors so text is legible regardless of room mood gradient.
-  const cardBg  = 'rgba(20, 18, 40, 0.85)'
-  const inputBg = 'rgba(15, 12, 30, 0.75)'
   return {
-    pageTitle:    { fontSize: 26, fontWeight: 700, color: '#f0eaff', marginBottom: 6, textShadow: '0 2px 8px rgba(0,0,0,0.4)' },
-    subtitle:     { fontSize: 13, color: '#c0b0e0', marginBottom: 28, textShadow: '0 1px 4px rgba(0,0,0,0.3)' },
-    card:         { background: cardBg, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: '20px 22px', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' },
-    sectionTitle: { fontSize: 16, fontWeight: 700, color: '#f0eaff', marginBottom: 16 },
-    input:        { width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: inputBg, color: '#f0eaff', fontSize: 13, fontFamily: 'inherit' },
+    pageTitle:    { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 6 },
+    subtitle:     { fontSize: 13, color: t.textSoft, marginBottom: 28 },
+    card:         { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' },
+    sectionTitle: { fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 16 },
+    // Input bg = page bg (solid theme color) so it contrasts against the translucent card.
+    input:        { width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.bg, color: t.text, fontSize: 13, fontFamily: 'inherit' },
     tagGrid:      { display: 'flex', flexWrap: 'wrap', gap: 6 },
   }
 }
