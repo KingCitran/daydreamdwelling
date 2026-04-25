@@ -75,8 +75,24 @@ export default function CommunityApp() {
 
   return (
     <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}>
+      <style>{`
+        /* Strip Ember Sunrise's global text-shadow inside the nav — the bar has
+           its own solid backdrop, so the shadow only blurs/muddies text. */
+        .ddd-community-nav h1,
+        .ddd-community-nav h2,
+        .ddd-community-nav p,
+        .ddd-community-nav a,
+        .ddd-community-nav span,
+        .ddd-community-nav button,
+        .ddd-community-nav label,
+        .ddd-community-nav div {
+          -webkit-text-stroke: 0 !important;
+          text-shadow: none !important;
+        }
+      `}</style>
+
       {/* Nav */}
-      <header style={{
+      <header className="ddd-community-nav" style={{
         position: 'sticky', top: 0, zIndex: 100,
         background: t.navBg, backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${t.navBorder}`,
