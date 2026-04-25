@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import { Icon } from '@shared/ui/Icon'
+import { RevealAudioSettings } from './RevealAudioToggle'
 
-const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Pets', 'Profile']
+const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Pets', 'Profile', 'Preferences']
 
 export default function AccountModal({ onClose, onLoadRoom }) {
   const t = useTheme()
@@ -185,8 +187,10 @@ export default function AccountModal({ onClose, onLoadRoom }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button style={st.signOutBtn} onClick={handleSignOut}>Sign Out</button>
-            <button style={st.closeBtn} onClick={onClose}>✕</button>
+            <button style={{ ...st.signOutBtn, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={handleSignOut}>
+              <Icon name="signout" size={13} /> Sign Out
+            </button>
+            <button style={st.closeBtn} onClick={onClose} title="Close"><Icon name="close" size={16} /></button>
           </div>
         </div>
 
@@ -203,7 +207,7 @@ export default function AccountModal({ onClose, onLoadRoom }) {
           {tab === 'Rooms' && (
             <>
               {roomsLoading && <p style={st.hint}>Loading…</p>}
-              {!roomsLoading && rooms.length === 0 && <p style={st.hint}>No saved rooms yet. Use ☁ Save in the builder.</p>}
+              {!roomsLoading && rooms.length === 0 && <p style={st.hint}>No saved rooms yet. Use Save in the builder.</p>}
               {!roomsLoading && rooms.map(room => (
                 <div key={room.id} style={st.row}>
                   <div style={st.rowInfo}>
@@ -212,14 +216,15 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                   </div>
                   <div style={st.rowBtns}>
                     <button
-                      style={{ ...st.pillBtn, ...(room.is_public ? st.pillBtnActive : {}) }}
+                      style={{ ...st.pillBtn, ...(room.is_public ? st.pillBtnActive : {}), display: 'inline-flex', alignItems: 'center', gap: 5 }}
                       onClick={() => togglePublic(room)}
                       title={room.is_public ? 'Public — click to make private' : 'Private — click to make public'}
                     >
-                      {room.is_public ? '🌐 Public' : '🔒 Private'}
+                      <Icon name={room.is_public ? 'external' : 'lock'} size={11} />
+                      {room.is_public ? 'Public' : 'Private'}
                     </button>
                     <button style={st.loadBtn} onClick={() => { onLoadRoom(room.id); onClose() }}>Load</button>
-                    <button style={st.deleteBtn} onClick={() => deleteRoom(room.id)} title="Delete">🗑</button>
+                    <button style={st.deleteBtn} onClick={() => deleteRoom(room.id)} title="Delete"><Icon name="trash" size={13} /></button>
                   </div>
                 </div>
               ))}
@@ -272,7 +277,7 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                         Copy Link
                       </button>
                     )}
-                    <button style={st.deleteBtn} onClick={() => deleteWishlist(list.id)} title="Delete">🗑</button>
+                    <button style={st.deleteBtn} onClick={() => deleteWishlist(list.id)} title="Delete"><Icon name="trash" size={13} /></button>
                   </div>
                 </div>
               ))}
@@ -339,6 +344,12 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                 </>
               )}
             </>
+          )}
+
+          {tab === 'Preferences' && (
+            <div style={{ padding: '4px 0' }}>
+              <RevealAudioSettings t={t} />
+            </div>
           )}
 
           {tab === 'Profile' && (
