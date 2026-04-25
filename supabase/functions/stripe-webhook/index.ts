@@ -166,7 +166,43 @@ Deno.serve(async (req) => {
     const session     = event.data.object as Stripe.Checkout.Session
     const customerEmail = session.customer_details?.email ?? null
 
-    // Create order row
+    // Branch: artist PPC balance top-up — credit the artist instead of creating an order
+    if (session.metadata?.purpose === 'artist_ppc_topup') {
+      const artistId    = session.metadata.artist_id
+      const creditCents = parseInt(session.metadata.credit_cents ?? '0', 10)
+
+      if (artistId && creditCents > 0) {
+        const { data: artist } = await supabase
+          .from('artist_profiles')
+          .select('ppc_balance_cents, artist_name')
+          .eq('user_id', artistId)
+          .single()
+
+        if (artist) {
+          await supabase
+            .from('artist_profiles')
+            .update({ ppc_balance_cents: (artist.ppc_balance_cents ?? 0) + creditCents })
+            .eq('user_id', artistId)
+
+          if (customerEmail) {
+            await sendEmail(
+              customerEmail,
+              `Your DaydreamDwelling artist balance is topped up — $${(creditCents / 100).toFixed(2)}`,
+              `<p>Hi ${artist.artist_name},</p>
+               <p>Your PPC balance has been credited <strong>$${(creditCents / 100).toFixed(2)}</strong>.
+               It's ready to fund click-throughs from your tracks immediately.</p>
+               <p>— DaydreamDwelling</p>`,
+            )
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Default: product checkout — create order row
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({

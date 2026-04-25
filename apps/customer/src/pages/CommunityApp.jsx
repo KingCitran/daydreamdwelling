@@ -10,6 +10,10 @@ import CommunityHome from './CommunityHome'
 import CommunityRoomPage from './CommunityRoomPage'
 import ProfilePage from './ProfilePage'
 import ContestsPage from './ContestsPage'
+import ArtistLanding from './community/ArtistLanding'
+import ArtistDashboard from './community/ArtistDashboard'
+import ArtistSubmit from './community/ArtistSubmit'
+import ArtistPrograms from './community/ArtistPrograms'
 import CommunityCartDrawer from '../ui/CommunityCartDrawer'
 import { useCommunityCart } from '../hooks/useCommunityCart'
 
@@ -22,6 +26,7 @@ function parsePath() {
 const NAV_ITEMS = [
   { label: 'Rooms', path: '/community' },
   { label: 'Contests', path: '/community/contests' },
+  { label: 'Artists', path: '/community/artists' },
 ]
 
 export default function CommunityApp() {
@@ -58,6 +63,11 @@ export default function CommunityApp() {
     content = <ContestsPage onClose={() => navigate('/community')} standalone cart={cart} />
   } else if (currentSegs[1] === 'profile' && currentSegs[2]) {
     content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
+  } else if (currentSegs[1] === 'artists') {
+    if      (currentSegs[2] === 'dashboard') content = <ArtistDashboard onNavigate={navigate} />
+    else if (currentSegs[2] === 'submit')    content = <ArtistSubmit    onNavigate={navigate} />
+    else if (currentSegs[2] === 'programs')  content = <ArtistPrograms  onNavigate={navigate} />
+    else                                      content = <ArtistLanding   onNavigate={navigate} />
   } else {
     content = <CommunityHome cart={cart} onNavigate={navigate} />
   }

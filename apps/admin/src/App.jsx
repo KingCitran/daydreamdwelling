@@ -4,6 +4,7 @@ import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ContestManagerPage from './pages/ContestManagerPage'
+import ArtistApprovalPage from './pages/ArtistApprovalPage'
 import NavBar from './ui/NavBar'
 
 export default function App() {
@@ -30,6 +31,7 @@ function Shell() {
       <main style={{ flex: 1, padding: '36px 32px', overflowY: 'auto' }}>
         {page === 'dashboard' && <DashboardPage onNavigate={setPage} />}
         {page === 'contests' && <ContestManagerPage />}
+        {page === 'artists' && <ArtistApprovalPage />}
       </main>
     </div>
   )

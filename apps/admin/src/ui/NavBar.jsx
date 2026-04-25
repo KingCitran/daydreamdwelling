@@ -5,6 +5,7 @@ import Logo from '@shared/Logo'
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard', icon: '⊞' },
   { key: 'contests',  label: 'Contests',  icon: '✦' },
+  { key: 'artists',   label: 'Artists',   icon: '♫' },
 ]
 
 export default function NavBar({ page, onNavigate }) {
