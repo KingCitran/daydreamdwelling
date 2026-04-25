@@ -3,6 +3,26 @@ import RaindropIcon from '@shared/RaindropIcon'
 const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
 
+// Mood-to-gradient map for placeholder cards when screenshot is missing
+const MOOD_GRADIENTS = {
+  'Golden Hour':      'linear-gradient(135deg, #451a03 0%, #78350f 30%, #b45309 60%, #fbbf24 100%)',
+  'Bright Day':       'linear-gradient(135deg, #0c4a6e 0%, #0284c7 40%, #38bdf8 70%, #bae6fd 100%)',
+  'Vivid Sunset':           'linear-gradient(135deg, #010101 0%, #2a0a56 25%, #b53da1 55%, #ffaa3d 85%, #fff5d4 100%)',
+  "Ember's Sunrise":        'linear-gradient(135deg, #15080e 0%, #57191f 25%, #ed6ab8 50%, #ffaa3d 75%, #dcd0f0 100%)',
+  'Candlelit Cozy Evening': 'linear-gradient(135deg, #1c1917 0%, #78350f 30%, #f59e0b 60%, #fff7ed 100%)',
+  'Moonlight':              'linear-gradient(135deg, #0f172a 0%, #1e3a5f 30%, #6366f1 60%, #c4b5fd 100%)',
+  'Northern Lights':        'linear-gradient(135deg, #02060e 0%, #1a1050 30%, #524094 60%, #01efac 100%)',
+  'Dark Academia':          'linear-gradient(135deg, #1a1207 0%, #4a2c17 30%, #92400e 60%, #d4a373 100%)',
+  'Cottagecore Dawn':       'linear-gradient(135deg, #500724 0%, #be185d 30%, #f9a8d4 60%, #fdf2f8 100%)',
+  'Coastal Morning':        'linear-gradient(135deg, #0c4a6e 0%, #0369a1 30%, #67e8f9 60%, #ecfeff 100%)',
+  'Dream State':            'linear-gradient(135deg, #2e1065 0%, #7c3aed 30%, #c084fc 60%, #f5d0fe 100%)',
+  'Neon Nights':            'linear-gradient(135deg, #0a0a0a 0%, #6600ff 25%, #ff00ff 50%, #00ffcc 75%, #ffff00 100%)',
+  'Greenhouse':       'linear-gradient(135deg, #052e16 0%, #166534 30%, #4ade80 60%, #ecfdf5 100%)',
+  'Studio':           'linear-gradient(135deg, #1e293b 0%, #475569 30%, #94a3b8 60%, #f1f5f9 100%)',
+  'Studio Dark':      'linear-gradient(135deg, #0f172a 0%, #1e293b 30%, #334155 60%, #64748b 100%)',
+}
+const DEFAULT_GRADIENT = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #533483 100%)'
+
 export function timeAgo(iso) {
   const diff = Date.now() - new Date(iso).getTime()
   const mins  = Math.floor(diff / 60000)
@@ -38,7 +58,15 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
       }}>
         {post.screenshot_url
           ? <img src={post.screenshot_url} alt={post.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <span style={{ fontSize: 40, opacity: 0.15 }}>✦</span>}
+          : <div style={{
+              width: '100%', height: '100%',
+              background: MOOD_GRADIENTS[post.mood] || DEFAULT_GRADIENT,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              <span style={{ fontSize: 28, opacity: 0.7 }}>✦</span>
+              {post.mood && <span style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '1px', textTransform: 'uppercase' }}>{post.mood}</span>}
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>View room to explore items</span>
+            </div>}
         {featured && (
           <div style={{
             position: 'absolute', top: 10, left: 10,

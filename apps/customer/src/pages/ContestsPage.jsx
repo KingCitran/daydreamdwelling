@@ -4,14 +4,15 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import RaindropIcon from '@shared/RaindropIcon'
 import ContestReveal from './ContestReveal'
+import ContestEntryDetail from './community/ContestEntryDetail'
 
 const STATUS_COLORS = { upcoming: '#70a0ff', active: '#70c090', voting: '#f0c060', judging: '#ff7aa0', complete: '#9a7aee' }
+const STATUS_LIST   = ['all', 'active', 'voting', 'upcoming', 'judging', 'complete']
 const TYPE_LABELS   = { theme: 'Theme', placement: 'Product Placement', brief: 'Client Brief' }
 const TYPE_ICONS    = { theme: '🎨', placement: '◈', brief: '📋' }
-const DESIGNER_TIERS = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
-const TIER_COLORS    = ['', '#9a7aee', '#70c090', '#f0c060', '#ff7aa0', '#c084fc']
+const TYPE_LIST     = ['all', 'theme', 'placement', 'brief']
 
-export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }) {
+export default function ContestsPage({ onClose, roomItems = [], catalogue = {}, standalone, cart, cloudRoomId }) {
   const t = useTheme()
   const { user } = useAuth()
   const [contests, setContests] = useState([])
@@ -24,6 +25,10 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
   const [error, setError]         = useState(null)
   const [expanded, setExpanded]   = useState(null)
   const [revealContest, setRevealContest] = useState(null)
+  const [search, setSearch]       = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter]     = useState('all')
+  const [tab, setTab]             = useState('all') // 'all' | 'mine'
 
   useEffect(() => { fetchContests() }, [])
 
@@ -31,7 +36,7 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
     setLoading(true)
     const { data } = await supabase
       .from('contests')
-      .select('*, contest_entries(id, user_id, vote_count, is_winner, award, post_id, profiles(display_name, avatar_url, designer_tier), community_posts(screenshot_url, title)), sponsor:sponsor_id(display_name)')
+      .select('*, contest_entries(id, user_id, vote_count, is_winner, award, post_id, profiles(display_name, avatar_url, designer_tier), community_posts(screenshot_url, title, mood, room_id)), sponsor:sponsor_id(display_name)')
       .order('starts_at', { ascending: false })
       .limit(20)
     setContests(data ?? [])
@@ -71,15 +76,47 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
     return null
   }
 
+  async function captureScreenshot() {
+    const canvas = document.querySelector('canvas')
+    if (!canvas) return null
+    return new Promise(resolve => {
+      canvas.toBlob(blob => resolve(blob), 'image/png')
+    })
+  }
+
+  async function uploadScreenshot(blob) {
+    if (!blob || !user) return null
+    const path = `${user.id}/${Date.now()}.png`
+    const { error: upErr } = await supabase.storage
+      .from('community-screenshots')
+      .upload(path, blob, { contentType: 'image/png', upsert: false })
+    if (upErr) return null
+    const { data: urlData } = supabase.storage.from('community-screenshots').getPublicUrl(path)
+    return urlData?.publicUrl ?? null
+  }
+
   async function submitEntry(c) {
     if (!user) return
     setSubmitting(true); setError(null)
     const ve = validateEntry(c)
     if (ve) { setError(ve); setSubmitting(false); return }
 
+    // Capture and upload screenshot from the builder canvas
+    let screenshotUrl = null
+    if (!standalone) {
+      const blob = await captureScreenshot()
+      screenshotUrl = await uploadScreenshot(blob)
+    }
+
     const { data: post, error: pe } = await supabase
       .from('community_posts')
-      .insert({ user_id: user.id, title: entryForm.title || `${c.title} Entry`, description: entryForm.description || '' })
+      .insert({
+        user_id: user.id,
+        title: entryForm.title || `${c.title} Entry`,
+        description: entryForm.description || '',
+        screenshot_url: screenshotUrl,
+        room_id: cloudRoomId || null,
+      })
       .select('id').single()
     if (pe) { setError(pe.message); setSubmitting(false); return }
 
@@ -119,31 +156,94 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
 
   const fmt = iso => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ padding: '14px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: t.bg, zIndex: 10 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text }}>Contests & Challenges</h1>
-        <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, cursor: 'pointer', fontSize: 13 }}>✕ Close</button>
-      </div>
+  const lowerSearch = search.toLowerCase()
+  const filtered = contests.filter(c => {
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false
+    if (typeFilter !== 'all' && (c.contest_type || 'theme') !== typeFilter) return false
+    if (tab === 'mine' && !myEntries.has(c.id)) return false
+    if (search && !c.title?.toLowerCase().includes(lowerSearch) && !c.theme?.toLowerCase().includes(lowerSearch)) return false
+    return true
+  })
 
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 20px' }}>
-        {loading && <p style={{ color: t.textSoft, textAlign: 'center' }}>Loading...</p>}
-        {!loading && contests.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <div style={{ fontSize: 48, opacity: 0.3, marginBottom: 16 }}>✦</div>
-            <p style={{ fontSize: 15, color: t.text, fontWeight: 600 }}>No contests yet</p>
-            <p style={{ fontSize: 13, color: t.textSoft }}>Design challenges are coming soon! Stay tuned.</p>
+  const wrapStyle = standalone
+    ? { paddingTop: 24, paddingBottom: 48 }
+    : { position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }
+
+  return (
+    <div style={wrapStyle}>
+      {!standalone && (
+        <div style={{ padding: '14px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: t.bg, zIndex: 10 }}>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text }}>Contests & Challenges</h1>
+          <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, cursor: 'pointer', fontSize: 13 }}>✕ Close</button>
+        </div>
+      )}
+
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: standalone ? '0' : '24px 20px' }}>
+        {/* Tabs */}
+        {user && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            {[['all', 'All Contests'], ['mine', 'My Contests']].map(([key, label]) => (
+              <button key={key} onClick={() => setTab(key)} style={{
+                padding: '7px 16px', borderRadius: 10, border: 'none',
+                background: tab === key ? `${t.accent}15` : 'transparent',
+                color: tab === key ? t.accent : t.textSoft,
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}>{label}</button>
+            ))}
           </div>
         )}
+
+        {/* Search + filters */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input type="text" placeholder="Search contests..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              flex: '1 1 180px', padding: '8px 12px', borderRadius: 8,
+              border: `1px solid ${t.surfaceBorder}`, background: t.surface,
+              color: t.text, fontSize: 13, outline: 'none', minWidth: 0,
+            }}
+          />
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
+            padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`,
+            background: t.surface, color: t.text, fontSize: 12, outline: 'none', cursor: 'pointer',
+          }}>
+            {STATUS_LIST.map(s => (
+              <option key={s} value={s}>{s === 'all' ? 'All statuses' : s[0].toUpperCase() + s.slice(1)}</option>
+            ))}
+          </select>
+          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{
+            padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`,
+            background: t.surface, color: t.text, fontSize: 12, outline: 'none', cursor: 'pointer',
+          }}>
+            {TYPE_LIST.map(tp => (
+              <option key={tp} value={tp}>{tp === 'all' ? 'All types' : TYPE_LABELS[tp]}</option>
+            ))}
+          </select>
+        </div>
+
+        {loading && <p style={{ color: t.textSoft, textAlign: 'center' }}>Loading...</p>}
+
+        {!loading && filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '60px 0' }}>
+            <div style={{ fontSize: 48, opacity: 0.3, marginBottom: 16 }}>✦</div>
+            <p style={{ fontSize: 15, color: t.text, fontWeight: 600 }}>
+              {tab === 'mine' ? 'No contests entered yet' : 'No contests found'}
+            </p>
+            <p style={{ fontSize: 13, color: t.textSoft }}>
+              {tab === 'mine' ? 'Join a contest to see it here.' : search || statusFilter !== 'all' || typeFilter !== 'all' ? 'Try adjusting your filters.' : 'Design challenges are coming soon! Stay tuned.'}
+            </p>
+          </div>
+        )}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {contests.map(c => (
+          {filtered.map(c => (
             <ContestCard key={c.id} contest={c} t={t} user={user}
               myEntries={myEntries} myVotes={myVotes} expanded={expanded} joining={joining}
               entryForm={entryForm} submitting={submitting} error={error}
               onToggleExpand={id => setExpanded(expanded === id ? null : id)}
               onToggleJoin={id => { setJoining(joining === id ? null : id); setError(null) }}
               onFormChange={setEntryForm} onSubmit={submitEntry} onVote={toggleVote} fmt={fmt}
-              onReveal={() => setRevealContest(c)}
+              onReveal={() => setRevealContest(c)} cart={cart}
             />
           ))}
         </div>
@@ -160,7 +260,7 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {} }
   )
 }
 
-function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joining, entryForm, submitting, error, onToggleExpand, onToggleJoin, onFormChange, onSubmit, onVote, onReveal, fmt }) {
+function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joining, entryForm, submitting, error, onToggleExpand, onToggleJoin, onFormChange, onSubmit, onVote, onReveal, fmt, cart }) {
   const type = c.contest_type || 'theme'
   const entries = [...(c.contest_entries ?? [])].sort((a, b) => b.vote_count - a.vote_count)
   const winners = entries.filter(e => e.is_winner)
@@ -271,54 +371,9 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
       {isExpanded && entries.length > 0 && (
         <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {entries.map(entry => (
-            <EntryRow key={entry.id} entry={entry} t={t} user={user} canVote={canVote} voted={myVotes[entry.id]} onVote={onVote} />
+            <ContestEntryDetail key={entry.id} entry={entry} t={t} user={user} canVote={canVote} voted={myVotes[entry.id]} onVote={onVote} cart={cart} />
           ))}
         </div>
-      )}
-    </div>
-  )
-}
-
-function EntryRow({ entry, t, user, canVote, voted, onVote }) {
-  const p = entry.profiles
-  const tier = p?.designer_tier ?? 0
-  const isMine = user && entry.user_id === user.id
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: isMine ? `${t.accent}08` : t.bg, border: `1px solid ${isMine ? `${t.accent}30` : t.surfaceBorder}` }}>
-      <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: t.accentText, overflow: 'hidden', flexShrink: 0 }}>
-        {p?.avatar_url ? <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (p?.display_name || '?')[0].toUpperCase()}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: t.text }}>
-          {p?.display_name || 'Dreamer'}
-          {isMine && <span style={{ fontSize: 10, color: t.textSoft, marginLeft: 6 }}>(you)</span>}
-        </span>
-        {tier > 0 && <span style={{ fontSize: 10, color: TIER_COLORS[tier], fontWeight: 600, marginLeft: 8 }}>{DESIGNER_TIERS[tier]}</span>}
-      </div>
-      {entry.is_winner && (
-        <span style={{ padding: '3px 8px', borderRadius: 8, background: `${t.accent}15`, color: t.accent, fontSize: 10, fontWeight: 700 }}>{entry.award || 'Winner'}</span>
-      )}
-      {canVote && !isMine ? (
-        <button onClick={() => onVote(entry)} title="Drop your raindrop — 1 vote per room" style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: voted ? `${t.accent}20` : `${t.accent}10`,
-          border: `1.5px solid ${voted ? t.accent : `${t.accent}40`}`,
-          cursor: 'pointer', borderRadius: 10,
-          color: voted ? t.accent : t.text, fontWeight: 700, fontSize: 14,
-          padding: '6px 12px',
-          transition: 'all 0.2s',
-          transform: voted ? 'scale(1.05)' : 'scale(1)',
-          boxShadow: voted ? `0 0 0 3px ${t.accent}15` : 'none',
-        }}>
-          <RaindropIcon size={22} filled={voted} color={t.accent} />
-          {entry.vote_count}
-        </button>
-      ) : (
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: t.textSoft }}>
-          <RaindropIcon size={14} filled={entry.vote_count > 0} color={t.textSoft} />
-          {entry.vote_count}
-        </span>
       )}
     </div>
   )

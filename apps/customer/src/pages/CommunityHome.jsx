@@ -9,11 +9,73 @@ import ContestReveal from './ContestReveal'
 
 const DEMO_COUNTS = [7, 23, 68, 149, 312, 876, 1543, 5280, 12750, 53400, 166297]
 
-const MOCK_ENTRIES = [
-  { id: '1', vote_count: 8742, profiles: { display_name: 'Luna', avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Moonlight Study' } },
-  { id: '2', vote_count: 6218, profiles: { display_name: 'Ivy Rose', avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'Cottage Garden' } },
-  { id: '3', vote_count: 3891, profiles: { display_name: 'KingCitran', avatar_url: null, designer_tier: 2 }, community_posts: { screenshot_url: null, title: 'Golden Hour Living Room' } },
+// Toggle: true = 100-entry stress test (every scheme at 100k+ peak, dwindling tail)
+//         false = original 11 hand-picked entries
+const HIGH_VOLUME_DEMO = true
+
+// Original 11 — varied moods/tiers, tests pagination + medal frames + mood schemes
+const MOCK_ENTRIES_ORIGINAL = [
+  { id: '1',  vote_count: 47821, profiles: { display_name: 'Ember',       avatar_url: null, designer_tier: 5 }, community_posts: { screenshot_url: null, title: "Ember's Sunrise",          mood: "Ember's Sunrise" } },
+  { id: '2',  vote_count: 9844,  profiles: { display_name: 'Ivy Rose',    avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Cottage Garden Bedroom',    mood: 'Cottagecore Dawn' } },
+  { id: '3',  vote_count: 8217,  profiles: { display_name: 'Luna',        avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Moonlight Study',           mood: 'Moonlight' } },
+  { id: '4',  vote_count: 6103,  profiles: { display_name: 'Wren',        avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'The Professor Nook',        mood: 'Dark Academia' } },
+  { id: '5',  vote_count: 5482,  profiles: { display_name: 'Marigold',    avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'Golden Hour Reading Chair', mood: 'Golden Hour' } },
+  { id: '6',  vote_count: 4198,  profiles: { display_name: 'Tide',        avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'Morning Shoreline',         mood: 'Coastal Morning' } },
+  { id: '7',  vote_count: 3376,  profiles: { display_name: 'Fern',        avatar_url: null, designer_tier: 2 }, community_posts: { screenshot_url: null, title: 'Conservatory Loft',         mood: 'Greenhouse' } },
+  { id: '8',  vote_count: 2658,  profiles: { display_name: 'KingCitran',  avatar_url: null, designer_tier: 2 }, community_posts: { screenshot_url: null, title: 'Dream Cloud Studio',        mood: 'Dream State' } },
+  { id: '9',  vote_count: 1947,  profiles: { display_name: 'Flux',        avatar_url: null, designer_tier: 2 }, community_posts: { screenshot_url: null, title: 'Neon Cyber Den',            mood: 'Neon Nights' } },
+  { id: '10', vote_count: 1244,  profiles: { display_name: 'Harbor',      avatar_url: null, designer_tier: 1 }, community_posts: { screenshot_url: null, title: 'Cozy Winter Cabin',         mood: 'Vivid Sunset' } },
+  { id: '11', vote_count: 876,   profiles: { display_name: 'Aster',       avatar_url: null, designer_tier: 1 }, community_posts: { screenshot_url: null, title: 'Bright Morning Kitchen',    mood: 'Bright Day' } },
 ]
+
+// 100-entry stress test — every scheme gets a 100k+ peak entry, then dwindle.
+const MOCK_ENTRIES_HIGH_VOL = (() => {
+  // Top 14: one per scheme, 200k → 109k
+  const top = [
+    { mood: "Ember's Sunrise",          name: 'Ember',     title: "Ember's Sunrise" },
+    { mood: 'Vivid Sunset',             name: 'Crimson',   title: 'Sunset Cathedral' },
+    { mood: 'Northern Lights',          name: 'Aurora',    title: 'Borealis Ballroom' },
+    { mood: 'Golden Hour',              name: 'Marigold',  title: 'Golden Hour Atelier' },
+    { mood: 'Bright Day',               name: 'Solstice',  title: 'Midday Veranda' },
+    { mood: 'Greenhouse',               name: 'Fern',      title: 'Conservatory Royale' },
+    { mood: 'Moonlight',                name: 'Luna',      title: 'Lunar Library' },
+    { mood: 'Cottagecore Dawn',         name: 'Ivy Rose',  title: 'Dawn Cottage' },
+    { mood: 'Coastal Morning',          name: 'Tide',      title: 'Morning Shoreline' },
+    { mood: 'Dream State',              name: 'KingCitran',title: 'Dream Cloud Studio' },
+    { mood: 'Candlelit Cozy Evening',   name: 'Wax',       title: 'Candlelit Sanctum' },
+    { mood: 'Dark Academia',            name: 'Wren',      title: 'Professor Nook' },
+    { mood: 'Neon Nights',              name: 'Flux',      title: 'Neon Cyber Den' },
+    { mood: 'Studio',                   name: 'Atelier',   title: 'Studio Showcase' },
+  ]
+  const moods = top.map(t => t.mood)
+  const entries = top.map((t, i) => ({
+    id: `top-${i}`,
+    vote_count: 200000 - i * 7000,                                                 // 200k → 109k
+    profiles: { display_name: t.name, avatar_url: null, designer_tier: 5 },
+    community_posts: { screenshot_url: null, title: t.title, mood: t.mood },
+  }))
+  // Mid: 50 entries 95k → 10k, cycling through moods
+  for (let i = 0; i < 50; i++) {
+    entries.push({
+      id: `mid-${i}`,
+      vote_count: Math.floor(95000 - (i / 49) * 85000),
+      profiles: { display_name: `Designer ${i + 15}`, avatar_url: null, designer_tier: 3 + (i % 2) },
+      community_posts: { screenshot_url: null, title: `Entry ${i + 15}`, mood: moods[i % moods.length] },
+    })
+  }
+  // Tail: 36 entries 9.5k → 800, cycling through moods
+  for (let i = 0; i < 36; i++) {
+    entries.push({
+      id: `tail-${i}`,
+      vote_count: Math.floor(9500 - (i / 35) * 8700),
+      profiles: { display_name: `Designer ${i + 65}`, avatar_url: null, designer_tier: 1 + (i % 2) },
+      community_posts: { screenshot_url: null, title: `Entry ${i + 65}`, mood: moods[(i + 7) % moods.length] },
+    })
+  }
+  return entries
+})()
+
+const MOCK_ENTRIES = HIGH_VOLUME_DEMO ? MOCK_ENTRIES_HIGH_VOL : MOCK_ENTRIES_ORIGINAL
 
 export default function CommunityHome({ cart, onNavigate }) {
   const t = useTheme()
@@ -179,16 +241,25 @@ export default function CommunityHome({ cart, onNavigate }) {
         <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
           {[42, 312, 1543, 5280, 12750, 53400].map(n => (
             <div key={n} style={{ textAlign: 'center' }}>
-              <RaindropMobile count={n} filled accentColor={t.accent} size="small" formation="rain-arc" colorScheme="dreamcloud" />
+              <RaindropMobile isStatic count={n} filled accentColor={t.accent} size="small" formation="rain-arc" colorScheme="dreamcloud" />
             </div>
           ))}
         </div>
         <div style={{ marginTop: 24, display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
           <p style={{ fontSize: 11, color: t.textSoft, width: '100%', textAlign: 'center', margin: '0 0 8px' }}>Same count (5,280) across all color schemes with rain-arc:</p>
-          {['ocean', 'sunset', 'northern', 'ember', 'dreamcloud'].map(cs => (
+          {['daylight', 'sunset', 'northern', 'ember', 'dreamcloud'].map(cs => (
             <div key={cs} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 9, color: t.textSoft, marginBottom: 4, textTransform: 'capitalize' }}>{cs}</div>
-              <RaindropMobile count={5280} filled accentColor={t.accent} size="small" formation="rain-arc" colorScheme={cs} />
+              <RaindropMobile isStatic count={5280} filled accentColor={t.accent} size="small" formation="rain-arc" colorScheme={cs} />
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 24, display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <p style={{ fontSize: 11, color: t.textSoft, width: '100%', textAlign: 'center', margin: '0 0 8px' }}>Mood-themed schemes (5,280 count):</p>
+          {['goldenhour', 'daylight', 'vividsunset', 'ember', 'candlelight', 'moonlight', 'northern', 'neon', 'greenhouse', 'cottagedawn', 'coastal', 'dreamcloud', 'academia', 'studio'].map(cs => (
+            <div key={cs} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: t.textSoft, marginBottom: 4, textTransform: 'capitalize' }}>{cs}</div>
+              <RaindropMobile isStatic count={5280} filled accentColor={t.accent} size="small" formation="rain-arc" colorScheme={cs} />
             </div>
           ))}
         </div>
@@ -263,8 +334,6 @@ export default function CommunityHome({ cart, onNavigate }) {
               onHeart={() => toggleHeart(post.id)}
               onOpen={() => onNavigate(`/community/room/${post.id}`)}
               featured={post.is_featured}
-              showBuyButton
-              onBuyRoom={handleBuyRoom}
             />
           ))}
         </div>

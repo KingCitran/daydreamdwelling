@@ -55,7 +55,7 @@ export default function CommunityApp() {
   if (currentSegs[1] === 'room' && currentSegs[2]) {
     content = <CommunityRoomPage key={currentSegs[2]} postId={currentSegs[2]} cart={cart} onNavigate={navigate} />
   } else if (currentSegs[1] === 'contests') {
-    content = <ContestsPage onClose={() => navigate('/community')} standalone />
+    content = <ContestsPage onClose={() => navigate('/community')} standalone cart={cart} />
   } else if (currentSegs[1] === 'profile' && currentSegs[2]) {
     content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
   } else {
