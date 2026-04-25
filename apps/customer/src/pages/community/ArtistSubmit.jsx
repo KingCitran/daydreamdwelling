@@ -173,13 +173,15 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
       <style>{`
         .ddd-artist-form input,
         .ddd-artist-form textarea,
-        .ddd-artist-form select {
+        .ddd-artist-form select,
+        .ddd-artist-form label,
+        .ddd-artist-form label * {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
         .ddd-artist-form input::placeholder,
         .ddd-artist-form textarea::placeholder {
-          color: ${t.textSoft}; opacity: 0.65;
+          color: ${t.text}; opacity: 0.55;
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
@@ -326,7 +328,7 @@ function Field({ label, children }) {
   const t = useTheme()
   return (
     <label style={{ display: 'block', marginBottom: 14 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: t.textSoft, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: t.text, opacity: 0.85, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label}</div>
       {children}
     </label>
   )
