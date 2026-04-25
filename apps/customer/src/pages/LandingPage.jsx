@@ -33,7 +33,7 @@ const ROOM_CAROUSEL = [
   { Room: BlankRoom, mood: 'Cottagecore Dawn' },
   { Room: BlankRoom, mood: 'Neon Nights' },
   { Room: BlankRoom, mood: 'Coastal Morning' },
-  { Room: BlankRoom, mood: 'Cozy Evening' },
+  { Room: BlankRoom, mood: 'Vivid Sunset' },
   { Room: BlankRoom, mood: 'Dark Academia' },
 ]
 // LivingRoom/Bedroom imported for showcase section below

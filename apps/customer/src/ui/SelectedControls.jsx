@@ -2,6 +2,7 @@ import { ITEM_CATALOGUE } from '../data/items'
 import { useBuilderStyles } from './styles/appStyles'
 import { DIAMOND_MAP, roomQuadrant } from '../utils/roomGeometry'
 import Stepper from './Stepper'
+import { Icon } from '@shared/ui/Icon'
 
 export default function SelectedControls({
   item, catalogue, drawerOpen, roomRotation,
@@ -46,9 +47,9 @@ export default function SelectedControls({
             )}
             {(item.owned || item.wishlisted || item.locked) && (
               <div style={s.badgeRow}>
-                {item.owned      && <span style={s.badgeOwned}  title="You own this">✓ owned</span>}
-                {item.wishlisted && <span style={s.badgeWish}   title="On wishlist">♥ wishlist</span>}
-                {item.locked     && <span style={s.badgeLocked} title="Position locked">🔒 locked</span>}
+                {item.owned      && <span style={s.badgeOwned}  title="You own this"><Icon name="check" size={11} /> owned</span>}
+                {item.wishlisted && <span style={s.badgeWish}   title="On wishlist"><Icon name="wishlist" size={11} /> wishlist</span>}
+                {item.locked     && <span style={s.badgeLocked} title="Position locked"><Icon name="lock" size={11} /> locked</span>}
               </div>
             )}
           </div>
@@ -202,7 +203,7 @@ export default function SelectedControls({
           {/* Floor: rotate button */}
           {!isWall && !isCeiling && !item.locked && (
             <>
-              <button style={s.rotateBtn} onClick={onRotate} title="Rotate 90°">↻ Rotate</button>
+              <button style={s.rotateBtn} onClick={onRotate} title="Rotate 90°"><Icon name="rotate" size={13} /> Rotate</button>
               <div style={s.ctrlDivider} />
             </>
           )}
@@ -211,15 +212,15 @@ export default function SelectedControls({
           <div style={s.actionRow}>
             <button style={{ ...s.actionBtn, ...(item.owned ? s.iconOwned : {}) }}
               onClick={onToggleOwned}
-              title={item.owned ? 'Unmark as owned' : 'Mark as owned'}>✓ Own</button>
+              title={item.owned ? 'Unmark as owned' : 'Mark as owned'}><Icon name="check" size={13} /> Own</button>
             <button style={{ ...s.actionBtn, ...(item.locked ? s.iconLocked : s.iconUnlocked) }}
               onClick={onToggleLocked}
               title={item.locked ? 'Click to unlock' : 'Click to lock position'}>
-              {item.locked ? '🔒 Locked' : '🔓 Unlocked'}
+              <Icon name="lock" size={13} /> {item.locked ? 'Locked' : 'Unlocked'}
             </button>
             {!item.owned && (
               <button style={{ ...s.actionBtn, ...s.iconDelete }}
-                onClick={onDelete} title="Delete">🗑 Delete</button>
+                onClick={onDelete} title="Delete"><Icon name="trash" size={13} /> Delete</button>
             )}
           </div>
           {isDoor && isWall && (
@@ -228,7 +229,7 @@ export default function SelectedControls({
               onClick={onEnterRoom}
               title="Double-click door to enter connected room"
             >
-              → Enter Room
+              Enter Room <Icon name="chevronRight" size={13} />
             </button>
           )}
         </div>
@@ -274,14 +275,14 @@ export default function SelectedControls({
             <button style={{ ...s.actionBtn, ...s.iconWish }}
               onClick={onToggleWishlist}
               title={item.wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-            >{item.wishlisted ? '♥' : '♡'} Wish</button>
+            ><Icon name="wishlist" size={13} /> Wish</button>
           )}
           {!item.owned && (
             <button style={{ ...s.actionBtn, ...s.iconCart }}
-              onClick={onAddToCart} title="Add to cart">🛒 Cart</button>
+              onClick={onAddToCart} title="Add to cart"><Icon name="cart" size={13} /> Cart</button>
           )}
           <button style={{ ...s.actionBtn, ...s.iconInfo }}
-            onClick={onShowDetails} title="View details">ℹ Details</button>
+            onClick={onShowDetails} title="View details"><Icon name="info" size={13} /> Details</button>
         </div>
 
       </div>

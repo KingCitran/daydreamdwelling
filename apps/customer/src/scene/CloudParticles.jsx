@@ -23,8 +23,8 @@ const CLOUD_LAYERS = [
 export const MOOD_CLOUD_PRESETS = {
   'Moonlight':     { opacityMult: 1.3, tintBlend: 0.4 },
   'Neon Nights':   { opacityMult: 1.5, tintBlend: 0.6 },
-  'Cozy Evening':  { opacityMult: 1.2, tintBlend: 0.3 },
-  'Candlelight':   { opacityMult: 1.4, tintBlend: 0.3 },
+  'Vivid Sunset':  { opacityMult: 1.2, tintBlend: 0.3 },
+  'Candlelit Cozy Evening':   { opacityMult: 1.4, tintBlend: 0.3 },
   'Bright Day':    { opacityMult: 0.7, tintBlend: 0.1 },
   'Studio':        { opacityMult: 0.5, tintBlend: 0.1 },
   'Studio Dark':   { opacityMult: 0.6, tintBlend: 0.1 },

@@ -1,23 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@shared/supabase'
 import { useTheme } from '@shared/ThemeProvider'
+import { Icon } from '@shared/ui/Icon'
 
 const CATEGORIES = [
-  { key: 'furniture', label: 'Furniture',  icon: '🪑', desc: 'Sofas, dining sets, loungers' },
-  { key: 'planters',  label: 'Planters',   icon: '🪴', desc: 'Ceramic, terracotta, raised beds' },
-  { key: 'lighting',  label: 'Lighting',   icon: '🏮', desc: 'String lights, lanterns, path' },
-  { key: 'decor',     label: 'Decor',      icon: '🌸', desc: 'Sculptures, fountains, chimes' },
-  { key: 'tools',     label: 'Tools',      icon: '🌱', desc: 'Seeds, soil, accessories' },
-  { key: 'shade',     label: 'Shade',      icon: '⛱',  desc: 'Pergolas, umbrellas, awnings' },
+  { key: 'furniture', label: 'Furniture',  icon: 'furniture', desc: 'Sofas, dining sets, loungers' },
+  { key: 'planters',  label: 'Planters',   icon: 'planters',  desc: 'Ceramic, terracotta, raised beds' },
+  { key: 'lighting',  label: 'Lighting',   icon: 'lighting',  desc: 'String lights, lanterns, path' },
+  { key: 'decor',     label: 'Decor',      icon: 'decor',     desc: 'Sculptures, fountains, chimes' },
+  { key: 'tools',     label: 'Tools',      icon: 'supplies',  desc: 'Seeds, soil, accessories' },
+  { key: 'shade',     label: 'Shade',      icon: 'shade',     desc: 'Pergolas, umbrellas, awnings' },
 ]
 
 const VALUES = [
-  { icon: '✦', title: 'Independent makers only', text: 'Every product is from a verified independent seller. No mass-produced, no dropshipping.' },
-  { icon: '◈', title: 'Reliable shipping',        text: 'Sellers are held to strict processing deadlines. Track every order end to end.' },
-  { icon: '◇', title: 'No subscriptions ever',    text: 'Pay for what you buy. No monthly fees, no hidden charges — ever.' },
+  { icon: 'user',    title: 'Independent makers only', text: 'Every product is from a verified independent seller. No mass-produced, no dropshipping.' },
+  { icon: 'shipped', title: 'Reliable shipping',       text: 'Sellers are held to strict processing deadlines. Track every order end to end.' },
+  { icon: 'check',   title: 'No subscriptions ever',   text: 'Pay for what you buy. No monthly fees, no hidden charges — ever.' },
 ]
 
-const CATEGORY_ICONS = { furniture: '🪑', planters: '🪴', lighting: '🏮', decor: '🌸', tools: '🌱', shade: '⛱' }
+const CATEGORY_ICONS = { furniture: 'furniture', planters: 'planters', lighting: 'lighting', decor: 'decor', tools: 'supplies', shade: 'shade' }
 
 export default function HomePage({ onNavigate }) {
   const theme = useTheme()
@@ -67,7 +68,7 @@ export default function HomePage({ onNavigate }) {
             <div style={s.previewBox}>
               <div style={s.previewOrb} />
               <div style={s.previewContent}>
-                <span style={s.previewIcon}>🌿</span>
+                <Icon name="planters" size={52} color={theme.accent} />
                 <p style={s.previewLabel}>3D Garden Planner</p>
                 <p style={s.previewSub}>Visualise your space before you buy.</p>
                 <button style={s.previewBtn} disabled>Coming soon</button>
@@ -89,7 +90,7 @@ export default function HomePage({ onNavigate }) {
               {featured.map((p) => (
                 <button key={p.id} style={s.productCard} onClick={() => onNavigate('product', { productId: p.id })}>
                   <div style={{ ...s.productImg, background: theme.surface }}>
-                    <span style={s.productImgIcon}>{CATEGORY_ICONS[p.category] || '🌿'}</span>
+                    <Icon name={CATEGORY_ICONS[p.category] || 'planters'} size={56} color={theme.accent} />
                   </div>
                   <div style={s.productMeta}>
                     <p style={s.productName}>{p.name}</p>
@@ -109,7 +110,7 @@ export default function HomePage({ onNavigate }) {
           <div style={s.catGrid}>
             {CATEGORIES.map(cat => (
               <button key={cat.key} style={s.catCard} onClick={() => onNavigate('browse', { category: cat.key })}>
-                <span style={s.catIcon}>{cat.icon}</span>
+                <Icon name={cat.icon} size={26} color={theme.accent} />
                 <span style={s.catLabel}>{cat.label}</span>
                 <span style={s.catDesc}>{cat.desc}</span>
               </button>
@@ -124,7 +125,7 @@ export default function HomePage({ onNavigate }) {
           <div style={s.valGrid}>
             {VALUES.map(v => (
               <div key={v.title} style={s.valCard}>
-                <span style={{ fontSize: 20, color: theme.accent }}>{v.icon}</span>
+                <Icon name={v.icon} size={22} color={theme.accent} />
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: theme.text, margin: 0 }}>{v.title}</h3>
                 <p style={{ fontSize: 13, color: theme.textSoft, lineHeight: 1.7, margin: 0 }}>{v.text}</p>
               </div>
@@ -143,7 +144,9 @@ export default function HomePage({ onNavigate }) {
               <p style={{ fontSize: 14, color: theme.textSoft, lineHeight: 1.7, maxWidth: 460, margin: 0 }}>Place real furniture in our 3D room builder, tweak the lighting, then buy it all with one click.</p>
               <button style={s.heroCta} onClick={() => window.open('/', '_blank')}>Open Room Builder →</button>
             </div>
-            <div style={{ width: 160, height: 160, borderRadius: 20, background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 72 }}>🛋</div>
+            <div style={{ width: 160, height: 160, borderRadius: 20, background: theme.surface, border: `1px solid ${theme.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="furniture" size={72} color={theme.accent} />
+            </div>
           </div>
         </div>
       </div>
@@ -154,7 +157,7 @@ export default function HomePage({ onNavigate }) {
           <h2 style={{ fontSize: 30, fontWeight: 800, color: theme.text, marginBottom: 10 }}>Get early access to new arrivals.</h2>
           <p style={{ fontSize: 14, color: theme.textSoft, lineHeight: 1.7, marginBottom: 28 }}>New collections, restocks, and seasonal drops — straight to your inbox.</p>
           {joined ? (
-            <p style={{ fontSize: 18, color: theme.accent, fontWeight: 700 }}>You're on the list. ✦</p>
+            <p style={{ fontSize: 18, color: theme.accent, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 8 }}>You're on the list. <Icon name="check" size={20} /></p>
           ) : (
             <form onSubmit={handleWaitlist} style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <input

@@ -3,19 +3,21 @@ import { useAuth } from './auth/AuthContext'
 import { supabase } from './supabase'
 
 export const MOODS = [
-  { key: 'Golden Hour',      label: 'Golden Hour',      desc: 'Warm amber sunset, lamp pools',        icon: '🌅' },
-  { key: 'Bright Day',       label: 'Bright Day',       desc: 'Crisp natural light, airy and clean',  icon: '☀️' },
-  { key: 'Cozy Evening',     label: 'Cozy Evening',     desc: 'Dim warm glow, intimate',              icon: '🕯️' },
-  { key: 'Moonlight',        label: 'Moonlight',        desc: 'Cool blue-silver, peaceful night',     icon: '🌙' },
-  { key: 'Dark Academia',    label: 'Dark Academia',    desc: 'Moody amber, candlelit library',       icon: '📚' },
-  { key: 'Cottagecore Dawn', label: 'Cottagecore Dawn', desc: 'Warm pink morning light',              icon: '🌸' },
-  { key: 'Coastal Morning',  label: 'Coastal Morning',  desc: 'Cool bright blue-white, breezy',      icon: '🌊' },
-  { key: 'Dream State',      label: 'Dream State',      desc: 'Soft pastel lavender-blush, dreamy',  icon: '☁️' },
-  { key: 'Neon Nights',      label: 'Neon Nights',      desc: 'RGB LED cycling, vibrant',             icon: '🌈' },
-  { key: 'Candlelight',      label: 'Candlelight',      desc: 'Very warm, flickering glow, romantic', icon: '🕯' },
-  { key: 'Greenhouse',       label: 'Greenhouse',       desc: 'Natural warm light, green cast',       icon: '🌿' },
-  { key: 'Studio',           label: 'Studio',           desc: 'Neutral flat light, true colors',      icon: '🔲' },
-  { key: 'Studio Dark',      label: 'Studio Dark',      desc: 'Even flat studio light, dark neutral', icon: '⬛' },
+  { key: 'Golden Hour',            label: 'Golden Hour',            desc: 'Warm amber sunset, lamp pools',         icon: '🌅' },
+  { key: 'Bright Day',             label: 'Bright Day',             desc: 'Crisp natural light, airy and clean',   icon: '☀️' },
+  { key: 'Vivid Sunset',           label: 'Vivid Sunset',           desc: 'Magenta sky, gold horizon, still water', icon: '🌇' },
+  { key: "Ember's Sunrise",        label: "Ember's Sunrise",        desc: 'Bonfire fades into a slow pastel dawn (5 min)', icon: '🔥' },
+  { key: 'Candlelit Cozy Evening', label: 'Candlelit Cozy Evening', desc: 'Dim warm interior, flickering glow',    icon: '🕯' },
+  { key: 'Moonlight',              label: 'Moonlight',              desc: 'Cool blue-silver, peaceful night',      icon: '🌙' },
+  { key: 'Northern Lights',        label: 'Northern Lights',        desc: 'Aurora over a midnight sky',            icon: '🌌' },
+  { key: 'Dark Academia',          label: 'Dark Academia',          desc: 'Jewel tones, leather, candlelit library', icon: '📚' },
+  { key: 'Cottagecore Dawn',       label: 'Cottagecore Dawn',       desc: 'Warm pink morning light',               icon: '🌸' },
+  { key: 'Coastal Morning',        label: 'Coastal Morning',        desc: 'Cool bright blue-white, breezy',        icon: '🌊' },
+  { key: 'Dream State',            label: 'Dream State',            desc: 'Soft pastel lavender-blush, dreamy',    icon: '☁️' },
+  { key: 'Neon Nights',            label: 'Neon Nights',            desc: 'Tokyo neon nightlife, electric',        icon: '🌈' },
+  { key: 'Greenhouse',             label: 'Greenhouse',             desc: 'Sunlight through leaves, scattered flowers', icon: '🌿' },
+  { key: 'Studio',                 label: 'Studio',                 desc: 'Neutral flat light, true colors',       icon: '🔲' },
+  { key: 'Studio Dark',            label: 'Studio Dark',            desc: 'Even flat studio light, dark neutral',  icon: '⬛' },
 ]
 
 // Per-app default overrides (used when no user preference is set)

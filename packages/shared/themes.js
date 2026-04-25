@@ -62,23 +62,47 @@ export const MOOD_THEMES = {
     panelText:     '#c8e8c0',
     panelTextSoft: '#5a9050',
   },
-  'Cozy Evening': {
-    bg:            '#1c0f07',
-    surface:       'rgba(60,28,10,0.65)',
-    surfaceBorder: 'rgba(200,120,40,0.2)',
-    navBg:         'rgba(20,10,4,0.92)',
-    navBorder:     'rgba(200,120,40,0.12)',
-    text:          '#f0d8b0',
-    textSoft:      '#a87840',
-    accent:        '#d4882a',
-    accentText:    '#fff',
-    glow:          'rgba(220,130,40,0.2)',
-    canvasBg:      '#100806',
-    panelBg:       '#1e1008',
-    panelSurface:  '#2c1a0c',
-    panelBorder:   'rgba(180,90,30,0.35)',
-    panelText:     '#f0d0a0',
-    panelTextSoft: '#a07040',
+  // Vivid Sunset — striking sunset reflected on still water.
+  // Magenta/purple sky, gold/orange horizon. Peak warmth without going dark.
+  'Vivid Sunset': {
+    bg:            '#1a0820',
+    surface:       'rgba(180,60,140,0.35)',
+    surfaceBorder: 'rgba(255,170,80,0.32)',
+    navBg:         'rgba(20,8,28,0.92)',
+    navBorder:     'rgba(255,170,80,0.18)',
+    text:          '#fff5d4',
+    textSoft:      '#e8a8c4',
+    accent:        '#ffaa3d',
+    accentText:    '#1a0820',
+    glow:          'rgba(255,140,100,0.28)',
+    canvasBg:      '#0e041a',
+    panelBg:       '#180828',
+    panelSurface:  '#221038',
+    panelBorder:   'rgba(237,106,184,0.32)',
+    panelText:     '#fff5d4',
+    panelTextSoft: '#c890a8',
+  },
+  // Ember's Sunrise — animated theme that lightens over 5 minutes from
+  // pre-dawn (this static palette = t=0 fallback) through golden sunrise to a
+  // pale pastel morning. ThemeProvider interpolates EMBER_SUNRISE_KEYFRAMES.
+  // Named after the founder's daughter Ember.
+  "Ember's Sunrise": {
+    bg:            '#1a1438',
+    surface:       'rgba(60,40,90,0.6)',
+    surfaceBorder: 'rgba(255,220,150,0.3)',
+    navBg:         'rgba(20,16,44,0.92)',
+    navBorder:     'rgba(255,220,150,0.18)',
+    text:          '#f0e8d8',
+    textSoft:      '#c8a8d8',
+    accent:        '#ffe0a0',
+    accentText:    '#1a1438',
+    glow:          'rgba(255,210,140,0.22)',
+    canvasBg:      '#0e0820',
+    panelBg:       '#1c1638',
+    panelSurface:  '#28204a',
+    panelBorder:   'rgba(220,180,210,0.3)',
+    panelText:     '#f0e8d8',
+    panelTextSoft: '#a890c0',
   },
   'Moonlight': {
     bg:            '#090c16',
@@ -97,6 +121,25 @@ export const MOOD_THEMES = {
     panelBorder:   'rgba(100,130,210,0.28)',
     panelText:     '#c0cce8',
     panelTextSoft: '#5060a0',
+  },
+  // Northern Lights — deep midnight sky with aurora green/cyan washes.
+  'Northern Lights': {
+    bg:            '#040814',
+    surface:       'rgba(1,200,174,0.14)',
+    surfaceBorder: 'rgba(1,239,172,0.28)',
+    navBg:         'rgba(4,8,20,0.92)',
+    navBorder:     'rgba(1,239,172,0.14)',
+    text:          '#d8f0e8',
+    textSoft:      '#7090b0',
+    accent:        '#01efac',
+    accentText:    '#040814',
+    glow:          'rgba(1,239,172,0.25)',
+    canvasBg:      '#02060e',
+    panelBg:       '#080e1c',
+    panelSurface:  '#0e1830',
+    panelBorder:   'rgba(82,64,148,0.4)',
+    panelText:     '#d8f0e8',
+    panelTextSoft: '#5070a0',
   },
   'Dark Academia': {
     bg:            '#130d07',
@@ -188,7 +231,9 @@ export const MOOD_THEMES = {
     panelText:     '#e0d8ff',
     panelTextSoft: '#7060b8',
   },
-  'Candlelight': {
+  // Candlelit Cozy Evening — warm interior: lamp + amber + intimate glow.
+  // (Renamed from "Candlelight" — absorbs the original cozy interior feel.)
+  'Candlelit Cozy Evening': {
     bg:            '#0f0902',
     surface:       'rgba(58,28,6,0.65)',
     surfaceBorder: 'rgba(220,158,58,0.18)',
@@ -268,4 +313,128 @@ export const APP_MOOD_DEFAULTS = {
   outdoor:  'Dream State',
   seller:   'Dream State',
   admin:    'Dream State',
+}
+
+// ─── Ember's Sunrise — animated theme ────────────────────────────────────────
+// Five keyframes interpolated by ThemeProvider over EMBER_SUNRISE_DURATION_MS.
+// Starts in deep bonfire ember, lightens through dawn, ends on pastel pink/blue/lilac.
+// Special — named after the founder's daughter Ember.
+export const EMBER_SUNRISE_DURATION_MS = 5 * 60 * 1000
+
+export const EMBER_SUNRISE_KEYFRAMES = [
+  // t=0 — PRE-DAWN: deep purple-blue sky, lavender mid, pale yellow horizon glow, sun below
+  {
+    bg:'#1a1438', surface:'rgba(60,40,90,0.6)', surfaceBorder:'rgba(255,220,150,0.3)',
+    navBg:'rgba(20,16,44,0.92)', navBorder:'rgba(255,220,150,0.18)',
+    text:'#f0e8d8', textSoft:'#c8a8d8',
+    accent:'#ffe0a0', accentText:'#1a1438',
+    glow:'rgba(255,210,140,0.22)',
+    canvasBg:'#0e0820', panelBg:'#1c1638', panelSurface:'#28204a',
+    panelBorder:'rgba(220,180,210,0.3)', panelText:'#f0e8d8', panelTextSoft:'#a890c0',
+  },
+  // t=0.25 — SUN BREAKING: orange dominating horizon, pink mid, lavender high sky
+  {
+    bg:'#3a1f48', surface:'rgba(120,50,70,0.6)', surfaceBorder:'rgba(255,180,90,0.4)',
+    navBg:'rgba(40,20,52,0.94)', navBorder:'rgba(255,180,90,0.24)',
+    text:'#fff0d8', textSoft:'#ffc0b0',
+    accent:'#fe9b22', accentText:'#3a1f48',
+    glow:'rgba(255,140,80,0.28)',
+    canvasBg:'#221038', panelBg:'#341a48', panelSurface:'#44225c',
+    panelBorder:'rgba(255,140,100,0.36)', panelText:'#fff0d8', panelTextSoft:'#ffc0c0',
+  },
+  // t=0.5 — GOLDEN SUNRISE: blue-purple top, pink mid, gold + orange horizon
+  {
+    bg:'#5a3878', surface:'rgba(120,60,100,0.65)', surfaceBorder:'rgba(255,200,120,0.45)',
+    navBg:'rgba(60,36,80,0.94)', navBorder:'rgba(255,200,120,0.3)',
+    text:'#fff8e0', textSoft:'#ffd0d8',
+    accent:'#ffc870', accentText:'#3a1f48',
+    glow:'rgba(255,180,120,0.26)',
+    canvasBg:'#3c1f5a', panelBg:'#4a2868', panelSurface:'#5a3478',
+    panelBorder:'rgba(255,180,160,0.4)', panelText:'#fff8e0', panelTextSoft:'#ffd0d8',
+  },
+  // t=0.75 — RISING SUN: pale blue spreading, soft pink + peach + golden horizon
+  {
+    bg:'#9088c8', surface:'rgba(110,90,160,0.65)', surfaceBorder:'rgba(255,220,180,0.5)',
+    navBg:'rgba(120,108,170,0.94)', navBorder:'rgba(255,220,180,0.36)',
+    text:'#fffaee', textSoft:'#ffe8e8',
+    accent:'#ffd070', accentText:'#2a1858',
+    glow:'rgba(255,220,170,0.24)',
+    canvasBg:'#7060b8', panelBg:'#8074c0', panelSurface:'#9084d0',
+    panelBorder:'rgba(255,200,180,0.42)', panelText:'#fffaee', panelTextSoft:'#ffe0e8',
+  },
+  // t=1.0 — MORNING: pale blue sky, pale yellow sun, soft pink hints, white clouds
+  {
+    bg:'#cce0f0', surface:'rgba(255,253,235,0.75)', surfaceBorder:'rgba(220,210,180,0.5)',
+    navBg:'rgba(220,232,242,0.92)', navBorder:'rgba(220,210,180,0.3)',
+    text:'#1e3a5f', textSoft:'#5e7a9a',
+    accent:'#fcd34d', accentText:'#1e3a5f',
+    glow:'rgba(255,245,200,0.3)',
+    canvasBg:'#b8d0e8', panelBg:'#fffbeb', panelSurface:'#fff5d4',
+    panelBorder:'rgba(200,200,170,0.45)', panelText:'#1e3a5f', panelTextSoft:'#5e7a9a',
+  },
+]
+
+// Ambient sky gradient — rendered as a fixed-position layer behind app content.
+// Each keyframe is [top, upper-mid, lower-mid, horizon] going from sky to horizon.
+// Includes pale yellow sun light at the endpoint per the founder's request.
+export const EMBER_SUNRISE_GRADIENT_KEYFRAMES = [
+  // t=0 — PRE-DAWN: deep purple-blue top, lavender, pink, pale yellow horizon (sun below)
+  ['#1a1438', '#3a2858', '#a06080', '#fde0a0'],
+  // t=0.25 — SUN BREAKING: dusky lavender top, pink mid, orange bright horizon
+  ['#2a1c50', '#5a3878', '#d06090', '#fe9b22'],
+  // t=0.5 — GOLDEN SUNRISE: blue-purple, pink, gold halo, bright orange horizon
+  ['#3a2870', '#7c3a78', '#ed6ab8', '#ffaa3d'],
+  // t=0.75 — RISING: pale blue-lavender, soft pink, peach, golden horizon
+  ['#7080c0', '#c098d0', '#ffb890', '#ffd070'],
+  // t=1.0 — MORNING: pale blue sky, white-blue, pale yellow sun, soft peach-pink horizon
+  ['#a8c8e8', '#cfe2f0', '#fff5d4', '#ffe0d0'],
+]
+
+// Returns array of 4 hex stops for the current sunrise progress.
+export function computeSunriseGradient(progress) {
+  const kf = EMBER_SUNRISE_GRADIENT_KEYFRAMES
+  const p = Math.max(0, Math.min(1, progress))
+  if (p >= 1) return kf[kf.length - 1]
+  const segs = kf.length - 1
+  const seg = Math.floor(p * segs)
+  const localT = (p * segs) - seg
+  const a = kf[seg]
+  const b = kf[seg + 1]
+  return a.map((c, i) => lerpColor(c, b[i], localT))
+}
+
+// Color interpolation helpers
+function lerpHex(a, b, t) {
+  const ra = parseInt(a.slice(1,3),16), ga = parseInt(a.slice(3,5),16), ba = parseInt(a.slice(5,7),16)
+  const rb = parseInt(b.slice(1,3),16), gb = parseInt(b.slice(3,5),16), bb = parseInt(b.slice(5,7),16)
+  const r = Math.round(ra + (rb-ra)*t), g = Math.round(ga + (gb-ga)*t), v = Math.round(ba + (bb-ba)*t)
+  return '#' + [r,g,v].map(n => n.toString(16).padStart(2,'0')).join('')
+}
+function lerpRgba(a, b, t) {
+  const m = (s) => s.match(/[\d.]+/g).map(Number)
+  const [ra,ga,ba,aa=1] = m(a)
+  const [rb,gb,bb,ab=1] = m(b)
+  const r = Math.round(ra + (rb-ra)*t)
+  const g = Math.round(ga + (gb-ga)*t)
+  const v = Math.round(ba + (bb-ba)*t)
+  const av = +(aa + (ab-aa)*t).toFixed(3)
+  return `rgba(${r},${g},${v},${av})`
+}
+function lerpColor(a, b, t) {
+  if (typeof a !== 'string' || typeof b !== 'string') return a
+  return a.startsWith('#') ? lerpHex(a, b, t) : lerpRgba(a, b, t)
+}
+
+// Returns the interpolated palette for a 0..1 progress value through the keyframes.
+export function interpolateTheme(keyframes, progress) {
+  const p = Math.max(0, Math.min(1, progress))
+  const segs = keyframes.length - 1
+  if (p >= 1) return keyframes[segs]
+  const seg = Math.floor(p * segs)
+  const localT = (p * segs) - seg
+  const a = keyframes[seg]
+  const b = keyframes[seg + 1]
+  const out = {}
+  for (const key of Object.keys(a)) out[key] = lerpColor(a[key], b[key], localT)
+  return out
 }

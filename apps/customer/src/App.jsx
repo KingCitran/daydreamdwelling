@@ -827,7 +827,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
-      {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} />}
+      {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} cloudRoomId={cloudRoomId} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
       {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}

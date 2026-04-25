@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@shared/supabase'
 import { useTheme } from '@shared/ThemeProvider'
+import { Icon } from '@shared/ui/Icon'
 
 const CATEGORY_LABELS = {
   furniture: 'Outdoor Furniture', planters: 'Planters & Pots',
   lighting:  'Garden Lighting',   decor:    'Garden Decor',
   tools:     'Tools & Accessories', shade:  'Shade & Shelter',
+}
+
+const CATEGORY_ICONS = {
+  furniture: 'furniture', planters: 'planters', lighting: 'lighting',
+  decor: 'decor', tools: 'supplies', shade: 'shade',
 }
 
 const SORT_OPTIONS = [
@@ -60,8 +66,9 @@ export default function BrowsePage({ onNavigate, category }) {
             const isActive = key === '' ? !category : category === key
             return (
               <button key={key}
-                style={{ padding: '7px 12px', background: isActive ? `${t.accent}18` : 'transparent', border: 'none', borderRadius: 7, color: isActive ? t.accent : t.textSoft, fontSize: 13, textAlign: 'left', cursor: 'pointer', fontWeight: isActive ? 600 : 400 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', background: isActive ? `${t.accent}18` : 'transparent', border: 'none', borderRadius: 7, color: isActive ? t.accent : t.textSoft, fontSize: 13, textAlign: 'left', cursor: 'pointer', fontWeight: isActive ? 600 : 400 }}
                 onClick={() => onNavigate('browse', key ? { category: key } : {})}>
+                {key && <Icon name={CATEGORY_ICONS[key]} size={15} />}
                 {label}
               </button>
             )
@@ -72,15 +79,28 @@ export default function BrowsePage({ onNavigate, category }) {
       {/* Main */}
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <input
-            style={{ flex: 1, padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' }}
-            placeholder="Search products…" value={search} onChange={e => setSearch(e.target.value)}
-          />
-          <select
-            style={{ padding: '9px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, cursor: 'pointer' }}
-            value={sort} onChange={e => setSort(e.target.value)}>
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <span style={{ position: 'absolute', left: 12, color: t.textSoft, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+              <Icon name="search" size={15} />
+            </span>
+            <input
+              style={{ flex: 1, padding: '9px 14px 9px 34px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' }}
+              placeholder="Search products…" value={search} onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <span style={{ position: 'absolute', left: 12, color: t.textSoft, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+              <Icon name="filter" size={15} />
+            </span>
+            <select
+              style={{ padding: '9px 32px 9px 34px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, cursor: 'pointer', appearance: 'none' }}
+              value={sort} onChange={e => setSort(e.target.value)}>
+              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <span style={{ position: 'absolute', right: 10, color: t.textSoft, pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+              <Icon name="chevronDown" size={14} />
+            </span>
+          </div>
         </div>
 
         {loading ? (

@@ -1,19 +1,20 @@
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
+import { Icon } from '@shared/ui/Icon'
 
 const NAV_ITEMS = [
-  { key: 'dashboard',     label: 'Dashboard',      icon: '⊞' },
-  { key: 'products',      label: 'Products',        icon: '◫' },
-  { key: 'shop',          label: 'My 3D Shop',      icon: '☁' },
-  { key: 'orders',        label: 'Orders',          icon: '⊟' },
-  { key: 'earnings',      label: 'Earnings',        icon: '◈' },
-  { key: 'notifications', label: 'Notifications',   icon: '◉' },
-  { key: 'reviews',       label: 'Reviews',         icon: '✦' },
-  { key: 'discounts',     label: 'Discounts',        icon: '🏷' },
-  { key: 'promoted',      label: 'Promoted',         icon: '📣' },
-  { key: 'tools',         label: 'Tools',           icon: '⚒' },
-  { key: 'settings',      label: 'Settings',        icon: '⚙' },
+  { key: 'dashboard',     label: 'Dashboard',     icon: 'dashboard' },
+  { key: 'products',      label: 'Products',      icon: 'products' },
+  { key: 'shop',          label: 'My 3D Shop',    icon: 'shop3d' },
+  { key: 'orders',        label: 'Orders',        icon: 'orders' },
+  { key: 'earnings',      label: 'Earnings',      icon: 'earnings' },
+  { key: 'notifications', label: 'Notifications', icon: 'notifications' },
+  { key: 'reviews',       label: 'Reviews',       icon: 'reviews' },
+  { key: 'discounts',     label: 'Discounts',     icon: 'discounts' },
+  { key: 'promoted',      label: 'Promoted',      icon: 'promoted' },
+  { key: 'tools',         label: 'Tools',         icon: 'tools' },
+  { key: 'settings',      label: 'Settings',      icon: 'settings' },
 ]
 
 export default function NavBar({ page, onNavigate }) {
@@ -42,7 +43,7 @@ export default function NavBar({ page, onNavigate }) {
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: isActive ? `${t.accent}18` : 'transparent', border: 'none', color: isActive ? t.accent : t.textSoft, fontSize: 13, fontWeight: isActive ? 600 : 500, textAlign: 'left', width: '100%', cursor: 'pointer' }}
               onClick={() => onNavigate(item.key)}
             >
-              <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{item.icon}</span>
+              <Icon name={item.icon} size={18} />
               <span>{item.label}</span>
             </button>
           )
@@ -60,7 +61,8 @@ export default function NavBar({ page, onNavigate }) {
             <span style={{ fontSize: 10, color: t.textSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</span>
           </div>
         </div>
-        <button style={{ padding: '7px 0', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 12, width: '100%', cursor: 'pointer' }} onClick={signOut}>
+        <button style={{ padding: '7px 0', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 12, width: '100%', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }} onClick={signOut}>
+          <Icon name="signout" size={14} />
           Sign out
         </button>
       </div>

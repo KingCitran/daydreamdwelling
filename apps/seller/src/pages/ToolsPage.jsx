@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import { Icon } from '@shared/ui/Icon'
 
 const TOOLS = [
   {
     key: 'csv-export',
-    icon: '📋',
+    icon: 'save',
     label: 'CSV Export',
     desc: 'Download all your listings as a spreadsheet.',
     phase: null,
@@ -14,7 +15,7 @@ const TOOLS = [
   },
   {
     key: 'performance',
-    icon: '📊',
+    icon: 'earnings',
     label: 'Performance Report',
     desc: 'Revenue, trends and earnings breakdown.',
     phase: null,
@@ -23,7 +24,7 @@ const TOOLS = [
   },
   {
     key: 'reviews',
-    icon: '⭐',
+    icon: 'reviews',
     label: 'Review Manager',
     desc: 'Reply to customer reviews and flag issues.',
     phase: null,
@@ -32,70 +33,70 @@ const TOOLS = [
   },
   {
     key: 'bulk-editor',
-    icon: '✏️',
+    icon: 'products',
     label: 'Bulk Editor',
     desc: 'Edit price, status, or tags across multiple products at once.',
     phase: 2,
   },
   {
     key: 'csv-import',
-    icon: '📥',
+    icon: 'plus',
     label: 'CSV Import',
     desc: 'Upload a spreadsheet to create or update listings in bulk.',
     phase: 2,
   },
   {
     key: 'inventory',
-    icon: '📦',
+    icon: 'products',
     label: 'Inventory Tracker',
     desc: 'Set stock quantities per variant and get low-stock alerts.',
     phase: 2,
   },
   {
     key: 'discounts',
-    icon: '🏷️',
+    icon: 'discounts',
     label: 'Discount Creator',
     desc: 'Create % or $ off coupon codes with expiry and usage limits.',
     cta: 'Manage', page: 'discounts',
   },
   {
     key: 'pricing',
-    icon: '💰',
+    icon: 'earnings',
     label: 'Pricing Assistant',
     desc: 'Get competitive price suggestions based on similar listings.',
     phase: 2,
   },
   {
     key: 'promoted',
-    icon: '📢',
+    icon: 'promoted',
     label: 'Promoted Listings',
     desc: 'Pay for priority placement in search results.',
     cta: 'Manage', page: 'promoted',
   },
   {
     key: 'shipping-calc',
-    icon: '🚚',
+    icon: 'shipped',
     label: 'Shipping Calculator',
     desc: 'Estimate shipping costs by weight and destination.',
     phase: 2,
   },
   {
     key: 'disputes',
-    icon: '🔄',
+    icon: 'rotate',
     label: 'Returns & Disputes',
     desc: 'Manage return requests and buyer dispute cases.',
     phase: 2,
   },
   {
     key: 'tax',
-    icon: '🧾',
+    icon: 'orders',
     label: 'Tax Summary',
     desc: 'Annual earnings export for tax filing (1099-style).',
     phase: 2,
   },
   {
     key: 'shop-builder',
-    icon: '🏠',
+    icon: 'shop3d',
     label: 'Seller Shop Builder',
     desc: 'Customize your 3D storefront — layout, music, Wispy style.',
     phase: 2,
@@ -171,7 +172,7 @@ export default function ToolsPage({ onNavigate }) {
           return (
             <div key={tool.key} style={{ ...s.card, opacity: tool.phase ? 0.72 : 1 }}>
               <div style={s.cardTop}>
-                <span style={s.icon}>{tool.icon}</span>
+                <span style={s.icon}><Icon name={tool.icon} size={24} color={t.accent} /></span>
                 {tool.phase
                   ? <span style={s.badgePhase}>Phase {tool.phase}</span>
                   : <span style={s.badgeLive}>Live</span>
@@ -230,7 +231,7 @@ function makeStyles(t) {
       alignItems: 'center',
       justifyContent: 'space-between',
     },
-    icon: { fontSize: 24 },
+    icon: { display: 'inline-flex', alignItems: 'center' },
     badgeLive: {
       fontSize: 10, fontWeight: 700,
       padding: '2px 8px', borderRadius: 20,

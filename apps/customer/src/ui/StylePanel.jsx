@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
+import { Icon } from '@shared/ui/Icon'
 
 function useStyles() {
   const t = useTheme()
@@ -190,7 +191,7 @@ function PaintPalette({ value, onChange }) {
 
       {/* More Colors toggle */}
       <button style={s.moreBtn} onClick={() => setShowMore(v => !v)}>
-        {showMore ? '▲ Fewer Colors' : '▼ More Colors'}
+        <Icon name={showMore ? 'chevronUp' : 'chevronDown'} size={11} /> {showMore ? 'Fewer Colors' : 'More Colors'}
       </button>
 
       {/* Gradient picker — only mounted when expanded */}
@@ -209,8 +210,12 @@ export default function StylePanel({ floorColor, wallColor, onFloorColor, onWall
       <div style={s.header}>
         <p style={s.title}>Room Style</p>
         <div style={s.tabs}>
-          <button style={{ ...s.tab, ...(target === 'floor' ? s.tabActive : {}) }} onClick={() => setTarget('floor')}>Floor</button>
-          <button style={{ ...s.tab, ...(target === 'wall'  ? s.tabActive : {}) }} onClick={() => setTarget('wall') }>Walls</button>
+          <button style={{ ...s.tab, ...(target === 'floor' ? s.tabActive : {}) }} onClick={() => setTarget('floor')}>
+            <Icon name="floor" size={12} /> Floor
+          </button>
+          <button style={{ ...s.tab, ...(target === 'wall'  ? s.tabActive : {}) }} onClick={() => setTarget('wall') }>
+            <Icon name="wall" size={12} /> Walls
+          </button>
         </div>
       </div>
 
@@ -240,6 +245,7 @@ function makeStyles(t) {
     title:    { margin: 0, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', color: t.textSoft },
     tabs:     { display: 'flex', gap: 4 },
     tab: {
+      display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 10px', background: t.surface, color: t.textSoft,
       border: `1px solid ${t.surfaceBorder}`, borderRadius: 5, cursor: 'pointer', fontSize: 11,
     },
@@ -264,6 +270,7 @@ function makeStyles(t) {
       padding: '5px 8px', fontSize: 12, fontFamily: 'monospace',
     },
     moreBtn: {
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5,
       width: '100%', marginTop: 8, padding: '6px 0',
       background: t.surface, color: t.textSoft,
       border: `1px solid ${t.surfaceBorder}`, borderRadius: 5,
