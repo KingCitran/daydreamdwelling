@@ -65,10 +65,12 @@ export default function CommunityApp() {
     content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
   } else if (currentSegs[1] === 'artists') {
     const openAuth = () => setAuthOpen(true)
-    if      (currentSegs[2] === 'dashboard') content = <ArtistDashboard onNavigate={navigate} onSignIn={openAuth} />
-    else if (currentSegs[2] === 'submit')    content = <ArtistSubmit    onNavigate={navigate} onSignIn={openAuth} />
-    else if (currentSegs[2] === 'programs')  content = <ArtistPrograms  onNavigate={navigate} onSignIn={openAuth} />
-    else                                      content = <ArtistLanding   onNavigate={navigate} onSignIn={openAuth} />
+    let inner
+    if      (currentSegs[2] === 'dashboard') inner = <ArtistDashboard onNavigate={navigate} onSignIn={openAuth} />
+    else if (currentSegs[2] === 'submit')    inner = <ArtistSubmit    onNavigate={navigate} onSignIn={openAuth} />
+    else if (currentSegs[2] === 'programs')  inner = <ArtistPrograms  onNavigate={navigate} onSignIn={openAuth} />
+    else                                      inner = <ArtistLanding   onNavigate={navigate} onSignIn={openAuth} />
+    content = <div className="ddd-artist-section">{inner}</div>
   } else {
     content = <CommunityHome cart={cart} onNavigate={navigate} />
   }
@@ -76,13 +78,19 @@ export default function CommunityApp() {
   return (
     <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}>
       <style>{`
-        /* Strip Ember Sunrise's global text-shadow inside the nav + footer —
-           those bars have their own backdrop, so the shadow only muddies text. */
+        /* Strip Ember Sunrise's global text-shadow inside the nav, footer, and
+           every artist page — those have their own solid backdrops, so the
+           shadow only muddies text. */
         .ddd-community-nav h1, .ddd-community-nav h2, .ddd-community-nav p,
         .ddd-community-nav a,  .ddd-community-nav span, .ddd-community-nav button,
         .ddd-community-nav label, .ddd-community-nav div,
         .ddd-community-foot a, .ddd-community-foot p, .ddd-community-foot span,
-        .ddd-community-foot div {
+        .ddd-community-foot div,
+        .ddd-artist-section h1, .ddd-artist-section h2, .ddd-artist-section h3,
+        .ddd-artist-section p, .ddd-artist-section span, .ddd-artist-section a,
+        .ddd-artist-section button, .ddd-artist-section label,
+        .ddd-artist-section label *, .ddd-artist-section div,
+        .ddd-artist-section input, .ddd-artist-section textarea, .ddd-artist-section select {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
