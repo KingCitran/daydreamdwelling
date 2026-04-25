@@ -169,21 +169,26 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
 
   return (
-    <div style={{ padding: '32px 0', maxWidth: 720, margin: '0 auto' }}>
+    <div className="ddd-artist-page" style={{ padding: '32px 0', maxWidth: 720, margin: '0 auto' }}>
       <style>{`
-        .ddd-artist-form input,
-        .ddd-artist-form textarea,
-        .ddd-artist-form select,
-        .ddd-artist-form label,
-        .ddd-artist-form label * {
+        /* Kill Ember's global text-shadow/stroke inside our cards — it's calibrated
+           for the animated sky bg, but our cards have their own solid backdrop. */
+        .ddd-artist-page h1,
+        .ddd-artist-page h2,
+        .ddd-artist-page p,
+        .ddd-artist-page label,
+        .ddd-artist-page label *,
+        .ddd-artist-page input,
+        .ddd-artist-page textarea,
+        .ddd-artist-page select,
+        .ddd-artist-page span,
+        .ddd-artist-page button {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
         .ddd-artist-form input::placeholder,
         .ddd-artist-form textarea::placeholder {
           color: ${t.text}; opacity: 0.55;
-          -webkit-text-stroke: 0 !important;
-          text-shadow: none !important;
         }
         .ddd-artist-form input:focus,
         .ddd-artist-form textarea:focus,
@@ -366,7 +371,7 @@ function makeStyles(t) {
       borderRadius: 16, padding: '20px 22px', marginBottom: 24,
     },
     pageTitle:    { fontSize: 24, fontWeight: 700, color: t.text, margin: '0 0 6px' },
-    subtitle:     { fontSize: 13, color: t.textSoft, margin: 0 },
+    subtitle:     { fontSize: 13, color: t.text, opacity: 0.75, margin: 0 },
     card: {
       backgroundColor: solidBg(t),
       backgroundImage: surfaceFlat,
