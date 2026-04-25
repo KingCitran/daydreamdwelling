@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
@@ -8,12 +8,57 @@ import { supabase } from '@shared/supabase'
 // revenue/orders, PPC balance widget instead of tier progress, Top Tracks instead
 // of Top Sellers, flagged/rejected tracks instead of unshipped orders.
 
+// Toggle: when true, skip Supabase and inject hardcoded mock data so the dashboard
+// can be previewed without a real artist profile + approved tracks. Flip to false
+// for production.
+const DEMO_MODE = true
+
 const STAT_COLORS = [
   { color: '#b8a0ff', bg: 'rgba(184,160,255,0.12)' },
   { color: '#f0a8d8', bg: 'rgba(240,168,216,0.12)' },
   { color: '#ffc87a', bg: 'rgba(255,200,122,0.12)' },
   { color: '#88d8b0', bg: 'rgba(136,216,176,0.12)' },
 ]
+
+const MOCK_ARTIST = {
+  user_id:           'demo-artist',
+  artist_name:       'Hollow Branches',
+  bio:               'Ambient and lo-fi for late-night rooms. Spotify + Bandcamp.',
+  external_links:    { spotify: 'https://open.spotify.com/', bandcamp: 'https://bandcamp.com/' },
+  ppc_balance_cents: 450,
+  ppc_rate_cents:    15,
+  is_verified:       true,
+}
+
+// Real audio assets that exist in /public/audio/ so playback actually works.
+const AUDIO_POOL = [
+  '/audio/gentle-rain.mp3',
+  '/audio/thunder-rumble.mp3',
+  '/audio/crack-1.mp3',
+  '/audio/crack-2.mp3',
+  '/audio/crack-3.mp3',
+  '/audio/crack-4.mp3',
+]
+
+const MOCK_TRACKS = [
+  { id: 'm1', title: 'Sunrise Hymn',    play_count: 2890, skip_rate: 0.12, approval_status: 'approved', rotation_status: 'active',  audio_url: AUDIO_POOL[0], duration_seconds: 184 },
+  { id: 'm2', title: 'Late Night Drive',play_count: 1247, skip_rate: 0.18, approval_status: 'approved', rotation_status: 'active',  audio_url: AUDIO_POOL[1], duration_seconds: 213 },
+  { id: 'm3', title: 'Empty Pages',     play_count: 423,  skip_rate: 0.31, approval_status: 'approved', rotation_status: 'active',  audio_url: AUDIO_POOL[2], duration_seconds: 156 },
+  { id: 'm4', title: 'Static Halo',     play_count: 102,  skip_rate: 0.47, approval_status: 'approved', rotation_status: 'limited', audio_url: AUDIO_POOL[3], duration_seconds: 178 },
+  { id: 'm5', title: 'Quietly Drowning',play_count: 0,    skip_rate: 0,    approval_status: 'pending',  rotation_status: 'active',  audio_url: AUDIO_POOL[4], duration_seconds: 142, submitted_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString() },
+  { id: 'm6', title: 'Ghost Frequency', play_count: 12,   skip_rate: 0.78, approval_status: 'approved', rotation_status: 'removed', audio_url: AUDIO_POOL[5], duration_seconds: 98, rejection_reason: 'High skip rate — removed from rotation' },
+]
+
+const MOCK_RECENT = [
+  { id: 'r1', station: 'Cozy',    room_mood: "Ember's Sunrise",       completed: true,  artist_tracks: { title: 'Sunrise Hymn' } },
+  { id: 'r2', station: 'Evening', room_mood: 'Moonlight',             completed: true,  artist_tracks: { title: 'Late Night Drive' } },
+  { id: 'r3', station: 'Cozy',    room_mood: 'Cottagecore Dawn',      completed: false, artist_tracks: { title: 'Empty Pages' } },
+  { id: 'r4', station: 'Focus',   room_mood: 'Dark Academia',         completed: true,  artist_tracks: { title: 'Sunrise Hymn' } },
+  { id: 'r5', station: 'Evening', room_mood: 'Candlelit Cozy Evening',completed: true,  artist_tracks: { title: 'Late Night Drive' } },
+  { id: 'r6', station: 'Cozy',    room_mood: 'Dream State',           completed: false, artist_tracks: { title: 'Static Halo' } },
+]
+
+const MOCK_CLICKS = 247
 
 export default function ArtistDashboard({ onNavigate, onSignIn }) {
   const { user, profile } = useAuth()
@@ -26,6 +71,21 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
   const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
+    if (DEMO_MODE) {
+      // Inject mock data so the dashboard renders without a real artist + tracks.
+      const totalPlays = MOCK_TRACKS.reduce((s, tr) => s + tr.play_count, 0)
+      const activeTracks = MOCK_TRACKS.filter(tr => tr.approval_status === 'approved' && tr.rotation_status !== 'removed').length
+      const flagged = MOCK_TRACKS.filter(tr => tr.approval_status === 'flagged' || tr.approval_status === 'rejected' || tr.rotation_status === 'removed').slice(0, 5)
+      const top = MOCK_TRACKS.filter(tr => tr.approval_status === 'approved').sort((a, b) => b.play_count - a.play_count).slice(0, 5)
+      setArtist(MOCK_ARTIST)
+      setStats({ plays: totalPlays, clicks: MOCK_CLICKS, tracks: activeTracks, balance: MOCK_ARTIST.ppc_balance_cents })
+      setRecent(MOCK_RECENT)
+      setTopTracks(top)
+      setNeedsAttn(flagged)
+      setLoading(false)
+      return
+    }
+
     if (!user) return
     async function load() {
       setLoading(true)
@@ -88,7 +148,7 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
   const name = artist?.artist_name || profile?.display_name || user?.email?.split('@')[0] || 'Artist'
   const s = makeStyles(t)
 
-  if (!user) return (
+  if (!DEMO_MODE && !user) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to view your artist dashboard.</p>
       <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
@@ -117,10 +177,24 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
 
   return (
     <div style={{ padding: '32px 0' }}>
+      {DEMO_MODE && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 10,
+          background: `${t.accent}18`, border: `1px dashed ${t.accent}55`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          fontSize: 12, color: t.text,
+        }}>
+          <span><strong style={{ color: t.accent }}>DEMO MODE</strong> — mock artist + tracks. Toggle <code>DEMO_MODE</code> in <code>ArtistDashboard.jsx</code> to disable.</span>
+        </div>
+      )}
+
       <div style={{ marginBottom: 28 }}>
         <h1 style={s.pageTitle}>Hey, {name} ☁</h1>
         <p style={s.pageSubtitle}>Here's how your tracks are doing.</p>
       </div>
+
+      {/* Demo player — only visible in DEMO_MODE so the founder can hear tracks */}
+      {DEMO_MODE && <DemoPlayer t={t} />}
 
       {/* Stat cards */}
       <div style={s.statsGrid}>
@@ -242,6 +316,59 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+// Inline player so the founder can hear the mock tracks rotating through.
+// Loads MOCK_TRACKS as a queue, advances on track end, exposes play/pause/skip.
+function DemoPlayer({ t }) {
+  const audioRef = useRef(null)
+  const [idx, setIdx] = useState(0)
+  const [playing, setPlaying] = useState(false)
+  const track = MOCK_TRACKS[idx]
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !track) return
+    audio.src = track.audio_url
+    if (playing) audio.play().catch(() => setPlaying(false))
+  }, [idx, track])
+
+  function toggle() {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playing) { audio.pause(); setPlaying(false) }
+    else         { audio.play().then(() => setPlaying(true)).catch(() => {}) }
+  }
+  function next() { setIdx(i => (i + 1) % MOCK_TRACKS.length) }
+
+  return (
+    <div style={{
+      marginBottom: 24, padding: '14px 18px', borderRadius: 14,
+      backgroundColor: t.bg && /(linear|radial|conic)-gradient/.test(t.bg) ? '#ffffff' : t.bg,
+      backgroundImage: `linear-gradient(${t.surface}, ${t.surface})`,
+      border: `1px solid ${t.surfaceBorder}`,
+      display: 'flex', alignItems: 'center', gap: 14,
+    }}>
+      <audio ref={audioRef} onEnded={next} preload="metadata" />
+      <button onClick={toggle} style={{
+        width: 40, height: 40, borderRadius: '50%', border: 'none',
+        background: t.accent, color: t.accentText, cursor: 'pointer',
+        fontSize: 14, flexShrink: 0,
+      }}>{playing ? '❚❚' : '▶'}</button>
+      <button onClick={next} title="Skip" style={{
+        background: 'none', border: 'none', color: t.text, opacity: 0.6,
+        cursor: 'pointer', fontSize: 18, padding: 0, flexShrink: 0,
+      }}>⤼</button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {track.title}
+        </div>
+        <div style={{ fontSize: 11, color: t.text, opacity: 0.65 }}>
+          Demo audio · track {idx + 1} of {MOCK_TRACKS.length}
+        </div>
+      </div>
     </div>
   )
 }
