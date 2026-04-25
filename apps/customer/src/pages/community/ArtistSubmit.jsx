@@ -177,10 +177,12 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
         .ddd-artist-form textarea:focus,
         .ddd-artist-form select:focus { outline: none; border-color: ${t.accent}; box-shadow: 0 0 0 3px ${t.accent}25; }
       `}</style>
-      <h1 style={s.pageTitle}>{artist ? 'Submit a new track' : 'Claim your artist profile + submit your first track'}</h1>
-      <p style={s.subtitle}>
-        Free submission. Auto-screened, then admin-reviewed within 48 hours. You'll see status updates in your dashboard.
-      </p>
+      <div style={s.headerCard}>
+        <h1 style={s.pageTitle}>{artist ? 'Submit a new track' : 'Claim your artist profile + submit your first track'}</h1>
+        <p style={s.subtitle}>
+          Free submission. Auto-screened, then admin-reviewed within 48 hours. You'll see status updates in your dashboard.
+        </p>
+      </div>
 
       {submittedTrack && (
         <div style={{
@@ -331,8 +333,16 @@ function tagBtn(t, active) {
 
 function makeStyles(t) {
   return {
-    pageTitle:    { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 6 },
-    subtitle:     { fontSize: 13, color: t.textSoft, marginBottom: 28 },
+    // Header card gives the title a solid backdrop so it stays legible on
+    // light/animated theme backgrounds (e.g. Ember's Sunrise pastel phase).
+    headerCard:   {
+      backgroundColor: t.bg,
+      backgroundImage: `linear-gradient(${t.surface}, ${t.surface})`,
+      border: `1px solid ${t.surfaceBorder}`,
+      borderRadius: 16, padding: '20px 22px', marginBottom: 24,
+    },
+    pageTitle:    { fontSize: 24, fontWeight: 700, color: t.text, margin: '0 0 6px' },
+    subtitle:     { fontSize: 13, color: t.textSoft, margin: 0 },
     // Layer t.bg (solid) under t.surface (translucent tint) so the card stays
     // solid even when the page bg is animated/gradient (Ember's Sunrise).
     card:         {
