@@ -333,10 +333,25 @@ function makeStyles(t) {
   return {
     pageTitle:    { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 6 },
     subtitle:     { fontSize: 13, color: t.textSoft, marginBottom: 28 },
-    card:         { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' },
+    // Layer t.bg (solid) under t.surface (translucent tint) so the card stays
+    // solid even when the page bg is animated/gradient (Ember's Sunrise).
+    card:         {
+      backgroundColor: t.bg,
+      backgroundImage: `linear-gradient(${t.surface}, ${t.surface})`,
+      border: `1px solid ${t.surfaceBorder}`,
+      borderRadius: 16, padding: '20px 22px',
+      boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
+    },
     sectionTitle: { fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 16 },
-    // Input bg = page bg (solid theme color) so it contrasts against the translucent card.
-    input:        { width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.bg, color: t.text, fontSize: 13, fontFamily: 'inherit' },
-    tagGrid:      { display: 'flex', flexWrap: 'wrap', gap: 6 },
+    // Input gets pure solid t.bg (no surface tint) so it visibly contrasts against the card.
+    // box-sizing fixes overflow — width:100% + padding was bleeding past card edges.
+    input: {
+      width: '100%', boxSizing: 'border-box',
+      padding: '10px 12px', borderRadius: 8,
+      border: `1px solid ${t.surfaceBorder}`,
+      backgroundColor: t.bg, color: t.text,
+      fontSize: 13, fontFamily: 'inherit',
+    },
+    tagGrid: { display: 'flex', flexWrap: 'wrap', gap: 6 },
   }
 }
