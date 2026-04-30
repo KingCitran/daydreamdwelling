@@ -12,18 +12,21 @@ export default function usePersistence({
   const importRef = useRef(null)
 
   useEffect(() => {
-    const serializedAllRooms = Object.fromEntries(
-      Object.entries(allRooms ?? {}).map(([id, room]) => [
-        id,
-        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))] },
-      ])
-    )
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      version: 1, gridW, gridD, wallHeight,
-      cells: [...cells],
-      items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
-      allRooms: serializedAllRooms, currentRoomId,
-    }))
+    const timeoutId = setTimeout(() => {
+      const serializedAllRooms = Object.fromEntries(
+        Object.entries(allRooms ?? {}).map(([id, room]) => [
+          id,
+          { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))] },
+        ])
+      )
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        version: 1, gridW, gridD, wallHeight,
+        cells: [...cells],
+        items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+        allRooms: serializedAllRooms, currentRoomId,
+      }))
+    }, 500)
+    return () => clearTimeout(timeoutId)
   }, [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId])
 
   const exportRoom = useCallback(() => {

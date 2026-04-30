@@ -22,7 +22,7 @@ export const MOODS = [
 
 // Per-app default overrides (used when no user preference is set)
 const APP_DEFAULTS = {
-  customer: 'Studio Dark',
+  customer: 'Bright Day',
   outdoor:  'Bright Day',
   seller:   'Dream State', // always locked, never user-controlled
 }
@@ -45,19 +45,21 @@ export function useMood(appKey = 'customer') {
     return { mood: 'Dream State', setMood: () => {}, moods: MOODS, isLocked: true }
   }
 
-  // Determine effective mood
-  const globalMood    = profile?.mood_preference ?? 'Golden Hour'
+  // Determine effective mood. globalMood is intentionally left undefined when
+  // there's no user/profile so the cascade can reach appDefault — otherwise
+  // appDefault would be dead code.
+  const globalMood    = profile?.mood_preference
   const appOverrides  = profile?.app_mood_overrides ?? {}
   const appDefault    = APP_DEFAULTS[appKey]
 
-  // User-set app override > global preference > app default
-  const effectiveMood = appOverrides[appKey] ?? globalMood ?? appDefault
+  // User-set app override > global preference > app default > hard fallback
+  const effectiveMood = appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day'
 
   const [mood, setMoodLocal] = useState(effectiveMood)
 
   // Sync when profile loads
   useEffect(() => {
-    setMoodLocal(appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Golden Hour')
+    setMoodLocal(appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day')
   }, [profile])
 
   const setMood = useCallback(async (newMood) => {

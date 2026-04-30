@@ -13,5 +13,8 @@
     "build:seller": "npm run build --workspace=apps/seller",
     "dev:admin": "npm run dev --workspace=apps/admin",
     "build:admin": "npm run build --workspace=apps/admin"
+  },
+  "dependencies": {
+    "lucide-react": "^1.11.0"
   }
 }

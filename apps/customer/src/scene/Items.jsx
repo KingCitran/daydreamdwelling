@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, memo } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
@@ -57,7 +57,7 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
 }
 
 // ── Floor item ─────────────────────────────────────────────────────
-function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
+const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
                     onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
@@ -157,7 +157,7 @@ function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeigh
       )}
     </mesh>
   )
-}
+})
 
 // Returns the [minU, maxU] of the contiguous wall-face segment at wallAnchor that contains
 // the item's current wallU position.  Used to clamp drag so items stop at wall edges.
@@ -191,7 +191,7 @@ function getWallFaceBounds(wall, wallAnchor, wallU, cells, gridW, gridD) {
 }
 
 // ── Wall item ──────────────────────────────────────────────────────
-function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
+const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
                         onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
   const def      = catalogue[item.typeKey]
   if (!def || !def.sizes) return null
@@ -614,10 +614,10 @@ function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallH
       </mesh>
     </group>
   )
-}
+})
 
 // ── Stair mesh ──────────────────────────────────────────────────────
-function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, catalogue = ITEM_CATALOGUE }) {
+const StairMesh = memo(function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, catalogue = ITEM_CATALOGUE }) {
   const def   = catalogue[item.typeKey]
   const color = def.swatches?.[item.swatchIndex]?.hex ?? def.color
   const sw    = item.stairW ?? 3
@@ -644,7 +644,7 @@ function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, catal
       )}
     </group>
   )
-}
+})
 
 // Which 2 walls are visible per camera quadrant — matches Walls.jsx VISIBLE_NORMALS
 const VISIBLE_WALLS = [

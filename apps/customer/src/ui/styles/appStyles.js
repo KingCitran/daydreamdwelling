@@ -133,7 +133,10 @@ export function makeBuilderStyles(t) {
       background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
       borderRadius: 12, padding: '10px 14px',
       display: 'flex', flexDirection: 'column', gap: 8,
-      width: 300, maxHeight: 'calc(100vh - 100px)', overflowY: 'auto',
+      // Width comes from the parent container (SelectedControls' fixed-position
+      // wrapper). 100% ensures inner flex rows wrap inside the available space
+      // instead of the old 300px hardcoded width that overflowed.
+      width: '100%', boxSizing: 'border-box',
       boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
     },
     ctrlRow:     { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },

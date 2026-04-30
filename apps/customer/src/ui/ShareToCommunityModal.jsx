@@ -15,6 +15,7 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
   const [preview, setPreview]   = useState(null)
   const [uploading, setUploading] = useState(false)
   const [success, setSuccess]   = useState(false)
+  const [postId, setPostId]     = useState(null)
   const [error, setError]       = useState(null)
   const captured = useRef(false)
 
@@ -50,8 +51,9 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
       }
     }
 
-    // Insert community post
-    const { error: postErr } = await supabase.from('community_posts').insert({
+    // Insert community post — capture the inserted id so the success view
+    // can link straight to the submission.
+    const { data: postRow, error: postErr } = await supabase.from('community_posts').insert({
       user_id: user.id,
       title: title.trim(),
       description: description.trim() || null,
@@ -59,7 +61,7 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
       room_id: cloudRoomId || null,
       music_station: postMusic || null,
       mood: postMood || null,
-    })
+    }).select('id').single()
 
     if (postErr) {
       setError(postErr.message)
@@ -67,9 +69,7 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
       return
     }
 
-    // Award loyalty points
-    await supabase.from('loyalty_points').insert({ user_id: user.id, amount: 5, reason: 'community_post' })
-
+    setPostId(postRow?.id ?? null)
     setUploading(false)
     setSuccess(true)
   }
@@ -89,10 +89,23 @@ export default function ShareToCommunityModal({ onClose, screenshotRef, musicSta
           <div style={{ padding: '40px 22px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✦</div>
             <h3 style={{ fontSize: 18, fontWeight: 700, color: t.text, margin: '0 0 8px' }}>Room shared!</h3>
-            <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 20px' }}>Your design is now on the community feed. +5 Dream Points!</p>
-            <button onClick={onClose} style={{ padding: '10px 24px', borderRadius: 10, background: t.accent, color: t.accentText, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              Done
-            </button>
+            <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 20px' }}>Your design is now on the community feed.</p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {postId && (
+                <button
+                  onClick={() => { window.location.href = `/community/room/${postId}` }}
+                  style={{ padding: '10px 20px', borderRadius: 10, background: t.accent, color: t.accentText, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  View submission →
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                style={{ padding: '10px 20px', borderRadius: 10, background: 'transparent', color: t.text, border: `1px solid ${t.surfaceBorder}`, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Done
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>

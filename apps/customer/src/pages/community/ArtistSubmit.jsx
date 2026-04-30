@@ -3,7 +3,10 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
-const STATIONS = ['Cozy', 'Bright', 'Evening', 'Focus', 'Nature', 'Romance', 'Party', 'Silence']
+// Station tag values that artists pick from when submitting tracks. Listener
+// picker (MusicTabPanel) shows a curated subset with friendly labels — IDs
+// here MUST match the station ids in MusicTabPanel for filters to align.
+const STATIONS = ['Cozy', 'Jazz', 'Bright', 'Evening', 'Focus', 'Nature', 'Romance', 'Party']
 const MOODS = ['Golden Hour', 'Bright Day', 'Vivid Sunset', "Ember's Sunrise", 'Candlelit Cozy Evening', 'Moonlight', 'Northern Lights', 'Dark Academia', 'Cottagecore Dawn', 'Coastal Morning', 'Dream State', 'Neon Nights', 'Greenhouse']
 const ALLOWED_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/aac', 'audio/mp4', 'audio/x-m4a']
 const MIN_DURATION = 30

@@ -14,6 +14,8 @@ import ArtistLanding from './community/ArtistLanding'
 import ArtistDashboard from './community/ArtistDashboard'
 import ArtistSubmit from './community/ArtistSubmit'
 import ArtistPrograms from './community/ArtistPrograms'
+import ArtistProfile from './community/ArtistProfile'
+import { useMusicPlayer } from '../contexts/MusicPlayerContext'
 import CommunityCartDrawer from '../ui/CommunityCartDrawer'
 import { useCommunityCart } from '../hooks/useCommunityCart'
 
@@ -56,6 +58,13 @@ export default function CommunityApp() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
+  // Tell the global music player to render its sidebar variant under our logo
+  const { setWidgetVariant } = useMusicPlayer()
+  useEffect(() => {
+    setWidgetVariant('sidebar')
+    return () => setWidgetVariant('bar')
+  }, [setWidgetVariant])
+
   let content
   if (currentSegs[1] === 'room' && currentSegs[2]) {
     content = <CommunityRoomPage key={currentSegs[2]} postId={currentSegs[2]} cart={cart} onNavigate={navigate} />
@@ -69,6 +78,7 @@ export default function CommunityApp() {
     if      (currentSegs[2] === 'dashboard') inner = <ArtistDashboard onNavigate={navigate} onSignIn={openAuth} />
     else if (currentSegs[2] === 'submit')    inner = <ArtistSubmit    onNavigate={navigate} onSignIn={openAuth} />
     else if (currentSegs[2] === 'programs')  inner = <ArtistPrograms  onNavigate={navigate} onSignIn={openAuth} />
+    else if (currentSegs[2] === 'profile')   inner = <ArtistProfile   onNavigate={navigate} onSignIn={openAuth} />
     else                                      inner = <ArtistLanding   onNavigate={navigate} onSignIn={openAuth} />
     content = <div className="ddd-artist-section">{inner}</div>
   } else {

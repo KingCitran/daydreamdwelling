@@ -8,16 +8,27 @@ import {
 
 const SUNRISE_MOOD = "Ember's Sunrise"
 
-// CSS injected globally during Ember's Sunrise to keep text legible across the
-// dark→light transition. text-shadow + paint-order stroke draws a subtle dark
-// outline behind every text element; invisible on dark bg, adds contrast on light.
+// Ember's Sunrise text-shadow effect — keeps text legible when overlaid
+// directly on the animated dark→light sky. Switched to OPT-IN: the effect
+// only applies to elements with className="ember-shadow". Most UI is on
+// solid card surfaces and doesn't need the shadow (it just makes text
+// fuzzy). Sky-overlay text (logo wordmark, room banner, etc.) explicitly
+// adds the class.
+//
+// `.ember-clear` is kept as an explicit opt-out for descendants of an
+// `.ember-shadow` ancestor that need to suppress it again.
 function EmberSunriseStyles() {
   return (
     <style>{`
-      body, .ember-sunrise-text, button, h1, h2, h3, h4, label, p, a, span {
+      .ember-shadow, .ember-shadow * {
         text-shadow: 0 0 2px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.32);
         paint-order: stroke fill;
         -webkit-text-stroke: 0.4px rgba(0,0,0,0.5);
+      }
+      .ember-clear, .ember-clear * {
+        text-shadow: none !important;
+        -webkit-text-stroke: 0 !important;
+        paint-order: normal !important;
       }
     `}</style>
   )

@@ -27,6 +27,25 @@ import useShopProducts from './hooks/useShopProducts'
 import useOwnedItems from './hooks/useOwnedItems'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
 import { ThemeProvider, useTheme } from '@shared/ThemeProvider'
+import { MusicPlayerProvider, useMusicPlayer } from './contexts/MusicPlayerContext'
+import TopMusicButton from './ui/TopMusicButton'
+import MusicPlayerBar from './ui/MusicPlayerBar'
+import MusicPlayerSidebar from './ui/MusicPlayerSidebar'
+import MusicPlayerFloating from './ui/MusicPlayerFloating'
+import { SideTabProvider, dispatchTogglePanel, dispatchOpenPanel } from './contexts/SideTabContext'
+import SideTabStrip from './ui/SideTabStrip'
+import DockablePanel from './ui/DockablePanel'
+import MusicTabPanel from './ui/MusicTabPanel'
+import PlaceTabPanel from './ui/PlaceTabPanel'
+import SocialTabPanel from './ui/SocialTabPanel'
+import PlanTabPanel from './ui/PlanTabPanel'
+import ViewTabPanel from './ui/ViewTabPanel'
+import BuildTabPanel from './ui/BuildTabPanel'
+import BottomTabCluster from './ui/BottomTabCluster'
+import TopRightCluster from './ui/TopRightCluster'
+import { useIsDragging } from './contexts/dragSignal'
+import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
+import { Lightbulb, LightbulbOff } from 'lucide-react'
 import AuthModal from './ui/AuthModal'
 import AccountModal from './ui/AccountModal'
 import SaveRoomModal from './ui/SaveRoomModal'
@@ -77,9 +96,30 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider appKey="customer">
-        <Gate />
+        <MusicPlayerProvider appKey="customer">
+          <Gate />
+          <GlobalMusicWidgets />
+        </MusicPlayerProvider>
       </ThemeProvider>
     </AuthProvider>
+  )
+}
+
+// Mounts the music UI globally so it follows the user across builder, community,
+// marketplace, contests, etc. Variant 'none' means the music UI is owned by
+// another surface (currently: the builder's Music side-tab) — the global
+// floating widget + top button stay hidden to avoid duplicate controls.
+function GlobalMusicWidgets() {
+  const { widgetOpen, widgetVariant } = useMusicPlayer()
+  if (widgetVariant === 'none') return null
+  if (!widgetOpen) return <TopMusicButton />
+  return (
+    <>
+      <TopMusicButton />
+      {widgetVariant === 'sidebar'  && <MusicPlayerSidebar />}
+      {widgetVariant === 'floating' && <MusicPlayerFloating />}
+      {widgetVariant === 'bar'      && <MusicPlayerBar />}
+    </>
   )
 }
 
@@ -125,6 +165,23 @@ function Gate() {
 function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
+
+  // Builder mounts the music player inside the Music side-tab (M8). Hide the
+  // global TopMusicButton + floating widget so we don't duplicate controls.
+  const { setWidgetVariant } = useMusicPlayer()
+  useEffect(() => {
+    setWidgetVariant('none')
+    return () => setWidgetVariant('bar')
+  }, [setWidgetVariant])
+
+  // Pause the 3D scene's render loop while a panel is being dragged. The
+  // canvas keeps showing the last frame; raindrops / clouds freeze briefly.
+  // This frees the GPU so panel transforms hit the display refresh cleanly.
+  const isDragging = useIsDragging()
+
+  // Shop is a static right-rail (not a dockable panel) — opened from the
+  // Place tab's "Open Shop" button or the bottom-bar shortcuts.
+  const shopOpen = useShopRail()
   const catalogue       = useShopProducts()
   const sellerCatalogue = useSellerCatalogue(shopBuilderSellerId)
   const { trackInterest, trackIntent } = useProductAnalytics()
@@ -314,6 +371,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }, [isExploring, shopBuilderSellerId, waitingInventory.unseenCount])
 
   const handleLoadRoom = useCallback(async (roomId) => {
+    // Guard against silently destroying unsaved work. Confirm before loading.
+    const proceed = window.confirm(
+      'Loading will replace your current room. ' +
+      'If you haven\'t saved your current room yet, please save it first.\n\n' +
+      'Click OK to load and discard the current room, or Cancel to go back.'
+    )
+    if (!proceed) return
     const { data, error } = await cloudSave.loadRoom(roomId)
     if (error || !data) return
     setGridW(data.gridW); setGridD(data.gridD)
@@ -470,8 +534,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       setOrderSuccess(true)
       window.history.replaceState({}, '', window.location.pathname)
     } else if (status === 'cancelled') {
-      setDrawerOpen(true)
       setDrawerTab('cart')
+      openShop()
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -624,17 +688,18 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
+    <SideTabProvider>
+    <div className="ember-clear" style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
-      {/* Brand logo — top left */}
-      <div style={{ position: 'absolute', top: 10, left: 12, zIndex: 20, display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'none', opacity: 0.7 }}>
-        <Logo size={28} color={t.accent} />
-        <span style={{ fontSize: 12, fontWeight: 600, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif" }}>DaydreamDwelling</span>
+      {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
+      <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
+        <Logo size={52} color={t.accent} />
+        <span style={{ fontSize: 22, fontWeight: 700, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif", textShadow: 'none', WebkitTextStroke: 0 }}>DaydreamDwelling</span>
       </div>
-      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }}>
+      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'}>
         <RoomScene
           targetRotation={targetRotation}
           cells={cells}
@@ -676,6 +741,41 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onOpenOverview={() => setOverviewOpen(true)}
         onNavigate={jumpToRoom}
         onRename={setRoomName}
+      />
+      {/* Lights — centered beneath the RoomBanner. Acts as the room's
+          lightswitch; disabled until a lamp is placed. */}
+      <button
+        onClick={() => hasLightFixtures && setLightsOff(v => !v)}
+        disabled={!hasLightFixtures}
+        title={!hasLightFixtures ? 'Place a lamp to enable' : (lightsOff ? 'Turn lights on' : 'Turn lights off')}
+        className="ember-clear"
+        style={{
+          position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 22,
+          padding: '7px 14px', borderRadius: 18,
+          border: `1px solid ${lightsOff ? '#ffc87a55' : `${t.accent}40`}`,
+          background: lightsOff ? 'rgba(255,200,122,0.18)' : 'rgba(15,12,30,0.6)',
+          color: '#f0eaff',
+          cursor: hasLightFixtures ? 'pointer' : 'default',
+          opacity: hasLightFixtures ? 1 : 0.5,
+          fontSize: 12, fontWeight: 700,
+          fontFamily: "'Outfit', system-ui, sans-serif",
+          letterSpacing: '0.3px',
+          backdropFilter: 'blur(10px)',
+          display: 'flex', alignItems: 'center', gap: 6,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {lightsOff ? <LightbulbOff size={15} strokeWidth={2.2} /> : <Lightbulb size={15} strokeWidth={2.2} />}
+        {lightsOff ? 'Lights Off' : 'Lights On'}
+      </button>
+
+      <TopRightCluster
+        shopOpen={shopOpen}
+        cartCount={cartCount}
+        onShop={() => { setDrawerTab('shop'); shopOpen ? closeShop() : openShop() }}
+        onWishlist={() => { setDrawerTab('wishlist'); openShop() }}
+        onCart={() => { setDrawerTab('cart'); openShop() }}
+        onMarketplace={() => { window.location.href = '/?shop=1' }}
       />
 
       {overviewOpen && (
@@ -940,37 +1040,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           )}
           {roomStack.length > 0 && <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>←</button>}
 
-          {/* ── Panels ── */}
-          <button style={{ ...s.bottomBtn, ...(drawerOpen ? s.bottomBtnActive : {}) }} onClick={() => setDrawerOpen(v => !v)} title="Shop">
-            {drawerOpen ? '✕' : '🛍'}
-          </button>
-          <button style={{ ...s.bottomBtn, ...(hubOpen ? s.bottomBtnActive : {}) }} onClick={() => setHubOpen(v => !v)} title="Tools">
-            {hubOpen ? '✕' : '🛠'}
-          </button>
-          <button style={{ ...s.bottomBtn, ...(musicOpen ? s.bottomBtnActive : {}) }} onClick={() => setMusicOpen(v => !v)} title="Music">🎵</button>
-
-          <div style={s.barDivider} />
-
-          {/* ── View ── */}
-          <button style={s.bottomBtn} onClick={() => setTarget(r => r - Math.PI / 2)} title="Rotate left">↻</button>
-          <button style={{ ...s.bottomBtn, ...(ceilingView ? s.bottomBtnActive : {}) }} onClick={() => { setCeilingView(v => !v); setCeilingPicker(null) }} title={ceilingView ? 'Floor view' : 'Ceiling view'}>
-            {ceilingView ? '▾' : '▴'}
-          </button>
-          <button style={s.bottomBtn} onClick={() => setTarget(r => r + Math.PI / 2)} title="Rotate right">↺</button>
-
-          <div style={s.barDivider} />
-
-          {/* ── Room ── */}
-          <BuilderMoodPicker />
-          <button style={{ ...s.bottomBtn, ...(lightsOff ? s.bottomBtnActive : {}), ...(hasLightFixtures ? {} : { opacity: 0.35, cursor: 'default' }) }} onClick={() => hasLightFixtures && setLightsOff(v => !v)} title={!hasLightFixtures ? 'Place a lamp first' : lightsOff ? 'Lights on' : 'Lights off'}>
-            {lightsOff ? '☀' : '💡'}
-          </button>
-          <button style={{ ...s.bottomBtn, ...(wispyMessage ? s.bottomBtnActive : {}) }} onClick={showWispy} title="Wispy">☁</button>
-          <button
-            style={{ ...s.bottomBtn, ...(cloudsOn ? s.bottomBtnActive : {}) }}
-            onClick={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
-            title={cloudsOn ? 'Clouds on — click to turn off' : 'Clouds off — click to turn on'}
-          >{cloudsOn ? '⛅' : '◯'}</button>
+          {/* All builder controls (panels, music, view, room) moved to side
+              tabs / top buttons. Bottom bar keeps only context-specific
+              utilities below: nested-room back, explore-mode save, waiting
+              inventory, cart. */}
 
           {/* Explore-mode save button */}
           {isExploring && selectedItem && (
@@ -1005,37 +1078,22 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             </button>
           )}
 
-          <div style={s.barDivider} />
-
-          {/* ── Social ── */}
-          <button style={{ ...s.bottomBtn, ...(communityOpen ? s.bottomBtnActive : {}) }} onClick={() => setCommunityOpen(v => !v)} title="Community">🌐</button>
-          <button style={{ ...s.bottomBtn, ...(contestsOpen ? s.bottomBtnActive : {}) }} onClick={() => setContestsOpen(v => !v)} title="Contests">✦</button>
-          <NotificationBell btnStyle={s.bottomBtn} />
-          <button style={s.bottomBtn} onClick={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)} title={user ? user.email : 'Sign in'}>
-            {user ? '👤' : '🔑'}
-          </button>
-
-          {/* ── Cart ── */}
-          {cartCount > 0 && (
-            <>
-              <div style={s.barDivider} />
-              <button style={{ ...s.bottomBtn, ...s.bottomCartBtn }} onClick={() => { setDrawerOpen(true); setDrawerTab('cart') }}>
-                🛒 <span style={s.cartBadge}>{cartCount}</span>
-              </button>
-            </>
-          )}
+          {/* Social/account/notifications moved to Social tab + bottom-left cluster.
+              Shop / Wishlist / Cart / Marketplace moved to TopRightCluster. */}
         </div>
       </div>
       </div>
+      {/* Static Shop right-rail. Slides in from the right with the same
+          transition the legacy drawer used. Width is 0 when closed. */}
       <div style={{
-        width: drawerOpen ? drawerWidth : 0,
+        width: shopOpen ? drawerWidth : 0,
         flexShrink: 0, height: '100%',
         overflow: 'hidden',
         transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
       }}>
         <div style={{ width: drawerWidth, height: '100%' }}>
           <ShopDrawer
-            open={drawerOpen}
+            open={shopOpen}
             activeTab={drawerTab}
             onTabChange={setDrawerTab}
             onPlace={placeItem}
@@ -1055,9 +1113,89 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             drawerWidth={drawerWidth}
             roomItemKeys={roomItemKeys}
             ownedKeys={ownedKeys}
+            onClose={closeShop}
           />
         </div>
       </div>
+    </div>
+    {/* M8 strip + dockable panels (Music / Build / Place / Style / Plan / View / Social) */}
+    <SideTabStrip />
+    <DockablePanel tabId="music"><MusicTabPanel /></DockablePanel>
+    <DockablePanel tabId="build">
+      <BuildTabPanel
+        onWindow={() => setWindowPickerOpen(true)}
+        onDoor={() => setDoorPickerOpen(true)}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="place" width={320} maxHeight="78vh">
+      <PlaceTabPanel
+        ownedKeys={ownedKeys}
+        roomItemKeys={roomItemKeys}
+        wishlistedItems={wishlistedItems}
+        catalogue={shopPanelCatalogue}
+        items={items}
+        onPlace={placeItem}
+        onOpenModal={openProductModal}
+        onSelectItem={setSelectedId}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="plan">
+      <PlanTabPanel
+        panelOpen={panelOpen}
+        onTogglePanel={() => setPanelOpen(v => !v)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onCloudSave={() => user ? setSaveModalOpen(true) : setAuthModalOpen(true)}
+        onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
+        bookmark={bookmark}
+        onSaveBookmark={saveBookmark}
+        onRestoreBookmark={restoreBookmark}
+        floorColor={floorColor}
+        wallColor={wallColor}
+        onFloorColor={setFloorColor}
+        onWallColor={setWallColor}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="view">
+      <ViewTabPanel
+        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
+        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
+        ceilingView={ceilingView}
+        onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+        onSummonWispy={showWispy}
+        showMeasurements={showMeasurements}
+        onToggleMeasurements={() => setShowMeasurements(v => !v)}
+        showGrid={showGrid}
+        onToggleGrid={() => setShowGrid(v => !v)}
+        cloudsOn={cloudsOn}
+        onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="social">
+      <SocialTabPanel
+        onCommunity={() => setCommunityOpen(true)}
+        onContests={() => setContestsOpen(true)}
+        onNotifications={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+      />
+    </DockablePanel>
+    <BottomTabCluster
+      signedIn={!!user}
+      onAccount={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+      onSettings={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+    />
+    </SideTabProvider>
+  )
+}
+
+// Placeholder body until the real panel contents are wired up step-by-step
+function PanelPlaceholder({ name, detail }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: '#f0eaff', textShadow: 'none', WebkitTextStroke: 0 }}>{name} panel</div>
+      <div style={{ fontSize: 12, lineHeight: 1.5, color: '#c8b8ee', textShadow: 'none', WebkitTextStroke: 0 }}>{detail}</div>
+      <div style={{ marginTop: 12, fontSize: 10, fontStyle: 'italic', color: '#8a78a8', textShadow: 'none', WebkitTextStroke: 0 }}>Drag the header to undock; release near the tab to snap back.</div>
     </div>
   )
 }

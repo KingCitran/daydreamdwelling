@@ -152,7 +152,9 @@ function makeStyles(t) {
   const accentTint = `${t.accent}22`
   return {
     panel: {
-      position: 'absolute', top: 20, left: 20, width: 248,
+      // Sits to the right of the docked Plan panel that opens it (Plan docks
+      // at left ~140 + width 320, so left:480 lands just past its right edge).
+      position: 'absolute', top: 124, left: 480, width: 248,
       background: t.navBg, border: `1.5px solid ${t.surfaceBorder}`,
       borderRadius: 10, padding: '14px 14px 16px',
       userSelect: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.18)',

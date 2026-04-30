@@ -18,6 +18,7 @@ export default function ShopDrawer({
   onCheckout,
   roomItemKeys,
   ownedKeys,
+  onClose,
 }) {
   const s = useShopStyles()
   const t = useTheme()
@@ -25,7 +26,21 @@ export default function ShopDrawer({
   const crumbMode = null // future: could pass browsing state up if needed
 
   return (
-    <div style={{ ...s.drawer, width: '100%', pointerEvents: 'auto' }}>
+    <div className="ember-clear" style={{ ...s.drawer, width: '100%', pointerEvents: 'auto', position: 'relative' }}>
+
+      {/* Close — pinned to the upper-right corner of the entire shop panel */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          title="Close shop"
+          style={{
+            position: 'absolute', top: 10, right: 12, zIndex: 5,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontSize: 18, padding: '4px 8px', lineHeight: 1,
+            color: t.textSoft, fontFamily: 'inherit',
+          }}
+        >✕</button>
+      )}
 
       {/* Header */}
       <div style={s.header}>

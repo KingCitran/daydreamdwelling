@@ -107,7 +107,9 @@ export default function useItemActions({
   const moveItem = useCallback((id, col, row) => {
     setItems(prev => {
       const item = prev.find(it => it.id === id)
-      if (!item || item.locked || hasOverlap(prev, id, { ...item, col, row })) return prev
+      if (!item || item.locked) return prev
+      if (item.col === col && item.row === row) return prev
+      if (hasOverlap(prev, id, { ...item, col, row })) return prev
       return prev.map(it => it.id === id ? { ...it, col, row } : it)
     })
   }, [setItems])
@@ -130,6 +132,7 @@ export default function useItemActions({
         if (faces.length === 0) return prev
         anchor = faces.includes(item.wallAnchor) ? item.wallAnchor : faces[0]
       }
+      if (item.wallU === wallU && item.wallH === wallH && item.wallAnchor === anchor) return prev
       const updated = { ...item, wallU, wallH, wallAnchor: anchor }
       if (hasWallOverlap(prev, id, updated)) return prev
       return prev.map(it => it.id === id ? updated : it)
