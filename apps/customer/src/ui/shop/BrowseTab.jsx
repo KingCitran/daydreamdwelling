@@ -250,7 +250,6 @@ function StripBtn({ label, active, disabled, onClick, activeBar, children }) {
   const baseOpacity = disabled ? 0.3 : (active ? 1 : 0.78)
 
   function onEnter() {
-    if (disabled) return
     const r = btnRef.current?.getBoundingClientRect()
     if (r) setTipPos({ left: r.left - 12, top: r.top + r.height / 2 })
   }
