@@ -5,14 +5,16 @@ import {
   matchesSearch,
 } from './shopData'
 import { useShopStyles } from './shopStyles'
+import { useTheme } from '@shared/ThemeProvider'
 import ProductCard from './ProductCard'
+import ShopIcon from './ShopIcon'
 
 function getSubOptions(mode) {
-  if (mode === 'object')   return Object.entries(OBJECT_BUCKETS).map(([key, m]) => ({ key, emoji: m.emoji, label: key }))
-  if (mode === 'room')     return ROOM_BUCKETS.map(b => ({ key: b.key, emoji: b.emoji, label: b.key }))
-  if (mode === 'vibe')     return VIBE_BUCKETS.map(b => ({ key: b.key, emoji: b.emoji, label: b.key }))
+  if (mode === 'object')   return Object.entries(OBJECT_BUCKETS).map(([key, m]) => ({ key, icon: m.icon, emoji: m.emoji, label: key }))
+  if (mode === 'room')     return ROOM_BUCKETS.map(b => ({ key: b.key, icon: b.icon, emoji: b.emoji, label: b.key }))
+  if (mode === 'vibe')     return VIBE_BUCKETS.map(b => ({ key: b.key, icon: b.icon, emoji: b.emoji, label: b.key }))
   if (mode === 'color')    return COLOR_BUCKETS.map(b => ({ key: b.key, emoji: b.emoji, label: b.key, preview: b.preview }))
-  if (mode === 'function') return FUNCTION_BUCKETS.map(b => ({ key: b.key, emoji: b.emoji, label: b.key }))
+  if (mode === 'function') return FUNCTION_BUCKETS.map(b => ({ key: b.key, icon: b.icon, emoji: b.emoji, label: b.key }))
   return []
 }
 
@@ -113,6 +115,15 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
   const gridCols = subPanelOpen ? 1 : 2
 
   return (
+    <>
+    <style>{`
+      @keyframes ddd-shop-tip-pop {
+        0%   { opacity: 0; transform: translate(-100%, -50%) scale(0.82); }
+        70%  { opacity: 1; transform: translate(-100%, -50%) scale(1.06); }
+        100% { opacity: 1; transform: translate(-100%, -50%) scale(1); }
+      }
+      .ddd-shop-tooltip { animation: ddd-shop-tip-pop 0.16s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    `}</style>
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
       {/* ── Grid column (LEFT — fills remaining space) ── */}
@@ -196,8 +207,10 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
               onClick={() => count > 0 && selectSub(opt.key)}
             >
               {opt.preview
-                ? <div style={{ width: 22, height: 22, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
-                : <span style={st.stripEmoji}>{opt.emoji}</span>
+                ? <div style={{ width: 26, height: 26, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
+                : opt.icon
+                  ? <ShopIcon name={opt.icon} size={26} />
+                  : <span style={st.stripEmoji}>{opt.emoji}</span>
               }
             </StripBtn>
           )
@@ -213,30 +226,77 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
             onClick={() => selectMode(mode.key)}
             activeBar
           >
-            <span style={st.stripEmoji}>{mode.emoji}</span>
+            {mode.icon
+              ? <ShopIcon name={mode.icon} size={26} />
+              : <span style={st.stripEmoji}>{mode.emoji}</span>
+            }
           </StripBtn>
         ))}
       </div>
 
     </div>
+    </>
   )
 }
 
 // ── Instant hover tooltip strip button ─────────────────────────────────────
+// Tooltip uses position:fixed so it escapes the strip's overflow clipping and
+// always lands at the same horizontal offset to the left of the button.
 
 function StripBtn({ label, active, disabled, onClick, activeBar, children }) {
-  const [hovered, setHovered] = useState(false)
+  const t = useTheme()
+  const btnRef = useRef(null)
+  const [tipPos, setTipPos] = useState(null)
+  const baseOpacity = disabled ? 0.3 : (active ? 1 : 0.78)
+
+  function onEnter() {
+    if (disabled) return
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setTipPos({ left: r.left - 12, top: r.top + r.height / 2 })
+  }
+  function onLeave() { setTipPos(null) }
+
   return (
     <button
-      style={{ ...st.modeBtn, ...(active ? st.modeBtnActive : {}), ...(disabled ? { opacity: 0.3, cursor: 'default' } : {}) }}
+      ref={btnRef}
+      aria-label={label}
+      style={{
+        ...st.modeBtn,
+        ...(active ? st.modeBtnActive : {}),
+        opacity: baseOpacity,
+        color: t.text,
+        cursor: disabled ? 'default' : 'pointer',
+      }}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
     >
       {activeBar && active && <div style={st.modeActiveBar} />}
       {children}
-      {hovered && (
-        <div style={st.tooltip}>{label}</div>
+      {tipPos && (
+        <div
+          className="ddd-shop-tooltip"
+          style={{
+            position: 'fixed',
+            left: tipPos.left, top: tipPos.top,
+            transform: 'translate(-100%, -50%)',
+            background: t.accent, color: t.accentText,
+            fontFamily: "'Outfit', system-ui, sans-serif",
+            fontSize: 12, fontWeight: 700, letterSpacing: '0.3px',
+            padding: '6px 13px', borderRadius: 999,
+            whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 9999,
+            boxShadow: `0 4px 16px ${t.accent}66, 0 0 0 1.5px ${t.accent}40`,
+          }}
+        >
+          {label}
+          <span style={{
+            position: 'absolute', left: '100%', top: '50%',
+            marginTop: -5, width: 0, height: 0,
+            borderTop: '5px solid transparent',
+            borderBottom: '5px solid transparent',
+            borderLeft: `6px solid ${t.accent}`,
+          }} />
+        </div>
       )}
     </button>
   )
@@ -247,7 +307,7 @@ const st = {
 
   subStrip: {
     flexShrink: 0, display: 'flex', flexDirection: 'column',
-    borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto', overflowX: 'hidden',
+    borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto', overflowX: 'visible',
     background: 'rgba(0,0,0,0.10)', transition: 'width 0.2s ease',
   },
   subBtn: {
@@ -260,25 +320,17 @@ const st = {
 
   modeStrip: {
     width: 52, flexShrink: 0, display: 'flex', flexDirection: 'column',
-    borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto',
+    borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto', overflowX: 'visible',
     background: 'rgba(0,0,0,0.18)',
   },
   modeBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '12px 4px', background: 'none', border: 'none', cursor: 'pointer',
-    position: 'relative', opacity: 0.5, transition: 'opacity 0.15s', flexShrink: 0, width: '100%',
+    padding: '12px 4px', background: 'none', border: 'none',
+    position: 'relative', transition: 'opacity 0.15s', flexShrink: 0, width: '100%',
   },
   modeBtnActive: { opacity: 1, background: 'rgba(154,122,238,0.14)' },
   modeActiveBar: { position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 2, borderRadius: 2, background: '#9a7aee' },
-  stripEmoji:    { fontSize: 20, lineHeight: 1 },
-
-  tooltip: {
-    position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)',
-    marginRight: 8, background: '#1a1428', border: '1px solid rgba(154,122,238,0.5)',
-    color: '#e0d9ff', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-    padding: '4px 10px', borderRadius: 6, pointerEvents: 'none', zIndex: 100,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-  },
+  stripEmoji:    { fontSize: 26, lineHeight: 1 },
 
   subTagRow:    { display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 8px 2px', flexShrink: 0, borderBottom: '1px solid rgba(180,158,220,0.15)' },
   subTagChip:   { padding: '3px 8px', background: 'transparent', border: '1px solid rgba(180,158,220,0.3)', borderRadius: 12, cursor: 'pointer', fontSize: 10, color: '#c0b8e8' },
