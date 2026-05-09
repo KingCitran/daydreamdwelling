@@ -15,11 +15,13 @@ import { Heart } from 'lucide-react'
 // gets rendered). Item drags only update wallU/wallH → only Position card
 // re-renders. Header / Size / Color / Quantity / Manage skip.
 
-// Generic comparator: equal if all non-function props match.
+// Shallow equality. We previously skipped function comparisons here as a
+// perf optimization, but that broke any button whose handler was an inline
+// closure encoding the selected item's id (Own, Lock, Delete, Wishlist…).
+// Stale closures kept toggling the previously-selected item.
 const dataEqual = (prev, next) => {
   const keys = new Set([...Object.keys(prev), ...Object.keys(next)])
   for (const k of keys) {
-    if (typeof prev[k] === 'function' && typeof next[k] === 'function') continue
     if (prev[k] !== next[k]) return false
   }
   return true
@@ -94,15 +96,21 @@ export default function SelectedControls({
         {isDoor && isWall && <DoorSection onEnterRoom={onEnterRoom} />}
 
         {totalSizes > 1 && !item.locked && (
-          <SizeSection
-            sizeIndex={item.sizeIndex} totalSizes={totalSizes}
-            label={curSize.label} price={curSize.price}
-            onResize={onResize}
-          />
+          <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+               title={item.owned ? "You own this — size is fixed" : undefined}>
+            <SizeSection
+              sizeIndex={item.sizeIndex} totalSizes={totalSizes}
+              label={curSize.label} price={curSize.price}
+              onResize={onResize}
+            />
+          </div>
         )}
 
         {(def.swatches?.length ?? 0) > 0 && (
-          <ColorSection swatches={def.swatches} swatchIndex={item.swatchIndex} onRecolor={onRecolor} />
+          <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+               title={item.owned ? "You own this — color is fixed" : undefined}>
+            <ColorSection swatches={def.swatches} swatchIndex={item.swatchIndex} onRecolor={onRecolor} />
+          </div>
         )}
 
         <QtyRotateSection
@@ -405,7 +413,7 @@ const ManageSection = memo(function ManageSection({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
         <button onClick={onToggleOwned} style={{ ...halfBtn, color: owned ? '#88d8b0' : '#c8b8ee' }}
           title={owned ? 'Unmark as owned' : 'Mark as owned'}>
-          <Icon name="check" size={13} /> {owned ? 'Owned' : 'Own'}
+          <Icon name="check" size={13} /> {owned ? 'owned' : 'I own this'}
         </button>
         <button onClick={onToggleLocked} style={{ ...halfBtn, color: locked ? '#ffc87a' : '#c8b8ee' }}
           title={locked ? 'Click to unlock' : 'Click to lock position'}>

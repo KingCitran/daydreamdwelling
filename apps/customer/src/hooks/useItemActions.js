@@ -238,7 +238,7 @@ export default function useItemActions({
   }, [setItems])
 
   const toggleOwned = useCallback((id) => {
-    setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned, locked: !it.owned } : it))
+    setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned } : it))
   }, [setItems])
 
   const toggleLocked = useCallback((id) => {
@@ -263,18 +263,26 @@ export default function useItemActions({
     setSelectedId(null)
   }, [items, currentRoomId, getRoomName, setItems, setAllRooms, setSelectedId])
 
+  // Refs guarantee the keyboard handler always reads the current selectedId/items,
+  // regardless of how often the deleteItem callback identity churns from items deps.
+  const selectedIdRef = useRef(selectedId)
+  useEffect(() => { selectedIdRef.current = selectedId }, [selectedId])
+  const deleteItemRef = useRef(deleteItem)
+  useEffect(() => { deleteItemRef.current = deleteItem }, [deleteItem])
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) return
-      if (!selectedId) return
+      const id = selectedIdRef.current
+      if (!id) return
       e.preventDefault()
-      deleteItem(selectedId)
+      deleteItemRef.current(id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selectedId, deleteItem])
+  }, [])
 
   return {
     placeItem, placeItemOnWall, placeCeilingItem,
