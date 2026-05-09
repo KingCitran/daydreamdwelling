@@ -1,87 +1,48 @@
 import { useState, useEffect } from 'react'
-import { useTheme } from '@shared/ThemeProvider'
-import { MOODS } from '@shared/useMood'
 import { MOOD_THEMES } from '@shared/themes'
-import MoodPicker from '@shared/MoodPicker'
+import { useMoodControl } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
-import { LivingRoom, Bedroom, BlankRoom } from './LandingRooms'
-import DesignerLeaderboard from './DesignerLeaderboard'
-import RaindropIcon from '@shared/RaindropIcon'
-import Logo from '@shared/Logo'
-import HeroMusic from './HeroMusic'
+import CloudField from './landing/CloudField'
+import RotatingRoom from './landing/RotatingRoom'
+import MoodSwatch from './landing/MoodSwatch'
 
-const SHARE_URL  = 'https://daydreamdwelling.com'
-const SHARE_TEXT = 'Just joined the waitlist for DaydreamDwelling ✦ A 3D room builder where you can actually buy the furniture you place — from independent sellers.'
+// "Above the clouds" sky palette — independent of mood. The mood-tinted glow
+// (radial gradient over this base) is what shifts when the user picks a mood.
+const SKY = {
+  zenith:  '#3a6fb8',
+  upper:   '#6a98d4',
+  middle:  '#a8c8e4',
+  horizon: '#ffe4c0',
+  ink:     '#1a2a48',
+  inkSoft: '#4a6890',
+  accent:  '#ff9b5c',
+  accentText: '#fff',
+}
+
+const FONTS = {
+  display: "'EB Garamond', 'Cormorant Garamond', Georgia, serif",
+  body:    "'Outfit', 'Inter', system-ui, sans-serif",
+  hand:    "'Caveat', cursive",
+}
+
 const BLOSSOMS_URL = 'https://daydreamblossoms.com'
 
-const FEATURES = [
-  { icon: '◈', title: '3D room builder',    text: 'Place furniture, adjust walls, switch lighting moods — all in real time.' },
-  { icon: '✦', title: 'Buy what you place', text: 'Every item links directly to its seller. Add to cart without leaving the builder.' },
-  { icon: '◉', title: '13 mood presets',    text: 'From golden hour warmth to moonlit calm — find the light that fits your life.' },
-]
-
-const STEPS = [
-  { n: '01', title: 'Set your room dimensions', text: 'Choose width, depth, and wall height. Add windows, doors, and arches.' },
-  { n: '02', title: 'Furnish and style',         text: 'Browse the catalogue. Drag furniture in. Adjust paint, floors, and ceiling.' },
-  { n: '03', title: 'Buy it in the real world',  text: 'When your room feels right, add pieces to cart and check out with the seller.' },
-]
-
-const ROOM_CAROUSEL = [
-  { Room: BlankRoom, mood: 'Golden Hour' },
-  { Room: BlankRoom, mood: 'Moonlight' },
-  { Room: BlankRoom, mood: 'Dream State' },
-  { Room: BlankRoom, mood: 'Cottagecore Dawn' },
-  { Room: BlankRoom, mood: 'Neon Nights' },
-  { Room: BlankRoom, mood: 'Coastal Morning' },
-  { Room: BlankRoom, mood: 'Vivid Sunset' },
-  { Room: BlankRoom, mood: 'Dark Academia' },
-]
-// LivingRoom/Bedroom imported for showcase section below
-void LivingRoom; void Bedroom;
-
 export default function LandingPage({ onEnter, onBrowseShop }) {
-  const t = useTheme()
-  const s = makeStyles(t)
+  const { mood, setMood, moods } = useMoodControl()
+  const t = MOOD_THEMES[mood] || MOOD_THEMES['Bright Day']
 
-  const [carIdx, setCarIdx]            = useState(0)
-  const [carPaused, setCarPaused]      = useState(false)
-  const [idxB, setIdxB]               = useState(7)
-  const [email, setEmail]             = useState('')
-  const [joined, setJoined]           = useState(false)
-  const [submitting, setSubmitting]   = useState(false)
-  const [waitlistErr, setWaitlistErr] = useState('')
-  const [waitlistCount, setWaitlistCount] = useState(null)
-  const [copied, setCopied]           = useState(false)
-  const [featuredRoom, setFeaturedRoom] = useState(null)
+  const [email, setEmail]                   = useState('')
+  const [joined, setJoined]                 = useState(false)
+  const [submitting, setSubmitting]         = useState(false)
+  const [waitlistErr, setWaitlistErr]       = useState('')
+  const [waitlistCount, setWaitlistCount]   = useState(null)
+  const [currentScene, setCurrentScene]     = useState(null)
 
   useEffect(() => {
-    const a = setInterval(() => { if (!carPaused) setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length) }, 6000)
-    const b = setInterval(() => setIdxB(i => (i + 1) % MOODS.length), 5300)
-    return () => { clearInterval(a); clearInterval(b) }
-  }, [carPaused])
-
-  useEffect(() => {
-    supabase
-      .from('community_posts')
-      .select('*, profiles(display_name, avatar_url, designer_tier)')
-      .eq('is_featured', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => { if (data?.[0]) setFeaturedRoom(data[0]) })
+    supabase.rpc('get_waitlist_count').then(({ data }) => {
+      if (data) setWaitlistCount(Number(data))
+    })
   }, [])
-
-  useEffect(() => {
-    supabase.rpc('get_waitlist_count')
-      .then(({ data }) => { if (data) setWaitlistCount(Number(data)) })
-  }, [])
-
-  const carItem = ROOM_CAROUSEL[carIdx]
-  const mtA = MOOD_THEMES[carItem.mood]
-  const mtB = MOOD_THEMES[MOODS[idxB].key]
-  const CarRoom = carItem.Room
-
-  function carPrev() { setCarIdx(i => (i - 1 + ROOM_CAROUSEL.length) % ROOM_CAROUSEL.length) }
-  function carNext() { setCarIdx(i => (i + 1) % ROOM_CAROUSEL.length) }
 
   async function handleWaitlist(e) {
     e.preventDefault()
@@ -97,356 +58,383 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
     }
   }
 
-  function copyLink() {
-    navigator.clipboard.writeText(SHARE_URL)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
-  }
+  const skyBg = `linear-gradient(180deg, ${SKY.zenith} 0%, ${SKY.upper} 22%, ${SKY.middle} 55%, ${SKY.horizon} 92%, ${SKY.horizon} 100%)`
+  const moodGlow = `radial-gradient(ellipse 1200px 600px at 70% 25%, ${t.accent}33 0%, transparent 70%)`
+  const dreamerCount = waitlistCount ? waitlistCount.toLocaleString() : '1,247'
 
   return (
-    <div style={s.page}>
-      <style>{WISPY_KEYFRAMES}</style>
+    <div style={{
+      minHeight: '100vh', position: 'relative', overflow: 'hidden',
+      background: skyBg, color: SKY.ink, fontFamily: FONTS.body,
+      transition: 'background 1.6s ease',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: moodGlow, transition: 'background 1.6s ease' }} />
+      <CloudField />
 
       {/* ── Nav ── */}
-      <header style={s.nav}>
-        <div style={s.navInner}>
-          <div style={s.logo}>
-            <Logo size={28} color={t.accent} />
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        background: 'rgba(255,255,255,0.5)',
+        borderBottom: '1px solid rgba(255,255,255,0.6)',
+      }}>
+        <div style={{
+          maxWidth: 1240, margin: '0 auto', padding: '18px 40px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <svg width="36" height="26" viewBox="0 0 80 56" aria-hidden>
+              <ellipse cx="40" cy="32" rx="32" ry="18" fill="#fff"/>
+              <ellipse cx="22" cy="28" rx="14" ry="12" fill="#fff"/>
+              <ellipse cx="56" cy="26" rx="16" ry="13" fill="#fff"/>
+              <ellipse cx="40" cy="20" rx="12" ry="10" fill="#fff"/>
+            </svg>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: t.text, lineHeight: 1.2, fontFamily: "'Outfit', system-ui, sans-serif" }}>DaydreamDwelling</div>
-              <div style={{ fontSize: 9, color: t.textSoft, letterSpacing: '0.5px' }}>Room Builder</div>
+              <div style={{ fontFamily: FONTS.display, fontSize: 22, fontWeight: 500, color: SKY.ink, lineHeight: 1, letterSpacing: '-0.5px' }}>
+                Daydream<span style={{ fontStyle: 'italic', fontWeight: 400 }}>Dwelling</span>
+              </div>
+              <div style={{ fontSize: 11, color: SKY.inkSoft, marginTop: 2, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+                rooms in the sky
+              </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <MoodPicker />
-            <a href="/community" className="ddd-landing-nav-outdoor" style={{ ...s.navLink, color: t.accent }}>Community ✦</a>
-            <a href={BLOSSOMS_URL} className="ddd-landing-nav-outdoor" style={{ ...s.navLink, color: t.textSoft }}>Daydream Blossoms ✿</a>
-            <button style={s.navCta} onClick={onEnter}>Open Builder →</button>
-          </div>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {[
+              { label: 'community', href: '/community' },
+              { label: 'blossoms',  href: BLOSSOMS_URL },
+              { label: 'about',     href: '#' },
+            ].map(l => (
+              <a key={l.label} href={l.href} style={{
+                padding: '10px 16px', cursor: 'pointer', borderRadius: 999,
+                fontSize: 13, fontWeight: 500, color: SKY.ink, textDecoration: 'none',
+              }}>{l.label}</a>
+            ))}
+            <button onClick={onEnter} style={{
+              marginLeft: 8, padding: '12px 24px', border: 'none', cursor: 'pointer',
+              background: SKY.accent, color: SKY.accentText,
+              fontSize: 13, fontWeight: 600, borderRadius: 999,
+              letterSpacing: '0.3px', boxShadow: `0 6px 18px ${SKY.accent}55`,
+            }}>open the builder →</button>
+          </nav>
         </div>
       </header>
 
       {/* ── Hero ── */}
-      <div className="ddd-landing-hero-wrap">
-        <div style={s.heroOrb} />
-        <div className="ddd-landing-hero">
-
-          {/* Left: text */}
-          <div className="ddd-landing-hero-left">
-            <p style={s.eyebrow}>Free 3D Room Builder</p>
-            <h1 className="ddd-landing-hero-title" style={{ color: t.text }}>Design the room<br />you've been<br />dreaming of.</h1>
-            <p className="ddd-landing-hero-sub" style={s.heroSub}>Build your space in 3D. Set the perfect mood.<br />Buy the real furniture from independent sellers.</p>
-            <div className="ddd-landing-hero-buttons" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <button style={s.heroCta} onClick={onEnter}>Start building — it's free →</button>
-              <button style={s.browseCta} onClick={onBrowseShop}>Browse Shop →</button>
+      <section style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '80px 40px 40px', zIndex: 10 }}>
+        <div className="ddd-landing-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 60, alignItems: 'center' }}>
+          <div>
+            <div style={{
+              fontSize: 12, color: SKY.accent, letterSpacing: '2.5px',
+              textTransform: 'uppercase', fontWeight: 600, marginBottom: 24,
+            }}>
+              ✦ free 3D room builder
             </div>
-            <p style={s.heroNote}>No account needed · 13 lighting moods · Real items from real sellers</p>
-          </div>
-
-          {/* Right: room carousel with sidewinder arrows */}
-          <div className="ddd-landing-hero-right">
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <button onClick={carPrev} style={s.carouselArrow} aria-label="Previous room">‹</button>
-              <div
-                onClick={onEnter}
-                style={{ position: 'relative', cursor: 'pointer', transition: 'transform 0.3s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
-              >
-                <CarRoom mt={mtA} moodName={carItem.mood} width={420} height={320} />
-                <div onClick={e => e.stopPropagation()}>
-                  <HeroMusic mood={carItem.mood} accent={mtA.accent} />
-                </div>
-                <div style={s.heroRoomBadge}>
-                  <span style={{ color: mtA.accent, transition: 'color 1s ease' }}>✦</span>
-                  &nbsp;Mood: <strong style={{ color: mtA.accent, transition: 'color 1s ease' }}>{carItem.mood}</strong>
-                </div>
-                {/* Click to enter hint */}
-                <div style={{
-                  position: 'absolute', bottom: 14, right: 14,
-                  background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-                  borderRadius: 20, padding: '6px 14px',
-                  fontSize: 11, color: '#fff', fontWeight: 600,
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  pointerEvents: 'none',
-                }}>
-                  ✦ Click to step inside
-                </div>
-              </div>
-              <button onClick={carNext} style={s.carouselArrow} aria-label="Next room">›</button>
-            </div>
-            {/* Dot indicators + pause */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, marginTop: 14 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {ROOM_CAROUSEL.map((_, i) => (
-                  <button key={i} onClick={() => setCarIdx(i)} style={{
-                    width: i === carIdx ? 20 : 7, height: 7, borderRadius: 4, border: 'none', padding: 0,
-                    background: i === carIdx ? mtA.accent : `${t.textSoft}40`,
-                    cursor: 'pointer', transition: 'all 0.3s ease',
-                  }} />
-                ))}
-              </div>
-              <button
-                onClick={() => setCarPaused(p => !p)}
-                title={carPaused ? 'Resume auto-rotate' : 'Pause auto-rotate'}
-                style={{
-                  marginLeft: 6, width: 24, height: 24, borderRadius: '50%',
-                  background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
-                  color: t.textSoft, fontSize: 10, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-                }}
-              >{carPaused ? '▶' : '❚❚'}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Mood strip ── */}
-      <div style={s.moodStrip}>
-        <div style={s.moodStripInner}>
-          {MOODS.map((m, i) => {
-            const mc = MOOD_THEMES[m.key]
-            const active = m.key === carItem.mood || i === idxB
-            return (
-              <button key={m.key} onClick={() => { const ci = ROOM_CAROUSEL.findIndex(r => r.mood === m.key); if (ci >= 0) setCarIdx(ci) }} style={{
-                ...s.moodPill,
-                background: active ? `${mc.accent}1a` : 'transparent',
-                border:     `1px solid ${active ? mc.accent : t.surfaceBorder}`,
-                color:      active ? mc.accent : t.textSoft,
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: mc.accent, display: 'inline-block', flexShrink: 0 }} />
-                {m.key}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Daily Featured Room ── */}
-      {featuredRoom && (
-        <div className="ddd-landing-section" style={{ borderBottom: `1px solid ${t.surfaceBorder}` }}>
-          <div style={s.inner}>
-            <p style={s.eyebrow}>Today's featured room</p>
-            <h2 style={{ ...s.sectionTitle, marginBottom: 20 }}>
-              {featuredRoom.title || 'Community Spotlight'}
-            </h2>
-            <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
-              {featuredRoom.screenshot_url && (
-                <img
-                  src={featuredRoom.screenshot_url}
-                  alt={featuredRoom.title || 'Featured room'}
-                  style={{ width: '100%', maxWidth: 520, borderRadius: 14, border: `1px solid ${t.surfaceBorder}` }}
-                  loading="lazy"
-                />
-              )}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                {featuredRoom.description && (
-                  <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 16 }}>
-                    {featuredRoom.description}
-                  </p>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  {featuredRoom.profiles?.avatar_url && (
-                    <img src={featuredRoom.profiles.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-                  )}
-                  <span style={{ fontSize: 13, color: t.text, fontWeight: 600 }}>
-                    {featuredRoom.profiles?.display_name || 'Designer'}
-                  </span>
-                  <span style={{ fontSize: 12, color: t.textSoft, display: 'flex', alignItems: 'center', gap: 3 }}>
-                    💧 {featuredRoom.heart_count ?? 0} raindrops
-                  </span>
-                </div>
-                <button style={s.heroCta} onClick={onEnter}>Explore in the builder →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Bedroom showcase ── */}
-      <div className="ddd-landing-showcase-wrap">
-        <div className="ddd-landing-showcase">
-          <Bedroom mt={mtB} moodName={MOODS[idxB].key} width={420} height={320} />
-          <div className="ddd-landing-showcase-text">
-            <p style={s.eyebrow}>Every room. Every mood.</p>
-            <h2 style={{ ...s.sectionTitle, marginBottom: 16 }}>Your whole home,<br />designed in 3D.</h2>
-            <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.8, marginBottom: 24 }}>
-              Start with one room and expand into a full house. Each room has its own layout, lighting, and style — connected by doors you can walk through.
+            <h1 style={{
+              fontFamily: FONTS.display, fontSize: 88, lineHeight: 0.95,
+              fontWeight: 300, letterSpacing: '-2.5px', margin: '0 0 28px', color: SKY.ink,
+            }}>
+              Design the<br/>
+              <span style={{ fontStyle: 'italic', fontWeight: 400 }}>room</span> you've<br/>
+              been <span style={{
+                fontStyle: 'italic', fontWeight: 400,
+                background: `linear-gradient(180deg, transparent 60%, ${SKY.accent}44 60%, ${SKY.accent}44 90%, transparent 90%)`,
+              }}>dreaming</span> of.
+            </h1>
+            <p style={{
+              fontSize: 18, lineHeight: 1.65, color: SKY.inkSoft, maxWidth: 480,
+              margin: '0 0 36px', fontWeight: 400,
+            }}>
+              A 3D room builder where every piece is real — handmade by independent makers.
+              Build your space. Set the light. Bring it home.
             </p>
-            <button style={s.heroCta} onClick={onEnter}>Try the builder →</button>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={onEnter} style={{
+                padding: '16px 32px', border: 'none', cursor: 'pointer',
+                background: SKY.accent, color: SKY.accentText,
+                fontSize: 15, fontWeight: 600, borderRadius: 999,
+                letterSpacing: '0.3px', boxShadow: `0 8px 24px ${SKY.accent}66`,
+              }}>start building — it's free →</button>
+              <button onClick={onBrowseShop} style={{
+                padding: '16px 28px',
+                border: `1.5px solid ${SKY.ink}33`,
+                background: 'rgba(255,255,255,0.4)', color: SKY.ink, cursor: 'pointer',
+                fontSize: 15, fontWeight: 500, borderRadius: 999, backdropFilter: 'blur(6px)',
+              }}>browse the shop</button>
+            </div>
+            <div style={{ marginTop: 32, fontSize: 13, color: SKY.inkSoft, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+              <span>✦ no signup</span>
+              <span>◈ 14 lighting moods</span>
+              <span>⚡ real items, real makers</span>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Wispy teaser ── */}
-      <div style={s.wispySection}>
-        <div style={s.wispyInner}>
-          <div style={s.wispyCloud}>☁</div>
-          <p style={{ ...s.eyebrow, color: '#c0a8ff' }}>Coming soon</p>
-          <h2 style={{ fontSize: 32, fontWeight: 800, color: '#f0eaff', marginBottom: 12, letterSpacing: '-0.5px' }}>Meet Wispy</h2>
-          <p style={{ fontSize: 15, color: '#a090c8', lineHeight: 1.8, maxWidth: 480, margin: '0 auto 20px' }}>
-            Your personal design companion. She guides you through your first room, cheers you on at milestones, and occasionally suggests that yes — that throw pillow does tie the whole room together.
-          </p>
-          <span style={s.wispyBadge}>Available at launch · No extra cost</span>
-        </div>
-      </div>
-
-      {/* ── Features ── */}
-      <div className="ddd-landing-section">
-        <div style={s.inner}>
-          <h2 style={{ ...s.sectionTitle, textAlign: 'center', marginBottom: 36 }}>Everything in one place</h2>
-          <div className="ddd-landing-feat-grid">
-            {FEATURES.map(f => (
-              <div key={f.title} style={s.featCard}>
-                <span style={{ fontSize: 22, color: t.accent }}>{f.icon}</span>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: t.text, margin: 0 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: t.textSoft, lineHeight: 1.7, margin: 0 }}>{f.text}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, position: 'relative' }}>
+            <RotatingRoom size={420} onSceneChange={setCurrentScene} />
+            {currentScene && (
+              <div style={{ marginTop: 24, textAlign: 'center', transition: 'all 0.5s ease' }}>
+                <div style={{ fontFamily: FONTS.display, fontSize: 24, fontStyle: 'italic', fontWeight: 400, color: SKY.ink }}>
+                  {currentScene.label}
+                </div>
+                <div style={{ fontSize: 13, color: SKY.inkSoft, letterSpacing: '1px', textTransform: 'uppercase', marginTop: 4 }}>
+                  {currentScene.mood} · {currentScene.desc}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
-      </div>
-
-      {/* ── How it works ── */}
-      <div className="ddd-landing-section" style={{ background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}` }}>
-        <div style={s.inner}>
-          <h2 style={s.sectionTitle}>How it works</h2>
-          <div className="ddd-landing-steps-grid">
-            {STEPS.map(step => (
-              <div key={step.n} style={s.stepCard}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: t.accent, letterSpacing: '1px', marginBottom: 10 }}>{step.n}</div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>{step.title}</h3>
-                <p style={{ fontSize: 13, color: t.textSoft, lineHeight: 1.7 }}>{step.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Designer Leaderboard ── */}
-      <div className="ddd-landing-section">
-        <div style={{ ...s.inner, maxWidth: 640 }}>
-          <DesignerLeaderboard compact />
-        </div>
-      </div>
+      </section>
 
       {/* ── Waitlist ── */}
-      <div className="ddd-landing-waitlist-wrap">
-        <div style={{ maxWidth: 540, margin: '0 auto', textAlign: 'center' }}>
-          <p style={s.eyebrow}>Early access</p>
-          <h2 style={{ fontSize: 34, fontWeight: 800, color: t.text, marginBottom: 10, letterSpacing: '-0.5px' }}>
-            Be among the first<br />through the door.
+      <section style={{ position: 'relative', maxWidth: 680, margin: '100px auto', padding: '0 40px', zIndex: 10 }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          padding: 56, borderRadius: 32,
+          border: '1px solid rgba(255,255,255,0.8)',
+          boxShadow: '0 24px 60px rgba(120,150,200,0.2)',
+          textAlign: 'center',
+        }}>
+          <div style={{
+            fontSize: 11, color: SKY.accent, letterSpacing: '2.5px',
+            textTransform: 'uppercase', fontWeight: 600, marginBottom: 14,
+          }}>✦  Early access  ✦</div>
+          <h2 style={{
+            fontFamily: FONTS.display, fontSize: 48, fontWeight: 300,
+            letterSpacing: '-1.5px', lineHeight: 1.05, margin: '0 0 12px', color: SKY.ink,
+          }}>
+            Be among the first<br/>
+            <span style={{ fontStyle: 'italic', color: SKY.accent }}>through the door.</span>
           </h2>
-          <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, marginBottom: 8 }}>
-            New sellers, builder features, and exclusive mood drops — straight to your inbox.
+          <p style={{ fontSize: 15, lineHeight: 1.65, color: SKY.inkSoft, margin: '0 0 32px' }}>
+            New makers, builder features, and the occasional mood drop —<br/>
+            delivered to your inbox like a letter, not a newsletter.
           </p>
-          {waitlistCount > 0 && (
-            <p style={{ fontSize: 13, color: t.accent, fontWeight: 600, marginBottom: 24 }}>
-              ✦ {waitlistCount.toLocaleString()} {waitlistCount === 1 ? 'dreamer' : 'dreamers'} already on the list
-            </p>
-          )}
-          {!waitlistCount && <div style={{ marginBottom: 24 }} />}
-
           {joined ? (
-            <div style={s.joinedWrap}>
-              <p style={{ fontSize: 20, color: t.accent, fontWeight: 700, margin: '0 0 6px' }}>You're on the list. ✦</p>
-              <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 24px' }}>We'll be in touch. Share DaydreamDwelling with someone who'd love it:</p>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_TEXT)}&url=${encodeURIComponent(SHARE_URL)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={s.shareBtn}
-                >𝕏 Share on X</a>
-                <a
-                  href={`https://pinterest.com/pin/create/button/?url=${encodeURIComponent(SHARE_URL)}&description=${encodeURIComponent(SHARE_TEXT)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ ...s.shareBtn, background: '#e60023', borderColor: '#e60023' }}
-                >📌 Pin it</a>
-                <button style={{ ...s.shareBtn, background: copied ? '#4a7a5a' : 'transparent', borderColor: copied ? '#4a7a5a' : t.surfaceBorder, color: copied ? '#a0e0b0' : t.textSoft }}
-                  onClick={copyLink}>
-                  {copied ? '✓ Copied!' : '🔗 Copy link'}
-                </button>
+            <div>
+              <div style={{ fontFamily: FONTS.display, fontSize: 32, fontStyle: 'italic', color: SKY.accent, marginBottom: 8 }}>
+                you're on the list ✦
               </div>
+              <div style={{ fontSize: 14, color: SKY.inkSoft }}>we'll write soon.</div>
             </div>
           ) : (
-            <form onSubmit={handleWaitlist} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', width: '100%', maxWidth: 440 }}>
-                <input
-                  style={s.waitlistInput}
-                  type="email" placeholder="your@email.com"
-                  value={email} onChange={e => setEmail(e.target.value)} required />
-                <button type="submit" style={{ ...s.heroCta, opacity: submitting ? 0.6 : 1 }} disabled={submitting}>
-                  {submitting ? '…' : 'Join →'}
-                </button>
-              </div>
-              {waitlistErr && <p style={{ fontSize: 12, color: '#e57373', margin: 0 }}>{waitlistErr}</p>}
-              <p style={{ fontSize: 11, color: t.textSoft, margin: 0 }}>No spam, ever. Unsubscribe any time.</p>
+            <form onSubmit={handleWaitlist} style={{ display: 'flex', gap: 8, maxWidth: 440, margin: '0 auto' }}>
+              <input
+                value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com" type="email" required
+                aria-label="Email address"
+                style={{
+                  flex: 1, padding: '14px 20px', borderRadius: 999,
+                  border: '1.5px solid rgba(120,150,200,0.3)',
+                  background: 'rgba(255,255,255,0.8)',
+                  fontFamily: FONTS.body, fontSize: 15, color: SKY.ink, outline: 'none',
+                }}/>
+              <button type="submit" disabled={submitting} style={{
+                padding: '14px 30px', border: 'none', cursor: submitting ? 'wait' : 'pointer',
+                background: SKY.accent, color: SKY.accentText, borderRadius: 999,
+                fontSize: 14, fontWeight: 600,
+                boxShadow: `0 6px 18px ${SKY.accent}55`,
+                opacity: submitting ? 0.6 : 1,
+              }}>{submitting ? '…' : 'send →'}</button>
             </form>
           )}
-        </div>
-      </div>
-
-      {/* ── Daydream Blossoms CTA ── */}
-      <div className="ddd-landing-section" style={{ borderTop: `1px solid ${t.surfaceBorder}` }}>
-        <div style={s.inner}>
-          <div className="ddd-landing-outdoor">
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 10 }}>Also from DaydreamDwelling</p>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: t.text, marginBottom: 6 }}>Daydream Blossoms ✿</h2>
-              <p style={{ fontSize: 13, fontWeight: 600, color: t.accent, letterSpacing: '0.5px', marginBottom: 10 }}>Outdoor & Garden</p>
-              <p style={{ fontSize: 14, color: t.textSoft, lineHeight: 1.7, maxWidth: 440 }}>Soil, sun, and yard planning — plus curated outdoor furniture, planters, and decor from independent makers.</p>
-            </div>
-            <a href={BLOSSOMS_URL} style={{ ...s.heroCta, textDecoration: 'none', flexShrink: 0, display: 'inline-block' }}>Visit Daydream Blossoms →</a>
+          {waitlistErr && (
+            <div style={{ fontSize: 12, color: '#c0383d', marginTop: 12 }}>{waitlistErr}</div>
+          )}
+          <div style={{ fontSize: 12, color: SKY.inkSoft, marginTop: 20 }}>
+            join {dreamerCount} dreamers · no spam, ever
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section style={{ position: 'relative', maxWidth: 880, margin: '120px auto 80px', padding: '0 40px', zIndex: 10 }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div style={{ fontSize: 12, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+            ◈ How it works
+          </div>
+          <h2 style={{
+            fontFamily: FONTS.display, fontSize: 54, fontWeight: 300,
+            lineHeight: 1.05, letterSpacing: '-2px', margin: 0, color: SKY.ink,
+          }}>
+            First you make a box.<br/>
+            <span style={{ fontStyle: 'italic', color: SKY.accent }}>Then you fill it with light.</span>
+          </h2>
+        </div>
+        <div style={{ fontSize: 19, lineHeight: 1.85, color: SKY.inkSoft, fontFamily: FONTS.body, fontWeight: 400 }}>
+          {[
+            { lead: 'You start with a box.',  body: " Width, depth, ceiling height. Add a window if you want one. Add three. We don't care." },
+            { lead: 'Then you fill it.',      body: ' Drag in a chair. Try a rug. Move the lamp until the shadow falls right. Every piece is real — made by someone you can talk to.' },
+            { lead: 'Switch the light.',      body: ' Golden hour. Moonlight. Dark Academia at 11pm. Your room exists in fourteen weathers — find the one that feels like home.' },
+            { lead: "When it's right, you bring it home.", body: ' One cart. Direct to the maker. The chair shows up at your front door, and your room is no longer just a dream.' },
+          ].map((p, i, all) => (
+            <p key={i} style={{ margin: i === all.length - 1 ? 0 : '0 0 24px' }}>
+              <span style={{ fontFamily: FONTS.display, fontSize: 22, fontStyle: 'italic', color: SKY.ink, fontWeight: 400 }}>
+                {p.lead}
+              </span>{p.body}
+            </p>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Founder note ── */}
+      <section style={{ position: 'relative', maxWidth: 780, margin: '80px auto', padding: '0 40px', zIndex: 10 }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 32, padding: '56px 64px',
+          border: '1px solid rgba(255,255,255,0.7)',
+          boxShadow: '0 24px 60px rgba(120,150,200,0.18)',
+        }}>
+          <div style={{ fontSize: 11, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}>
+            ✦  A note from the founder
+          </div>
+          <p style={{ fontFamily: FONTS.display, fontSize: 26, lineHeight: 1.55, fontWeight: 300, color: SKY.ink, margin: '0 0 24px' }}>
+            <span style={{ fontStyle: 'italic' }}>I made DaydreamDwelling</span> because every place
+            I've ever lived felt a little wrong until I changed the light.
+          </p>
+          <p style={{ fontSize: 16, lineHeight: 1.75, color: SKY.inkSoft, margin: '0 0 16px' }}>
+            I wanted a place where you could try the lamp before you bought it. Where the
+            chair you place in your room is the same chair the woodworker is finishing
+            in her garage three states over. No middlemen. No catalogue stock photos.
+            Just rooms, and the people who furnish them.
+          </p>
+          <p style={{ fontSize: 16, lineHeight: 1.75, color: SKY.inkSoft, margin: '0 0 28px' }}>
+            We're still small. Wispy is still learning. The shop is still filling up.
+            But there's a doorway here, and we'd love it if you came in.
+          </p>
+          <div style={{ fontFamily: FONTS.hand, fontSize: 32, color: SKY.accent, display: 'inline-block', lineHeight: 1 }}>
+            — KingCitran
+          </div>
+        </div>
+      </section>
+
+      {/* ── Wispy ── */}
+      <section style={{ position: 'relative', maxWidth: 1100, margin: '100px auto 80px', padding: '0 40px', zIndex: 10 }}>
+        <div className="ddd-landing-wispy" style={{
+          background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 36, padding: '64px 56px',
+          border: '1px solid rgba(255,255,255,0.7)',
+          boxShadow: '0 24px 60px rgba(120,150,200,0.18)',
+          display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 48, alignItems: 'center',
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <svg width="200" height="140" viewBox="0 0 200 140" style={{ filter: 'drop-shadow(0 12px 32px rgba(120,150,200,0.25))' }}>
+              <ellipse cx="100" cy="80" rx="78" ry="42" fill="#fff"/>
+              <ellipse cx="55"  cy="72" rx="34" ry="28" fill="#fff"/>
+              <ellipse cx="138" cy="66" rx="38" ry="30" fill="#fff"/>
+              <ellipse cx="100" cy="54" rx="30" ry="24" fill="#fff"/>
+              <ellipse cx="86"  cy="74" rx="3"  ry="4"  fill={SKY.ink}/>
+              <ellipse cx="115" cy="74" rx="3"  ry="4"  fill={SKY.ink}/>
+              <ellipse cx="72"  cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
+              <ellipse cx="128" cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
+              <path d="M 92 86 Q 100 92 108 86" stroke={SKY.ink} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+              ◈ Meet your roommate
+            </div>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: 60, fontWeight: 300, letterSpacing: '-2px', lineHeight: 1, margin: '0 0 18px', color: SKY.ink }}>
+              Wispy<span style={{ color: SKY.accent }}>.</span>
+            </h2>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: SKY.inkSoft, margin: '0 0 24px', maxWidth: 480 }}>
+              A small cloud who lives in the corners of the page. She helps you with your
+              first room, cheers you on at milestones, and occasionally — only when she's{' '}
+              <em style={{ color: SKY.ink }}>really sure</em> — suggests that yes, that
+              throw pillow does tie the room together.
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {['✦ available at launch', '✧ no extra cost'].map(l => (
+                <span key={l} style={{
+                  padding: '8px 16px', background: 'rgba(255,255,255,0.6)',
+                  borderRadius: 999, fontSize: 13, color: SKY.ink,
+                  border: '1px solid rgba(255,255,255,0.8)',
+                }}>{l}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mood swatches ── */}
+      <section style={{ position: 'relative', maxWidth: 1240, margin: '80px auto 0', padding: '60px 40px', zIndex: 10 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 12, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+            ◈ Pick the light
+          </div>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: 42, fontWeight: 300, letterSpacing: '-1.5px', margin: '0 0 8px', color: SKY.ink }}>
+            <span style={{ fontStyle: 'italic' }}>{moods.length}</span> different weathers
+          </h2>
+          <p style={{ fontSize: 15, color: SKY.inkSoft, margin: 0 }}>
+            Click any to see it on this page.
+          </p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap', padding: '0 20px' }}>
+          {moods.map(m => (
+            <MoodSwatch key={m.key} moodKey={m.key} label={m.label}
+              active={m.key === mood} onClick={() => setMood(m.key)} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Blossoms ── */}
+      <section style={{ position: 'relative', maxWidth: 1100, margin: '100px auto 60px', padding: '0 40px', zIndex: 10 }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: 32, padding: '48px 56px',
+          border: '1px solid rgba(255,255,255,0.6)',
+          display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap',
+        }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ fontSize: 11, color: SKY.inkSoft, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
+              Also from DaydreamDwelling
+            </div>
+            <h3 style={{ fontFamily: FONTS.display, fontSize: 38, fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: SKY.ink }}>
+              <span style={{ fontStyle: 'italic' }}>Daydream Blossoms</span>
+            </h3>
+            <div style={{ fontSize: 14, color: SKY.accent, fontWeight: 500, marginBottom: 14, letterSpacing: '1px', textTransform: 'uppercase' }}>
+              outdoor & garden
+            </div>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: SKY.inkSoft, margin: 0, maxWidth: 480 }}>
+              Soil, sun, and yard planning — plus curated outdoor furniture, planters, and decor
+              from independent makers. Same dreamy vibes, different weather.
+            </p>
+          </div>
+          <a href={BLOSSOMS_URL} style={{
+            padding: '14px 28px', border: `1.5px solid ${SKY.accent}`,
+            background: 'transparent', color: SKY.accent, cursor: 'pointer',
+            fontSize: 14, fontWeight: 600, borderRadius: 999, textDecoration: 'none',
+          }}>visit blossoms →</a>
+        </div>
+      </section>
 
       {/* ── Footer ── */}
-      <footer style={{ padding: '24px 40px', borderTop: `1px solid ${t.surfaceBorder}`, color: t.textSoft, fontSize: 12, textAlign: 'center' }}>
-        © {new Date().getFullYear()} DaydreamDwelling &nbsp;·&nbsp; <span style={{ color: t.accent }}>daydreamdwelling.com</span>
-        &nbsp;·&nbsp; <a href={BLOSSOMS_URL} style={{ color: t.textSoft, textDecoration: 'none' }}>Daydream Blossoms</a>
-        &nbsp;·&nbsp; <a href="mailto:hello@daydreamdwelling.com" style={{ color: t.textSoft, textDecoration: 'none' }}>Contact</a>
+      <footer style={{ position: 'relative', padding: '60px 40px 80px', textAlign: 'center', zIndex: 10 }}>
+        <div style={{ fontFamily: FONTS.display, fontSize: 20, fontStyle: 'italic', color: SKY.ink, marginBottom: 14, fontWeight: 300 }}>
+          Stay dreamy
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
+          {[0.4, 0.6, 0.8, 1, 0.8, 0.6, 0.4].map((o, i) => (
+            <svg key={i} width="22" height="14" viewBox="0 0 80 56" style={{ opacity: o }} aria-hidden>
+              <ellipse cx="40" cy="32" rx="32" ry="18" fill="#fff"/>
+              <ellipse cx="22" cy="28" rx="14" ry="12" fill="#fff"/>
+              <ellipse cx="56" cy="26" rx="16" ry="13" fill="#fff"/>
+            </svg>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: SKY.inkSoft }}>
+          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: SKY.accent, textDecoration: 'none' }}>blossoms</a> · contact
+        </div>
       </footer>
+
+      {/* Mobile responsiveness */}
+      <style>{`
+        @media (max-width: 900px) {
+          .ddd-landing-hero-grid { grid-template-columns: 1fr !important; }
+          .ddd-landing-wispy     { grid-template-columns: 1fr !important; gap: 24px !important; padding: 40px 28px !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+        }
+      `}</style>
     </div>
   )
-}
-
-const WISPY_KEYFRAMES = `
-  @keyframes wispyFloat {
-    0%, 100% { transform: translateY(0px) scale(1); }
-    50%       { transform: translateY(-14px) scale(1.04); }
-  }
-`
-
-function makeStyles(t) {
-  return {
-    page:           { minHeight: '100vh', background: t.bg, color: t.text },
-    nav:            { background: t.navBg, backdropFilter: 'blur(16px)', borderBottom: `1px solid ${t.navBorder}`, position: 'sticky', top: 0, zIndex: 100 },
-    navInner:       { maxWidth: 1160, margin: '0 auto', padding: '0 32px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-    logo:           { display: 'flex', alignItems: 'center', gap: 10 },
-    navLink:        { fontSize: 13, fontWeight: 500, textDecoration: 'none', padding: '6px 10px', borderRadius: 6 },
-    navCta:         { padding: '8px 18px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
-    heroOrb:        { position: 'absolute', top: -120, left: '30%', width: 700, height: 500, borderRadius: '50%', background: `radial-gradient(circle, ${t.glow} 0%, transparent 65%)`, pointerEvents: 'none' },
-    heroRoomBadge:  { position: 'absolute', bottom: 14, left: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: '#e0d9ff', border: '1px solid rgba(255,255,255,0.08)' },
-    carouselArrow:  { width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.12)', color: '#e0d9ff', fontSize: 22, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s, border-color 0.2s', flexShrink: 0, lineHeight: 1 },
-    eyebrow:        { fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 16, marginTop: 0 },
-    heroSub:        { fontSize: 16, color: t.textSoft, lineHeight: 1.7, marginBottom: 28, marginTop: 0 },
-    heroCta:        { padding: '13px 26px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
-    browseCta:      { padding: '13px 26px', background: 'transparent', color: t.accent, border: `1.5px solid ${t.accent}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' },
-    heroNote:       { fontSize: 11, color: t.textSoft, marginTop: 14 },
-    moodStrip:      { borderTop: `1px solid ${t.surfaceBorder}`, borderBottom: `1px solid ${t.surfaceBorder}`, overflowX: 'auto', padding: '0 40px', scrollbarWidth: 'none' },
-    moodStripInner: { display: 'flex', gap: 8, padding: '12px 0', maxWidth: 1160, margin: '0 auto' },
-    moodPill:       { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s ease' },
-    wispySection:   { background: 'linear-gradient(160deg, #0d0a1e 0%, #1a0e30 50%, #0d0a1e 100%)', borderTop: `1px solid rgba(154,122,238,0.2)`, borderBottom: `1px solid rgba(154,122,238,0.2)`, padding: '80px 40px', textAlign: 'center' },
-    wispyInner:     { maxWidth: 580, margin: '0 auto' },
-    wispyCloud:     { fontSize: 72, lineHeight: 1, marginBottom: 20, display: 'block', animation: 'wispyFloat 3.5s ease-in-out infinite' },
-    wispyBadge:     { display: 'inline-block', padding: '6px 16px', background: 'rgba(154,122,238,0.12)', border: '1px solid rgba(154,122,238,0.3)', borderRadius: 20, fontSize: 12, color: '#9a7aee', fontWeight: 600 },
-    inner:          { maxWidth: 1160, margin: '0 auto' },
-    sectionTitle:   { fontSize: 30, fontWeight: 800, color: t.text, marginBottom: 36, marginTop: 0 },
-    featCard:       { display: 'flex', flexDirection: 'column', gap: 10, padding: '24px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16 },
-    stepCard:       { display: 'flex', flexDirection: 'column' },
-    waitlistInput:  { flex: 1, padding: '13px 16px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, color: t.text, fontSize: 14, outline: 'none' },
-    joinedWrap:     { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-    shareBtn:       { padding: '10px 18px', background: t.accent, color: t.accentText, border: `1px solid ${t.accent}`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' },
-  }
 }

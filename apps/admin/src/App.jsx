@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ContestManagerPage from './pages/ContestManagerPage'
 import ArtistApprovalPage from './pages/ArtistApprovalPage'
+import ArchivePage from './pages/ArchivePage'
 import NavBar from './ui/NavBar'
 
 export default function App() {
@@ -32,6 +33,7 @@ function Shell() {
         {page === 'dashboard' && <DashboardPage onNavigate={setPage} />}
         {page === 'contests' && <ContestManagerPage />}
         {page === 'artists' && <ArtistApprovalPage />}
+        {page === 'archive' && <ArchivePage />}
       </main>
     </div>
   )

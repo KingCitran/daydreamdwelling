@@ -60,6 +60,7 @@ import WispyCashier from './ui/WispyCashier'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
+import LandingPageV1 from './pages/_archive/LandingPageV1'
 import WispyPreview from './pages/WispyPreview'
 import CommunityFeed from './pages/CommunityFeed'
 import ContestsPage from './pages/ContestsPage'
@@ -150,6 +151,7 @@ function Gate() {
   }
 
   if (params.get('preview') === 'wispy') return <WispyPreview />
+  if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
 
   let page
