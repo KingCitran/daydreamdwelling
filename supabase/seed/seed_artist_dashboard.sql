@@ -35,7 +35,7 @@ begin
       'bandcamp', 'https://bandcamp.com/'
     ),
     'spotify',
-    450, 15, true
+    450, 2, true
   )
   on conflict (user_id) do update set
     artist_name           = excluded.artist_name,
@@ -99,7 +99,7 @@ begin
     end,
     'https://open.spotify.com/',
     'Spotify',
-    15,
+    2,
     now() - (random() * interval '30 days'),
     true
   from generate_series(1, 247) as gs(n);
