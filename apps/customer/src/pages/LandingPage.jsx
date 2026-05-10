@@ -60,10 +60,13 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
   const skyBg = `linear-gradient(180deg, ${SKY.zenith} 0%, ${SKY.upper} 22%, ${SKY.middle} 55%, ${SKY.horizon} 92%, ${SKY.horizon} 100%)`
   const moodGlow = `radial-gradient(ellipse 1200px 600px at 70% 25%, ${t.accent}33 0%, transparent 70%)`
-  const dreamerCount = waitlistCount ? waitlistCount.toLocaleString() : '1,247'
+  // Only show the dreamer count once it's a number we'd be proud to display.
+  // Below the threshold (or while loading), hide the line — feels honest, not inflated.
+  const showDreamerCount = waitlistCount != null && waitlistCount >= 25
+  const dreamerCount = showDreamerCount ? waitlistCount.toLocaleString() : null
 
   return (
-    <div style={{
+    <div className="ddd-landing" style={{
       minHeight: '100vh', position: 'relative', overflow: 'hidden',
       background: skyBg, color: SKY.ink, fontFamily: FONTS.body,
       transition: 'background 1.6s ease',
@@ -72,7 +75,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       <CloudField />
 
       {/* ── Nav ── */}
-      <header style={{
+      <header className="ddd-blur" style={{
         position: 'sticky', top: 0, zIndex: 30,
         backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
         background: 'rgba(255,255,255,0.5)',
@@ -102,7 +105,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             {[
               { label: 'community', href: '/community' },
               { label: 'blossoms',  href: BLOSSOMS_URL },
-              { label: 'about',     href: '#' },
+              // 'about' link returns once /about page exists — see deferred work
             ].map(l => (
               <a key={l.label} href={l.href} style={{
                 padding: '10px 16px', cursor: 'pointer', borderRadius: 999,
@@ -110,10 +113,12 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               }}>{l.label}</a>
             ))}
             <button onClick={onEnter} style={{
-              marginLeft: 8, padding: '12px 24px', border: 'none', cursor: 'pointer',
-              background: SKY.accent, color: SKY.accentText,
+              marginLeft: 8, padding: '11px 22px', cursor: 'pointer',
+              background: 'transparent', color: SKY.ink,
+              border: `1.5px solid ${SKY.ink}33`,
               fontSize: 13, fontWeight: 600, borderRadius: 999,
-              letterSpacing: '0.3px', boxShadow: `0 6px 18px ${SKY.accent}55`,
+              letterSpacing: '0.3px',
+              transition: 'background 0.15s, border-color 0.15s',
             }}>open the builder →</button>
           </nav>
         </div>
@@ -129,8 +134,8 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             }}>
               ✦ free 3D room builder
             </div>
-            <h1 style={{
-              fontFamily: FONTS.display, fontSize: 88, lineHeight: 0.95,
+            <h1 className="ddd-hero-h1" style={{
+              fontFamily: FONTS.display, fontSize: 'clamp(40px, 7vw, 88px)', lineHeight: 0.95,
               fontWeight: 300, letterSpacing: '-2.5px', margin: '0 0 28px', color: SKY.ink,
             }}>
               Design the<br/>
@@ -163,7 +168,6 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             </div>
             <div style={{ marginTop: 32, fontSize: 13, color: SKY.inkSoft, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <span>✦ no signup</span>
-              <span>◈ 14 lighting moods</span>
               <span>⚡ real items, real makers</span>
             </div>
           </div>
@@ -186,9 +190,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* ── Waitlist ── */}
       <section style={{ position: 'relative', maxWidth: 680, margin: '100px auto', padding: '0 40px', zIndex: 10 }}>
-        <div style={{
+        <div className="ddd-blur" style={{
           background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          padding: 56, borderRadius: 32,
+          padding: 'clamp(28px, 4.5vw, 56px)', borderRadius: 32,
           border: '1px solid rgba(255,255,255,0.8)',
           boxShadow: '0 24px 60px rgba(120,150,200,0.2)',
           textAlign: 'center',
@@ -198,7 +202,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             textTransform: 'uppercase', fontWeight: 600, marginBottom: 14,
           }}>✦  Early access  ✦</div>
           <h2 style={{
-            fontFamily: FONTS.display, fontSize: 48, fontWeight: 300,
+            fontFamily: FONTS.display, fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300,
             letterSpacing: '-1.5px', lineHeight: 1.05, margin: '0 0 12px', color: SKY.ink,
           }}>
             Be among the first<br/>
@@ -216,23 +220,26 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               <div style={{ fontSize: 14, color: SKY.inkSoft }}>we'll write soon.</div>
             </div>
           ) : (
-            <form onSubmit={handleWaitlist} style={{ display: 'flex', gap: 8, maxWidth: 440, margin: '0 auto' }}>
+            <form onSubmit={handleWaitlist} className="ddd-waitlist-form" style={{ display: 'flex', gap: 8, maxWidth: 440, margin: '0 auto' }}>
               <input
                 value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com" type="email" required
                 aria-label="Email address"
+                className="ddd-waitlist-input"
                 style={{
                   flex: 1, padding: '14px 20px', borderRadius: 999,
                   border: '1.5px solid rgba(120,150,200,0.3)',
                   background: 'rgba(255,255,255,0.8)',
                   fontFamily: FONTS.body, fontSize: 15, color: SKY.ink, outline: 'none',
+                  transition: 'border-color 0.15s',
                 }}/>
-              <button type="submit" disabled={submitting} style={{
+              <button type="submit" disabled={submitting} aria-busy={submitting} style={{
                 padding: '14px 30px', border: 'none', cursor: submitting ? 'wait' : 'pointer',
                 background: SKY.accent, color: SKY.accentText, borderRadius: 999,
                 fontSize: 14, fontWeight: 600,
                 boxShadow: `0 6px 18px ${SKY.accent}55`,
                 opacity: submitting ? 0.6 : 1,
+                transition: 'transform 0.15s, box-shadow 0.15s',
               }}>{submitting ? '…' : 'send →'}</button>
             </form>
           )}
@@ -240,7 +247,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <div style={{ fontSize: 12, color: '#c0383d', marginTop: 12 }}>{waitlistErr}</div>
           )}
           <div style={{ fontSize: 12, color: SKY.inkSoft, marginTop: 20 }}>
-            join {dreamerCount} dreamers · no spam, ever
+            {dreamerCount ? `join ${dreamerCount} dreamers · no spam, ever` : 'no spam, ever'}
           </div>
         </div>
       </section>
@@ -252,7 +259,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             ◈ How it works
           </div>
           <h2 style={{
-            fontFamily: FONTS.display, fontSize: 54, fontWeight: 300,
+            fontFamily: FONTS.display, fontSize: 'clamp(30px, 4.5vw, 54px)', fontWeight: 300,
             lineHeight: 1.05, letterSpacing: '-2px', margin: 0, color: SKY.ink,
           }}>
             First you make a box.<br/>
@@ -277,9 +284,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* ── Founder note ── */}
       <section style={{ position: 'relative', maxWidth: 780, margin: '80px auto', padding: '0 40px', zIndex: 10 }}>
-        <div style={{
+        <div className="ddd-blur" style={{
           background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 32, padding: '56px 64px',
+          borderRadius: 32, padding: 'clamp(28px, 4.5vw, 56px) clamp(24px, 5vw, 64px)',
           border: '1px solid rgba(255,255,255,0.7)',
           boxShadow: '0 24px 60px rgba(120,150,200,0.18)',
         }}>
@@ -308,7 +315,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* ── Wispy ── */}
       <section style={{ position: 'relative', maxWidth: 1100, margin: '100px auto 80px', padding: '0 40px', zIndex: 10 }}>
-        <div className="ddd-landing-wispy" style={{
+        <div className="ddd-landing-wispy ddd-blur" style={{
           background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           borderRadius: 36, padding: '64px 56px',
           border: '1px solid rgba(255,255,255,0.7)',
@@ -332,7 +339,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <div style={{ fontSize: 11, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               ◈ Meet your roommate
             </div>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: 60, fontWeight: 300, letterSpacing: '-2px', lineHeight: 1, margin: '0 0 18px', color: SKY.ink }}>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(34px, 5vw, 60px)', fontWeight: 300, letterSpacing: '-2px', lineHeight: 1, margin: '0 0 18px', color: SKY.ink }}>
               Wispy<span style={{ color: SKY.accent }}>.</span>
             </h2>
             <p style={{ fontSize: 16, lineHeight: 1.7, color: SKY.inkSoft, margin: '0 0 24px', maxWidth: 480 }}>
@@ -360,7 +367,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           <div style={{ fontSize: 12, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
             ◈ Pick the light
           </div>
-          <h2 style={{ fontFamily: FONTS.display, fontSize: 42, fontWeight: 300, letterSpacing: '-1.5px', margin: '0 0 8px', color: SKY.ink }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(28px, 3.5vw, 42px)', fontWeight: 300, letterSpacing: '-1.5px', margin: '0 0 8px', color: SKY.ink }}>
             <span style={{ fontStyle: 'italic' }}>{moods.length}</span> different weathers
           </h2>
           <p style={{ fontSize: 15, color: SKY.inkSoft, margin: 0 }}>
@@ -377,9 +384,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* ── Blossoms ── */}
       <section style={{ position: 'relative', maxWidth: 1100, margin: '100px auto 60px', padding: '0 40px', zIndex: 10 }}>
-        <div style={{
+        <div className="ddd-blur" style={{
           background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 32, padding: '48px 56px',
+          borderRadius: 32, padding: 'clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px)',
           border: '1px solid rgba(255,255,255,0.6)',
           display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap',
         }}>
@@ -387,7 +394,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <div style={{ fontSize: 11, color: SKY.inkSoft, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
               Also from DaydreamDwelling
             </div>
-            <h3 style={{ fontFamily: FONTS.display, fontSize: 38, fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: SKY.ink }}>
+            <h3 style={{ fontFamily: FONTS.display, fontSize: 'clamp(24px, 3.2vw, 38px)', fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: SKY.ink }}>
               <span style={{ fontStyle: 'italic' }}>Daydream Blossoms</span>
             </h3>
             <div style={{ fontSize: 14, color: SKY.accent, fontWeight: 500, marginBottom: 14, letterSpacing: '1px', textTransform: 'uppercase' }}>
@@ -421,18 +428,45 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           ))}
         </div>
         <div style={{ fontSize: 12, color: SKY.inkSoft }}>
-          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: SKY.accent, textDecoration: 'none' }}>blossoms</a> · contact
+          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: SKY.accent, textDecoration: 'none' }}>blossoms</a> · <a href="mailto:kingcitran@gmail.com" style={{ color: SKY.accent, textDecoration: 'none' }}>contact</a>
         </div>
       </footer>
 
-      {/* Mobile responsiveness */}
+      {/* Mobile responsiveness — typography uses clamp() inline; this handles layout/padding/hover */}
       <style>{`
         @media (max-width: 900px) {
           .ddd-landing-hero-grid { grid-template-columns: 1fr !important; }
           .ddd-landing-wispy     { grid-template-columns: 1fr !important; gap: 24px !important; padding: 40px 28px !important; }
+          .ddd-landing > section { padding-left: 28px !important; padding-right: 28px !important; }
+          /* Lighter blur on smaller devices — backdrop-filter at 20px chugs on iOS Safari */
+          .ddd-blur { backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; }
         }
+        @media (max-width: 600px) {
+          .ddd-landing > section { padding-left: 22px !important; padding-right: 22px !important; }
+          .ddd-landing > footer  { padding-left: 22px !important; padding-right: 22px !important; }
+          .ddd-landing > header > div { padding: 14px 20px !important; }
+          .ddd-hero-h1 br { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .ddd-waitlist-form        { flex-direction: column !important; gap: 12px !important; }
+          .ddd-waitlist-form button { width: 100% !important; padding: 14px 20px !important; }
+        }
+
+        /* Hover states */
+        .ddd-landing nav a            { transition: background 0.15s, color 0.15s; }
+        .ddd-landing nav a:hover      { background: rgba(255,255,255,0.4); }
+        .ddd-landing nav button:hover { background: rgba(255,255,255,0.5) !important; border-color: rgba(26,42,72,0.45) !important; }
+        .ddd-landing section button   { transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s, background 0.15s !important; }
+        .ddd-landing section button:hover:not(:disabled) { transform: translateY(-1px); }
+        .ddd-landing footer a:hover   { text-decoration: underline; }
+
+        /* Inline email validation — red border only after the user typed something invalid AND blurred away */
+        .ddd-waitlist-input:focus { border-color: rgba(255,155,92,0.6) !important; }
+        .ddd-waitlist-input:invalid:not(:placeholder-shown):not(:focus) { border-color: rgba(192,56,61,0.55) !important; }
+
         @media (prefers-reduced-motion: reduce) {
           * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+          .ddd-landing section button:hover:not(:disabled) { transform: none !important; }
         }
       `}</style>
     </div>
