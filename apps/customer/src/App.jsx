@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import RoomScene from './scene/RoomScene'
+import CloudConveyor from './scene/CloudConveyor'
+import CloudConveyorPuffs from './scene/CloudConveyorPuffs'
 import Panel from './ui/Panel'
 import StylePanel from './ui/StylePanel'
 import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
@@ -194,6 +196,19 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
   const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
+  const [cloudVariant, setCloudVariant] = useState(() => localStorage.getItem('ddd_cloud_variant') || 'bands')
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+        const next = cloudVariant === 'bands' ? 'puffs' : 'bands'
+        setCloudVariant(next)
+        localStorage.setItem('ddd_cloud_variant', next)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cloudVariant])
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -696,12 +711,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
+      {cloudsOn && (cloudVariant === 'puffs' ? <CloudConveyorPuffs /> : <CloudConveyor />)}
+
       {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
       <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
         <Logo size={52} color={t.accent} />
         <span style={{ fontSize: 22, fontWeight: 700, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif", textShadow: 'none', WebkitTextStroke: 0 }}>DaydreamDwelling</span>
       </div>
-      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'}>
+      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
         <RoomScene
           targetRotation={targetRotation}
           cells={cells}
@@ -1173,6 +1190,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onToggleGrid={() => setShowGrid(v => !v)}
         cloudsOn={cloudsOn}
         onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+        cloudVariant={cloudVariant}
+        onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
       />
     </DockablePanel>
     <DockablePanel tabId="social">

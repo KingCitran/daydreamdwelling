@@ -7,7 +7,6 @@ import Items from './Items'
 import Ceiling from './Ceiling'
 import Measurements from './Measurements'
 import { useMoodControl } from '@shared/ThemeProvider'
-import CloudPlate from './CloudPlate'
 
 const CAM_OFFSET = 18
 const ZOOM_MIN   = 15
@@ -174,8 +173,6 @@ export default function RoomScene({
       <directionalLight position={[0, -6, -22]} intensity={0.07} color="#c8d8ff" />
       {/* In ceiling view: upward fill so the ceiling slab is lit */}
       <directionalLight position={[8, -20, 6]} intensity={ceilingView ? mood.keyI * 0.55 : 0.04} color={mood.keyC} />
-
-      {cloudsOn && <CloudPlate gridW={gridW} gridD={gridD} />}
 
       <group ref={groupRef}>
         <Floor

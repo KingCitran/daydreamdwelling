@@ -19,6 +19,7 @@ export default function ViewTabPanel({
   showMeasurements, onToggleMeasurements,
   showGrid, onToggleGrid,
   cloudsOn, onToggleClouds,
+  cloudVariant, onChangeCloudVariant,
 }) {
   const t = useTheme()
   const { mood, setMood, moods } = useMoodControl()
@@ -80,6 +81,16 @@ export default function ViewTabPanel({
           <button onClick={onToggleClouds} style={btn(cloudsOn)}>
             {cloudsOn ? '⛅ Clouds On' : '◯ Clouds Off'}
           </button>
+          {cloudsOn && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => onChangeCloudVariant('puffs')} style={{ ...btn(cloudVariant === 'puffs'), flex: 1 }}>
+                Puffs
+              </button>
+              <button onClick={() => onChangeCloudVariant('bands')} style={{ ...btn(cloudVariant === 'bands'), flex: 1 }}>
+                Bands
+              </button>
+            </div>
+          )}
         </div>
       </Section>
 

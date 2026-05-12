@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Cloud Picker — exclusion list</title>
+<style>
+  body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; background: #0a0a0a; color: #f0f0f0; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { margin: 0 0 20px; opacity: 0.6; font-size: 13px; }
+  .toolbar {
+    position: sticky; top: 0; background: rgba(20,20,20,0.95); backdrop-filter: blur(8px);
+    margin: -24px -24px 16px; padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; z-index: 10;
+  }
+  .toolbar button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #555; background: #222; cursor: pointer;
+    font-size: 13px; font-weight: 600; color: #f0f0f0;
+  }
+  .toolbar button:hover { background: #333; border-color: #888; }
+  .selected-list {
+    flex: 1; min-width: 200px; padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    font-family: ui-monospace, monospace; font-size: 13px; min-height: 18px; color: #f0f0f0;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .tile {
+    background: #000; border: 2px solid #222; border-radius: 10px; overflow: hidden;
+    cursor: pointer; transition: transform 0.1s, border-color 0.1s; position: relative;
+  }
+  .tile:hover { transform: translateY(-2px); border-color: #555; }
+  .tile.excluded { border-color: #d04040; background: #2a0a0a; }
+  .tile.excluded img { opacity: 0.25; }
+  .tile.excluded::after {
+    content: 'EXCLUDED'; position: absolute; top: 8px; right: 8px;
+    background: #d04040; color: #fff; padding: 3px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 700;
+  }
+  .tile img { width: 100%; height: 130px; object-fit: contain; display: block; padding: 8px; box-sizing: border-box; }
+  .num { padding: 6px 10px; background: #111; font-family: ui-monospace, monospace;
+    font-size: 13px; font-weight: 600; text-align: center; border-top: 1px solid #222; color: #ccc; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Cloud Picker</h1>
+    <button onclick="copyList()">Copy excluded list</button>
+    <button onclick="clearAll()">Clear</button>
+    <div class="selected-list" id="list">Click any cloud to mark it for exclusion.</div>
+  </div>
+  <p class="sub">Tap clouds with hard edges or any you don't want in rotation. The list is what you'll send back.</p>
+  <div class="grid" id="grid"></div>
+
+<script>
+const COUNT = 150;
+const excluded = new Set(JSON.parse(localStorage.getItem('cloudExclude') || '[]'));
+
+function pad(n) { return String(n).padStart(3, '0'); }
+
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  for (let i = 1; i <= COUNT; i++) {
+    const num = pad(i);
+    const tile = document.createElement('div');
+    tile.className = 'tile' + (excluded.has(i) ? ' excluded' : '');
+    tile.innerHTML = `<img src="/clouds/cloud-${num}.webp" alt=""><div class="num">#${num}</div>`;
+    tile.onclick = () => {
+      if (excluded.has(i)) excluded.delete(i); else excluded.add(i);
+      localStorage.setItem('cloudExclude', JSON.stringify([...excluded]));
+      render();
+      updateList();
+    };
+    grid.appendChild(tile);
+  }
+}
+
+function updateList() {
+  const list = [...excluded].sort((a,b) => a-b);
+  document.getElementById('list').textContent = list.length
+    ? `Excluded (${list.length}): ${list.join(', ')}`
+    : 'Click any cloud to mark it for exclusion.';
+}
+
+function copyList() {
+  const list = [...excluded].sort((a,b) => a-b);
+  navigator.clipboard.writeText(list.join(', '));
+  alert('Copied: ' + list.join(', '));
+}
+
+function clearAll() {
+  excluded.clear();
+  localStorage.setItem('cloudExclude', '[]');
+  render();
+  updateList();
+}
+
+render();
+updateList();
+</script>
+</body>
+</html>
