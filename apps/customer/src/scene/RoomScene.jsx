@@ -21,7 +21,7 @@ const MOOD_SCENE_PRESETS = {
   'Vivid Sunset':     { hemiI: 0.22, skyColor: '#9a5830', groundColor: '#1e0808', keyI: 0.40, keyC: '#f0b870', fillI: 0.14, fillC: '#d09050' },
   'Moonlight':        { hemiI: 0.28, skyColor: '#a0a8c0', groundColor: '#0a0c18', keyI: 0.42, keyC: '#dce8f8', fillI: 0.16, fillC: '#9098b8' },
   'Dark Academia':    { hemiI: 0.22, skyColor: '#9a8050', groundColor: '#160c04', keyI: 0.48, keyC: '#f0d888', fillI: 0.14, fillC: '#c8a858' },
-  'Cottagecore Dawn': { hemiI: 0.40, skyColor: '#f0c0b0', groundColor: '#9a5040', keyI: 0.72, keyC: '#ffe8d8', fillI: 0.22, fillC: '#f0cabb' },
+  'Blush Hour': { hemiI: 0.40, skyColor: '#f0c0b0', groundColor: '#9a5040', keyI: 0.72, keyC: '#ffe8d8', fillI: 0.22, fillC: '#f0cabb' },
   'Coastal Morning':  { hemiI: 0.50, skyColor: '#c0e0f0', groundColor: '#6090b0', keyI: 1.10, keyC: '#f0f8ff', fillI: 0.28, fillC: '#c0d8f0' },
   'Dream State':      { hemiI: 0.45, skyColor: '#ccc0e8', groundColor: '#9078b0', keyI: 0.82, keyC: '#f8f0ff', fillI: 0.22, fillC: '#d8c8f4' },
   'Neon Nights':      { hemiI: 0.18, skyColor: '#401890', groundColor: '#000820', keyI: 0.48, keyC: '#e070d0', fillI: 0.20, fillC: '#2040c0' },

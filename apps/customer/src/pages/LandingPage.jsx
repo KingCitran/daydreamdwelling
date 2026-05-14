@@ -8,6 +8,7 @@ import MoodSwatch from './landing/MoodSwatch'
 
 // "Above the clouds" sky palette — independent of mood. The mood-tinted glow
 // (radial gradient over this base) is what shifts when the user picks a mood.
+// Default Bright Day sky — used when current mood isn't one of the themed ones.
 const SKY = {
   zenith:  '#3a6fb8',
   upper:   '#6a98d4',
@@ -17,6 +18,15 @@ const SKY = {
   inkSoft: '#4a6890',
   accent:  '#ff9b5c',
   accentText: '#fff',
+}
+
+// Per-mood sky overrides — sync with SkyBackdrop.jsx so the landing sky
+// matches whatever mood the clouds are themed to.
+const SKY_BY_MOOD = {
+  'Dream State': { zenith: '#ffe8d0', upper: '#ffd8d0', middle: '#e8c8e0', horizon: '#a890d4', ink: '#3a1848' },
+  'Golden Hour': { zenith: '#5a2540', upper: '#b85a55', middle: '#e88a3e', horizon: '#ffe39a', ink: '#fff8e8' },
+  'Moonlight':   { zenith: '#050918', upper: '#0c1530', middle: '#16203f', horizon: '#2a3868', ink: '#e8eef8' },
+  'Blush Hour':  { zenith: '#ffe2cf', upper: '#ffc0b4', middle: '#f4b0c0', horizon: '#c8b8dc', ink: '#5a2848' },
 }
 
 const FONTS = {
@@ -58,7 +68,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
     }
   }
 
-  const skyBg = `linear-gradient(180deg, ${SKY.zenith} 0%, ${SKY.upper} 22%, ${SKY.middle} 55%, ${SKY.horizon} 92%, ${SKY.horizon} 100%)`
+  // Pull mood-specific sky if the current mood is themed; otherwise default Bright Day.
+  const moodSky = SKY_BY_MOOD[mood]
+  const sky = moodSky ? { ...SKY, ...moodSky } : SKY
+  const skyBg = `linear-gradient(180deg, ${sky.zenith} 0%, ${sky.upper} 22%, ${sky.middle} 55%, ${sky.horizon} 92%, ${sky.horizon} 100%)`
   const moodGlow = `radial-gradient(ellipse 1200px 600px at 70% 25%, ${t.accent}33 0%, transparent 70%)`
   // Only show the dreamer count once it's a number we'd be proud to display.
   // Below the threshold (or while loading), hide the line — feels honest, not inflated.
@@ -68,7 +81,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   return (
     <div className="ddd-landing" style={{
       minHeight: '100vh', position: 'relative', overflow: 'hidden',
-      background: skyBg, color: SKY.ink, fontFamily: FONTS.body,
+      background: skyBg, color: sky.ink, fontFamily: FONTS.body,
       transition: 'background 1.6s ease',
     }}>
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: moodGlow, transition: 'background 1.6s ease' }} />
@@ -93,10 +106,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               <ellipse cx="40" cy="20" rx="12" ry="10" fill="#fff"/>
             </svg>
             <div>
-              <div style={{ fontFamily: FONTS.display, fontSize: 22, fontWeight: 500, color: SKY.ink, lineHeight: 1, letterSpacing: '-0.5px' }}>
+              <div style={{ fontFamily: FONTS.display, fontSize: 22, fontWeight: 500, color: sky.ink, lineHeight: 1, letterSpacing: '-0.5px' }}>
                 Daydream<span style={{ fontStyle: 'italic', fontWeight: 400 }}>Dwelling</span>
               </div>
-              <div style={{ fontSize: 11, color: SKY.inkSoft, marginTop: 2, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 11, color: sky.inkSoft, marginTop: 2, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
                 rooms in the sky
               </div>
             </div>
@@ -109,13 +122,13 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             ].map(l => (
               <a key={l.label} href={l.href} style={{
                 padding: '10px 16px', cursor: 'pointer', borderRadius: 999,
-                fontSize: 13, fontWeight: 500, color: SKY.ink, textDecoration: 'none',
+                fontSize: 13, fontWeight: 500, color: sky.ink, textDecoration: 'none',
               }}>{l.label}</a>
             ))}
             <button onClick={onEnter} style={{
               marginLeft: 8, padding: '11px 22px', cursor: 'pointer',
-              background: 'transparent', color: SKY.ink,
-              border: `1.5px solid ${SKY.ink}33`,
+              background: 'transparent', color: sky.ink,
+              border: `1.5px solid ${sky.ink}33`,
               fontSize: 13, fontWeight: 600, borderRadius: 999,
               letterSpacing: '0.3px',
               transition: 'background 0.15s, border-color 0.15s',
@@ -129,24 +142,24 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         <div className="ddd-landing-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 60, alignItems: 'center' }}>
           <div>
             <div style={{
-              fontSize: 12, color: SKY.accent, letterSpacing: '2.5px',
+              fontSize: 12, color: sky.accent, letterSpacing: '2.5px',
               textTransform: 'uppercase', fontWeight: 600, marginBottom: 24,
             }}>
               ✦ free 3D room builder
             </div>
             <h1 className="ddd-hero-h1" style={{
               fontFamily: FONTS.display, fontSize: 'clamp(40px, 7vw, 88px)', lineHeight: 0.95,
-              fontWeight: 300, letterSpacing: '-2.5px', margin: '0 0 28px', color: SKY.ink,
+              fontWeight: 300, letterSpacing: '-2.5px', margin: '0 0 28px', color: sky.ink,
             }}>
               Design the<br/>
               <span style={{ fontStyle: 'italic', fontWeight: 400 }}>room</span> you've<br/>
               been <span style={{
                 fontStyle: 'italic', fontWeight: 400,
-                background: `linear-gradient(180deg, transparent 60%, ${SKY.accent}44 60%, ${SKY.accent}44 90%, transparent 90%)`,
+                background: `linear-gradient(180deg, transparent 60%, ${sky.accent}44 60%, ${sky.accent}44 90%, transparent 90%)`,
               }}>dreaming</span> of.
             </h1>
             <p style={{
-              fontSize: 18, lineHeight: 1.65, color: SKY.inkSoft, maxWidth: 480,
+              fontSize: 18, lineHeight: 1.65, color: sky.inkSoft, maxWidth: 480,
               margin: '0 0 36px', fontWeight: 400,
             }}>
               A 3D room builder where every piece is real — handmade by independent makers.
@@ -155,18 +168,18 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
               <button onClick={onEnter} style={{
                 padding: '16px 32px', border: 'none', cursor: 'pointer',
-                background: SKY.accent, color: SKY.accentText,
+                background: sky.accent, color: sky.accentText,
                 fontSize: 15, fontWeight: 600, borderRadius: 999,
-                letterSpacing: '0.3px', boxShadow: `0 8px 24px ${SKY.accent}66`,
+                letterSpacing: '0.3px', boxShadow: `0 8px 24px ${sky.accent}66`,
               }}>start building — it's free →</button>
               <button onClick={onBrowseShop} style={{
                 padding: '16px 28px',
-                border: `1.5px solid ${SKY.ink}33`,
-                background: 'rgba(255,255,255,0.4)', color: SKY.ink, cursor: 'pointer',
+                border: `1.5px solid ${sky.ink}33`,
+                background: 'rgba(255,255,255,0.4)', color: sky.ink, cursor: 'pointer',
                 fontSize: 15, fontWeight: 500, borderRadius: 999, backdropFilter: 'blur(6px)',
               }}>browse the shop</button>
             </div>
-            <div style={{ marginTop: 32, fontSize: 13, color: SKY.inkSoft, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div style={{ marginTop: 32, fontSize: 13, color: sky.inkSoft, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
               <span>✦ no signup</span>
               <span>⚡ real items, real makers</span>
             </div>
@@ -176,10 +189,10 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             <RotatingRoom size={420} onSceneChange={setCurrentScene} />
             {currentScene && (
               <div style={{ marginTop: 24, textAlign: 'center', transition: 'all 0.5s ease' }}>
-                <div style={{ fontFamily: FONTS.display, fontSize: 24, fontStyle: 'italic', fontWeight: 400, color: SKY.ink }}>
+                <div style={{ fontFamily: FONTS.display, fontSize: 24, fontStyle: 'italic', fontWeight: 400, color: sky.ink }}>
                   {currentScene.label}
                 </div>
-                <div style={{ fontSize: 13, color: SKY.inkSoft, letterSpacing: '1px', textTransform: 'uppercase', marginTop: 4 }}>
+                <div style={{ fontSize: 13, color: sky.inkSoft, letterSpacing: '1px', textTransform: 'uppercase', marginTop: 4 }}>
                   {currentScene.mood} · {currentScene.desc}
                 </div>
               </div>
@@ -198,26 +211,26 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           textAlign: 'center',
         }}>
           <div style={{
-            fontSize: 11, color: SKY.accent, letterSpacing: '2.5px',
+            fontSize: 11, color: sky.accent, letterSpacing: '2.5px',
             textTransform: 'uppercase', fontWeight: 600, marginBottom: 14,
           }}>✦  Early access  ✦</div>
           <h2 style={{
             fontFamily: FONTS.display, fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300,
-            letterSpacing: '-1.5px', lineHeight: 1.05, margin: '0 0 12px', color: SKY.ink,
+            letterSpacing: '-1.5px', lineHeight: 1.05, margin: '0 0 12px', color: sky.ink,
           }}>
             Be among the first<br/>
-            <span style={{ fontStyle: 'italic', color: SKY.accent }}>through the door.</span>
+            <span style={{ fontStyle: 'italic', color: sky.accent }}>through the door.</span>
           </h2>
-          <p style={{ fontSize: 15, lineHeight: 1.65, color: SKY.inkSoft, margin: '0 0 32px' }}>
+          <p style={{ fontSize: 15, lineHeight: 1.65, color: sky.inkSoft, margin: '0 0 32px' }}>
             New makers, builder features, and the occasional mood drop —<br/>
             delivered to your inbox like a letter, not a newsletter.
           </p>
           {joined ? (
             <div>
-              <div style={{ fontFamily: FONTS.display, fontSize: 32, fontStyle: 'italic', color: SKY.accent, marginBottom: 8 }}>
+              <div style={{ fontFamily: FONTS.display, fontSize: 32, fontStyle: 'italic', color: sky.accent, marginBottom: 8 }}>
                 you're on the list ✦
               </div>
-              <div style={{ fontSize: 14, color: SKY.inkSoft }}>we'll write soon.</div>
+              <div style={{ fontSize: 14, color: sky.inkSoft }}>we'll write soon.</div>
             </div>
           ) : (
             <form onSubmit={handleWaitlist} className="ddd-waitlist-form" style={{ display: 'flex', gap: 8, maxWidth: 440, margin: '0 auto' }}>
@@ -230,14 +243,14 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
                   flex: 1, padding: '14px 20px', borderRadius: 999,
                   border: '1.5px solid rgba(120,150,200,0.3)',
                   background: 'rgba(255,255,255,0.8)',
-                  fontFamily: FONTS.body, fontSize: 15, color: SKY.ink, outline: 'none',
+                  fontFamily: FONTS.body, fontSize: 15, color: sky.ink, outline: 'none',
                   transition: 'border-color 0.15s',
                 }}/>
               <button type="submit" disabled={submitting} aria-busy={submitting} style={{
                 padding: '14px 30px', border: 'none', cursor: submitting ? 'wait' : 'pointer',
-                background: SKY.accent, color: SKY.accentText, borderRadius: 999,
+                background: sky.accent, color: sky.accentText, borderRadius: 999,
                 fontSize: 14, fontWeight: 600,
-                boxShadow: `0 6px 18px ${SKY.accent}55`,
+                boxShadow: `0 6px 18px ${sky.accent}55`,
                 opacity: submitting ? 0.6 : 1,
                 transition: 'transform 0.15s, box-shadow 0.15s',
               }}>{submitting ? '…' : 'send →'}</button>
@@ -246,7 +259,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           {waitlistErr && (
             <div style={{ fontSize: 12, color: '#c0383d', marginTop: 12 }}>{waitlistErr}</div>
           )}
-          <div style={{ fontSize: 12, color: SKY.inkSoft, marginTop: 20 }}>
+          <div style={{ fontSize: 12, color: sky.inkSoft, marginTop: 20 }}>
             {dreamerCount ? `join ${dreamerCount} dreamers · no spam, ever` : 'no spam, ever'}
           </div>
         </div>
@@ -255,18 +268,18 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       {/* ── How it works ── */}
       <section style={{ position: 'relative', maxWidth: 880, margin: '120px auto 80px', padding: '0 40px', zIndex: 10 }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <div style={{ fontSize: 12, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: sky.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
             ◈ How it works
           </div>
           <h2 style={{
             fontFamily: FONTS.display, fontSize: 'clamp(30px, 4.5vw, 54px)', fontWeight: 300,
-            lineHeight: 1.05, letterSpacing: '-2px', margin: 0, color: SKY.ink,
+            lineHeight: 1.05, letterSpacing: '-2px', margin: 0, color: sky.ink,
           }}>
             First you make a box.<br/>
-            <span style={{ fontStyle: 'italic', color: SKY.accent }}>Then you fill it with light.</span>
+            <span style={{ fontStyle: 'italic', color: sky.accent }}>Then you fill it with light.</span>
           </h2>
         </div>
-        <div style={{ fontSize: 19, lineHeight: 1.85, color: SKY.inkSoft, fontFamily: FONTS.body, fontWeight: 400 }}>
+        <div style={{ fontSize: 19, lineHeight: 1.85, color: sky.inkSoft, fontFamily: FONTS.body, fontWeight: 400 }}>
           {[
             { lead: 'You start with a box.',  body: " Width, depth, ceiling height. Add a window if you want one. Add three. We don't care." },
             { lead: 'Then you fill it.',      body: ' Drag in a chair. Try a rug. Move the lamp until the shadow falls right. Every piece is real — made by someone you can talk to.' },
@@ -274,7 +287,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             { lead: "When it's right, you bring it home.", body: ' One cart. Direct to the maker. The chair shows up at your front door, and your room is no longer just a dream.' },
           ].map((p, i, all) => (
             <p key={i} style={{ margin: i === all.length - 1 ? 0 : '0 0 24px' }}>
-              <span style={{ fontFamily: FONTS.display, fontSize: 22, fontStyle: 'italic', color: SKY.ink, fontWeight: 400 }}>
+              <span style={{ fontFamily: FONTS.display, fontSize: 22, fontStyle: 'italic', color: sky.ink, fontWeight: 400 }}>
                 {p.lead}
               </span>{p.body}
             </p>
@@ -290,24 +303,24 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           border: '1px solid rgba(255,255,255,0.7)',
           boxShadow: '0 24px 60px rgba(120,150,200,0.18)',
         }}>
-          <div style={{ fontSize: 11, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}>
+          <div style={{ fontSize: 11, color: sky.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 20 }}>
             ✦  A note from the founder
           </div>
-          <p style={{ fontFamily: FONTS.display, fontSize: 26, lineHeight: 1.55, fontWeight: 300, color: SKY.ink, margin: '0 0 24px' }}>
+          <p style={{ fontFamily: FONTS.display, fontSize: 26, lineHeight: 1.55, fontWeight: 300, color: sky.ink, margin: '0 0 24px' }}>
             <span style={{ fontStyle: 'italic' }}>I made DaydreamDwelling</span> because every place
             I've ever lived felt a little wrong until I changed the light.
           </p>
-          <p style={{ fontSize: 16, lineHeight: 1.75, color: SKY.inkSoft, margin: '0 0 16px' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.75, color: sky.inkSoft, margin: '0 0 16px' }}>
             I wanted a place where you could try the lamp before you bought it. Where the
             chair you place in your room is the same chair the woodworker is finishing
             in her garage three states over. No middlemen. No catalogue stock photos.
             Just rooms, and the people who furnish them.
           </p>
-          <p style={{ fontSize: 16, lineHeight: 1.75, color: SKY.inkSoft, margin: '0 0 28px' }}>
+          <p style={{ fontSize: 16, lineHeight: 1.75, color: sky.inkSoft, margin: '0 0 28px' }}>
             We're still small. Wispy is still learning. The shop is still filling up.
             But there's a doorway here, and we'd love it if you came in.
           </p>
-          <div style={{ fontFamily: FONTS.hand, fontSize: 32, color: SKY.accent, display: 'inline-block', lineHeight: 1 }}>
+          <div style={{ fontFamily: FONTS.hand, fontSize: 32, color: sky.accent, display: 'inline-block', lineHeight: 1 }}>
             — KingCitran
           </div>
         </div>
@@ -328,31 +341,31 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               <ellipse cx="55"  cy="72" rx="34" ry="28" fill="#fff"/>
               <ellipse cx="138" cy="66" rx="38" ry="30" fill="#fff"/>
               <ellipse cx="100" cy="54" rx="30" ry="24" fill="#fff"/>
-              <ellipse cx="86"  cy="74" rx="3"  ry="4"  fill={SKY.ink}/>
-              <ellipse cx="115" cy="74" rx="3"  ry="4"  fill={SKY.ink}/>
+              <ellipse cx="86"  cy="74" rx="3"  ry="4"  fill={sky.ink}/>
+              <ellipse cx="115" cy="74" rx="3"  ry="4"  fill={sky.ink}/>
               <ellipse cx="72"  cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
               <ellipse cx="128" cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
-              <path d="M 92 86 Q 100 92 108 86" stroke={SKY.ink} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
+              <path d="M 92 86 Q 100 92 108 86" stroke={sky.ink} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: 11, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: sky.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
               ◈ Meet your roommate
             </div>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(34px, 5vw, 60px)', fontWeight: 300, letterSpacing: '-2px', lineHeight: 1, margin: '0 0 18px', color: SKY.ink }}>
-              Wispy<span style={{ color: SKY.accent }}>.</span>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(34px, 5vw, 60px)', fontWeight: 300, letterSpacing: '-2px', lineHeight: 1, margin: '0 0 18px', color: sky.ink }}>
+              Wispy<span style={{ color: sky.accent }}>.</span>
             </h2>
-            <p style={{ fontSize: 16, lineHeight: 1.7, color: SKY.inkSoft, margin: '0 0 24px', maxWidth: 480 }}>
+            <p style={{ fontSize: 16, lineHeight: 1.7, color: sky.inkSoft, margin: '0 0 24px', maxWidth: 480 }}>
               A small cloud who lives in the corners of the page. She helps you with your
               first room, cheers you on at milestones, and occasionally — only when she's{' '}
-              <em style={{ color: SKY.ink }}>really sure</em> — suggests that yes, that
+              <em style={{ color: sky.ink }}>really sure</em> — suggests that yes, that
               throw pillow does tie the room together.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {['✦ available at launch', '✧ no extra cost'].map(l => (
                 <span key={l} style={{
                   padding: '8px 16px', background: 'rgba(255,255,255,0.6)',
-                  borderRadius: 999, fontSize: 13, color: SKY.ink,
+                  borderRadius: 999, fontSize: 13, color: sky.ink,
                   border: '1px solid rgba(255,255,255,0.8)',
                 }}>{l}</span>
               ))}
@@ -364,13 +377,13 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
       {/* ── Mood swatches ── */}
       <section style={{ position: 'relative', maxWidth: 1240, margin: '80px auto 0', padding: '60px 40px', zIndex: 10 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 12, color: SKY.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: sky.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
             ◈ Pick the light
           </div>
-          <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(28px, 3.5vw, 42px)', fontWeight: 300, letterSpacing: '-1.5px', margin: '0 0 8px', color: SKY.ink }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: 'clamp(28px, 3.5vw, 42px)', fontWeight: 300, letterSpacing: '-1.5px', margin: '0 0 8px', color: sky.ink }}>
             <span style={{ fontStyle: 'italic' }}>{moods.length}</span> different weathers
           </h2>
-          <p style={{ fontSize: 15, color: SKY.inkSoft, margin: 0 }}>
+          <p style={{ fontSize: 15, color: sky.inkSoft, margin: 0 }}>
             Click any to see it on this page.
           </p>
         </div>
@@ -391,23 +404,23 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap',
         }}>
           <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ fontSize: 11, color: SKY.inkSoft, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: sky.inkSoft, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
               Also from DaydreamDwelling
             </div>
-            <h3 style={{ fontFamily: FONTS.display, fontSize: 'clamp(24px, 3.2vw, 38px)', fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: SKY.ink }}>
+            <h3 style={{ fontFamily: FONTS.display, fontSize: 'clamp(24px, 3.2vw, 38px)', fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: sky.ink }}>
               <span style={{ fontStyle: 'italic' }}>Daydream Blossoms</span>
             </h3>
-            <div style={{ fontSize: 14, color: SKY.accent, fontWeight: 500, marginBottom: 14, letterSpacing: '1px', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 14, color: sky.accent, fontWeight: 500, marginBottom: 14, letterSpacing: '1px', textTransform: 'uppercase' }}>
               outdoor & garden
             </div>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: SKY.inkSoft, margin: 0, maxWidth: 480 }}>
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: sky.inkSoft, margin: 0, maxWidth: 480 }}>
               Soil, sun, and yard planning — plus curated outdoor furniture, planters, and decor
               from independent makers. Same dreamy vibes, different weather.
             </p>
           </div>
           <a href={BLOSSOMS_URL} style={{
-            padding: '14px 28px', border: `1.5px solid ${SKY.accent}`,
-            background: 'transparent', color: SKY.accent, cursor: 'pointer',
+            padding: '14px 28px', border: `1.5px solid ${sky.accent}`,
+            background: 'transparent', color: sky.accent, cursor: 'pointer',
             fontSize: 14, fontWeight: 600, borderRadius: 999, textDecoration: 'none',
           }}>visit blossoms →</a>
         </div>
@@ -415,7 +428,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* ── Footer ── */}
       <footer style={{ position: 'relative', padding: '60px 40px 80px', textAlign: 'center', zIndex: 10 }}>
-        <div style={{ fontFamily: FONTS.display, fontSize: 20, fontStyle: 'italic', color: SKY.ink, marginBottom: 14, fontWeight: 300 }}>
+        <div style={{ fontFamily: FONTS.display, fontSize: 20, fontStyle: 'italic', color: sky.ink, marginBottom: 14, fontWeight: 300 }}>
           Stay dreamy
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 20 }}>
@@ -427,8 +440,8 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             </svg>
           ))}
         </div>
-        <div style={{ fontSize: 12, color: SKY.inkSoft }}>
-          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: SKY.accent, textDecoration: 'none' }}>blossoms</a> · <a href="mailto:kingcitran@gmail.com" style={{ color: SKY.accent, textDecoration: 'none' }}>contact</a>
+        <div style={{ fontSize: 12, color: sky.inkSoft }}>
+          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: sky.accent, textDecoration: 'none' }}>blossoms</a> · <a href="mailto:kingcitran@gmail.com" style={{ color: sky.accent, textDecoration: 'none' }}>contact</a>
         </div>
       </footer>
 

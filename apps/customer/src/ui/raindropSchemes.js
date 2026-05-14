@@ -195,7 +195,7 @@ export const COLOR_SCHEMES = {
     { min: 5,      color: '#fef08a', glow: 'rgba(254,240,138,0.45)', anim: 'ddd-shimmer 3.4s ease-in-out infinite' }, // pale lemon (cloud-edge)
     { min: 0,      color: '#166534', glow: null, anim: null }, // forest shadow
   ],
-  // Cottagecore Dawn — pink-dominant palette top to bottom. Brighter, more
+  // Blush Hour — pink-dominant palette top to bottom. Brighter, more
   // saturated rose/pink throughout instead of dusty mauves.
   cottagedawn: [
     { min: 100000, color: '#ffffff', glow: 'rgba(255,255,255,0.65)', anim: 'ddd-pearl 6s ease-in-out infinite' },
@@ -278,7 +278,7 @@ export const MOOD_COLOR_SCHEMES = {
   'Moonlight':             'moonlight',
   'Northern Lights':       'northern',
   'Dark Academia':         'academia',
-  'Cottagecore Dawn':      'cottagedawn',
+  'Blush Hour':      'cottagedawn',
   'Coastal Morning':       'coastal',
   'Dream State':           'dreamcloud',
   'Neon Nights':           'neon',

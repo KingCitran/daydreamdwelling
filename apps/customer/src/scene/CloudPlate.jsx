@@ -9,7 +9,7 @@ const MOODS = {
   'Vivid Sunset':     { hi:'#f0c898', mid:'#c08050', lo:'#683018', deep:'#0c0200', sun:'#f0a050' },
   'Moonlight':        { hi:'#8098b0', mid:'#506878', lo:'#283848', deep:'#040810', sun:'#90a8c0' },
   'Dark Academia':    { hi:'#d8c098', mid:'#a08050', lo:'#584020', deep:'#0a0604', sun:'#d0b880' },
-  'Cottagecore Dawn': { hi:'#fff0e8', mid:'#f0b8a8', lo:'#a06858', deep:'#281018', sun:'#ffd8c8' },
+  'Blush Hour': { hi:'#fff0e8', mid:'#f0b8a8', lo:'#a06858', deep:'#281018', sun:'#ffd8c8' },
   'Coastal Morning':  { hi:'#f0f8ff', mid:'#b0d0e8', lo:'#5888a8', deep:'#0c2038', sun:'#e8f4ff' },
   'Dream State':      { hi:'#f0e0ff', mid:'#b898d8', lo:'#6848a0', deep:'#0c0620', sun:'#e0c8ff' },
   'Neon Nights':      { hi:'#8860c0', mid:'#5030a0', lo:'#281060', deep:'#040008', sun:'#a070e0' },

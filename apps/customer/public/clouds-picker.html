@@ -2,86 +2,237 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Cloud Picker — exclusion list</title>
+<title>Cloud Picker — themed exclusion list</title>
 <style>
-  body { margin: 0; padding: 24px; font-family: system-ui, sans-serif; background: #0a0a0a; color: #f0f0f0; }
-  h1 { margin: 0 0 4px; font-size: 22px; }
-  .sub { margin: 0 0 20px; opacity: 0.6; font-size: 13px; }
-  .toolbar {
-    position: sticky; top: 0; background: rgba(20,20,20,0.95); backdrop-filter: blur(8px);
-    margin: -24px -24px 16px; padding: 14px 24px; border-bottom: 1px solid rgba(255,255,255,0.1);
-    display: flex; gap: 16px; align-items: center; flex-wrap: wrap; z-index: 10;
+  :root {
+    --cloud-gradient: linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%);
+    --cloud-shadow: drop-shadow(0 12px 24px rgba(120,80,180,0.20));
+    --cloud-shade-opacity: 0.88;
+    --cloud-shade-filter: contrast(1.45) brightness(1.0);
+    --cloud-glow-opacity: 0.40;
+    --cloud-glow-filter: brightness(1.4) contrast(0.9);
+    --bg: linear-gradient(180deg, #7a5fb8 0%, #c0a8dc 25%, #d4a8d8 55%, #ffd8d0 80%, #ffd9b8 100%);
   }
-  .toolbar button {
-    padding: 8px 14px; border-radius: 8px; border: 1px solid #555; background: #222; cursor: pointer;
-    font-size: 13px; font-weight: 600; color: #f0f0f0;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: 'Outfit', system-ui, sans-serif; color: #1a2b44; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-attachment: fixed;
+    transition: background 0.6s ease;
   }
-  .toolbar button:hover { background: #333; border-color: #888; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(20,15,40,0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    padding: 14px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    color: #fff;
+  }
+  .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  h1 { margin: 0; font-family: 'EB Garamond', Georgia, serif; font-size: 22px; font-weight: 500; }
+  .sub { margin: 0; font-size: 12px; color: rgba(255,255,255,0.65); }
+  button.tool {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.10);
+    color: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+  }
+  button.tool:hover { background: rgba(255,255,255,0.18); }
   .selected-list {
-    flex: 1; min-width: 200px; padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
-    font-family: ui-monospace, monospace; font-size: 13px; min-height: 18px; color: #f0f0f0;
+    flex: 1; min-width: 220px; padding: 8px 12px; background: rgba(0,0,0,0.30); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    font-family: ui-monospace, monospace; font-size: 12px; min-height: 18px; color: #fff;
   }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .moods { display: flex; gap: 6px; flex-wrap: wrap; }
+  .mood {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08);
+    color: #fff; cursor: pointer; font-size: 12px;
+  }
+  .mood.active { background: rgba(255,255,255,0.30); border-color: rgba(255,255,255,0.55); }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px; padding: 24px;
+  }
   .tile {
-    background: #000; border: 2px solid #222; border-radius: 10px; overflow: hidden;
-    cursor: pointer; transition: transform 0.1s, border-color 0.1s; position: relative;
+    aspect-ratio: 3/2; position: relative; overflow: hidden; isolation: isolate;
+    background: rgba(0,0,0,0.10); border: 2px solid transparent; border-radius: 12px;
+    cursor: pointer; transition: transform 0.1s, border-color 0.1s;
   }
-  .tile:hover { transform: translateY(-2px); border-color: #555; }
-  .tile.excluded { border-color: #d04040; background: #2a0a0a; }
-  .tile.excluded img { opacity: 0.25; }
+  .tile:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.35); }
+  .tile.excluded { border-color: #ff6b6b; background: rgba(80,0,0,0.30); }
+  .tile.excluded .cloud { opacity: 0.20; }
   .tile.excluded::after {
     content: 'EXCLUDED'; position: absolute; top: 8px; right: 8px;
     background: #d04040; color: #fff; padding: 3px 8px; border-radius: 4px;
-    font-size: 10px; font-weight: 700;
+    font-size: 10px; font-weight: 700; z-index: 5;
   }
-  .tile img { width: 100%; height: 130px; object-fit: contain; display: block; padding: 8px; box-sizing: border-box; }
-  .num { padding: 6px 10px; background: #111; font-family: ui-monospace, monospace;
-    font-size: 13px; font-weight: 600; text-align: center; border-top: 1px solid #222; color: #ccc; }
+
+  .cloud { position: absolute; inset: 8%; }
+  .cloud > * { position: absolute; inset: 0; background-repeat: no-repeat; background-position: center; background-size: contain; }
+  .cloud .tint {
+    background: var(--cloud-gradient);
+    -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+    -webkit-mask-position: center; mask-position: center;
+    filter: var(--cloud-shadow);
+  }
+  .cloud .shade { mix-blend-mode: multiply; opacity: var(--cloud-shade-opacity); filter: var(--cloud-shade-filter); }
+  .cloud .glow {
+    mix-blend-mode: screen; opacity: var(--cloud-glow-opacity); filter: var(--cloud-glow-filter);
+    -webkit-mask-image: var(--cloud-glow-mask);
+    mask-image: var(--cloud-glow-mask);
+  }
+
+  .label {
+    position: absolute; left: 0; right: 0; bottom: 4px; text-align: center;
+    font-family: ui-monospace, monospace; font-size: 10px;
+    color: rgba(255,255,255,0.85); letter-spacing: 0.04em; z-index: 4;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
 </style>
 </head>
 <body>
-  <div class="toolbar">
-    <h1>Cloud Picker</h1>
-    <button onclick="copyList()">Copy excluded list</button>
-    <button onclick="clearAll()">Clear</button>
-    <div class="selected-list" id="list">Click any cloud to mark it for exclusion.</div>
-  </div>
-  <p class="sub">Tap clouds with hard edges or any you don't want in rotation. The list is what you'll send back.</p>
+  <header>
+    <div class="row">
+      <h1>Cloud Picker</h1>
+      <button class="tool" onclick="copyList()">Copy excluded list</button>
+      <button class="tool" onclick="clearAll()">Clear</button>
+      <div class="selected-list" id="list">Click any cloud to mark for exclusion.</div>
+    </div>
+    <div class="row">
+      <span class="sub" style="margin-right: 4px">Preview mood:</span>
+      <div class="moods" id="moods"></div>
+    </div>
+  </header>
   <div class="grid" id="grid"></div>
 
 <script>
 const COUNT = 150;
 const excluded = new Set(JSON.parse(localStorage.getItem('cloudExclude') || '[]'));
 
+// Dense deterministic star field for Moonlight (matches SkyBackdrop generator).
+function makeMoonlightBg() {
+  let seed = 1337;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const stars = [];
+  for (let i = 0; i < 320; i++) {
+    const x = (rand() * 100).toFixed(1);
+    const y = (rand() * 80).toFixed(1);
+    const r = rand();
+    const size = (r < 0.92 ? 0.5 + rand() * 0.9 : 1.5 + rand() * 0.9).toFixed(1);
+    const alpha = (0.25 + rand() * 0.7).toFixed(2);
+    stars.push(`radial-gradient(circle ${size}px at ${x}% ${y}%, rgba(255,255,255,${alpha}), transparent 100%)`);
+  }
+  return stars.join(', ') + ', linear-gradient(180deg, #050918 0%, #0c1530 22%, #16203f 48%, #1f2a50 72%, #2a3868 100%)';
+}
+
+// Per-mood cloud theming — keep in sync with MOOD_THEMES in
+// CloudConveyorPuffs.jsx / CloudConveyorDrift.jsx. Each mood has its own
+// gradient AND its own shade/glow blend params.
+const MOODS = [
+  {
+    id: 'dream-state', name: 'Dream State',
+    bg: 'linear-gradient(180deg, #ffe8d0 0%, #ffd8d0 25%, #e8c8e0 55%, #c0a8dc 80%, #a890d4 100%)',
+    gradient:     'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
+    shadow:       'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
+    shadeOpacity: 0.88, shadeFilter: 'contrast(1.45) brightness(1.0)',
+    glowOpacity:  0.40, glowFilter:  'brightness(1.4) contrast(0.9)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)',
+  },
+  {
+    id: 'golden-hour', name: 'Golden Hour',
+    bg: 'radial-gradient(ellipse 55% 35% at 82% 88%, rgba(255,230,170,0.75) 0%, rgba(255,200,120,0.35) 35%, transparent 70%), ' +
+        'linear-gradient(180deg, #5a2540 0%, #b85a55 22%, #e88a3e 48%, #f6b85c 72%, #ffe39a 100%)',
+    gradient:     'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
+    shadow:       'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
+    shadeOpacity: 0.86, shadeFilter: 'contrast(1.4) brightness(1.0)',
+    glowOpacity:  0.55, glowFilter:  'brightness(1.5) contrast(0.85) sepia(0.25) saturate(1.3)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)',
+  },
+  {
+    id: 'blush-hour', name: 'Blush Hour',
+    bg: 'radial-gradient(ellipse 75% 45% at 50% 25%, rgba(255,240,225,0.55) 0%, rgba(255,210,195,0.22) 45%, transparent 80%), ' +
+        'linear-gradient(180deg, #ffe2cf 0%, #ffc0b4 25%, #f4b0c0 52%, #e6c4d4 80%, #c8b8dc 100%)',
+    gradient:     'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
+    shadow:       'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
+    shadeOpacity: 0.82, shadeFilter: 'contrast(1.25) brightness(1.05)',
+    glowOpacity:  0.48, glowFilter:  'brightness(1.45) contrast(0.85) saturate(1.15)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)',
+  },
+  {
+    id: 'moonlight', name: 'Moonlight',
+    bg: makeMoonlightBg(),
+    gradient:     'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
+    shadow:       'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
+    shadeOpacity: 0.78, shadeFilter: 'contrast(1.55) brightness(0.92)',
+    glowOpacity:  0.28, glowFilter:  'brightness(1.25) contrast(0.9) hue-rotate(200deg) saturate(0.55)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)',
+  },
+];
+
+let activeMood = localStorage.getItem('cloudPickerMood') || 'dream-state';
+
 function pad(n) { return String(n).padStart(3, '0'); }
 
+function applyMood(id) {
+  const m = MOODS.find(x => x.id === id) || MOODS[0];
+  document.documentElement.style.setProperty('--cloud-gradient', m.gradient);
+  document.documentElement.style.setProperty('--cloud-shadow', m.shadow);
+  document.documentElement.style.setProperty('--cloud-shade-opacity', m.shadeOpacity);
+  document.documentElement.style.setProperty('--cloud-shade-filter', m.shadeFilter);
+  document.documentElement.style.setProperty('--cloud-glow-opacity', m.glowOpacity);
+  document.documentElement.style.setProperty('--cloud-glow-filter', m.glowFilter);
+  document.documentElement.style.setProperty('--cloud-glow-mask', m.glowMask);
+  document.documentElement.style.setProperty('--bg', m.bg);
+  activeMood = id;
+  localStorage.setItem('cloudPickerMood', id);
+  renderMoods();
+}
+
+function renderMoods() {
+  document.getElementById('moods').innerHTML = MOODS.map(m =>
+    `<button class="mood ${m.id === activeMood ? 'active' : ''}" onclick="applyMood('${m.id}')">${m.name}</button>`
+  ).join('');
+}
+
+function tileFor(n) {
+  const num = pad(n);
+  const url = `/clouds/cloud-${num}.webp`;
+  const cls = excluded.has(n) ? 'tile excluded' : 'tile';
+  return `
+    <div class="${cls}" onclick="toggle(${n})">
+      <div class="cloud">
+        <div class="tint"  style="-webkit-mask-image:url('${url}');mask-image:url('${url}')"></div>
+        <div class="shade" style="background-image:url('${url}')"></div>
+        <div class="glow"  style="background-image:url('${url}')"></div>
+      </div>
+      <div class="label">#${num}</div>
+    </div>`;
+}
+
 function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  for (let i = 1; i <= COUNT; i++) {
-    const num = pad(i);
-    const tile = document.createElement('div');
-    tile.className = 'tile' + (excluded.has(i) ? ' excluded' : '');
-    tile.innerHTML = `<img src="/clouds/cloud-${num}.webp" alt=""><div class="num">#${num}</div>`;
-    tile.onclick = () => {
-      if (excluded.has(i)) excluded.delete(i); else excluded.add(i);
-      localStorage.setItem('cloudExclude', JSON.stringify([...excluded]));
-      render();
-      updateList();
-    };
-    grid.appendChild(tile);
-  }
+  const tiles = [];
+  for (let i = 1; i <= COUNT; i++) tiles.push(tileFor(i));
+  document.getElementById('grid').innerHTML = tiles.join('');
+  updateList();
+}
+
+function toggle(n) {
+  if (excluded.has(n)) excluded.delete(n); else excluded.add(n);
+  localStorage.setItem('cloudExclude', JSON.stringify([...excluded]));
+  render();
 }
 
 function updateList() {
-  const list = [...excluded].sort((a,b) => a-b);
+  const list = [...excluded].sort((a, b) => a - b);
   document.getElementById('list').textContent = list.length
     ? `Excluded (${list.length}): ${list.join(', ')}`
-    : 'Click any cloud to mark it for exclusion.';
+    : 'Click any cloud to mark for exclusion.';
 }
 
 function copyList() {
-  const list = [...excluded].sort((a,b) => a-b);
+  const list = [...excluded].sort((a, b) => a - b);
   navigator.clipboard.writeText(list.join(', '));
   alert('Copied: ' + list.join(', '));
 }
@@ -90,11 +241,10 @@ function clearAll() {
   excluded.clear();
   localStorage.setItem('cloudExclude', '[]');
   render();
-  updateList();
 }
 
+applyMood(activeMood);
 render();
-updateList();
 </script>
 </body>
 </html>

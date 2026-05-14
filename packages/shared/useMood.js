@@ -11,7 +11,7 @@ export const MOODS = [
   { key: 'Moonlight',              label: 'Moonlight',              desc: 'Cool blue-silver, peaceful night',      icon: '🌙' },
   { key: 'Northern Lights',        label: 'Northern Lights',        desc: 'Aurora over a midnight sky',            icon: '🌌' },
   { key: 'Dark Academia',          label: 'Dark Academia',          desc: 'Jewel tones, leather, candlelit library', icon: '📚' },
-  { key: 'Cottagecore Dawn',       label: 'Cottagecore Dawn',       desc: 'Warm pink morning light',               icon: '🌸' },
+  { key: 'Blush Hour',       label: 'Blush Hour',       desc: 'Warm pink morning light',               icon: '🌸' },
   { key: 'Coastal Morning',        label: 'Coastal Morning',        desc: 'Cool bright blue-white, breezy',        icon: '🌊' },
   { key: 'Dream State',            label: 'Dream State',            desc: 'Soft pastel lavender-blush, dreamy',    icon: '☁️' },
   { key: 'Neon Nights',            label: 'Neon Nights',            desc: 'Tokyo neon nightlife, electric',        icon: '🌈' },

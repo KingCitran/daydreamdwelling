@@ -7,7 +7,7 @@ import { supabase } from '@shared/supabase'
 // picker (MusicTabPanel) shows a curated subset with friendly labels — IDs
 // here MUST match the station ids in MusicTabPanel for filters to align.
 const STATIONS = ['Cozy', 'Jazz', 'Bright', 'Evening', 'Focus', 'Nature', 'Romance', 'Party']
-const MOODS = ['Golden Hour', 'Bright Day', 'Vivid Sunset', "Ember's Sunrise", 'Candlelit Cozy Evening', 'Moonlight', 'Northern Lights', 'Dark Academia', 'Cottagecore Dawn', 'Coastal Morning', 'Dream State', 'Neon Nights', 'Greenhouse']
+const MOODS = ['Golden Hour', 'Bright Day', 'Vivid Sunset', "Ember's Sunrise", 'Candlelit Cozy Evening', 'Moonlight', 'Northern Lights', 'Dark Academia', 'Blush Hour', 'Coastal Morning', 'Dream State', 'Neon Nights', 'Greenhouse']
 const ALLOWED_TYPES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/aac', 'audio/mp4', 'audio/x-m4a']
 const MIN_DURATION = 30
 const MAX_DURATION = 8 * 60

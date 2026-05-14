@@ -1,7 +1,55 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { useMoodControl } from '@shared/ThemeProvider'
+
+// Per-mood cloud theming. Only moods listed here get the 3-layer themed
+// rendering — every other mood renders raw photographic clouds. Each entry
+// matches the cloud-design handoff for that mood (gradient, drop-shadow,
+// shade & glow blend params).
+const MOOD_THEMES = {
+  'Dream State': {
+    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
+    tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
+    shadeOpacity: 0.88,
+    shadeFilter:  'contrast(1.45) brightness(1.0)',
+    glowOpacity:  0.40,
+    glowFilter:   'brightness(1.4) contrast(0.9)',
+  },
+  'Golden Hour': {
+    // Flipped: plum/shadow at top, sunlit cream-gold at bottom (lit from below).
+    tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
+    tintShadow:   'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
+    shadeOpacity: 0.86,
+    shadeFilter:  'contrast(1.4) brightness(1.0)',
+    glowOpacity:  0.55,
+    glowFilter:   'brightness(1.5) contrast(0.85) sepia(0.25) saturate(1.3)',
+  },
+  'Moonlight': {
+    // Moon high → cloud crowns lit (silver), undersides deep navy. Low contrast,
+    // dim glow — moonlight is ~400,000× dimmer than sun.
+    tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
+    tintShadow:   'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
+    shadeOpacity: 0.78,
+    shadeFilter:  'contrast(1.55) brightness(0.92)',
+    glowOpacity:  0.28,
+    glowFilter:   'brightness(1.25) contrast(0.9) hue-rotate(200deg) saturate(0.55)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)',
+  },
+  'Blush Hour': {
+    // Cream crown → bubblegum body → magenta-rose shadow. Soft pillowy lighting,
+    // no warm/yellow stops (would muddy the pink). Lower shade contrast for
+    // a softer pillowy read.
+    tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
+    tintShadow:   'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
+    shadeOpacity: 0.82,
+    shadeFilter:  'contrast(1.25) brightness(1.05)',
+    glowOpacity:  0.48,
+    glowFilter:   'brightness(1.45) contrast(0.85) saturate(1.15)',
+  },
+}
+const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
 
 const CLOUD_COUNT = 150
-const EXCLUDED = new Set([37, 49, 59, 68, 104])  // matches landing-page exclusions
+const EXCLUDED = new Set([37, 49, 51, 59, 68, 104])  // bad clouds for Dream State (and shared across moods for now)
 const POOL = Array.from({ length: CLOUD_COUNT }, (_, i) => i + 1).filter(n => !EXCLUDED.has(n))
 
 const PUFF_COUNT = 150             // slightly denser — one new puff renders every ~2.5s instead of ~3s
@@ -27,7 +75,7 @@ const X_SPAWN_MAX_VW = 150
 
 const SWAY_PX_MIN = 0              // no sway — motion is purely down + out
 const SWAY_PX_MAX = 0
-const X_OUTWARD_DRIFT = 0.55       // closer puffs drift outward from center as they advance
+const X_OUTWARD_DRIFT = 0.25       // gentler outward drift — too much created visible side imbalance
 
 function rand(min, max) { return min + Math.random() * (max - min) }
 function pickPuff(notMatching) {
@@ -52,8 +100,17 @@ function pad(n) { return String(n).padStart(3, '0') }
  * a new random horizontal position.
  */
 export default function CloudConveyorPuffs() {
-  const refs = useRef([])
+  const wrapRefs = useRef([])         // wrapper div per puff — animation target
+  const tintRefs = useRef([])         // tint layer (mask source = cloud silhouette)
+  const shadeRefs = useRef([])        // shade layer (multiply blend)
+  const glowRefs = useRef([])         // glow layer (screen blend, top-half mask)
   const stateRef = useRef(null)
+  const { mood } = useMoodControl()
+  // Themed rendering only applies to moods explicitly listed in MOOD_THEMES
+  // (Dream State, Golden Hour, ...). All other moods render raw photographic
+  // clouds — natural look, unchanged from before the theming work.
+  const theme = MOOD_THEMES[mood]
+  const isThemed = !!theme
 
   // One-shot cache warm-up at mount: download all 145 puff images so subsequent
   // src swaps during recycle don't hitch from network/decode work. No `.decode()`
@@ -93,7 +150,7 @@ export default function CloudConveyorPuffs() {
         speed: 1 / (TRAVEL_SECONDS * rand(0.99, 1.015)),
         xVw,                                                   // FIXED for lifetime — see tick recycle
         ySkewVh: rand(-38, 11),                                // very wide Y stagger — breaks up piled-up rows of puffs
-        sizeJitter: rand(0.25, 2.10),                          // wide variety — tiny trailing puffs through big foreground clouds
+        sizeJitter: rand(0.25, 1.45),                          // wide variety; max capped to keep large foreground puffs within viewport
         xPhase: rand(0, Math.PI * 2),
         xSwayHz: rand(0.04, 0.09),
         xSwayPx: rand(SWAY_PX_MIN, SWAY_PX_MAX),
@@ -112,7 +169,7 @@ export default function CloudConveyorPuffs() {
     // Animation only mutates `transform` and `opacity` — both compositor-only,
     // no layout. With 240 sprites this keeps things smooth and flicker-free.
     const apply = (i, s, now, vw, vh) => {
-      const node = refs.current[i]
+      const node = wrapRefs.current[i]
       if (!node) return
       const t = 1 - s.depth                                    // 0=back, 1=front, >1=past
 
@@ -194,12 +251,23 @@ export default function CloudConveyorPuffs() {
           // recycles. This is what prevents horizontal gaps from emerging
           // between waves over time (random re-rolling causes clusters/gaps).
           s.ySkewVh = rand(-38, 10)
-          s.sizeJitter = rand(0.25, 2.10)
+          s.sizeJitter = rand(0.25, 1.45)
           s.xPhase = rand(0, Math.PI * 2)
           s.xSwayHz = rand(0.04, 0.09)
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
-          const node = refs.current[i]
-          if (node) node.src = `/clouds/cloud-${pad(s.img)}.webp`
+          // Update image reference. In themed mode, mutate all 3 layers.
+          // In raw mode, the wrapper IS the <img> so set its src directly.
+          const url = `url("/clouds/cloud-${pad(s.img)}.webp")`
+          if (tintRefs.current[i]) {
+            tintRefs.current[i].style.webkitMaskImage = url
+            tintRefs.current[i].style.maskImage = url
+          }
+          if (shadeRefs.current[i]) shadeRefs.current[i].style.backgroundImage = url
+          if (glowRefs.current[i]) glowRefs.current[i].style.backgroundImage = url
+          const wrap = wrapRefs.current[i]
+          if (wrap && wrap.tagName === 'IMG') {
+            wrap.src = `/clouds/cloud-${pad(s.img)}.webp`
+          }
         }
         apply(i, s, now, vw, vh)
       }
@@ -228,28 +296,79 @@ export default function CloudConveyorPuffs() {
       overflow: 'visible',
       zIndex: 0,
     }}>
-      {initial.map((s, idx) => (
-        <img
-          key={idx}
-          ref={el => { refs.current[idx] = el }}
-          src={`/clouds/cloud-${pad(s.img)}.webp`}
-          alt=""
-          decoding="async"
-          draggable={false}
-          style={{
-            position: 'absolute',
-            left: 0,
-            bottom: 0,
-            width: `${PUFF_WIDTH_FRONT_VW}vw`,
-            height: 'auto',
-            transformOrigin: 'center bottom',
-            willChange: 'transform, opacity',
-            userSelect: 'none',
-            opacity: 0,
-            filter: 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
-          }}
-        />
-      ))}
+      {initial.map((s, idx) => {
+        const url = `url("/clouds/cloud-${pad(s.img)}.webp")`
+        const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
+        // Raw photographic rendering for all moods EXCEPT Dream State.
+        if (!isThemed) {
+          return (
+            <img
+              key={idx}
+              ref={el => { wrapRefs.current[idx] = el }}
+              src={`/clouds/cloud-${pad(s.img)}.webp`}
+              alt=""
+              decoding="async"
+              draggable={false}
+              style={{
+                position: 'absolute',
+                left: 0,
+                bottom: 0,
+                width: `${PUFF_WIDTH_FRONT_VW}vw`,
+                height: 'auto',
+                transformOrigin: 'center bottom',
+                willChange: 'transform, opacity',
+                opacity: 0,
+                userSelect: 'none',
+                filter: 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
+              }}
+            />
+          )
+        }
+        // Dream State: 3-layer themed rendering.
+        return (
+          <div
+            key={idx}
+            ref={el => { wrapRefs.current[idx] = el }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              bottom: 0,
+              width: `${PUFF_WIDTH_FRONT_VW}vw`,
+              aspectRatio: '3 / 2',           // matches the actual cloud aspect (~0.67 h/w)
+              transformOrigin: 'center bottom',
+              willChange: 'transform, opacity',
+              opacity: 0,
+              isolation: 'isolate',
+            }}
+          >
+            <div ref={el => { tintRefs.current[idx] = el }} style={{
+              ...layer,
+              WebkitMaskImage: url, maskImage: url,
+              WebkitMaskSize: 'contain', maskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center', maskPosition: 'center',
+              background: theme.tintGradient,
+              filter: theme.tintShadow,
+            }} />
+            <div ref={el => { shadeRefs.current[idx] = el }} style={{
+              ...layer,
+              backgroundImage: url,
+              mixBlendMode: 'multiply',
+              opacity: theme.shadeOpacity,
+              filter: theme.shadeFilter,
+            }} />
+            <div ref={el => { glowRefs.current[idx] = el }} style={{
+              ...layer,
+              backgroundImage: url,
+              mixBlendMode: 'screen',
+              opacity: theme.glowOpacity,
+              filter: theme.glowFilter,
+              WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
+              maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
+            }} />
+          </div>
+        )
+      })}
     </div>
   )
 }

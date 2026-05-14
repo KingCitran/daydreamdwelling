@@ -12,7 +12,7 @@ export const MOOD_TO_TAGS = {
   'Moonlight':              ['cool', 'serene', 'minimal', 'nocturnal'],
   'Northern Lights':        ['cool', 'ethereal', 'nocturnal', 'aurora'],
   'Dark Academia':          ['dark', 'vintage', 'moody', 'intellectual'],
-  'Cottagecore Dawn':       ['cottagecore', 'floral', 'vintage', 'natural'],
+  'Blush Hour':       ['cottagecore', 'floral', 'vintage', 'natural'],
   'Coastal Morning':        ['coastal', 'natural', 'breezy', 'blue'],
   'Dream State':            ['ethereal', 'pastel', 'whimsical', 'romantic'],
   'Neon Nights':            ['neon', 'bold', 'electric', 'modern'],

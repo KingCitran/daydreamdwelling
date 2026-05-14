@@ -7,7 +7,7 @@ const MOOD_AMBIENT = {
   'Vivid Sunset':     { emoji: '🎷', label: 'Jazz Lounge', url: null },
   'Moonlight':        { emoji: '🌌', label: 'Ambient',     url: null },
   'Dark Academia':    { emoji: '📚', label: 'Lo-fi Study', url: null },
-  'Cottagecore Dawn': { emoji: '🌿', label: 'Nature',      url: null },
+  'Blush Hour': { emoji: '🌿', label: 'Nature',      url: null },
   'Coastal Morning':  { emoji: '🌿', label: 'Nature',      url: null },
   'Dream State':      { emoji: '🌌', label: 'Ambient',     url: null },
   'Neon Nights':      { emoji: '✨', label: 'Upbeat',      url: null },

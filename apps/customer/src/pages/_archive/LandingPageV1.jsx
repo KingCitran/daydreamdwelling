@@ -30,7 +30,7 @@ const ROOM_CAROUSEL = [
   { Room: BlankRoom, mood: 'Golden Hour' },
   { Room: BlankRoom, mood: 'Moonlight' },
   { Room: BlankRoom, mood: 'Dream State' },
-  { Room: BlankRoom, mood: 'Cottagecore Dawn' },
+  { Room: BlankRoom, mood: 'Blush Hour' },
   { Room: BlankRoom, mood: 'Neon Nights' },
   { Room: BlankRoom, mood: 'Coastal Morning' },
   { Room: BlankRoom, mood: 'Vivid Sunset' },

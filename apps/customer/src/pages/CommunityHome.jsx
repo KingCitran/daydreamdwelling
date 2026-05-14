@@ -16,7 +16,7 @@ const HIGH_VOLUME_DEMO = true
 // Original 11 — varied moods/tiers, tests pagination + medal frames + mood schemes
 const MOCK_ENTRIES_ORIGINAL = [
   { id: '1',  vote_count: 47821, profiles: { display_name: 'Ember',       avatar_url: null, designer_tier: 5 }, community_posts: { screenshot_url: null, title: "Ember's Sunrise",          mood: "Ember's Sunrise" } },
-  { id: '2',  vote_count: 9844,  profiles: { display_name: 'Ivy Rose',    avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Cottage Garden Bedroom',    mood: 'Cottagecore Dawn' } },
+  { id: '2',  vote_count: 9844,  profiles: { display_name: 'Ivy Rose',    avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Cottage Garden Bedroom',    mood: 'Blush Hour' } },
   { id: '3',  vote_count: 8217,  profiles: { display_name: 'Luna',        avatar_url: null, designer_tier: 4 }, community_posts: { screenshot_url: null, title: 'Moonlight Study',           mood: 'Moonlight' } },
   { id: '4',  vote_count: 6103,  profiles: { display_name: 'Wren',        avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'The Professor Nook',        mood: 'Dark Academia' } },
   { id: '5',  vote_count: 5482,  profiles: { display_name: 'Marigold',    avatar_url: null, designer_tier: 3 }, community_posts: { screenshot_url: null, title: 'Golden Hour Reading Chair', mood: 'Golden Hour' } },
@@ -39,7 +39,7 @@ const MOCK_ENTRIES_HIGH_VOL = (() => {
     { mood: 'Bright Day',               name: 'Solstice',  title: 'Midday Veranda' },
     { mood: 'Greenhouse',               name: 'Fern',      title: 'Conservatory Royale' },
     { mood: 'Moonlight',                name: 'Luna',      title: 'Lunar Library' },
-    { mood: 'Cottagecore Dawn',         name: 'Ivy Rose',  title: 'Dawn Cottage' },
+    { mood: 'Blush Hour',         name: 'Ivy Rose',  title: 'Dawn Cottage' },
     { mood: 'Coastal Morning',          name: 'Tide',      title: 'Morning Shoreline' },
     { mood: 'Dream State',              name: 'KingCitran',title: 'Dream Cloud Studio' },
     { mood: 'Candlelit Cozy Evening',   name: 'Wax',       title: 'Candlelit Sanctum' },

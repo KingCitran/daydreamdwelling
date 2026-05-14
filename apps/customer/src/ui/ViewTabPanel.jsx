@@ -84,10 +84,10 @@ export default function ViewTabPanel({
           {cloudsOn && (
             <div style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => onChangeCloudVariant('puffs')} style={{ ...btn(cloudVariant === 'puffs'), flex: 1 }}>
-                Puffs
+                ↑ Toward you
               </button>
-              <button onClick={() => onChangeCloudVariant('bands')} style={{ ...btn(cloudVariant === 'bands'), flex: 1 }}>
-                Bands
+              <button onClick={() => onChangeCloudVariant('drift')} style={{ ...btn(cloudVariant === 'drift'), flex: 1 }}>
+                → Drifting
               </button>
             </div>
           )}

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 
-// Per-mood cloud theming — keep in sync with CloudConveyorPuffs.jsx /
-// CloudConveyorDrift.jsx. Only listed moods get the 3-layer themed rendering;
-// any other mood renders raw photographic clouds.
+// Per-mood theming. Add new entries to enable themed rendering for more moods —
+// every mood not listed here renders raw photographic clouds.
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
@@ -43,41 +42,52 @@ const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparen
 
 const CLOUD_COUNT = 150
 const EXCLUDED = new Set([37, 49, 51, 59, 68, 104])
-const CLOUD_POOL = Array.from({ length: CLOUD_COUNT }, (_, i) => i + 1).filter(n => !EXCLUDED.has(n))
+const POOL = Array.from({ length: CLOUD_COUNT }, (_, i) => i + 1).filter(n => !EXCLUDED.has(n))
 
 function rand(min, max) { return min + Math.random() * (max - min) }
-function pickCloud() { return CLOUD_POOL[Math.floor(Math.random() * CLOUD_POOL.length)] }
+function pickCloud() { return POOL[Math.floor(Math.random() * POOL.length)] }
 function pad(n) { return String(n).padStart(3, '0') }
 
-export default function CloudField() {
-  const containerRef = useRef(null)
-  const cloudsRef = useRef([])
+/**
+ * Horizontal-drift cloud field for the room builder.
+ *
+ * - Default rendering: raw <img> (matches landing page) — natural photographic look.
+ * - Dream State mood: 3-layer themed rendering (tint mask + multiply shade
+ *   + screen glow) using the Dream State peach/pink/lavender gradient.
+ *
+ * Constrained to the bottom 78vh band; renders behind the room canvas.
+ */
+export default function CloudConveyorDrift() {
+  const cloudsRef = useRef([])         // raw mode: refs to <img>
+  const tintRefs = useRef([])
+  const shadeRefs = useRef([])
+  const glowRefs = useRef([])
   const { mood } = useMoodControl()
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
 
   const clouds = useMemo(() => {
     const layers = [
-      { count: 55, speed: [0.003, 0.008], scale: [0.45, 0.95], opacity: [0.50, 0.80], yBase: -40,  yRange: 1100 },
-      { count: 50, speed: [0.007, 0.016], scale: [0.85, 1.55], opacity: [0.75, 0.95], yBase: 100,  yRange: 1500 },
-      { count: 42, speed: [0.014, 0.028], scale: [1.30, 2.20], opacity: [0.88, 1.00], yBase: 500,  yRange: 1900 },
-      { count: 28, speed: [0.024, 0.044], scale: [2.00, 3.20], opacity: [0.95, 1.00], yBase: 1200, yRange: 2400 },
-      { count: 10, speed: [0.030, 0.055], scale: [3.50, 4.80], opacity: [0.98, 1.00], yBase: 1800, yRange: 2200 },
+      { count: 38, speed: [0.0009, 0.0024], scale: [0.45, 0.95], yMin:  2, yMax: 22 },
+      { count: 32, speed: [0.0021, 0.0048], scale: [0.85, 1.55], yMin: 12, yMax: 38 },
+      { count: 26, speed: [0.0042, 0.0084], scale: [1.30, 2.20], yMin: 25, yMax: 52 },
+      { count: 18, speed: [0.0072, 0.0132], scale: [2.00, 3.20], yMin: 42, yMax: 70 },
+      { count:  8, speed: [0.0090, 0.0165], scale: [3.50, 4.80], yMin: 55, yMax: 80 },
     ]
     const all = []
-    layers.forEach((L) => {
+    layers.forEach(L => {
       for (let i = 0; i < L.count; i++) {
         all.push({
-          xStart:  rand(-25, 130),
-          y:       L.yBase + Math.random() * L.yRange,
-          yDrift:  rand(-12, 12),
-          yPhase:  rand(0, Math.PI * 2),
-          yFreq:   rand(0.0003, 0.0009),
-          scale:   rand(L.scale[0], L.scale[1]),
-          opacity: rand(L.opacity[0], L.opacity[1]),
-          shape:   pickCloud(),
-          flip:    Math.random() > 0.5,
-          speed:   rand(L.speed[0], L.speed[1]),
+          xStart: rand(-25, 130),
+          y: rand(L.yMin, L.yMax),
+          scale: rand(L.scale[0], L.scale[1]),
+          shape: pickCloud(),
+          flip: Math.random() > 0.5,
+          speed: rand(L.speed[0], L.speed[1]),
+          yPhase: rand(0, Math.PI * 2),
+          yFreq: rand(0.0003, 0.0009),
+          yDrift: rand(-1.5, 1.5),
+          opacity: rand(0.85, 1.0),
         })
       }
     })
@@ -98,7 +108,7 @@ export default function CloudField() {
         const x = ((xRaw % 160) + 160) % 160 - 30
         const yOff = Math.sin(c.yPhase + tick * c.yFreq) * c.yDrift
         node.style.transform =
-          `translate3d(${x}vw, ${c.y + yOff}px, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
+          `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
       }
       raf = requestAnimationFrame(animate)
     }
@@ -107,14 +117,21 @@ export default function CloudField() {
   }, [clouds])
 
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+    <div style={{
+      position: 'absolute',
+      left: 0, right: 0, bottom: 0,
+      height: '78vh',
+      pointerEvents: 'none',
+      overflow: 'hidden',
+      zIndex: 0,
+    }}>
       {clouds.map((c, idx) => {
         const num = pad(c.shape)
         const url = `url("/clouds/cloud-${num}.webp")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
 
         if (!isThemed) {
-          // Raw photographic — natural look for non-themed moods.
+          // Raw photographic — natural look for non-Dream-State moods.
           return (
             <img
               key={idx}
@@ -139,7 +156,7 @@ export default function CloudField() {
           )
         }
 
-        // Themed mood: 3-layer rendering.
+        // Dream State: 3-layer themed rendering.
         return (
           <div
             key={idx}
@@ -148,16 +165,14 @@ export default function CloudField() {
               position: 'absolute',
               top: 0, left: 0,
               width: 240,
-              aspectRatio: '3 / 2',
+              aspectRatio: '3 / 2',           // matches actual cloud aspect (~0.67 h/w)
               opacity: c.opacity,
               transformOrigin: 'center center',
               willChange: 'transform',
-              userSelect: 'none',
-              pointerEvents: 'none',
               isolation: 'isolate',
             }}
           >
-            <div style={{
+            <div ref={el => { tintRefs.current[idx] = el }} style={{
               ...layer,
               WebkitMaskImage: url, maskImage: url,
               WebkitMaskSize: 'contain', maskSize: 'contain',
@@ -166,14 +181,14 @@ export default function CloudField() {
               background: theme.tintGradient,
               filter: theme.tintShadow,
             }} />
-            <div style={{
+            <div ref={el => { shadeRefs.current[idx] = el }} style={{
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
               opacity: theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
-            <div style={{
+            <div ref={el => { glowRefs.current[idx] = el }} style={{
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'screen',

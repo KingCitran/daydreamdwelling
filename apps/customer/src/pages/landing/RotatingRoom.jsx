@@ -35,7 +35,7 @@ const SCENES = [
     ],
   },
   {
-    key: 'kitchen', label: 'kitchen, 7am', mood: 'Cottagecore Dawn', desc: 'pink + sage',
+    key: 'kitchen', label: 'kitchen, 7am', mood: 'Blush Hour', desc: 'pink + sage',
     wall: '#f0d8c8', floor: '#c8a89a', grout: '#8a6058', accent: '#d68070',
     sunOpacity: 0.55, lampGlow: false,
     items: [

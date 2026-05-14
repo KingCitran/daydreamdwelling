@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import RoomScene from './scene/RoomScene'
-import CloudConveyor from './scene/CloudConveyor'
 import CloudConveyorPuffs from './scene/CloudConveyorPuffs'
+import CloudConveyorDrift from './scene/CloudConveyorDrift'
 import Panel from './ui/Panel'
 import StylePanel from './ui/StylePanel'
 import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
@@ -198,10 +198,25 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
   const [cloudVariant, setCloudVariant] = useState(() => localStorage.getItem('ddd_cloud_variant') || 'bands')
 
+  // Defer cloud rendering until after the room canvas + items have a chance
+  // to render and settle. Clouds are visually secondary; loading them first
+  // would steal GPU/CPU from the room geometry which the user actually
+  // interacts with. Wait for browser idle (or 800ms fallback).
+  const [cloudsReady, setCloudsReady] = useState(false)
+  useEffect(() => {
+    const onIdle = () => setCloudsReady(true)
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(onIdle, { timeout: 1500 })
+      return () => window.cancelIdleCallback?.(handle)
+    }
+    const t = setTimeout(onIdle, 800)
+    return () => clearTimeout(t)
+  }, [])
+
   useEffect(() => {
     const onKey = (e) => {
       if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-        const next = cloudVariant === 'bands' ? 'puffs' : 'bands'
+        const next = cloudVariant === 'drift' ? 'puffs' : 'drift'
         setCloudVariant(next)
         localStorage.setItem('ddd_cloud_variant', next)
       }
@@ -711,7 +726,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
-      {cloudsOn && (cloudVariant === 'puffs' ? <CloudConveyorPuffs /> : <CloudConveyor />)}
+      {cloudsOn && cloudsReady && (cloudVariant === 'drift' ? <CloudConveyorDrift /> : <CloudConveyorPuffs />)}
 
       {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
       <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>

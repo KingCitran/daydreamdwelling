@@ -15,7 +15,7 @@ const MOOD_GRADIENTS = {
   'Golden Hour': 'linear-gradient(135deg, #451a03 0%, #b45309 50%, #fbbf24 100%)',
   'Moonlight': 'linear-gradient(135deg, #0f172a 0%, #6366f1 50%, #c4b5fd 100%)',
   'Dream State': 'linear-gradient(135deg, #2e1065 0%, #c084fc 50%, #f5d0fe 100%)',
-  'Cottagecore Dawn': 'linear-gradient(135deg, #500724 0%, #f9a8d4 50%, #fdf2f8 100%)',
+  'Blush Hour': 'linear-gradient(135deg, #500724 0%, #f9a8d4 50%, #fdf2f8 100%)',
   'Candlelit Cozy Evening': 'linear-gradient(135deg, #1c1917 0%, #f59e0b 50%, #fff7ed 100%)',
   'Vivid Sunset': 'linear-gradient(135deg, #010101 0%, #b53da1 50%, #ffaa3d 100%)',
   "Ember's Sunrise": 'linear-gradient(135deg, #15080e 0%, #ed6ab8 40%, #ffaa3d 75%, #dcd0f0 100%)',

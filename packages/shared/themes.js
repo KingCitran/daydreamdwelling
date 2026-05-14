@@ -159,7 +159,7 @@ export const MOOD_THEMES = {
     panelText:     '#e8d8a8',
     panelTextSoft: '#9a8038',
   },
-  'Cottagecore Dawn': {
+  'Blush Hour': {
     bg:            '#fdf0ee',
     surface:       'rgba(255,248,246,0.78)',
     surfaceBorder: 'rgba(200,138,128,0.35)',

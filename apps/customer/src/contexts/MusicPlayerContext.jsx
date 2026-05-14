@@ -33,7 +33,7 @@ const MOOD_TO_STATION = {
   'Moonlight':               'Evening',
   'Northern Lights':         'Evening',
   'Dark Academia':           'Focus',
-  'Cottagecore Dawn':        'Nature',
+  'Blush Hour':        'Nature',
   'Coastal Morning':         'Nature',
   'Dream State':             'Cozy',
   'Neon Nights':             'Party',
