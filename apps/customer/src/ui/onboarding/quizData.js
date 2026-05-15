@@ -98,6 +98,11 @@ const MOOD_ORDER = [
   'Studio', 'Studio Dark',
 ]
 
+// Archived moods are kept in answer.scores tables so historical answer weights
+// don't shift, but they're filtered out of totals + tiebreak so the quiz never
+// lands a new user on one of them.
+const ARCHIVED = new Set(['Candlelit Cozy Evening', 'Dark Academia'])
+
 /**
  * @param {Record<string, string>} answers - { q1: 'q1b', q2: 'q2a', ... }
  * @returns {string} The mood key with the highest total score
@@ -110,14 +115,15 @@ export function calcResult(answers) {
     const answer = q.answers.find(a => a.id === chosen)
     if (!answer) continue
     for (const [mood, weight] of Object.entries(answer.scores)) {
+      if (ARCHIVED.has(mood)) continue
       totals[mood] = (totals[mood] ?? 0) + weight
     }
   }
-  // Tiebreak: prefer mood that appears earlier in MOOD_ORDER
-  return MOOD_ORDER.reduce((best, mood) => {
+  // Tiebreak: prefer mood that appears earlier in MOOD_ORDER (archived skipped).
+  return MOOD_ORDER.filter(m => !ARCHIVED.has(m)).reduce((best, mood) => {
     if (!best) return mood
     const bestScore = totals[best] ?? 0
     const moodScore = totals[mood] ?? 0
     return moodScore > bestScore ? mood : best
-  }, null) ?? 'Studio Dark'
+  }, null) ?? 'Bright Day'
 }

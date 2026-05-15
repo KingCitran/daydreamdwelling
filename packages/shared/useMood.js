@@ -2,23 +2,33 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { supabase } from './supabase'
 
+// MOODS = the user-facing picker list. Studio Dark folds into Studio (one
+// button, tap-again toggles between light/dark). Candlelit Cozy Evening and
+// Dark Academia are archived — their theme/scene/sky entries still exist for
+// backward compatibility with any saved user preferences, but they don't
+// appear in the picker and the onboarding quiz won't recommend them.
 export const MOODS = [
   { key: 'Golden Hour',            label: 'Golden Hour',            desc: 'Warm amber sunset, lamp pools',         icon: '🌅' },
   { key: 'Bright Day',             label: 'Bright Day',             desc: 'Crisp natural light, airy and clean',   icon: '☀️' },
   { key: 'Vivid Sunset',           label: 'Vivid Sunset',           desc: 'Magenta sky, gold horizon, still water', icon: '🌇' },
   { key: "Ember's Sunrise",        label: "Ember's Sunrise",        desc: 'Bonfire fades into a slow pastel dawn (5 min)', icon: '🔥' },
-  { key: 'Candlelit Cozy Evening', label: 'Candlelit Cozy Evening', desc: 'Dim warm interior, flickering glow',    icon: '🕯' },
   { key: 'Moonlight',              label: 'Moonlight',              desc: 'Cool blue-silver, peaceful night',      icon: '🌙' },
   { key: 'Northern Lights',        label: 'Northern Lights',        desc: 'Aurora over a midnight sky',            icon: '🌌' },
-  { key: 'Dark Academia',          label: 'Dark Academia',          desc: 'Jewel tones, leather, candlelit library', icon: '📚' },
-  { key: 'Blush Hour',       label: 'Blush Hour',       desc: 'Warm pink morning light',               icon: '🌸' },
+  { key: 'Blush Hour',             label: 'Blush Hour',             desc: 'Warm pink morning light',               icon: '🌸' },
   { key: 'Coastal Morning',        label: 'Coastal Morning',        desc: 'Cool bright blue-white, breezy',        icon: '🌊' },
   { key: 'Dream State',            label: 'Dream State',            desc: 'Soft pastel lavender-blush, dreamy',    icon: '☁️' },
   { key: 'Neon Nights',            label: 'Neon Nights',            desc: 'Tokyo neon nightlife, electric',        icon: '🌈' },
   { key: 'Greenhouse',             label: 'Greenhouse',             desc: 'Sunlight through leaves, scattered flowers', icon: '🌿' },
-  { key: 'Studio',                 label: 'Studio',                 desc: 'Neutral flat light, true colors',       icon: '🔲' },
-  { key: 'Studio Dark',            label: 'Studio Dark',            desc: 'Even flat studio light, dark neutral',  icon: '⬛' },
+  { key: 'Studio',                 label: 'Studio',                 desc: 'Neutral flat light — tap again to toggle dark/light', icon: '🔲' },
 ]
+
+// Archived moods are still recognized as valid mood keys (their themes apply
+// if a profile already has one saved) but won't be surfaced or recommended.
+export const ARCHIVED_MOODS = new Set(['Candlelit Cozy Evening', 'Dark Academia'])
+
+// Studio + Studio Dark are merged into one picker button. The Studio entry
+// dynamically picks the dark variant when active mood is 'Studio Dark'.
+export const STUDIO_VARIANTS = ['Studio', 'Studio Dark']
 
 // Per-app default overrides (used when no user preference is set)
 const APP_DEFAULTS = {

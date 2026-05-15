@@ -38,8 +38,44 @@ const MOOD_THEMES = {
     glowOpacity:  0.48,
     glowFilter:   'brightness(1.45) contrast(0.85) saturate(1.15)',
   },
+  'Coastal Morning': {
+    // Inverted: sun rising at horizon, lower-contrast fresh-morning lighting.
+    // Cool steel-blue crown → pewter mid → warm peach underbelly.
+    tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
+    tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 12px 22px rgba(40,70,110,0.35))',
+    shadeOpacity: 0.62,
+    shadeFilter:  'contrast(1.15) brightness(1.08)',
+    glowOpacity:  0.50,
+    glowFilter:   'brightness(1.4) contrast(0.85) sepia(0.22) saturate(1.15) hue-rotate(-4deg)',
+    glowMask:     'linear-gradient(180deg, transparent 30%, #fff 70%, #fff 100%)',
+  },
+  'Neon Nights': {
+    // Purple cloud bodies LIT BY EXTERNAL NEON — magenta from above, cyan from
+    // below. Stacked colored drop-shadows paint light spill into the surrounding
+    // sky so each cloud has its own magenta/cyan aura.
+    tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
+    tintShadow:   'drop-shadow(0 -6px 16px rgba(255,80,220,0.55)) drop-shadow(0 -3px 38px rgba(255,40,180,0.32)) drop-shadow(0 10px 22px rgba(80,160,255,0.40)) drop-shadow(0 4px 50px rgba(80,140,255,0.25)) drop-shadow(0 0 60px rgba(180,40,220,0.22))',
+    shadeOpacity: 0.75,
+    shadeFilter:  'contrast(1.4) brightness(0.95)',
+    glowOpacity:  0.60,
+    glowFilter:   'brightness(1.5) contrast(0.9) saturate(1.7) hue-rotate(280deg)',
+    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 30%, transparent 70%)',
+  },
+  'Vivid Sunset': {
+    // Inverted: sun below horizon, clouds carry the saturation. Glow mask flipped
+    // so the screened highlight lights the underbelly. Warmer-amber rim instead
+    // of canary yellow; upward bloom reduced.
+    tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
+    tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 14px 24px rgba(20,28,80,0.45))',
+    shadeOpacity: 0.50,
+    shadeFilter:  'contrast(1.3) brightness(1.1)',
+    glowOpacity:  0.55,
+    glowFilter:   'brightness(1.4) contrast(0.85) sepia(0.30) saturate(1.3) hue-rotate(-8deg)',
+    glowMask:     'linear-gradient(180deg, transparent 35%, #fff 75%, #fff 100%)',
+  },
 }
 const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
+
 
 const CLOUD_COUNT = 150
 const EXCLUDED = new Set([37, 49, 51, 59, 68, 104])

@@ -23,10 +23,19 @@ const SKY = {
 // Per-mood sky overrides — sync with SkyBackdrop.jsx so the landing sky
 // matches whatever mood the clouds are themed to.
 const SKY_BY_MOOD = {
-  'Dream State': { zenith: '#ffe8d0', upper: '#ffd8d0', middle: '#e8c8e0', horizon: '#a890d4', ink: '#3a1848' },
-  'Golden Hour': { zenith: '#5a2540', upper: '#b85a55', middle: '#e88a3e', horizon: '#ffe39a', ink: '#fff8e8' },
-  'Moonlight':   { zenith: '#050918', upper: '#0c1530', middle: '#16203f', horizon: '#2a3868', ink: '#e8eef8' },
-  'Blush Hour':  { zenith: '#ffe2cf', upper: '#ffc0b4', middle: '#f4b0c0', horizon: '#c8b8dc', ink: '#5a2848' },
+  'Dream State':  { zenith: '#ffe8d0', upper: '#ffd8d0', middle: '#e8c8e0', horizon: '#a890d4', ink: '#3a1848' },
+  'Golden Hour':  { zenith: '#5a2540', upper: '#b85a55', middle: '#e88a3e', horizon: '#ffe39a', ink: '#fff8e8' },
+  'Moonlight':    { zenith: '#050918', upper: '#0c1530', middle: '#16203f', horizon: '#2a3868', ink: '#e8eef8' },
+  'Blush Hour':   { zenith: '#ffe2cf', upper: '#ffc0b4', middle: '#f4b0c0', horizon: '#c8b8dc', ink: '#5a2848' },
+  // Vivid Sunset: muted sky — clouds are the stars. Deep blue night-edge crown,
+  // steel blue upper, pale blue-grey middle, warm honey lower, gold horizon.
+  'Vivid Sunset': { zenith: '#1a2a5a', upper: '#4a5a8c', middle: '#a8b8d0', horizon: '#e8a040', ink: '#fff5d8' },
+  // Coastal Morning: cool deep ocean-blue zenith → teal-blue upper → soft
+  // sky blue middle → peachy-gold horizon. Fresh, sun rising at the horizon.
+  'Coastal Morning': { zenith: '#2a5a8c', upper: '#5a8cb8', middle: '#a8c4d8', horizon: '#ffd896', ink: '#f0f5fa' },
+  // Neon Nights: deep midnight purple with magenta horizon glow. Clouds are
+  // lit by external neon — see MOOD_THEMES entry in CloudField.
+  'Neon Nights':     { zenith: '#060318', upper: '#0c0828', middle: '#160e3a', horizon: '#2a1862', ink: '#e8d4ff' },
 }
 
 const FONTS = {

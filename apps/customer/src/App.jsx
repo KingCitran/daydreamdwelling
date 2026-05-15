@@ -81,6 +81,7 @@ import { useMoodControl } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
 import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
+import { WispyProvider } from '@shared/wispy'
 
 const DEFAULT_wallHeight = 8
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -100,8 +101,10 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider appKey="customer">
         <MusicPlayerProvider appKey="customer">
-          <Gate />
-          <GlobalMusicWidgets />
+          <WispyProvider>
+            <Gate />
+            <GlobalMusicWidgets />
+          </WispyProvider>
         </MusicPlayerProvider>
       </ThemeProvider>
     </AuthProvider>

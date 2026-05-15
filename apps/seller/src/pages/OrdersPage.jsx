@@ -1,10 +1,103 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
 const PAYMENT_COLORS = { paid: ['#88d8b0', '#eeffF6'], pending: ['#ffc87a', '#fff8ee'], cancelled: ['#f09090', '#fff0f0'] }
 const FULFILLMENT_STEPS = ['packed', 'shipped', 'delivered']
+
+// Pull a usable contact email out of an order. The buyer can be:
+//   - A guest (orders.guest_email is set)
+//   - A logged-in user who entered their email at checkout (often stashed in
+//     shipping_address.email by the checkout flow)
+// Returns null if neither is present.
+function contactEmailFor(order) {
+  if (!order) return null
+  if (order.guest_email) return order.guest_email
+  const addr = order.shipping_address
+  if (addr && typeof addr === 'object' && addr.email) return addr.email
+  return null
+}
+
+// Customer display name. Falls back to profile display_name, then a shipping
+// address name field, then "Guest" / "—".
+function customerNameFor(order) {
+  if (!order) return '—'
+  if (order.customer?.display_name) return order.customer.display_name
+  const addr = order.shipping_address
+  if (addr && typeof addr === 'object') {
+    if (addr.name) return addr.name
+    if (addr.full_name) return addr.full_name
+    if (addr.first_name || addr.last_name) return [addr.first_name, addr.last_name].filter(Boolean).join(' ')
+  }
+  return order.guest_email ? 'Guest' : '—'
+}
+
+// Render a shipping_address jsonb in a human-readable way. Supports a few
+// common shapes (Stripe-style, plain object).
+function formatAddress(addr) {
+  if (!addr || typeof addr !== 'object') return null
+  const line1 = addr.line1 || addr.address_line1 || addr.street1
+  const line2 = addr.line2 || addr.address_line2 || addr.street2
+  const city = addr.city || addr.town
+  const state = addr.state || addr.region || addr.province
+  const postal = addr.postal_code || addr.zip || addr.postcode
+  const country = addr.country
+  const lines = []
+  if (line1) lines.push(line1)
+  if (line2) lines.push(line2)
+  const cityLine = [city, state, postal].filter(Boolean).join(', ')
+  if (cityLine) lines.push(cityLine)
+  if (country) lines.push(country)
+  return lines.length ? lines : null
+}
+
+function toIsoDate(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  if (Number.isNaN(dt.getTime())) return ''
+  return dt.toISOString().slice(0, 10)
+}
+
+// Build a CSV string from the visible rows. Quotes fields containing commas,
+// quotes, or newlines per RFC 4180.
+function rowsToCsv(items) {
+  const headers = ['Order ID', 'Date', 'Product', 'Variant', 'Qty', 'Unit Price', 'Amount', 'Payment Status', 'Fulfillment', 'Tracking', 'Customer', 'Email', 'Shipping Address']
+  const escape = (v) => {
+    if (v == null) return ''
+    const s = String(v)
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const lines = [headers.map(escape).join(',')]
+  for (const it of items) {
+    const order = it.orders
+    const amount = (it.quantity * it.unit_price).toFixed(2)
+    const variant = [it.size_label, it.swatch_name].filter(Boolean).join(' · ')
+    const date = order?.created_at ? new Date(order.created_at).toISOString().slice(0, 10) : ''
+    const addr = order?.shipping_address
+    const addrStr = formatAddress(addr)?.join(' / ') ?? ''
+    const email = contactEmailFor(order) ?? ''
+    const customer = customerNameFor(order)
+    lines.push([
+      order?.id ?? '', date, it.products?.label ?? '', variant, it.quantity, it.unit_price, amount,
+      order?.status ?? '', it.fulfillment_status ?? 'unfulfilled', it.tracking_number ?? '',
+      customer, email, addrStr,
+    ].map(escape).join(','))
+  }
+  return lines.join('\n')
+}
+
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
 
 export default function OrdersPage() {
   const { user }  = useAuth()
@@ -13,6 +106,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [filter,  setFilter]  = useState('all')
   const [search,  setSearch]  = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo,   setDateTo]   = useState('')
   const [expanded, setExpanded] = useState(null)
   const [tracking, setTracking] = useState({}) // orderId → tracking number input
 
@@ -27,7 +122,13 @@ export default function OrdersPage() {
 
       const { data } = await supabase
         .from('order_items')
-        .select('id, quantity, unit_price, size_label, swatch_name, created_at, fulfillment_status, tracking_number, products(label), orders(id, status, created_at)')
+        .select(`
+          id, quantity, unit_price, size_label, swatch_name, created_at,
+          fulfillment_status, tracking_number,
+          products(label),
+          orders(id, status, created_at, shipping_address, guest_email, user_id,
+                 customer:profiles!orders_user_id_fkey(display_name))
+        `)
         .in('product_id', productIds)
         .order('created_at', { ascending: false })
 
@@ -49,14 +150,40 @@ export default function OrdersPage() {
   }
 
   const s = makeStyles(t)
-  const filtered = rows
-    .filter(r => filter === 'all' || r.orders?.status === filter)
-    .filter(r => !search || (r.products?.label ?? '').toLowerCase().includes(search.toLowerCase()))
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const fromMs = dateFrom ? new Date(dateFrom).getTime() : null
+    // Date "to" is inclusive of that whole day.
+    const toMs   = dateTo   ? new Date(dateTo).getTime() + 86_400_000 : null
+    return rows.filter(r => {
+      if (filter !== 'all' && r.orders?.status !== filter) return false
+      if (q) {
+        const productMatch = (r.products?.label ?? '').toLowerCase().includes(q)
+        const orderIdMatch = (r.orders?.id ?? '').toLowerCase().includes(q)
+        const customerMatch = customerNameFor(r.orders).toLowerCase().includes(q)
+        if (!productMatch && !orderIdMatch && !customerMatch) return false
+      }
+      const created = r.orders?.created_at ? new Date(r.orders.created_at).getTime() : 0
+      if (fromMs != null && created < fromMs) return false
+      if (toMs   != null && created >= toMs) return false
+      return true
+    })
+  }, [rows, filter, search, dateFrom, dateTo])
+
+  function exportCsv() {
+    if (!filtered.length) return
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadCsv(`daydreamdwelling-orders-${stamp}.csv`, rowsToCsv(filtered))
+  }
 
   return (
     <div>
       <h1 style={s.pageTitle}>Orders</h1>
-      <p style={s.pageSubtitle}>{rows.length} total order item{rows.length !== 1 ? 's' : ''}</p>
+      <p style={s.pageSubtitle}>
+        {rows.length} total order item{rows.length !== 1 ? 's' : ''}
+        {filtered.length !== rows.length && ` · ${filtered.length} matching filters`}
+      </p>
 
       <div style={s.toolbar}>
         <div style={s.tabs}>
@@ -67,87 +194,136 @@ export default function OrdersPage() {
             </button>
           ))}
         </div>
-        <input
-          style={s.search}
-          placeholder="Search by product…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div style={s.toolbarRight}>
+          <input
+            style={s.search}
+            placeholder="Search by product, customer, or order ID…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          <div style={s.dateGroup} title="Filter by order date">
+            <input type="date" style={s.dateInput} value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)} />
+            <span style={s.dateSep}>→</span>
+            <input type="date" style={s.dateInput} value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} />
+            {(dateFrom || dateTo) && (
+              <button style={s.dateClear} onClick={() => { setDateFrom(''); setDateTo('') }} title="Clear date filter">✕</button>
+            )}
+          </div>
+          <button
+            style={{ ...s.exportBtn, opacity: filtered.length ? 1 : 0.4, cursor: filtered.length ? 'pointer' : 'not-allowed' }}
+            onClick={exportCsv}
+            disabled={!filtered.length}
+            title="Export current rows as CSV"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {loading ? (
         <p style={s.dimText}>Loading…</p>
       ) : filtered.length === 0 ? (
         <div style={s.empty}>
-          <p style={s.emptyTitle}>No {filter !== 'all' ? filter : ''} orders yet</p>
+          <p style={s.emptyTitle}>No {filter !== 'all' ? filter : ''} orders {dateFrom || dateTo ? 'in this range' : 'yet'}</p>
           <p style={s.dimText}>Orders will appear here after customers checkout.</p>
         </div>
       ) : (
         <div style={s.tableWrap}>
           <div style={s.tableHead}>
-            <span>Product</span><span>Variant</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
+            <span>Product</span><span>Customer</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
           </div>
-          {filtered.map(item => (
-            <div key={item.id}>
-              <div
-                style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : 'transparent', cursor: 'pointer' }}
-                onClick={() => setExpanded(expanded === item.id ? null : item.id)}
-              >
-                <span style={s.cell}>{item.products?.label ?? '—'}</span>
-                <span style={{ ...s.cell, color: '#9a88bb', fontSize: 11 }}>{[item.size_label, item.swatch_name].filter(Boolean).join(' · ') || '—'}</span>
-                <span style={s.cell}>×{item.quantity}</span>
-                <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
-                <span style={s.cell}><PayBadge status={item.orders?.status} /></span>
-                <span style={s.cell}><FulfillBadge status={item.fulfillment_status} /></span>
-                <span style={{ ...s.cell, color: '#9a88bb', fontSize: 11 }}>{item.orders?.created_at ? new Date(item.orders.created_at).toLocaleDateString() : '—'}</span>
-              </div>
-
-              {expanded === item.id && (
-                <div style={s.detail}>
-                  <div style={s.detailGrid}>
-                    <div>
-                      <p style={s.detailLabel}>Order ID</p>
-                      <p style={s.detailValue}>{item.orders?.id ?? '—'}</p>
-                    </div>
-                    <div>
-                      <p style={s.detailLabel}>Tracking Number</p>
-                      <p style={s.detailValue}>{item.tracking_number || 'Not entered yet'}</p>
-                    </div>
-                  </div>
-
-                  {item.orders?.status === 'paid' && (
-                    <div style={s.fulfillmentPanel}>
-                      <p style={s.detailLabel}>Fulfillment Workflow</p>
-                      <div style={s.stepRow}>
-                        {FULFILLMENT_STEPS.map((step, i) => {
-                          const current = FULFILLMENT_STEPS.indexOf(item.fulfillment_status ?? '')
-                          const done = i <= current
-                          return (
-                            <button key={step} style={{ ...s.stepBtn, background: done ? t.accent : `${t.accent}14`, color: done ? t.accentText : t.accent, border: done ? 'none' : `1px solid ${t.accent}40` }}
-                              onClick={e => { e.stopPropagation(); markFulfillment(item.id, step) }}>
-                              {step.charAt(0).toUpperCase() + step.slice(1)}
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      <div style={s.trackingRow} onClick={e => e.stopPropagation()}>
-                        <input
-                          style={s.trackingInput}
-                          placeholder="Enter tracking number…"
-                          value={tracking[item.id] ?? item.tracking_number ?? ''}
-                          onChange={e => setTracking(prev => ({ ...prev, [item.id]: e.target.value }))}
-                        />
-                        <button style={s.trackingBtn} onClick={() => saveTracking(item.id, tracking[item.id] ?? '')}>
-                          Save & Mark Shipped
-                        </button>
-                      </div>
-                    </div>
-                  )}
+          {filtered.map(item => {
+            const order = item.orders
+            const email = contactEmailFor(order)
+            const customer = customerNameFor(order)
+            const addressLines = formatAddress(order?.shipping_address)
+            const variant = [item.size_label, item.swatch_name].filter(Boolean).join(' · ')
+            return (
+              <div key={item.id}>
+                <div
+                  style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : 'transparent', cursor: 'pointer' }}
+                  onClick={() => setExpanded(expanded === item.id ? null : item.id)}
+                >
+                  <span style={s.cell}>
+                    <div>{item.products?.label ?? '—'}</div>
+                    {variant && <div style={s.variantSub}>{variant}</div>}
+                  </span>
+                  <span style={s.cell}>{customer}</span>
+                  <span style={s.cell}>×{item.quantity}</span>
+                  <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
+                  <span style={s.cell}><PayBadge status={order?.status} /></span>
+                  <span style={s.cell}><FulfillBadge status={item.fulfillment_status} /></span>
+                  <span style={{ ...s.cell, color: '#9a88bb', fontSize: 11 }}>{order?.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}</span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expanded === item.id && (
+                  <div style={s.detail}>
+                    <div style={s.detailGrid}>
+                      <div>
+                        <p style={s.detailLabel}>Order ID</p>
+                        <p style={s.detailValue}>{order?.id ?? '—'}</p>
+                      </div>
+                      <div>
+                        <p style={s.detailLabel}>Customer</p>
+                        <p style={s.detailValue}>{customer}</p>
+                        {email ? (
+                          <a href={`mailto:${email}?subject=${encodeURIComponent('Your DaydreamDwelling order')}`} style={s.contactLink} onClick={e => e.stopPropagation()}>
+                            ✉ {email}
+                          </a>
+                        ) : (
+                          <p style={s.dimMicro}>No contact email on file</p>
+                        )}
+                      </div>
+                      <div>
+                        <p style={s.detailLabel}>Shipping Address</p>
+                        {addressLines ? (
+                          <div style={s.addressBlock}>
+                            {addressLines.map((line, i) => <div key={i}>{line}</div>)}
+                          </div>
+                        ) : (
+                          <p style={s.dimMicro}>No shipping address on this order</p>
+                        )}
+                      </div>
+                      <div>
+                        <p style={s.detailLabel}>Tracking Number</p>
+                        <p style={s.detailValue}>{item.tracking_number || 'Not entered yet'}</p>
+                      </div>
+                    </div>
+
+                    {order?.status === 'paid' && (
+                      <div style={s.fulfillmentPanel}>
+                        <p style={s.detailLabel}>Fulfillment Workflow</p>
+                        <div style={s.stepRow}>
+                          {FULFILLMENT_STEPS.map((step, i) => {
+                            const current = FULFILLMENT_STEPS.indexOf(item.fulfillment_status ?? '')
+                            const done = i <= current
+                            return (
+                              <button key={step} style={{ ...s.stepBtn, background: done ? t.accent : `${t.accent}14`, color: done ? t.accentText : t.accent, border: done ? 'none' : `1px solid ${t.accent}40` }}
+                                onClick={e => { e.stopPropagation(); markFulfillment(item.id, step) }}>
+                                {step.charAt(0).toUpperCase() + step.slice(1)}
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        <div style={s.trackingRow} onClick={e => e.stopPropagation()}>
+                          <input
+                            style={s.trackingInput}
+                            placeholder="Enter tracking number…"
+                            value={tracking[item.id] ?? item.tracking_number ?? ''}
+                            onChange={e => setTracking(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          />
+                          <button style={s.trackingBtn} onClick={() => saveTracking(item.id, tracking[item.id] ?? '')}>
+                            Save & Mark Shipped
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -170,22 +346,32 @@ function makeStyles(t) {
     pageTitle:       { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
     pageSubtitle:    { fontSize: 13, color: t.textSoft, marginBottom: 20 },
     toolbar:         { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' },
+    toolbarRight:    { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
     tabs:            { display: 'flex', gap: 6 },
     tab:             { padding: '7px 14px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' },
     tabActive:       { background: `${t.accent}18`, color: t.accent, borderColor: `${t.accent}44`, fontWeight: 600 },
     tabCount:        { fontWeight: 700, fontSize: 11, color: t.accent },
-    search:          { padding: '8px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none', minWidth: 200 },
+    search:          { padding: '8px 14px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none', minWidth: 240 },
+    dateGroup:       { display: 'flex', alignItems: 'center', gap: 4, background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, padding: '2px 6px' },
+    dateInput:       { padding: '6px 8px', border: 'none', background: 'transparent', fontSize: 12, color: t.text, outline: 'none', fontFamily: 'inherit' },
+    dateSep:         { fontSize: 11, color: t.textSoft },
+    dateClear:       { background: 'none', border: 'none', color: t.textSoft, cursor: 'pointer', fontSize: 11, padding: '2px 4px' },
+    exportBtn:       { padding: '8px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600 },
     dimText:         { fontSize: 13, color: t.textSoft },
+    dimMicro:        { fontSize: 11, color: t.textSoft, margin: 0, fontStyle: 'italic' },
     empty:           { background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: '40px', textAlign: 'center' },
     emptyTitle:      { fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 8 },
     tableWrap:       { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, overflow: 'hidden' },
-    tableHead:       { display: 'grid', gridTemplateColumns: '2fr 1.2fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', background: `${t.accent}06`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' },
-    tableRow:        { display: 'grid', gridTemplateColumns: '2fr 1.2fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', borderTop: `1px solid ${t.surfaceBorder}`, alignItems: 'center' },
+    tableHead:       { display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', background: `${t.accent}06`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' },
+    tableRow:        { display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', borderTop: `1px solid ${t.surfaceBorder}`, alignItems: 'center' },
     cell:            { fontSize: 13, color: t.text },
+    variantSub:      { fontSize: 10, color: '#9a88bb', marginTop: 2 },
     detail:          { background: `${t.accent}05`, borderTop: `1px solid ${t.surfaceBorder}`, padding: '16px 18px 18px' },
     detailGrid:      { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 },
     detailLabel:     { fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
-    detailValue:     { fontSize: 13, color: t.text, fontWeight: 500 },
+    detailValue:     { fontSize: 13, color: t.text, fontWeight: 500, margin: 0 },
+    contactLink:     { display: 'inline-block', marginTop: 4, fontSize: 12, color: t.accent, textDecoration: 'none', fontWeight: 500 },
+    addressBlock:    { fontSize: 13, color: t.text, lineHeight: 1.55 },
     fulfillmentPanel:{ marginTop: 4 },
     stepRow:         { display: 'flex', gap: 8, marginTop: 8, marginBottom: 12 },
     stepBtn:         { padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
