@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrapeAt, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
 import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
+
+// Dev cycle constants — see CloudConveyorPuffs.jsx for rationale.
+const EE_SLOT_COUNT = 3
+const EE_TICK_MS = 3500
 
 // Per-mood theming. Add new entries to enable themed rendering for more moods —
 // every mood not listed here renders raw photographic clouds.
@@ -113,6 +117,19 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
 
+  // Dev cycle: a few specific cloud slots become Easter-egg shapes,
+  // rotating through CLOUD_SHAPES every EE_TICK_MS. Rest stay regular clouds.
+  const [eeCursor, setEeCursor] = useState(0)
+  useEffect(() => {
+    if (!forceEasterEggs || !CLOUD_SHAPES.length) return
+    const total = Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)
+    const interval = setInterval(() => setEeCursor(c => (c + 1) % total), EE_TICK_MS)
+    return () => clearInterval(interval)
+  }, [forceEasterEggs])
+  const visibleShapes = forceEasterEggs && CLOUD_SHAPES.length
+    ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => CLOUD_SHAPES[(eeCursor * EE_SLOT_COUNT + slot) % CLOUD_SHAPES.length])
+    : []
+
   const clouds = useMemo(() => {
     // Cloud counts bumped ~40% for higher density across the scene (sky
     // felt sparse, especially in moods like Greenhouse where lush is the
@@ -178,8 +195,14 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
       zIndex: 0,
     }}>
       {clouds.map((c, idx) => {
-        const u = (forceEasterEggs && CLOUD_SHAPES.length)
-          ? shapeUrl(CLOUD_SHAPES[idx % CLOUD_SHAPES.length])
+        // EE slot when in dev cycle mode: indices spaced evenly across the
+        // cloud pool, only those become Easter-egg shapes (slot >= 0).
+        const eeStep = clouds.length / EE_SLOT_COUNT
+        const eeSlot = forceEasterEggs && CLOUD_SHAPES.length
+          ? [...Array(EE_SLOT_COUNT)].findIndex((_, i) => idx === Math.floor((i + 0.5) * eeStep))
+          : -1
+        const u = (eeSlot >= 0 && visibleShapes[eeSlot])
+          ? shapeUrl(visibleShapes[eeSlot])
           : `/clouds/cloud-${pad(c.shape)}.webp`
         const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
@@ -264,6 +287,29 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
           </div>
         )
       })}
+      {forceEasterEggs && visibleShapes.length > 0 && (
+        <div style={{
+          position: 'fixed', left: 14, bottom: 14, zIndex: 50,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'rgba(20,15,38,0.88)',
+          border: '1px solid rgba(200,168,255,0.35)',
+          color: '#f0eaff',
+          fontFamily: "'Outfit', system-ui, sans-serif",
+          fontSize: 11, lineHeight: 1.5,
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          pointerEvents: 'none',
+          maxWidth: 280,
+        }}>
+          <div style={{ fontWeight: 700, color: '#c8a8ff', marginBottom: 4, letterSpacing: '0.3px', textTransform: 'uppercase', fontSize: 9 }}>
+            Cycling Easter eggs · {eeCursor + 1} / {Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)}
+          </div>
+          {visibleShapes.map((s, i) => (
+            <div key={i} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+              · {s.label} <span style={{ color: '#8a78a8' }}>({s.id})</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrape, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
 import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
+
+// Dev cycle constants — how many of the 150 puffs are Easter-egg slots at any
+// moment (the rest stay as regular photo clouds), and how often we advance
+// to the next batch of shapes.
+const EE_SLOT_COUNT = 3
+const EE_TICK_MS = 3500
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
 // rendering — every other mood renders raw photographic clouds. Each entry
@@ -168,15 +174,54 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
   // clouds — natural look, unchanged from before the theming work.
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
-  // Dev cycle mode: substitute every puff's URL with a shape from CLOUD_SHAPES,
-  // indexed by puff number so the full manifest is on screen at once and the
-  // user can audit each one against the current mood theme.
-  const cloudUrlFor = (puffNum) => {
+
+  // Dev cycle mode: only EE_SLOT_COUNT specific puff slots are replaced with
+  // Easter-egg shapes at any time — the rest stay regular clouds so the field
+  // reads clearly. A timer advances the batch every EE_TICK_MS so all shapes
+  // in CLOUD_SHAPES get airtime in turn.
+  const eeSlotIndices = useMemo(
+    () => Array.from({ length: EE_SLOT_COUNT }, (_, i) => Math.floor((i + 0.5) * PUFF_COUNT / EE_SLOT_COUNT)),
+    []
+  )
+  const [eeCursor, setEeCursor] = useState(0)
+  const visibleShapes = forceEasterEggs && CLOUD_SHAPES.length
+    ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => CLOUD_SHAPES[(eeCursor * EE_SLOT_COUNT + slot) % CLOUD_SHAPES.length])
+    : []
+  const cloudUrlFor = (puffIdx, puffNum) => {
     if (forceEasterEggs && CLOUD_SHAPES.length) {
-      return shapeUrl(CLOUD_SHAPES[puffNum % CLOUD_SHAPES.length])
+      const slot = eeSlotIndices.indexOf(puffIdx)
+      if (slot >= 0) return shapeUrl(visibleShapes[slot])
     }
     return `/clouds/cloud-${pad(puffNum)}.webp`
   }
+
+  // Advance the shape cursor on a timer when dev mode is on.
+  useEffect(() => {
+    if (!forceEasterEggs || !CLOUD_SHAPES.length) return
+    const totalBatches = Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)
+    const interval = setInterval(
+      () => setEeCursor(c => (c + 1) % totalBatches),
+      EE_TICK_MS
+    )
+    return () => clearInterval(interval)
+  }, [forceEasterEggs])
+
+  // When eeCursor advances, the JSX re-renders but the per-frame raf loop
+  // owns the live styles, so the shape-slot puffs' URLs need a manual push.
+  useEffect(() => {
+    if (!forceEasterEggs) return
+    eeSlotIndices.forEach((puffIdx, slot) => {
+      const shape = visibleShapes[slot]
+      if (!shape) return
+      const u = shapeUrl(shape)
+      const url = `url("${u}")`
+      if (tintRefs.current[puffIdx])  { tintRefs.current[puffIdx].style.webkitMaskImage = url; tintRefs.current[puffIdx].style.maskImage = url }
+      if (shadeRefs.current[puffIdx]) shadeRefs.current[puffIdx].style.backgroundImage = url
+      if (glowRefs.current[puffIdx])  glowRefs.current[puffIdx].style.backgroundImage = url
+      const wrap = wrapRefs.current[puffIdx]
+      if (wrap && wrap.tagName === 'IMG') wrap.src = u
+    })
+  }, [eeCursor, forceEasterEggs, eeSlotIndices]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // One-shot cache warm-up at mount: download all 145 puff images so subsequent
   // src swaps during recycle don't hitch from network/decode work. No `.decode()`
@@ -326,7 +371,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
           // Update image reference. In themed mode, mutate all 3 layers.
           // In raw mode, the wrapper IS the <img> so set its src directly.
-          const u = cloudUrlFor(s.img)
+          const u = cloudUrlFor(i, s.img)
           const url = `url("${u}")`
           if (tintRefs.current[i]) {
             tintRefs.current[i].style.webkitMaskImage = url
@@ -367,7 +412,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       zIndex: 0,
     }}>
       {initial.map((s, idx) => {
-        const u = cloudUrlFor(s.img)
+        const u = cloudUrlFor(idx, s.img)
         const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
         // Raw photographic rendering for all moods EXCEPT themed ones.
@@ -450,6 +495,29 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           </div>
         )
       })}
+      {forceEasterEggs && visibleShapes.length > 0 && (
+        <div style={{
+          position: 'fixed', left: 14, bottom: 14, zIndex: 50,
+          padding: '10px 14px', borderRadius: 10,
+          background: 'rgba(20,15,38,0.88)',
+          border: '1px solid rgba(200,168,255,0.35)',
+          color: '#f0eaff',
+          fontFamily: "'Outfit', system-ui, sans-serif",
+          fontSize: 11, lineHeight: 1.5,
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          pointerEvents: 'none',
+          maxWidth: 280,
+        }}>
+          <div style={{ fontWeight: 700, color: '#c8a8ff', marginBottom: 4, letterSpacing: '0.3px', textTransform: 'uppercase', fontSize: 9 }}>
+            Cycling Easter eggs · {eeCursor + 1} / {Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)}
+          </div>
+          {visibleShapes.map((s, i) => (
+            <div key={i} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+              · {s.label} <span style={{ color: '#8a78a8' }}>({s.id})</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
