@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrape, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
-import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
+import { availableShapes, shapeUrl } from './cloudShapes'
 
 // Dev cycle constants — how many of the 150 puffs are Easter-egg slots at any
 // moment (the rest stay as regular photo clouds), how often we advance to the
-// next batch of shapes, and the minimum depth EE slots are pinned to (kept
-// way in the back so they never crowd into the foreground). EE_Y_SKEW_RANGE
-// also biases them toward the upper portion of the screen so the far slot
-// reads as a distant horizon detail rather than a low-altitude blob.
+// next batch of shapes, and the depth/Y profile each EE slot uses.
+//
+// EE slots are pegged to fixed (xVw, ySkewVh) tuples in EE_SLOT_POSITIONS so
+// they always appear in the same three open-sky spots high on the screen
+// instead of drifting into the dense band. Combined with EE_BACK_DEPTH the
+// shapes stay small + far + isolated, which is the only way the user can
+// actually tell them apart.
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
-const EE_BACK_DEPTH = 0.72          // recycle EE slots when they dip below this
-const EE_Y_SKEW_MIN = -40           // ySkewVh bias range for EE slots — both
-const EE_Y_SKEW_MAX = -10           // negative so EE clouds always sit high
+const EE_BACK_DEPTH = 0.78          // recycle EE slots when they dip below this
+const EE_SLOT_POSITIONS = [
+  { xVw: 18, ySkewVh: -52 },        // top-left, well above the cloud band
+  { xVw: 50, ySkewVh: -55 },        // top-center, highest point
+  { xVw: 82, ySkewVh: -52 },        // top-right, mirror of left
+]
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
 // rendering — every other mood renders raw photographic clouds. Each entry
@@ -204,11 +210,15 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
   )
   const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
   const [eeCursor, setEeCursor] = useState(0)
-  const visibleShapes = forceEasterEggs && CLOUD_SHAPES.length
-    ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => CLOUD_SHAPES[(eeCursor * EE_SLOT_COUNT + slot) % CLOUD_SHAPES.length])
+  // Pool of shapes for cycling — excludes everything the picker marked off
+  // (Angel 1-3, Bear 1-2, etc.) so the dev tool doesn't show shapes that
+  // are explicitly off the table.
+  const cyclePool = useMemo(() => availableShapes(), [forceEasterEggs])
+  const visibleShapes = forceEasterEggs && cyclePool.length
+    ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => cyclePool[(eeCursor * EE_SLOT_COUNT + slot) % cyclePool.length])
     : []
   const cloudUrlFor = (puffIdx, puffNum) => {
-    if (forceEasterEggs && CLOUD_SHAPES.length) {
+    if (forceEasterEggs && cyclePool.length) {
       const slot = eeSlotIndices.indexOf(puffIdx)
       if (slot >= 0) return shapeUrl(visibleShapes[slot])
     }
@@ -217,14 +227,14 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
 
   // Advance the shape cursor on a timer when dev mode is on.
   useEffect(() => {
-    if (!forceEasterEggs || !CLOUD_SHAPES.length) return
-    const totalBatches = Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)
+    if (!forceEasterEggs || !cyclePool.length) return
+    const totalBatches = Math.ceil(cyclePool.length / EE_SLOT_COUNT)
     const interval = setInterval(
       () => setEeCursor(c => (c + 1) % totalBatches),
       EE_TICK_MS
     )
     return () => clearInterval(interval)
-  }, [forceEasterEggs])
+  }, [forceEasterEggs, cyclePool.length])
 
   // When eeCursor advances, the JSX re-renders but the per-frame raf loop
   // owns the live styles, so the shape-slot puffs' URLs need a manual push.
@@ -272,26 +282,33 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       // distribution starts perfectly uniform so no part of the screen has
       // a "missing wave" of puffs that would leave a visible gap.
       const isEe = forceEasterEggs && eeSlotSet.has(i)
+      const eeSlotIdx = isEe ? eeSlotIndices.indexOf(i) : -1
+      const eePos = eeSlotIdx >= 0 ? EE_SLOT_POSITIONS[eeSlotIdx] : null
       const depth = isEe
         ? rand(EE_BACK_DEPTH, 1.0)                              // EE slots seed in the back band so the user sees them small from frame 0
         : ((i + 0.5) / PUFF_COUNT + rand(-0.01, 0.01)) % 1
       const img = pickPuff(lastImg)
       lastImg = img
-      const xVw = X_SPAWN_MIN_VW + (xSlots[i] + 0.5) / PUFF_COUNT * xRange + rand(-2, 2)
+      // EE slots get pinned to fixed (xVw, ySkewVh) tuples so they always
+      // sit in the same three exposed upper-screen positions — left, center,
+      // right — instead of drifting into the dense band.
+      const xVw = eePos
+        ? eePos.xVw
+        : X_SPAWN_MIN_VW + (xSlots[i] + 0.5) / PUFF_COUNT * xRange + rand(-2, 2)
       arr.push({
         depth,
         img,
         speed: 1 / (TRAVEL_SECONDS * rand(0.99, 1.015)),
         xVw,                                                   // FIXED for lifetime — see tick recycle
-        ySkewVh: isEe ? rand(EE_Y_SKEW_MIN, EE_Y_SKEW_MAX) : rand(-38, 11),
-        sizeJitter: isEe ? rand(0.35, 0.7) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
+        ySkewVh: eePos ? eePos.ySkewVh : rand(-38, 11),
+        sizeJitter: isEe ? rand(0.35, 0.55) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
         xPhase: rand(0, Math.PI * 2),
         xSwayHz: rand(0.04, 0.09),
         xSwayPx: rand(SWAY_PX_MIN, SWAY_PX_MAX),
       })
     }
     return arr
-  }, [forceEasterEggs, eeSlotSet])
+  }, [forceEasterEggs, eeSlotSet, eeSlotIndices])
 
   useEffect(() => {
     const mountSecs = performance.now() / 1000
@@ -386,7 +403,8 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
 
     // Screen-space radius around each EE slot inside which regular puffs
     // fully fade out — gives the shape clouds an exposed, open-sky frame.
-    const EE_BREATHING_RADIUS = 520
+    // Big enough that the silhouette has a clear halo at any cloud density.
+    const EE_BREATHING_RADIUS = 640
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
@@ -417,12 +435,17 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           // KEEP s.xVw — each puff stays at its assigned lateral slot across
           // recycles. This is what prevents horizontal gaps from emerging
           // between waves over time (random re-rolling causes clusters/gaps).
-          // EE slots bias upward so the far one sits high on the horizon
-          // and the closer slot still reads as a distant detail.
-          s.ySkewVh = isEe ? rand(EE_Y_SKEW_MIN, EE_Y_SKEW_MAX) : rand(-38, 10)
-          // Also shrink EE slot sizeJitter so they read smaller / farther
-          // even at depth=0.72.
-          s.sizeJitter = isEe ? rand(0.35, 0.7) : rand(0.25, 1.45)
+          // EE slots reset to their pinned (xVw, ySkewVh) tuple — they live
+          // in three fixed sparse spots high on the screen.
+          const eeSlotIdx = isEe ? eeSlotIndices.indexOf(i) : -1
+          const eePos = eeSlotIdx >= 0 ? EE_SLOT_POSITIONS[eeSlotIdx] : null
+          if (eePos) {
+            s.xVw = eePos.xVw
+            s.ySkewVh = eePos.ySkewVh
+          } else {
+            s.ySkewVh = rand(-38, 10)
+          }
+          s.sizeJitter = isEe ? rand(0.35, 0.55) : rand(0.25, 1.45)
           s.xPhase = rand(0, Math.PI * 2)
           s.xSwayHz = rand(0.04, 0.09)
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
@@ -597,7 +620,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           maxWidth: '92vw', overflowX: 'auto',
         }}>
           <span style={{ fontWeight: 700, color: '#c8a8ff', letterSpacing: '0.4px', textTransform: 'uppercase', fontSize: 9 }}>
-            EE Cycle · {eeCursor + 1}/{Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)}
+            EE Cycle · {eeCursor + 1}/{Math.ceil(cyclePool.length / EE_SLOT_COUNT)}
           </span>
           {visibleShapes.map((s, i) => (
             <span key={i} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>

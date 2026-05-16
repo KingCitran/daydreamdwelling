@@ -67,9 +67,48 @@ export const CLOUD_SHAPES = [
   { id: 'swan-1',      filename: 'Swan 1.png',      label: 'Swan',          moods: ['Dream State', 'Coastal Morning'] },
 ]
 
-// Filter the shape pool to those allowed in the current mood.
+// Shape filenames the user has excluded via /asset-picker.html → "Shape Clouds"
+// tab. Read from localStorage at module init; the customer app's Supabase
+// boot sync (App.jsx → syncCurationFromSupabase) refreshes this key from the
+// scene_curation table so the deployed app sees the same exclusions across
+// browsers/devices. We also seed defaults so brand-new visitors get the
+// curated pool from frame 0.
+const DEFAULT_EXCLUDED_SHAPES = new Set([
+  'Angel 1.png', 'Angel 2.png', 'Angel 3.png',
+  'Bear 1.png',  'Bear 2.png',
+  'Carriage 2.png',
+  'Cupid 2.png',
+  'Elephant 1.png',
+  'Heart 6.png',
+  'Pigeon 3.png',
+])
+function readShapeExcludes() {
+  let local = []
+  if (typeof localStorage !== 'undefined') {
+    try { local = JSON.parse(localStorage.getItem('shapeExclude') || '[]') } catch {}
+  }
+  // localStorage takes precedence: if the picker has explicitly written a
+  // list (even empty), trust that — otherwise fall back to baked defaults.
+  if (local.length || (typeof localStorage !== 'undefined' && localStorage.getItem('shapeExclude') !== null)) {
+    return new Set(local)
+  }
+  return new Set(DEFAULT_EXCLUDED_SHAPES)
+}
+export const EXCLUDED_SHAPES = readShapeExcludes()
+
+// Filter the shape pool to those allowed in the current mood AND not in the
+// shape-picker's exclusion list.
 export function shapesForMood(mood) {
-  return CLOUD_SHAPES.filter(s => !s.moods || s.moods.includes('*') || s.moods.includes(mood))
+  return CLOUD_SHAPES.filter(s =>
+    !EXCLUDED_SHAPES.has(s.filename) &&
+    (!s.moods || s.moods.includes('*') || s.moods.includes(mood))
+  )
+}
+
+// Cycle/dev tool pool — all manifest entries minus the exclusion list, no
+// mood filter (the dev tool wants to audit every shape regardless of mood).
+export function availableShapes() {
+  return CLOUD_SHAPES.filter(s => !EXCLUDED_SHAPES.has(s.filename))
 }
 
 // Pick a random shape from the pool allowed in this mood, or null if no
