@@ -585,21 +585,17 @@ async function checkSession() {
 }
 
 signinBtn.addEventListener('click', async () => {
-  const email = window.prompt('Email')
-  if (!email) return
-  const password = window.prompt('Password (the one you use on daydreamdwelling.com)')
-  if (!password) return
-  setStatus('signing in…', '#ffd54a')
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  // Same provider the customer app uses. Google redirects back to this page
+  // with the session in the URL hash; supabase-js detects + persists it.
+  setStatus('redirecting to Google…', '#ffd54a')
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href },
+  })
   if (error) {
     setStatus('sign-in failed', '#ff6b6b')
     alert(`Sign-in failed: ${error.message}`)
-    return
   }
-  await checkSession()
-  // After signing in, immediately pull the latest curation + re-render.
-  const touched = await pullFromSupabase()
-  if (touched) window.__pickerReinitFromStorage?.()
 })
 
 signoutBtn.addEventListener('click', async () => {
