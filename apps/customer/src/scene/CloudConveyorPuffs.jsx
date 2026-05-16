@@ -375,7 +375,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
 
     // Screen-space radius around each EE slot inside which regular puffs
     // fully fade out — gives the shape clouds an exposed, open-sky frame.
-    const EE_BREATHING_RADIUS = 320
+    const EE_BREATHING_RADIUS = 520
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
@@ -504,7 +504,15 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
             />
           )
         }
-        // Dream State: 3-layer themed rendering.
+        // Dream State: 3-layer themed rendering. EE-slot puffs run through the
+        // same pipeline so the shape inherits the mood gradient — but the
+        // Easter-egg PNGs come from a different source (sculpted cloud shapes)
+        // and carry deeper/darker baseline shadows than the regular puff
+        // photos. We compensate by lifting the shape PNG with a prefilter so
+        // its tonality is closer to the puff sprites before the multiply
+        // shade layer eats it.
+        const isEeSlot = forceEasterEggs && eeSlotSet.has(idx)
+        const shapeNormalizer = isEeSlot ? ' contrast(0.55) brightness(1.32) saturate(1.05)' : ''
         return (
           <div
             key={idx}
@@ -544,15 +552,15 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
-              opacity: theme.shadeOpacity,
-              filter: theme.shadeFilter,
+              opacity: isEeSlot ? theme.shadeOpacity * 0.55 : theme.shadeOpacity,
+              filter: theme.shadeFilter + shapeNormalizer,
             }} />
             <div ref={el => { glowRefs.current[idx] = el }} style={{
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'screen',
-              opacity: theme.glowOpacity,
-              filter: theme.glowFilter,
+              opacity: isEeSlot ? theme.glowOpacity * 1.15 : theme.glowOpacity,
+              filter: theme.glowFilter + shapeNormalizer,
               WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
               maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
             }} />
