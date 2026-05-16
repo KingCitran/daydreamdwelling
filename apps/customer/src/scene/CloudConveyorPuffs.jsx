@@ -6,10 +6,14 @@ import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
 // Dev cycle constants — how many of the 150 puffs are Easter-egg slots at any
 // moment (the rest stay as regular photo clouds), how often we advance to the
 // next batch of shapes, and the minimum depth EE slots are pinned to (kept
-// in the back half so they never crowd into the foreground).
+// way in the back so they never crowd into the foreground). EE_Y_SKEW_RANGE
+// also biases them toward the upper portion of the screen so the far slot
+// reads as a distant horizon detail rather than a low-altitude blob.
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
-const EE_BACK_DEPTH = 0.55          // recycle EE slots when they dip below this
+const EE_BACK_DEPTH = 0.72          // recycle EE slots when they dip below this
+const EE_Y_SKEW_MIN = -40           // ySkewVh bias range for EE slots — both
+const EE_Y_SKEW_MAX = -10           // negative so EE clouds always sit high
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
 // rendering — every other mood renders raw photographic clouds. Each entry
@@ -256,7 +260,10 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       // Evenly stratified depths with tiny jitter — ensures the depth
       // distribution starts perfectly uniform so no part of the screen has
       // a "missing wave" of puffs that would leave a visible gap.
-      const depth = ((i + 0.5) / PUFF_COUNT + rand(-0.01, 0.01)) % 1
+      const isEe = forceEasterEggs && eeSlotSet.has(i)
+      const depth = isEe
+        ? rand(EE_BACK_DEPTH, 1.0)                              // EE slots seed in the back band so the user sees them small from frame 0
+        : ((i + 0.5) / PUFF_COUNT + rand(-0.01, 0.01)) % 1
       const img = pickPuff(lastImg)
       lastImg = img
       const xVw = X_SPAWN_MIN_VW + (xSlots[i] + 0.5) / PUFF_COUNT * xRange + rand(-2, 2)
@@ -265,15 +272,15 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         img,
         speed: 1 / (TRAVEL_SECONDS * rand(0.99, 1.015)),
         xVw,                                                   // FIXED for lifetime — see tick recycle
-        ySkewVh: rand(-38, 11),                                // very wide Y stagger — breaks up piled-up rows of puffs
-        sizeJitter: rand(0.25, 1.45),                          // wide variety; max capped to keep large foreground puffs within viewport
+        ySkewVh: isEe ? rand(EE_Y_SKEW_MIN, EE_Y_SKEW_MAX) : rand(-38, 11),
+        sizeJitter: isEe ? rand(0.35, 0.7) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
         xPhase: rand(0, Math.PI * 2),
         xSwayHz: rand(0.04, 0.09),
         xSwayPx: rand(SWAY_PX_MIN, SWAY_PX_MAX),
       })
     }
     return arr
-  }, [])
+  }, [forceEasterEggs, eeSlotSet])
 
   useEffect(() => {
     const mountSecs = performance.now() / 1000
@@ -363,7 +370,8 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         s.depth -= s.speed * delta
         // EE slot puffs recycle early so they stay in the back half — never
         // drift up close where their shape would dominate the field.
-        const recycleAt = (forceEasterEggs && eeSlotSet.has(i)) ? EE_BACK_DEPTH : RECYCLE_AT_DEPTH
+        const isEe = forceEasterEggs && eeSlotSet.has(i)
+        const recycleAt = isEe ? EE_BACK_DEPTH : RECYCLE_AT_DEPTH
         if (s.depth < recycleAt) {
           s.depth = 1.0
           s.img = pickPuff(s.img)
@@ -372,8 +380,12 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           // KEEP s.xVw — each puff stays at its assigned lateral slot across
           // recycles. This is what prevents horizontal gaps from emerging
           // between waves over time (random re-rolling causes clusters/gaps).
-          s.ySkewVh = rand(-38, 10)
-          s.sizeJitter = rand(0.25, 1.45)
+          // EE slots bias upward so the far one sits high on the horizon
+          // and the closer slot still reads as a distant detail.
+          s.ySkewVh = isEe ? rand(EE_Y_SKEW_MIN, EE_Y_SKEW_MAX) : rand(-38, 10)
+          // Also shrink EE slot sizeJitter so they read smaller / farther
+          // even at depth=0.72.
+          s.sizeJitter = isEe ? rand(0.35, 0.7) : rand(0.25, 1.45)
           s.xPhase = rand(0, Math.PI * 2)
           s.xSwayHz = rand(0.04, 0.09)
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
@@ -447,7 +459,11 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 willChange: 'transform, opacity',
                 opacity: 0,
                 userSelect: 'none',
-                filter: 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
+                // EE slots get a flatter tone (lower contrast, brighter mids)
+                // so they don't look harshly shadowed next to themed clouds.
+                filter: isEeSlot
+                  ? 'contrast(0.62) brightness(1.18) saturate(0.85) drop-shadow(0 6px 14px rgba(40,70,120,0.18))'
+                  : 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
               }}
             />
           )
