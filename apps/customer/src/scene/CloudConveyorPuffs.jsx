@@ -4,10 +4,12 @@ import { shouldDrape, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPP
 import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
 
 // Dev cycle constants — how many of the 150 puffs are Easter-egg slots at any
-// moment (the rest stay as regular photo clouds), and how often we advance
-// to the next batch of shapes.
+// moment (the rest stay as regular photo clouds), how often we advance to the
+// next batch of shapes, and the minimum depth EE slots are pinned to (kept
+// in the back half so they never crowd into the foreground).
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
+const EE_BACK_DEPTH = 0.55          // recycle EE slots when they dip below this
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
 // rendering — every other mood renders raw photographic clouds. Each entry
@@ -178,11 +180,14 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
   // Dev cycle mode: only EE_SLOT_COUNT specific puff slots are replaced with
   // Easter-egg shapes at any time — the rest stay regular clouds so the field
   // reads clearly. A timer advances the batch every EE_TICK_MS so all shapes
-  // in CLOUD_SHAPES get airtime in turn.
+  // in CLOUD_SHAPES get airtime in turn. EE slot puffs are pinned to the back
+  // half (depth >= EE_BACK_DEPTH) so they never drift up close where they'd
+  // dominate the field and become hard to assess.
   const eeSlotIndices = useMemo(
     () => Array.from({ length: EE_SLOT_COUNT }, (_, i) => Math.floor((i + 0.5) * PUFF_COUNT / EE_SLOT_COUNT)),
     []
   )
+  const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
   const [eeCursor, setEeCursor] = useState(0)
   const visibleShapes = forceEasterEggs && CLOUD_SHAPES.length
     ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => CLOUD_SHAPES[(eeCursor * EE_SLOT_COUNT + slot) % CLOUD_SHAPES.length])
@@ -356,7 +361,10 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       for (let i = 0; i < arr.length; i++) {
         const s = arr[i]
         s.depth -= s.speed * delta
-        if (s.depth < RECYCLE_AT_DEPTH) {
+        // EE slot puffs recycle early so they stay in the back half — never
+        // drift up close where their shape would dominate the field.
+        const recycleAt = (forceEasterEggs && eeSlotSet.has(i)) ? EE_BACK_DEPTH : RECYCLE_AT_DEPTH
+        if (s.depth < recycleAt) {
           s.depth = 1.0
           s.img = pickPuff(s.img)
           s.speed = 1 / (TRAVEL_SECONDS * rand(0.99, 1.015))
@@ -415,8 +423,12 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         const u = cloudUrlFor(idx, s.img)
         const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
-        // Raw photographic rendering for all moods EXCEPT themed ones.
-        if (!isThemed) {
+        // Dev cycle EE slot — render as raw <img> so the shape PNG isn't dimmed
+        // by the mood tint/shade gradient. Easier to evaluate visual fit.
+        const isEeSlot = forceEasterEggs && eeSlotSet.has(idx)
+        // Raw photographic rendering for all moods EXCEPT themed ones, OR
+        // EE-slot puffs in dev cycle mode.
+        if (!isThemed || isEeSlot) {
           return (
             <img
               key={idx}
@@ -497,24 +509,29 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       })}
       {forceEasterEggs && visibleShapes.length > 0 && (
         <div style={{
-          position: 'fixed', left: 14, bottom: 14, zIndex: 50,
-          padding: '10px 14px', borderRadius: 10,
-          background: 'rgba(20,15,38,0.88)',
-          border: '1px solid rgba(200,168,255,0.35)',
+          position: 'fixed',
+          top: 14, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 9999,                // above lights toggle, top-right cluster, etc.
+          padding: '10px 16px', borderRadius: 999,
+          background: 'rgba(20,15,38,0.94)',
+          border: '1px solid rgba(200,168,255,0.5)',
+          boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
           color: '#f0eaff',
           fontFamily: "'Outfit', system-ui, sans-serif",
-          fontSize: 11, lineHeight: 1.5,
-          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          fontSize: 11,
+          backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           pointerEvents: 'none',
-          maxWidth: 280,
+          display: 'flex', alignItems: 'center', gap: 14,
+          whiteSpace: 'nowrap',
+          maxWidth: '92vw', overflowX: 'auto',
         }}>
-          <div style={{ fontWeight: 700, color: '#c8a8ff', marginBottom: 4, letterSpacing: '0.3px', textTransform: 'uppercase', fontSize: 9 }}>
-            Cycling Easter eggs · {eeCursor + 1} / {Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)}
-          </div>
+          <span style={{ fontWeight: 700, color: '#c8a8ff', letterSpacing: '0.4px', textTransform: 'uppercase', fontSize: 9 }}>
+            EE Cycle · {eeCursor + 1}/{Math.ceil(CLOUD_SHAPES.length / EE_SLOT_COUNT)}
+          </span>
           {visibleShapes.map((s, i) => (
-            <div key={i} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
-              · {s.label} <span style={{ color: '#8a78a8' }}>({s.id})</span>
-            </div>
+            <span key={i} style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>
+              {s.label} <span style={{ color: '#8a78a8', fontSize: 10 }}>({s.id})</span>
+            </span>
           ))}
         </div>
       )}
