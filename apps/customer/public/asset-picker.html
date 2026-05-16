@@ -188,6 +188,8 @@
     <h1>Asset Picker</h1>
     <span class="sub">Click a tile to exclude / un-exclude · click ✎ to set anchor. Saves auto-sync to Supabase for everyone.</span>
     <span id="sync-status" style="margin-left:auto;font-size:11px;font-family:ui-monospace,monospace;padding:5px 10px;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--muted);">— local only —</span>
+    <button id="signin-btn" class="tool" style="display:none;" title="Sign in to push edits to Supabase">Sign in</button>
+    <button id="signout-btn" class="tool" style="display:none;" title="Sign out">Sign out</button>
   </div>
   <div class="row">
     <div class="tabs" id="tabs"></div>
@@ -561,14 +563,55 @@ const setStatus = (text, color) => {
   statusEl.style.color = color || 'var(--muted)'
 }
 
+const signinBtn  = document.getElementById('signin-btn')
+const signoutBtn = document.getElementById('signout-btn')
+
 let isAdmin = false
+let currentUser = null
 async function checkSession() {
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) { setStatus('signed out — read only', '#ffaa66'); return }
+  currentUser = user
+  if (!user) {
+    setStatus('signed out — read only', '#ffaa66')
+    signinBtn.style.display  = ''
+    signoutBtn.style.display = 'none'
+    return
+  }
   const { data, error } = await supabase.rpc('is_admin', { uid: user.id })
   isAdmin = !!data && !error
   setStatus(isAdmin ? `synced as ${user.email}` : `${user.email} · not admin · local only`, isAdmin ? '#7ad48a' : '#ffaa66')
+  signinBtn.style.display  = 'none'
+  signoutBtn.style.display = ''
 }
+
+signinBtn.addEventListener('click', async () => {
+  const email = window.prompt('Email')
+  if (!email) return
+  const password = window.prompt('Password (the one you use on daydreamdwelling.com)')
+  if (!password) return
+  setStatus('signing in…', '#ffd54a')
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    setStatus('sign-in failed', '#ff6b6b')
+    alert(`Sign-in failed: ${error.message}`)
+    return
+  }
+  await checkSession()
+  // After signing in, immediately pull the latest curation + re-render.
+  const touched = await pullFromSupabase()
+  if (touched) window.__pickerReinitFromStorage?.()
+})
+
+signoutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut()
+  isAdmin = false
+  currentUser = null
+  await checkSession()
+})
+
+// React to session changes from any tab/window (e.g. customer-app sign-in
+// while picker is open) — keeps the pill + buttons in sync without reload.
+supabase.auth.onAuthStateChange(() => { checkSession() })
 
 // Allowed keys — anything not in this set is rejected to keep the table
 // from collecting typos.
