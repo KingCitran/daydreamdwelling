@@ -167,10 +167,6 @@ export default function CloudConveyorPuffs() {
   // clouds — natural look, unchanged from before the theming work.
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
-  // Live mood ref so the per-frame apply() can pick up changes without
-  // tearing down the raf loop (which would reset puff timing).
-  const moodRef = useRef(mood)
-  useEffect(() => { moodRef.current = mood }, [mood])
 
   // One-shot cache warm-up at mount: download all 145 puff images so subsequent
   // src swaps during recycle don't hitch from network/decode work. No `.decode()`
@@ -278,10 +274,7 @@ export default function CloudConveyorPuffs() {
       // 175 puffs don't appear simultaneously on the very first frame.
       const elapsedSinceMount = now / 1000 - mountSecs
       const introRamp = Math.min(1, elapsedSinceMount / STARTUP_RAMP_SECONDS)
-      // Greenhouse needs sparser cloud coverage so the drapes hanging from
-      // the clouds aren't swallowed by the puff field below.
-      const moodCoverage = moodRef.current === 'Greenhouse' ? 0.45 : 1
-      const opacity = fadeIn * fadeOut * introRamp * moodCoverage
+      const opacity = fadeIn * fadeOut * introRamp
 
       node.style.transform = `translate3d(${txPx}px, ${tyPx}px, 0) scale(${widthScale})`
       node.style.opacity = String(opacity)

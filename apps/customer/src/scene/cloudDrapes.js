@@ -18,24 +18,75 @@ for (let n = 1; n <= 30; n++) FLORALS.push(`florals/Floral_${n}.png`)
 
 const FULL_POOL = [...VINES, ...FLORALS]
 
+// ── Baked-in curated defaults (exported from the asset picker) ──────────
+// Edits made in the asset picker live in localStorage on the editing
+// machine. Once they're worth shipping, paste them here so every visitor
+// gets the same curated set on first load (localStorage still wins when
+// present — devs can keep iterating without rebuilds).
+const DEFAULT_EXCLUDED_VINES = new Set([
+  'AV_V024_19.png',
+  'AV_V024_34.png',
+  'AV_V024_35.png',
+  'AV_V024_36.png',
+  'AV_V024_37.png',
+])
+const DEFAULT_EXCLUDED_FLORALS = new Set()
+const DEFAULT_ANCHORS = {
+  'vines/AV_V024_01.png': { ax: 0.508939, ay: 0.005439, rot: 0,   flatBottom: false },
+  'vines/AV_V024_02.png': { ax: 0.511297, ay: 0.002385, rot: 0,   flatBottom: false },
+  'vines/AV_V024_03.png': { ax: 0.516794, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_04.png': { ax: 0.496947, ay: 0.104077, rot: 0,   flatBottom: false },
+  'vines/AV_V024_05.png': { ax: 0.487786, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_06.png': { ax: 0.479248, ay: 0.005439, rot: 0,   flatBottom: false },
+  'vines/AV_V024_07.png': { ax: 0.489313, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_08.png': { ax: 0.5,      ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_09.png': { ax: 0.496947, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_10.png': { ax: 0.463359, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_11.png': { ax: 0.489313, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_12.png': { ax: 0.470992, ay: 0.019787, rot: 0,   flatBottom: false },
+  'vines/AV_V024_13.png': { ax: 0.489313, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_14.png': { ax: 0.498473, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_15.png': { ax: 0.492366, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_16.png': { ax: 0.492366, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_17.png': { ax: 0.498473, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_18.png': { ax: 0.498473, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_20.png': { ax: 0.512758, ay: 0.179485, rot: 180, flatBottom: false },
+  'vines/AV_V024_21.png': { ax: 0.490840, ay: 0.054207, rot: 0,   flatBottom: false },
+  'vines/AV_V024_22.png': { ax: 0.504580, ay: 0,        rot: 0,   flatBottom: false },
+  'vines/AV_V024_23.png': { ax: 0.530843, ay: 0.104676, rot: 180, flatBottom: false },
+  'vines/AV_V024_24.png': { ax: 0.564122, ay: 0.861565, rot: 0,   flatBottom: false },
+  'vines/AV_V024_25.png': { ax: 0.439881, ay: 0.906202, rot: 0,   flatBottom: false },
+  'vines/AV_V024_26.png': { ax: 0.397650, ay: 0.887882, rot: 0,   flatBottom: false },
+  'vines/AV_V024_27.png': { ax: 0.503053, ay: 0.007500, rot: 0,   flatBottom: false },
+  'vines/AV_V024_28.png': { ax: 0.463359, ay: 0.114867, rot: 0,   flatBottom: false },
+  'vines/AV_V024_29.png': { ax: 0.529008, ay: 0.255891, rot: 0,   flatBottom: false },
+  'vines/AV_V024_30.png': { ax: 0.572310, ay: 0.293989, rot: 0,   flatBottom: false },
+  'vines/AV_V024_31.png': { ax: 0.489313, ay: 0.664343, rot: 0,   flatBottom: false },
+  'vines/AV_V024_32.png': { ax: 0.498473, ay: 0.858431, rot: 0,   flatBottom: false },
+  'vines/AV_V024_33.png': { ax: 0.521374, ay: 0.816736, rot: 0,   flatBottom: false },
+  'vines/AV_V024_38.png': { ax: 0.632545, ay: 0.387118, rot: 90,  flatBottom: false },
+  'vines/AV_V024_40.png': { ax: 0.533190, ay: 0.388645, rot: 270, flatBottom: false },
+}
+
 // Read user-saved anchors at module init (declared higher up below; we need
-// the var available here for the active-pool filter).
-let _anchors = {}
+// the var available here for the active-pool filter). localStorage entries
+// override the baked-in defaults, so devs/admins can keep iterating in the
+// picker without redeploying.
+let _anchors = { ...DEFAULT_ANCHORS }
 if (typeof localStorage !== 'undefined') {
-  try { _anchors = JSON.parse(localStorage.getItem('assetAnchors') || '{}') } catch {}
+  try { Object.assign(_anchors, JSON.parse(localStorage.getItem('assetAnchors') || '{}')) } catch {}
 }
 
 // CURATION POLICY:
-// If the user has saved ANY anchor entries via the asset picker editor, the
-// active drape pool is restricted to ONLY those anchored files. This makes
-// anchoring also serve as inclusion — "I've vetted these for drape rendering."
-// If no anchors are saved yet, fall back to the full pool minus exclusions
-// (less curated; useful before the user has started curating).
+// The active drape pool is the set of files that have an anchor entry
+// (either from DEFAULT_ANCHORS or localStorage) minus any explicit
+// exclusions. Anchoring = curation: "I've vetted this asset for use."
 function buildActivePool() {
-  let exVines = [], exFlorals = []
+  let exVines = [...DEFAULT_EXCLUDED_VINES]
+  let exFlorals = [...DEFAULT_EXCLUDED_FLORALS]
   if (typeof localStorage !== 'undefined') {
-    try { exVines    = JSON.parse(localStorage.getItem('vineExclude') || '[]') } catch {}
-    try { exFlorals  = JSON.parse(localStorage.getItem('floralExclude') || '[]') } catch {}
+    try { exVines    = JSON.parse(localStorage.getItem('vineExclude')   || JSON.stringify(exVines)) } catch {}
+    try { exFlorals  = JSON.parse(localStorage.getItem('floralExclude') || JSON.stringify(exFlorals)) } catch {}
   }
   const excludedSet = new Set([
     ...exVines.map(f => `vines/${f}`),
@@ -141,15 +192,15 @@ export const DRAPE_WRAPPER_STYLE = {
 // micro drapes. Base width shrunk to 140px so even at max counter-scale the
 // drape doesn't overflow the cloud.
 //
-// Radial mask centered at the anchor point fades the drape softly outward from
-// where it attaches — so even if the cloud body doesn't fully cover the anchor
-// (small/back clouds, or assets without enough overlap), the seam disappears
-// into transparency instead of showing a hard cut edge.
+// Soft radial fade at the anchor — only covers the very immediate seam where
+// the asset attaches, so the bulk of the drape stays fully visible. The cloud
+// body painted on top via DOM order continues to do the heavy hiding of the
+// asset's top edge.
 export function drapeImgStyle(file) {
   const a = anchorFor(file)
   const axp = (a.ax * 100).toFixed(2)
   const ayp = (a.ay * 100).toFixed(2)
-  const mask = `radial-gradient(circle at ${axp}% ${ayp}%, transparent 0%, transparent 8%, rgba(0,0,0,0.4) 18%, #000 36%)`
+  const mask = `radial-gradient(circle at ${axp}% ${ayp}%, transparent 0%, rgba(0,0,0,0.5) 5%, #000 12%)`
   return {
     display: 'block',
     width: '140px',
