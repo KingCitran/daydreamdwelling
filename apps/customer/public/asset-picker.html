@@ -186,7 +186,8 @@
 <header>
   <div class="row">
     <h1>Asset Picker</h1>
-    <span class="sub">Click any tile to exclude / un-exclude. Copy the excluded list to paste back into the manifest.</span>
+    <span class="sub">Click a tile to exclude / un-exclude · click ✎ to set anchor. Saves auto-sync to Supabase for everyone.</span>
+    <span id="sync-status" style="margin-left:auto;font-size:11px;font-family:ui-monospace,monospace;padding:5px 10px;border-radius:6px;background:rgba(255,255,255,0.06);color:var(--muted);">— local only —</span>
   </div>
   <div class="row">
     <div class="tabs" id="tabs"></div>
@@ -288,7 +289,12 @@ function currentExcluded() { return excludedByTab[activeTab] }
 
 function persistCurrent() {
   const tab = currentTab()
-  localStorage.setItem(tab.storageKey, JSON.stringify([...currentExcluded()]))
+  const arr = [...currentExcluded()]
+  localStorage.setItem(tab.storageKey, JSON.stringify(arr))
+  // Also push to Supabase so every browser/device sees the same exclusion
+  // list on next app boot. The push helper is a no-op until the module
+  // below has loaded + confirmed the user is an admin.
+  window.pushToSupabase?.(tab.storageKey, arr)
 }
 
 function renderTabs() {
@@ -497,6 +503,10 @@ function saveEditor() {
     flatBottom: editing.flatBottom,
   }
   localStorage.setItem('assetAnchors', JSON.stringify(ASSET_ANCHORS))
+  // Push the whole anchor map up so the deployed app + other devices see it
+  // on their next boot. Debounced inside the Supabase module so multiple
+  // edits in a row coalesce into one upsert.
+  window.pushToSupabase?.('assetAnchors', ASSET_ANCHORS)
   closeEditor()
   renderTabs()
   renderGrid()
@@ -515,9 +525,97 @@ function exportAnchors() {
   )
 }
 
+// Expose helpers to the module script below so its post-pull rerender
+// reaches the same rendering pipeline used by inline handlers.
+window.__pickerReinitFromStorage = function () {
+  for (const t of TABS) excludedByTab[t.id] = new Set(JSON.parse(localStorage.getItem(t.storageKey) || '[]'))
+  Object.keys(ASSET_ANCHORS).forEach(k => delete ASSET_ANCHORS[k])
+  Object.assign(ASSET_ANCHORS, JSON.parse(localStorage.getItem('assetAnchors') || '{}'))
+  renderTabs(); renderGrid(); updateExcludedList()
+}
+
 renderTabs()
 renderGrid()
 updateExcludedList()
+</script>
+
+<!-- ───── Supabase auto-sync ─────
+Shared dev curation: pulls scene_curation at mount (refreshes localStorage,
+then asks the classic script to re-render), and pushes any local edit back
+via window.pushToSupabase(). Writes require admin (RLS gated by is_admin()
+from migration 022). Anon visitors get read-only / local-only behavior.
+-->
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+// Public anon credentials — same as customer app bundle. Real access is
+// gated by RLS, not by hiding the key.
+const SUPABASE_URL = 'https://kakrsopjjvfbfvufkywy.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtha3Jzb3BqanZmYmZ2dWZreXd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzQyODAsImV4cCI6MjA5MDg1MDI4MH0.MMN__4S7CnYaeYgwZyRzZby2M8LsNT9p4bM-_4a0IkQ'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+const statusEl = document.getElementById('sync-status')
+const setStatus = (text, color) => {
+  if (!statusEl) return
+  statusEl.textContent = text
+  statusEl.style.color = color || 'var(--muted)'
+}
+
+let isAdmin = false
+async function checkSession() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) { setStatus('signed out — read only', '#ffaa66'); return }
+  const { data, error } = await supabase.rpc('is_admin', { uid: user.id })
+  isAdmin = !!data && !error
+  setStatus(isAdmin ? `synced as ${user.email}` : `${user.email} · not admin · local only`, isAdmin ? '#7ad48a' : '#ffaa66')
+}
+
+// Allowed keys — anything not in this set is rejected to keep the table
+// from collecting typos.
+const SYNCED_KEYS = ['assetAnchors', 'vineExclude', 'floralExclude', 'shapeExclude', 'flatBottomClouds', 'shapeExcludeByMood']
+
+async function pullFromSupabase() {
+  const { data, error } = await supabase
+    .from('scene_curation')
+    .select('key, value')
+  if (error || !data) return false
+  let touched = false
+  for (const row of data) {
+    if (!SYNCED_KEYS.includes(row.key)) continue
+    const existing = localStorage.getItem(row.key)
+    const incoming = JSON.stringify(row.value)
+    if (existing !== incoming) {
+      localStorage.setItem(row.key, incoming)
+      touched = true
+    }
+  }
+  return touched
+}
+
+const pushTimers = {}
+window.pushToSupabase = function (key, value) {
+  if (!SYNCED_KEYS.includes(key)) return
+  if (!isAdmin) return                          // anon = local only
+  clearTimeout(pushTimers[key])
+  setStatus('saving…', '#ffd54a')
+  pushTimers[key] = setTimeout(async () => {
+    const { error } = await supabase
+      .from('scene_curation')
+      .upsert({ key, value }, { onConflict: 'key' })
+    if (error) {
+      setStatus('save failed — see console', '#ff6b6b')
+      console.error('[scene_curation] upsert failed', error)
+    } else {
+      setStatus('synced ✓', '#7ad48a')
+    }
+  }, 600)
+}
+
+;(async () => {
+  await checkSession()
+  const touched = await pullFromSupabase()
+  if (touched) window.__pickerReinitFromStorage?.()
+})()
 </script>
 </body>
 </html>

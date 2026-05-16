@@ -147,6 +147,43 @@ function buildActivePool() {
 
 export const DRAPE_POOL = buildActivePool()
 
+// ── Supabase-backed live sync of curation data ──────────────────────────
+// Called from App.jsx at boot. Pulls scene_curation rows, writes them into
+// localStorage, then if anything changed sets a flag the next session
+// will pick up on reload. We don't try to mutate the already-computed
+// DRAPE_POOL — the runtime keeps using whatever defaults+localStorage
+// resolved to at module init; the FIRST boot after a picker save
+// hydrates localStorage but renders with the old pool, the NEXT app
+// load uses the fresh data. That's good enough for a dev tool and avoids
+// rebuilding the pool mid-frame.
+const SCENE_CURATION_KEYS = [
+  'assetAnchors', 'vineExclude', 'floralExclude',
+  'shapeExclude', 'flatBottomClouds', 'shapeExcludeByMood',
+]
+
+export async function syncCurationFromSupabase(supabase) {
+  if (!supabase || typeof localStorage === 'undefined') return false
+  try {
+    const { data, error } = await supabase
+      .from('scene_curation')
+      .select('key, value')
+    if (error || !data) return false
+    let touched = false
+    for (const row of data) {
+      if (!SCENE_CURATION_KEYS.includes(row.key)) continue
+      const incoming = JSON.stringify(row.value)
+      if (localStorage.getItem(row.key) !== incoming) {
+        localStorage.setItem(row.key, incoming)
+        touched = true
+      }
+    }
+    return touched
+  } catch (e) {
+    console.warn('[cloudDrapes] supabase sync failed', e)
+    return false
+  }
+}
+
 // Deterministic: same `shape` number always gives same drape + same spawn
 // decision. Golden-ratio multiplier spreads selections evenly across the pool.
 const PHI = 0.6180339887

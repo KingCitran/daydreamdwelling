@@ -83,6 +83,7 @@ import Logo from '@shared/Logo'
 import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
 import { WispyProvider } from '@shared/wispy'
+import { syncCurationFromSupabase } from './scene/cloudDrapes'
 
 const DEFAULT_wallHeight = 8
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -98,6 +99,16 @@ function loadSaved() {
 }
 
 export default function App() {
+  // Pull shared scene-curation (drape anchors, exclusion lists, flat-bottom
+  // clouds) from Supabase on every boot so the deployed app picks up edits
+  // made in /asset-picker.html or /clouds-picker.html without redeploys.
+  // Writes to localStorage; cloudDrapes' DRAPE_POOL already initialized from
+  // the previous boot's localStorage, so changes show up next reload — fine
+  // for a dev curation flow.
+  useEffect(() => {
+    syncCurationFromSupabase(supabase)
+  }, [])
+
   return (
     <AuthProvider>
       <ThemeProvider appKey="customer">
