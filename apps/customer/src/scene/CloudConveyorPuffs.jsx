@@ -288,10 +288,24 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
     let raf
     let last = performance.now()
 
+    // Helper used both inside apply() and in the pre-pass that computes EE
+    // slot screen positions for the breathing-room fade.
+    const computeCenterScreenPos = (s, now, vw, vh) => {
+      const t = 1 - s.depth
+      const xFromCenter = s.xVw - 50
+      const driftedXVw = 50 + xFromCenter * (1 + t * X_OUTWARD_DRIFT)
+      const time = now / 1000 - s.t0
+      const xSway = Math.sin(s.xPhase + time * s.xSwayHz * 2 * Math.PI) * s.xSwayPx
+      const screenX = (driftedXVw / 100) * vw + xSway
+      const peakTopVh = PEAK_TOP_BACK_VH + t * (PEAK_TOP_PAST_VH - PEAK_TOP_BACK_VH) + s.ySkewVh
+      const screenY = (peakTopVh / 100) * vh
+      return { x: screenX, y: screenY }
+    }
+
     // CSS width is fixed at PUFF_WIDTH_FRONT_VW; we shrink via transform scale.
     // Animation only mutates `transform` and `opacity` — both compositor-only,
     // no layout. With 240 sprites this keeps things smooth and flicker-free.
-    const apply = (i, s, now, vw, vh) => {
+    const apply = (i, s, now, vw, vh, breathingFactor = 1) => {
       const node = wrapRefs.current[i]
       if (!node) return
       const t = 1 - s.depth                                    // 0=back, 1=front, >1=past
@@ -341,7 +355,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       // 175 puffs don't appear simultaneously on the very first frame.
       const elapsedSinceMount = now / 1000 - mountSecs
       const introRamp = Math.min(1, elapsedSinceMount / STARTUP_RAMP_SECONDS)
-      const opacity = fadeIn * fadeOut * introRamp
+      const opacity = fadeIn * fadeOut * introRamp * breathingFactor
 
       node.style.transform = `translate3d(${txPx}px, ${tyPx}px, 0) scale(${widthScale})`
       node.style.opacity = String(opacity)
@@ -359,12 +373,24 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       }
     }
 
+    // Screen-space radius around each EE slot inside which regular puffs
+    // fully fade out — gives the shape clouds an exposed, open-sky frame.
+    const EE_BREATHING_RADIUS = 320
+
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
       last = now
       const arr = stateRef.current
       const vw = window.innerWidth
       const vh = window.innerHeight
+
+      // Pre-pass: compute EE slot screen centers so the per-puff breathing
+      // calculation in apply() can fade out neighbors.
+      let eePositions = null
+      if (forceEasterEggs && eeSlotIndices.length) {
+        eePositions = eeSlotIndices.map(idx => computeCenterScreenPos(arr[idx], now, vw, vh))
+      }
+
       for (let i = 0; i < arr.length; i++) {
         const s = arr[i]
         s.depth -= s.speed * delta
@@ -404,7 +430,22 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
             wrap.src = u
           }
         }
-        apply(i, s, now, vw, vh)
+        // Breathing room: regular puffs near an EE slot fade out so the
+        // shape gets exposed open-sky space around it.
+        let breathing = 1
+        if (eePositions && !isEe) {
+          const me = computeCenterScreenPos(s, now, vw, vh)
+          for (const ee of eePositions) {
+            const dx = me.x - ee.x
+            const dy = me.y - ee.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < EE_BREATHING_RADIUS) {
+              const local = dist / EE_BREATHING_RADIUS              // 0..1
+              breathing = Math.min(breathing, local)
+            }
+          }
+        }
+        apply(i, s, now, vw, vh, breathing)
       }
       raf = requestAnimationFrame(tick)
     }
@@ -435,12 +476,11 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         const u = cloudUrlFor(idx, s.img)
         const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
-        // Dev cycle EE slot — render as raw <img> so the shape PNG isn't dimmed
-        // by the mood tint/shade gradient. Easier to evaluate visual fit.
-        const isEeSlot = forceEasterEggs && eeSlotSet.has(idx)
-        // Raw photographic rendering for all moods EXCEPT themed ones, OR
-        // EE-slot puffs in dev cycle mode.
-        if (!isThemed || isEeSlot) {
+        // Raw photographic rendering for all moods EXCEPT themed ones. EE
+        // slots go through the themed pipeline too so they tonally match
+        // the surrounding clouds — the whole point of the cycle is judging
+        // visual fit, which requires same gradient treatment.
+        if (!isThemed) {
           return (
             <img
               key={idx}
@@ -459,11 +499,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 willChange: 'transform, opacity',
                 opacity: 0,
                 userSelect: 'none',
-                // EE slots get a flatter tone (lower contrast, brighter mids)
-                // so they don't look harshly shadowed next to themed clouds.
-                filter: isEeSlot
-                  ? 'contrast(0.62) brightness(1.18) saturate(0.85) drop-shadow(0 6px 14px rgba(40,70,120,0.18))'
-                  : 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
+                filter: 'drop-shadow(0 8px 18px rgba(40,70,120,0.26))',
               }}
             />
           )
