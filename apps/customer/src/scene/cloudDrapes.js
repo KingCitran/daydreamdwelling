@@ -140,8 +140,16 @@ export const DRAPE_WRAPPER_STYLE = {
 // tiny back-clouds don't get giant drapes and huge front-clouds don't get
 // micro drapes. Base width shrunk to 140px so even at max counter-scale the
 // drape doesn't overflow the cloud.
+//
+// Radial mask centered at the anchor point fades the drape softly outward from
+// where it attaches — so even if the cloud body doesn't fully cover the anchor
+// (small/back clouds, or assets without enough overlap), the seam disappears
+// into transparency instead of showing a hard cut edge.
 export function drapeImgStyle(file) {
   const a = anchorFor(file)
+  const axp = (a.ax * 100).toFixed(2)
+  const ayp = (a.ay * 100).toFixed(2)
+  const mask = `radial-gradient(circle at ${axp}% ${ayp}%, transparent 0%, transparent 8%, rgba(0,0,0,0.4) 18%, #000 36%)`
   return {
     display: 'block',
     width: '140px',
@@ -149,6 +157,8 @@ export function drapeImgStyle(file) {
     transform: `translate(${-a.ax * 100}%, ${-a.ay * 100}%) rotate(${a.rot}deg) scale(clamp(0.6, calc(1 / var(--cs, 1)), 1.3))`,
     transformOrigin: `${a.ax * 100}% ${a.ay * 100}%`,
     filter: 'drop-shadow(0 8px 18px rgba(60,80,40,0.32))',
+    WebkitMaskImage: mask,
+    maskImage: mask,
     userSelect: 'none',
   }
 }

@@ -111,6 +111,10 @@ export default function CloudConveyorDrift() {
   const { mood } = useMoodControl()
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
+  // Live mood ref so the per-frame loop can pick up changes without
+  // re-running the effect (which would reset tick=0).
+  const moodRef = useRef(mood)
+  useEffect(() => { moodRef.current = mood }, [mood])
 
   const clouds = useMemo(() => {
     // Cloud counts bumped ~40% for higher density across the scene (sky
@@ -160,6 +164,10 @@ export default function CloudConveyorDrift() {
           `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
         // CSS var for drape counter-scale (uniform on-screen drape size).
         node.style.setProperty('--cs', String(c.scale))
+        // Greenhouse needs sparser cloud coverage so the drapes hanging
+        // from the clouds aren't swallowed by the field below them.
+        const moodCoverage = moodRef.current === 'Greenhouse' ? 0.45 : 1
+        node.style.opacity = String(c.opacity * moodCoverage)
       }
       raf = requestAnimationFrame(animate)
     }
