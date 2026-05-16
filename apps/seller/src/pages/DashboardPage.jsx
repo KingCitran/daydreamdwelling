@@ -98,10 +98,12 @@ export default function DashboardPage({ onNavigate }) {
         <>
           <div style={s.statsGrid}>
             {[
-              { label: 'Total Revenue',   value: `$${(stats.revenue || 0).toLocaleString()}`, pct: 72 },
-              { label: 'Total Orders',    value: stats.orderCount,   pct: 50 },
-              { label: 'Pending',         value: stats.pendingCount, pct: 30 },
-              { label: 'Active Products', value: stats.productCount, pct: 88 },
+              // pct placeholders removed — real progress metrics will be wired
+              // in the analytics phase (e.g. revenue vs monthly goal, % fulfilled).
+              { label: 'Total Revenue',   value: `$${(stats.revenue || 0).toLocaleString()}` },
+              { label: 'Total Orders',    value: stats.orderCount },
+              { label: 'Pending',         value: stats.pendingCount },
+              { label: 'Active Products', value: stats.productCount },
             ].map((stat, i) => (
               <StatCard key={stat.label} {...stat} {...STAT_COLORS[i]} t={t} />
             ))}
@@ -218,7 +220,9 @@ export default function DashboardPage({ onNavigate }) {
 }
 
 function StatCard({ label, value, pct, color, bg, t }) {
-  const r = 24, circ = 2 * Math.PI * r, dash = circ * (1 - pct / 100)
+  const r = 24, circ = 2 * Math.PI * r
+  const hasPct = typeof pct === 'number' && !Number.isNaN(pct)
+  const dash = hasPct ? circ * (1 - pct / 100) : circ
   return (
     <div style={{ background: bg, border: `1px solid ${color}30`, borderRadius: 16, padding: '20px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -226,13 +230,15 @@ function StatCard({ label, value, pct, color, bg, t }) {
           <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
           <div style={{ fontSize: 11, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{label}</div>
         </div>
-        <svg width={60} height={60} style={{ flexShrink: 0 }}>
-          <circle cx={30} cy={30} r={r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={6} />
-          <circle cx={30} cy={30} r={r} fill="none" stroke={color} strokeWidth={6}
-            strokeDasharray={circ} strokeDashoffset={dash}
-            strokeLinecap="round" transform="rotate(-90 30 30)" />
-          <text x={30} y={34} textAnchor="middle" fontSize={10} fill={color} fontWeight={700}>{pct}%</text>
-        </svg>
+        {hasPct && (
+          <svg width={60} height={60} style={{ flexShrink: 0 }}>
+            <circle cx={30} cy={30} r={r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={6} />
+            <circle cx={30} cy={30} r={r} fill="none" stroke={color} strokeWidth={6}
+              strokeDasharray={circ} strokeDashoffset={dash}
+              strokeLinecap="round" transform="rotate(-90 30 30)" />
+            <text x={30} y={34} textAnchor="middle" fontSize={10} fill={color} fontWeight={700}>{pct}%</text>
+          </svg>
+        )}
       </div>
     </div>
   )

@@ -125,7 +125,7 @@ export default function OrdersPage() {
         .select(`
           id, quantity, unit_price, size_label, swatch_name, created_at,
           fulfillment_status, tracking_number,
-          products(label),
+          products(label, product_images(storage_path, is_primary)),
           orders(id, status, created_at, shipping_address, guest_email, user_id,
                  customer:profiles!orders_user_id_fkey(display_name))
         `)
@@ -144,9 +144,21 @@ export default function OrdersPage() {
   }
 
   async function saveTracking(itemId, number) {
+    // Entering tracking auto-advances to 'shipped' so sellers never have to
+    // tap separate fulfillment buttons. "Delivered" is a separate single-tap
+    // confirm later (true automation would need carrier APIs).
     await supabase.from('order_items').update({ tracking_number: number, fulfillment_status: 'shipped' }).eq('id', itemId)
     setRows(prev => prev.map(r => r.id === itemId ? { ...r, tracking_number: number, fulfillment_status: 'shipped' } : r))
     setTracking(prev => ({ ...prev, [itemId]: '' }))
+  }
+
+  // Resolve the primary product image's public URL (or null if none uploaded).
+  function imageUrlFor(item) {
+    const imgs = item.products?.product_images
+    if (!imgs || !imgs.length) return null
+    const primary = imgs.find(im => im.is_primary) ?? imgs[0]
+    if (!primary?.storage_path) return null
+    return supabase.storage.from('product-images').getPublicUrl(primary.storage_path).data.publicUrl
   }
 
   const s = makeStyles(t)
@@ -238,30 +250,41 @@ export default function OrdersPage() {
             const customer = customerNameFor(order)
             const addressLines = formatAddress(order?.shipping_address)
             const variant = [item.size_label, item.swatch_name].filter(Boolean).join(' · ')
+            const imgUrl = imageUrlFor(item)
+            const productLabel = item.products?.label ?? item.product_name ?? '—'
             return (
               <div key={item.id}>
                 <div
                   style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : 'transparent', cursor: 'pointer' }}
                   onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                 >
-                  <span style={s.cell}>
-                    <div>{item.products?.label ?? '—'}</div>
-                    {variant && <div style={s.variantSub}>{variant}</div>}
+                  <span style={{ ...s.cell, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ProductThumb url={imgUrl} label={productLabel} size={42} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{productLabel}</div>
+                      {variant && <div style={s.variantSub}>{variant}</div>}
+                    </div>
                   </span>
                   <span style={s.cell}>{customer}</span>
                   <span style={s.cell}>×{item.quantity}</span>
                   <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
                   <span style={s.cell}><PayBadge status={order?.status} /></span>
-                  <span style={s.cell}><FulfillBadge status={item.fulfillment_status} /></span>
+                  <span style={s.cell}><FulfillBadge status={item.fulfillment_status} orderStatus={order?.status} /></span>
                   <span style={{ ...s.cell, color: '#9a88bb', fontSize: 11 }}>{order?.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}</span>
                 </div>
 
                 {expanded === item.id && (
                   <div style={s.detail}>
                     <div style={s.detailGrid}>
-                      <div>
-                        <p style={s.detailLabel}>Order ID</p>
-                        <p style={s.detailValue}>{order?.id ?? '—'}</p>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                        <ProductThumb url={imgUrl} label={productLabel} size={88} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={s.detailLabel}>Product</p>
+                          <p style={s.detailValue}>{productLabel}</p>
+                          {variant && <p style={{ ...s.dimMicro, fontStyle: 'normal', marginTop: 2 }}>{variant}</p>}
+                          <p style={{ ...s.detailLabel, marginTop: 10 }}>Order ID</p>
+                          <p style={{ ...s.detailValue, fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{order?.id ?? '—'}</p>
+                        </div>
                       </div>
                       <div>
                         <p style={s.detailLabel}>Customer</p>
@@ -290,33 +313,45 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    {order?.status === 'paid' && (
-                      <div style={s.fulfillmentPanel}>
-                        <p style={s.detailLabel}>Fulfillment Workflow</p>
-                        <div style={s.stepRow}>
-                          {FULFILLMENT_STEPS.map((step, i) => {
-                            const current = FULFILLMENT_STEPS.indexOf(item.fulfillment_status ?? '')
-                            const done = i <= current
-                            return (
-                              <button key={step} style={{ ...s.stepBtn, background: done ? t.accent : `${t.accent}14`, color: done ? t.accentText : t.accent, border: done ? 'none' : `1px solid ${t.accent}40` }}
-                                onClick={e => { e.stopPropagation(); markFulfillment(item.id, step) }}>
-                                {step.charAt(0).toUpperCase() + step.slice(1)}
-                              </button>
-                            )
-                          })}
-                        </div>
-
-                        <div style={s.trackingRow} onClick={e => e.stopPropagation()}>
+                    {order?.status === 'paid' && item.fulfillment_status !== 'delivered' && (
+                      <div style={s.fulfillmentPanel} onClick={e => e.stopPropagation()}>
+                        <p style={s.detailLabel}>
+                          {item.fulfillment_status === 'shipped' ? 'In Transit' : 'Ready to Ship'}
+                        </p>
+                        <div style={s.trackingRow}>
                           <input
                             style={s.trackingInput}
-                            placeholder="Enter tracking number…"
+                            placeholder={item.fulfillment_status === 'shipped' ? 'Update tracking…' : 'Enter tracking number to mark shipped…'}
                             value={tracking[item.id] ?? item.tracking_number ?? ''}
                             onChange={e => setTracking(prev => ({ ...prev, [item.id]: e.target.value }))}
                           />
-                          <button style={s.trackingBtn} onClick={() => saveTracking(item.id, tracking[item.id] ?? '')}>
-                            Save & Mark Shipped
+                          <button
+                            style={s.trackingBtn}
+                            onClick={() => saveTracking(item.id, tracking[item.id] ?? item.tracking_number ?? '')}
+                            disabled={!(tracking[item.id] ?? item.tracking_number ?? '').trim()}
+                          >
+                            {item.fulfillment_status === 'shipped' ? 'Update' : 'Save & Ship'}
                           </button>
+                          {item.fulfillment_status === 'shipped' && (
+                            <button
+                              style={s.deliveredBtn}
+                              onClick={() => markFulfillment(item.id, 'delivered')}
+                              title="Mark this item as delivered"
+                            >
+                              ✓ Mark Delivered
+                            </button>
+                          )}
                         </div>
+                        <p style={s.dimMicro}>
+                          {item.fulfillment_status === 'shipped'
+                            ? 'Tap "Mark Delivered" when the carrier confirms delivery, or wait for automated carrier sync (coming soon).'
+                            : 'Entering a tracking number automatically marks this item as shipped — no extra clicks.'}
+                        </p>
+                      </div>
+                    )}
+                    {item.fulfillment_status === 'delivered' && (
+                      <div style={s.deliveredNote}>
+                        ✓ Delivered — no further action needed
                       </div>
                     )}
                   </div>
@@ -335,10 +370,45 @@ function PayBadge({ status }) {
   return <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '3px 8px', background: bg, color, textTransform: 'capitalize' }}>{status ?? '—'}</span>
 }
 
-function FulfillBadge({ status }) {
+function FulfillBadge({ status, orderStatus }) {
+  // Cancelled / refunded orders never get a fulfillment state — show N/A
+  // instead of the misleading "unfulfilled."
+  if (orderStatus === 'cancelled' || orderStatus === 'refunded') {
+    return <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '3px 8px', background: '#f5f0f5', color: '#a098b0' }}>N/A</span>
+  }
   const map = { packed: ['#ffc87a', '#fff8ee'], shipped: ['#88c8f0', '#eef8ff'], delivered: ['#88d8b0', '#eeffF6'] }
   const [color, bg] = map[status] ?? ['#c8c0d8', '#f5f2ff']
   return <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '3px 8px', background: bg, color, textTransform: 'capitalize' }}>{status ?? 'unfulfilled'}</span>
+}
+
+// Product thumbnail with a graceful fallback when the seller hasn't uploaded
+// images yet (or the URL 404s). Uses the first letter of the label inside a
+// soft pastel square so the row layout stays consistent.
+function ProductThumb({ url, label, size = 42 }) {
+  const initial = (label ?? '').trim().charAt(0).toUpperCase() || '?'
+  const fallback = (
+    <div style={{
+      width: size, height: size, flexShrink: 0,
+      borderRadius: size > 60 ? 10 : 8,
+      background: 'linear-gradient(135deg, #e8dffc 0%, #d4c8ee 100%)',
+      color: '#7a5fb8', fontWeight: 700, fontSize: size > 60 ? 28 : 16,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>{initial}</div>
+  )
+  if (!url) return fallback
+  return (
+    <img
+      src={url}
+      alt={label || ''}
+      style={{
+        width: size, height: size, flexShrink: 0,
+        borderRadius: size > 60 ? 10 : 8,
+        objectFit: 'cover',
+        border: '1px solid rgba(180,160,220,0.18)',
+      }}
+      onError={(e) => { e.currentTarget.style.display = 'none' }}
+    />
+  )
 }
 
 function makeStyles(t) {
@@ -375,8 +445,10 @@ function makeStyles(t) {
     fulfillmentPanel:{ marginTop: 4 },
     stepRow:         { display: 'flex', gap: 8, marginTop: 8, marginBottom: 12 },
     stepBtn:         { padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
-    trackingRow:     { display: 'flex', gap: 8 },
-    trackingInput:   { flex: 1, padding: '8px 12px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' },
+    trackingRow:     { display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' },
+    trackingInput:   { flex: 1, minWidth: 200, padding: '8px 12px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' },
     trackingBtn:     { padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
+    deliveredBtn:    { padding: '8px 14px', background: '#7adda0', color: '#1a4a2a', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
+    deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500 },
   }
 }
