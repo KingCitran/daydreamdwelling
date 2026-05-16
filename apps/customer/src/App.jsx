@@ -64,6 +64,7 @@ import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import WispyPreview from './pages/WispyPreview'
+import OrderHistoryPage from './pages/OrderHistoryPage'
 import CommunityFeed from './pages/CommunityFeed'
 import ContestsPage from './pages/ContestsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -160,7 +161,8 @@ function Gate() {
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
 
   let page
-  if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
+  if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else if (!quizDone) page = <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
@@ -730,6 +732,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <SkyBackdrop />
 
       {cloudsOn && cloudsReady && (cloudVariant === 'drift' ? <CloudConveyorDrift /> : <CloudConveyorPuffs />)}
+
 
       {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
       <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
