@@ -184,18 +184,22 @@ export const DRAPE_WRAPPER_STYLE = {
 
 // Inner image style — shifts the image by (-ax, -ay) percent of its own size so
 // the asset's anchor point lands at the wrapper's origin (cloud anchor target),
-// then rotates around that anchor. The trailing `scale(...)` counter-scales the
-// drape so its on-screen size stays roughly uniform across clouds of different
-// depths. The parent cloud wrapper is responsible for setting `--cs` to its
-// current scale factor each frame; clamp() keeps the drape size bounded so
-// tiny back-clouds don't get giant drapes and huge front-clouds don't get
-// micro drapes. Base width shrunk to 140px so even at max counter-scale the
-// drape doesn't overflow the cloud.
+// then rotates around that anchor.
+//
+// Drape size scales WITH the cloud so it always looks proportional — a tiny
+// back-cloud gets a tiny drape, a huge front-cloud gets a generous drape.
+// The trailing `scale(clamp(...))` enforces a floor and ceiling on the
+// resulting on-screen size so:
+//   - tiny back-clouds don't get invisibly-small drapes (floor: 50px-ish visual)
+//   - huge foreground clouds don't get screen-eating drapes (ceiling: 240px-ish)
+// The parent cloud wrapper sets `--cs` to its scale factor each frame.
+// Algebra: visible-px = BASE * cs * drape-scale. We want it bounded in
+// [MIN_PX, MAX_PX], so drape-scale = clamp(MIN_PX/(BASE*cs), 1, MAX_PX/(BASE*cs)).
+// With BASE=100, MIN_PX≈50, MAX_PX≈240: drape-scale = clamp(0.5/cs, 1, 2.4/cs).
 //
 // Soft radial fade at the anchor — only covers the very immediate seam where
-// the asset attaches, so the bulk of the drape stays fully visible. The cloud
-// body painted on top via DOM order continues to do the heavy hiding of the
-// asset's top edge.
+// the asset attaches. The cloud body painted on top via DOM order continues
+// to do the heavy hiding of the asset's top edge.
 export function drapeImgStyle(file) {
   const a = anchorFor(file)
   const axp = (a.ax * 100).toFixed(2)
@@ -203,9 +207,9 @@ export function drapeImgStyle(file) {
   const mask = `radial-gradient(circle at ${axp}% ${ayp}%, transparent 0%, rgba(0,0,0,0.5) 5%, #000 12%)`
   return {
     display: 'block',
-    width: '140px',
+    width: '100px',
     height: 'auto',                 // natural aspect ratio — no squashing
-    transform: `translate(${-a.ax * 100}%, ${-a.ay * 100}%) rotate(${a.rot}deg) scale(clamp(0.6, calc(1 / var(--cs, 1)), 1.3))`,
+    transform: `translate(${-a.ax * 100}%, ${-a.ay * 100}%) rotate(${a.rot}deg) scale(clamp(calc(0.5 / var(--cs, 1)), 1, calc(2.4 / var(--cs, 1))))`,
     transformOrigin: `${a.ax * 100}% ${a.ay * 100}%`,
     filter: 'drop-shadow(0 8px 18px rgba(60,80,40,0.32))',
     WebkitMaskImage: mask,
