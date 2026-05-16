@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Asset Picker — DaydreamDwelling</title>
+<style>
+  :root { --bg: #0e0a1f; --fg: #e8e0ff; --muted: rgba(232,224,255,0.55); --border: rgba(180,160,220,0.18); --accent: #c8a8ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: 'Outfit', system-ui, sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(14,10,31,0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  h1 { margin: 0; font-family: 'EB Garamond', Georgia, serif; font-size: 22px; font-weight: 500; }
+  .sub { font-size: 12px; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; background: rgba(0,0,0,0.30); border-radius: 9px; padding: 3px; }
+  .tab {
+    padding: 8px 16px; background: transparent; border: none;
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    border-radius: 6px; cursor: pointer; transition: all 0.15s;
+  }
+  .tab.active { background: rgba(200,168,255,0.18); color: var(--fg); font-weight: 700; }
+  .tab .count { font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .tab.active .count { color: var(--accent); }
+  button.tool {
+    padding: 7px 13px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.20); background: rgba(255,255,255,0.08);
+    color: var(--fg); cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  button.tool:hover { background: rgba(255,255,255,0.16); }
+  .excluded-list {
+    flex: 1; min-width: 200px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.30); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    font-family: ui-monospace, monospace; font-size: 11px; min-height: 18px; color: var(--fg);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px; padding: 24px;
+  }
+  .tile {
+    aspect-ratio: 1; position: relative;
+    background: rgba(255,255,255,0.04);
+    border: 2px solid transparent;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+  }
+  .tile:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.25); }
+  .tile.excluded { border-color: #ff6b6b; background: rgba(80,0,0,0.30); }
+  .tile.excluded img { opacity: 0.25; }
+  .tile.excluded::after {
+    content: 'EXCLUDED';
+    position: absolute; top: 8px; right: 8px;
+    background: #d04040; color: #fff;
+    padding: 3px 8px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; z-index: 5;
+    letter-spacing: 0.4px;
+  }
+  .edit-btn {
+    position: absolute; top: 6px; left: 6px; z-index: 4;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.6); color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .edit-btn:hover { background: var(--accent); color: #000; }
+  .anchor-dot {
+    position: absolute; width: 12px; height: 12px;
+    border-radius: 50%; background: #ffd54a;
+    border: 2px solid #1a1015;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.6);
+    z-index: 6; pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: #1a1530; border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px;
+    width: min(92vw, 720px); max-height: 92vh; overflow: auto;
+    color: var(--fg);
+  }
+  .modal h2 { font-family: 'EB Garamond', Georgia, serif; font-weight: 500; margin: 0 0 4px; font-size: 20px; }
+  .modal .filename { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+  .modal .editor-area {
+    position: relative;
+    width: 100%; aspect-ratio: 1;
+    background: repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, rgba(0,0,0,0.04) 0% 50%) 50% / 24px 24px;
+    border: 1px solid var(--border); border-radius: 10px;
+    overflow: hidden; cursor: crosshair;
+    margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal .editor-img {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.2s;
+  }
+  .modal .controls {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  .modal .controls button {
+    padding: 8px 14px; background: rgba(255,255,255,0.10); color: var(--fg);
+    border: 1px solid rgba(255,255,255,0.20); border-radius: 8px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .modal .controls button:hover { background: rgba(255,255,255,0.18); }
+  .modal .controls button.primary { background: var(--accent); color: #1a1015; border-color: var(--accent); font-weight: 700; }
+  .modal .controls button.primary:hover { background: #d4b8ff; }
+  .modal .help {
+    font-size: 12px; color: var(--muted);
+    margin-top: 12px; line-height: 1.55;
+  }
+  .modal .status {
+    font-size: 11px; font-family: ui-monospace, monospace;
+    color: var(--muted); margin-top: 8px;
+  }
+  .tile.has-anchor { border-color: rgba(255,213,74,0.4); }
+  .tile-anchor-dot {
+    position: absolute;
+    width: 10px; height: 10px;
+    border-radius: 50%; background: #ffd54a;
+    border: 2px solid #1a1015;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.6);
+    z-index: 4; pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  .anchor-chip {
+    position: absolute; top: 6px; right: 6px; z-index: 3;
+    background: rgba(255,213,74,0.92); color: #1a1015;
+    padding: 2px 6px; border-radius: 4px;
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.3px;
+    font-family: ui-monospace, monospace;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+    line-height: 1.15;
+  }
+  .anchor-chip .flat { background: #ff7aa8; color: #1a0015; padding: 1px 4px; border-radius: 3px; margin-top: 1px; }
+  .tile.excluded .anchor-chip, .tile.excluded .tile-anchor-dot { display: none; }
+  .tile.shapes  { background: linear-gradient(180deg, #060318 0%, #160e3a 70%, #2a1862 100%); }
+  .tile.vines   { background: linear-gradient(180deg, #6cb87a 0%, #a8d896 60%, #e0e8b0 100%); }
+  .tile.florals { background: linear-gradient(180deg, #ffe8d0 0%, #ffd8d0 60%, #c0a8dc 100%); }
+  .tile img {
+    flex: 1; min-height: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    padding: 8%;
+    transition: opacity 0.15s;
+  }
+  .label {
+    padding: 6px 8px;
+    font-family: ui-monospace, monospace;
+    font-size: 9px;
+    color: var(--fg);
+    background: rgba(0,0,0,0.55);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    z-index: 1;
+  }
+  .empty {
+    grid-column: 1 / -1;
+    padding: 60px 20px; text-align: center;
+    color: var(--muted); font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Asset Picker</h1>
+    <span class="sub">Click any tile to exclude / un-exclude. Copy the excluded list to paste back into the manifest.</span>
+  </div>
+  <div class="row">
+    <div class="tabs" id="tabs"></div>
+    <button class="tool" onclick="copyExcluded()">Copy excluded</button>
+    <button class="tool" onclick="clearExcluded()">Clear excluded</button>
+    <button class="tool" onclick="exportAnchors()" title="Copy all saved anchor + rotation data as JSON">Export anchors</button>
+    <div class="excluded-list" id="excluded-list">Click any tile to mark for exclusion.</div>
+  </div>
+</header>
+<div class="grid" id="grid"></div>
+
+<!-- Anchor + Direction editor modal -->
+<div class="modal-backdrop" id="editor-modal" onclick="if(event.target===this) closeEditor()">
+  <div class="modal">
+    <h2>Set anchor + direction</h2>
+    <div class="filename" id="editor-filename"></div>
+    <div class="editor-area" id="editor-area" onclick="setAnchorAt(event)">
+      <img class="editor-img" id="editor-img" alt="" />
+      <div class="anchor-dot" id="editor-anchor-dot"></div>
+    </div>
+    <div class="controls">
+      <button onclick="rotateEditor(-90)">↺ 90°</button>
+      <button onclick="rotateEditor(90)">↻ 90°</button>
+      <button onclick="rotateEditor(180)">↕ 180°</button>
+      <button onclick="resetEditor()">Reset</button>
+      <div style="flex:1"></div>
+      <button onclick="closeEditor()">Cancel</button>
+      <button class="primary" onclick="saveEditor()">Save anchor</button>
+    </div>
+    <label style="display: flex; align-items: center; gap: 8px; margin-top: 14px; padding: 10px 12px; background: rgba(255,213,74,0.10); border: 1px solid rgba(255,213,74,0.30); border-radius: 8px; cursor: pointer; font-size: 13px;">
+      <input type="checkbox" id="editor-flat-bottom" onchange="toggleEditorFlatBottom()" style="margin: 0;" />
+      <span><strong style="color: #ffd54a;">▭ Needs flat-bottom cloud</strong> — this drape has a visible cut top that should only attach to clouds marked as flat-bottom candidates in the cloud picker</span>
+    </label>
+    <div class="status" id="editor-status"></div>
+    <p class="help">
+      Click on the image to mark the <strong>hook point</strong> — the spot that should attach to the cloud. For a vine that drapes down, click the top of the vine. For a flower bouquet, click where the stem meets the ceiling.<br>
+      Use rotation buttons if the asset was photographed sideways and needs to be turned so the drape grows downward from your anchor.
+    </p>
+  </div>
+</div>
+
+<script>
+// Known file lists per tab.
+const SHAPE_MANIFEST = [
+  'Angel 1.png','Angel 2.png','Angel 3.png','Balloon.png',
+  'Bear 1.png','Bear 2.png','Bear 3.png','Bear 4.png','Bear 5.png',
+  'Boat.png','Butterfly 1.png','Butterfly 2.png','Car.png',
+  'Carriage 1.png','Carriage 2.png','Castle 1.png','Castle 2.png','Castle 3.png',
+  'Cat 1.png','Cat 2.png','Crown.png','Cupid 1.png','Cupid 2.png',
+  'Dinosaur 1.png','Dinosaur 2.png','Dog.png','Dolphin.png',
+  'Elephant 1.png','Elephant 2.png',
+  'Happy birthday 1.png','Happy birthday 2.png',
+  'Heart 1.png','Heart 2.png','Heart 3.png','Heart 4.png','Heart 5.png',
+  'Heart 6.png','Heart 7.png','Heart 8.png','Heart 9.png',
+  'Infinite.png','Love.png','Moon.png',
+  'Music 1.png','Music 2.png','Music 3.png','Music 4.png',
+  'Paper airplane.png','Pigeon 1.png','Pigeon 2.png','Pigeon 3.png',
+  'Plane.png','Rabbit 1.png','Rabbit 2.png','Rainbow.png','Ring.png',
+  'Rocket.png','Star.png','Stroller.png','Sun.png',
+  'Swan 1.png','Swan 2.png',
+  'Unicorn 1.png','Unicorn 2.png','Unicorn 3.png','Unicorn 4.png','Unicorn 5.png',
+  'Whale 1.png','Whale 2.png','Whale 3.png',
+]
+
+const FLORAL_MANIFEST = Array.from({length: 30}, (_, i) => `Floral_${i+1}.png`)
+
+const VINE_MANIFEST = (() => {
+  const out = []
+  for (let n = 1; n <= 60; n++) out.push(`AV_V024_${String(n).padStart(2,'0')}.png`)
+  for (let n = 1; n <= 80; n++) out.push(`AV_V025_${String(n).padStart(2,'0')}.png`)
+  for (let n = 1; n <= 80; n++) out.push(`AV_V026_${String(n).padStart(2,'0')}.png`)
+  return out
+})()
+
+const TABS = [
+  { id: 'shapes',  label: 'Shape Clouds', folder: 'clouds-shapes', manifest: SHAPE_MANIFEST,  storageKey: 'shapeExclude' },
+  { id: 'vines',   label: 'Vines',        folder: 'vines',         manifest: VINE_MANIFEST,   storageKey: 'vineExclude' },
+  { id: 'florals', label: 'Florals',      folder: 'florals',       manifest: FLORAL_MANIFEST, storageKey: 'floralExclude' },
+]
+
+let activeTab = localStorage.getItem('assetPickerTab') || 'shapes'
+
+// Per-tab excluded sets, loaded from localStorage on init.
+const excludedByTab = {}
+for (const t of TABS) {
+  excludedByTab[t.id] = new Set(JSON.parse(localStorage.getItem(t.storageKey) || '[]'))
+}
+
+// Per-asset anchor + rotation overrides. Keyed by full path "folder/filename".
+// Each entry: { ax: 0-1, ay: 0-1, rot: 0|90|180|270 }
+const ASSET_ANCHORS = JSON.parse(localStorage.getItem('assetAnchors') || '{}')
+
+function anchorKey(folder, file) { return `${folder}/${file}` }
+function hasAnchor(folder, file) { return !!ASSET_ANCHORS[anchorKey(folder, file)] }
+function getAnchor(folder, file) { return ASSET_ANCHORS[anchorKey(folder, file)] || null }
+
+function currentTab() { return TABS.find(t => t.id === activeTab) || TABS[0] }
+function currentExcluded() { return excludedByTab[activeTab] }
+
+function persistCurrent() {
+  const tab = currentTab()
+  localStorage.setItem(tab.storageKey, JSON.stringify([...currentExcluded()]))
+}
+
+function renderTabs() {
+  document.getElementById('tabs').innerHTML = TABS.map(t => {
+    const ex = excludedByTab[t.id].size
+    const anc = t.manifest.filter(f => hasAnchor(t.folder, f)).length
+    const parts = [`${t.manifest.length}`]
+    if (anc) parts.push(`${anc} anc`)
+    if (ex) parts.push(`${ex} excl`)
+    return `<button class="tab ${t.id === activeTab ? 'active' : ''}" onclick="setTab('${t.id}')">${t.label}<span class="count">${parts.join(' · ')}</span></button>`
+  }).join('')
+}
+
+function setTab(id) {
+  activeTab = id
+  localStorage.setItem('assetPickerTab', id)
+  renderTabs()
+  renderGrid()
+  updateExcludedList()
+}
+
+function toggleExclude(file) {
+  const ex = currentExcluded()
+  if (ex.has(file)) ex.delete(file)
+  else ex.add(file)
+  persistCurrent()
+  renderTabs()
+  renderGrid()
+  updateExcludedList()
+}
+
+function tile(folder, file, tileClass) {
+  const src = `/${folder}/${encodeURIComponent(file)}`
+  const ex = currentExcluded().has(file)
+  const a = getAnchor(folder, file)
+  let cls = `tile ${tileClass}`
+  if (ex) cls += ' excluded'
+  if (a && !ex) cls += ' has-anchor'
+  const safeFile = file.replace(/'/g, "\\'")
+  // Visible anchor dot + chip — positioned in the tile body area (above
+  // the 24px label strip). The dot is approximate (image uses object-fit:
+  // contain with 8% padding) but gives an at-a-glance read of anchor pos.
+  let anchorOverlay = ''
+  if (a && !ex) {
+    const dotLeft = (8 + a.ax * 84).toFixed(1)             // 8% padding + scale into 84% inner
+    const dotTop  = (8 + a.ay * 84).toFixed(1)             // (rough — image-aspect dependent)
+    const ax3 = a.ax.toFixed(2), ay3 = a.ay.toFixed(2)
+    anchorOverlay =
+      `<div class="tile-anchor-dot" style="left:${dotLeft}%;top:calc(${dotTop}% - 12px);"></div>` +
+      `<div class="anchor-chip">` +
+        `<span>${ax3},${ay3}</span>` +
+        (a.rot ? `<span>↻${a.rot}°</span>` : '') +
+        (a.flatBottom ? `<span class="flat">▭ flat</span>` : '') +
+      `</div>`
+  }
+  return `<div class="${cls}" onclick="toggleExclude('${safeFile}')">
+    <button class="edit-btn" onclick="event.stopPropagation(); openEditor('${folder}', '${safeFile}')" title="Set anchor + rotation">✎</button>
+    ${anchorOverlay}
+    <img src="${src}" alt="${file}" loading="lazy" onerror="this.style.opacity=0.15" />
+    <div class="label" title="${file}">${file}</div>
+  </div>`
+}
+
+function renderGrid() {
+  const tab = currentTab()
+  document.getElementById('grid').innerHTML = tab.manifest.map(f => tile(tab.folder, f, tab.id)).join('')
+}
+
+function updateExcludedList() {
+  const list = [...currentExcluded()].sort()
+  document.getElementById('excluded-list').textContent = list.length
+    ? `Excluded ${currentTab().label} (${list.length}): ${list.join(', ')}`
+    : `No ${currentTab().label.toLowerCase()} excluded.`
+}
+
+function copyExcluded() {
+  const list = [...currentExcluded()].sort()
+  if (!list.length) { alert(`No ${currentTab().label.toLowerCase()} excluded.`); return }
+  navigator.clipboard.writeText(list.join(', '))
+  alert(`Copied ${list.length} excluded ${currentTab().label.toLowerCase()}: ${list.join(', ')}`)
+}
+
+function clearExcluded() {
+  currentExcluded().clear()
+  persistCurrent()
+  renderTabs()
+  renderGrid()
+  updateExcludedList()
+}
+
+// ── Anchor editor ───────────────────────────────────────────────────
+let editing = null   // { folder, file, ax, ay, rot }
+
+function openEditor(folder, file) {
+  const key = anchorKey(folder, file)
+  const saved = ASSET_ANCHORS[key] || {}
+  editing = {
+    folder, file,
+    ax:  typeof saved.ax  === 'number' ? saved.ax  : 0.5,
+    ay:  typeof saved.ay  === 'number' ? saved.ay  : 0,
+    rot: typeof saved.rot === 'number' ? saved.rot : 0,
+    flatBottom: !!saved.flatBottom,
+  }
+  document.getElementById('editor-filename').textContent = `${folder}/${file}`
+  document.getElementById('editor-img').src = `/${folder}/${encodeURIComponent(file)}`
+  document.getElementById('editor-flat-bottom').checked = editing.flatBottom
+  applyEditorTransform()
+  updateAnchorDot()
+  updateEditorStatus()
+  document.getElementById('editor-modal').classList.add('open')
+}
+
+function toggleEditorFlatBottom() {
+  editing.flatBottom = document.getElementById('editor-flat-bottom').checked
+  updateEditorStatus()
+}
+
+function closeEditor() {
+  editing = null
+  document.getElementById('editor-modal').classList.remove('open')
+}
+
+function applyEditorTransform() {
+  document.getElementById('editor-img').style.transform = `rotate(${editing.rot}deg)`
+}
+
+function updateAnchorDot() {
+  // Position the dot at (ax, ay) of the *image*, which is centered in the
+  // editor-area. We use the area as the percent base since the image is
+  // object-fit: contain inside it (the dot will be slightly imprecise when
+  // image isn't square, but accurate enough for marking the hook point).
+  const dot = document.getElementById('editor-anchor-dot')
+  const img = document.getElementById('editor-img')
+  const area = document.getElementById('editor-area')
+  if (!img.naturalWidth) {
+    img.onload = updateAnchorDot
+    return
+  }
+  // Compute the actual rendered image bounds inside the area (with object-fit:contain)
+  const areaW = area.clientWidth, areaH = area.clientHeight
+  const imgRatio = img.naturalWidth / img.naturalHeight
+  const areaRatio = areaW / areaH
+  let renderW, renderH
+  if (imgRatio > areaRatio) { renderW = areaW; renderH = areaW / imgRatio }
+  else { renderH = areaH; renderW = areaH * imgRatio }
+  const offsetX = (areaW - renderW) / 2
+  const offsetY = (areaH - renderH) / 2
+  // Anchor coords are in the *unrotated* image's local space — position dot accordingly
+  const dotX = offsetX + editing.ax * renderW
+  const dotY = offsetY + editing.ay * renderH
+  dot.style.left = `${dotX}px`
+  dot.style.top  = `${dotY}px`
+}
+
+function setAnchorAt(event) {
+  if (event.target.id !== 'editor-area' && event.target.id !== 'editor-img') return
+  const img = document.getElementById('editor-img')
+  const area = document.getElementById('editor-area')
+  const areaRect = area.getBoundingClientRect()
+  const x = event.clientX - areaRect.left
+  const y = event.clientY - areaRect.top
+  const areaW = areaRect.width, areaH = areaRect.height
+  const imgRatio = img.naturalWidth / img.naturalHeight
+  const areaRatio = areaW / areaH
+  let renderW, renderH
+  if (imgRatio > areaRatio) { renderW = areaW; renderH = areaW / imgRatio }
+  else { renderH = areaH; renderW = areaH * imgRatio }
+  const offsetX = (areaW - renderW) / 2
+  const offsetY = (areaH - renderH) / 2
+  editing.ax = Math.max(0, Math.min(1, (x - offsetX) / renderW))
+  editing.ay = Math.max(0, Math.min(1, (y - offsetY) / renderH))
+  updateAnchorDot()
+  updateEditorStatus()
+}
+
+function rotateEditor(delta) {
+  editing.rot = ((editing.rot + delta) % 360 + 360) % 360
+  applyEditorTransform()
+  updateEditorStatus()
+}
+
+function resetEditor() {
+  editing.ax = 0.5
+  editing.ay = 0
+  editing.rot = 0
+  editing.flatBottom = false
+  document.getElementById('editor-flat-bottom').checked = false
+  applyEditorTransform()
+  updateAnchorDot()
+  updateEditorStatus()
+}
+
+function updateEditorStatus() {
+  const flatTag = editing.flatBottom ? ' · ▭ flat-bottom only' : ''
+  document.getElementById('editor-status').textContent =
+    `anchor x=${editing.ax.toFixed(3)}, y=${editing.ay.toFixed(3)}, rotation=${editing.rot}°${flatTag}`
+}
+
+function saveEditor() {
+  if (!editing) return
+  const key = anchorKey(editing.folder, editing.file)
+  ASSET_ANCHORS[key] = {
+    ax: editing.ax,
+    ay: editing.ay,
+    rot: editing.rot,
+    flatBottom: editing.flatBottom,
+  }
+  localStorage.setItem('assetAnchors', JSON.stringify(ASSET_ANCHORS))
+  closeEditor()
+  renderTabs()
+  renderGrid()
+}
+
+function exportAnchors() {
+  const count = Object.keys(ASSET_ANCHORS).length
+  if (!count) { alert('No anchors saved yet. Click the ✎ on a tile to start.'); return }
+  const json = JSON.stringify(ASSET_ANCHORS, null, 2)
+  navigator.clipboard.writeText(json).then(
+    () => alert(`Copied ${count} anchor${count === 1 ? '' : 's'} to clipboard. Paste it into Claude or save it somewhere.`),
+    () => {
+      // Clipboard write failed — fall back to showing in a window prompt
+      window.prompt(`${count} anchors (copy from below):`, json)
+    }
+  )
+}
+
+renderTabs()
+renderGrid()
+updateExcludedList()
+</script>
+</body>
+</html>

@@ -52,6 +52,33 @@ function generateVividSunsetStars(count = 260) {
 }
 const VIVID_SUNSET_STARS = generateVividSunsetStars()
 
+// Neon Nights stars: dense color-varied field across most of the sky.
+// Mostly white with purple/blue/pink-tinted accents so it reads as a neon
+// city night sky rather than a clean astronomical one.
+function generateNeonStars(count = 320) {
+  const palette = [
+    '255,255,255',  // white (most common)
+    '220,180,255',  // soft purple
+    '180,220,255',  // soft blue
+    '255,200,255',  // pinkish
+    '255,240,210',  // warm white
+  ]
+  let seed = 4131
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280 }
+  const parts = []
+  for (let i = 0; i < count; i++) {
+    const x = (rand() * 100).toFixed(1)
+    const y = (rand() * 72).toFixed(1)            // most stars in top ~72%
+    const color = palette[Math.floor(rand() * palette.length)]
+    const r = rand()
+    const size = (r < 0.93 ? 0.4 + rand() * 0.8 : 1.3 + rand() * 0.9).toFixed(1)
+    const alpha = (0.28 + rand() * 0.60).toFixed(2)
+    parts.push(`radial-gradient(circle ${size}px at ${x}% ${y}%, rgba(${color},${alpha}), transparent 100%)`)
+  }
+  return parts.join(', ')
+}
+const NEON_STARS = generateNeonStars()
+
 const SKY = {
   'Golden Hour':      { top: '#5a2540', mid: '#e88a3e', low: '#ffe39a' },
   'Bright Day':       { top: '#1040a0', mid: '#3878d0', low: '#88c0f0' },
@@ -63,7 +90,7 @@ const SKY = {
   'Dream State':      { top: '#ffe8d0', mid: '#e8c8e0', low: '#a890d4' },
   'Neon Nights':      { top: '#060318', mid: '#160e3a', low: '#2a1862' },
   'Candlelit Cozy Evening':      { top: '#040100', mid: '#200800', low: '#5a2808' },
-  'Greenhouse':       { top: '#040c04', mid: '#102810', low: '#386830' },
+  'Greenhouse':       { top: '#6cb87a', mid: '#e0e8b0', low: '#fff5d0' },
   'Studio':           { top: '#303840', mid: '#586068', low: '#909898' },
   'Studio Dark':      { top: '#0c0e14', mid: '#202228', low: '#404448' },
 }
@@ -108,25 +135,18 @@ export default function SkyBackdrop() {
     bg = `radial-gradient(ellipse 75% 45% at 50% 25%, rgba(255,240,225,0.55) 0%, rgba(255,210,195,0.22) 45%, transparent 80%), ` +
          `linear-gradient(180deg, ${s.top} 0%, #ffc0b4 25%, ${s.mid} 52%, #e6c4d4 80%, ${s.low} 100%)`
   } else if (mood === 'Neon Nights') {
-    // Deep midnight purple with magenta horizon glow + faint vertical neon
-    // streaks. Stars are sparse and scattered. Clouds are lit by external neon
-    // (see Neon Nights MOOD_THEMES entry in the cloud components).
-    const stars = [
-      'radial-gradient(circle 1px at 8% 6%, rgba(255,255,255,0.7), transparent 100%)',
-      'radial-gradient(circle 1px at 22% 12%, rgba(220,180,255,0.5), transparent 100%)',
-      'radial-gradient(circle 1.5px at 41% 4%, rgba(255,255,255,0.8), transparent 100%)',
-      'radial-gradient(circle 1px at 64% 9%, rgba(180,220,255,0.6), transparent 100%)',
-      'radial-gradient(circle 1px at 78% 17%, rgba(255,200,255,0.7), transparent 100%)',
-      'radial-gradient(circle 1px at 91% 8%, rgba(255,255,255,0.5), transparent 100%)',
-      'radial-gradient(circle 1.5px at 15% 23%, rgba(220,180,255,0.6), transparent 100%)',
-      'radial-gradient(circle 1px at 52% 18%, rgba(255,255,255,0.4), transparent 100%)',
-      'radial-gradient(circle 1px at 72% 26%, rgba(180,220,255,0.5), transparent 100%)',
-    ].join(', ')
-    bg = `${stars}, ` +
-         `linear-gradient(180deg, transparent 0%, rgba(255,80,220,0.06) 25%, transparent 55%) 58% 0 / 4px 100% no-repeat, ` +
-         `linear-gradient(180deg, transparent 0%, rgba(80,200,255,0.06) 25%, transparent 55%) 32% 0 / 6px 100% no-repeat, ` +
+    // Deep midnight purple with magenta horizon glow + dense color-varied star
+    // field. Clouds are lit by external neon — see Neon Nights MOOD_THEMES
+    // entry in the cloud components.
+    bg = `${NEON_STARS}, ` +
          `radial-gradient(ellipse 70% 28% at 50% 100%, rgba(220,60,200,0.32) 0%, rgba(150,40,180,0.16) 35%, transparent 70%), ` +
          `linear-gradient(180deg, ${s.top} 0%, #0c0828 25%, ${s.mid} 55%, #1f1450 82%, ${s.low} 100%)`
+  } else if (mood === 'Greenhouse') {
+    // Dappled glasshouse light — warm spring green zenith fading to creamy
+    // yellow-white at horizon, sun streaming down through glass roof. Subtle
+    // warm radial glow center-top (sun overhead through canopy).
+    bg = `radial-gradient(ellipse 65% 35% at 50% 10%, rgba(255,250,200,0.40) 0%, rgba(255,240,180,0.15) 40%, transparent 75%), ` +
+         `linear-gradient(180deg, ${s.top} 0%, #a8d896 25%, ${s.mid} 55%, #f5e8b4 82%, ${s.low} 100%)`
   } else if (mood === 'Coastal Morning') {
     // Sun rising at the horizon. Cool deep ocean-blue zenith → teal-blue upper
     // → soft sky blue middle → warm cream lower → peachy-gold horizon, with a

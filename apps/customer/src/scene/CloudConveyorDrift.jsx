@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
+import { shouldDrapeAt, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
 
 // Per-mood theming. Add new entries to enable themed rendering for more moods —
 // every mood not listed here renders raw photographic clouds.
@@ -49,12 +50,21 @@ const MOOD_THEMES = {
     glowFilter:   'brightness(1.4) contrast(0.85) sepia(0.22) saturate(1.15) hue-rotate(-4deg)',
     glowMask:     'linear-gradient(180deg, transparent 30%, #fff 70%, #fff 100%)',
   },
+  'Greenhouse': {
+    // Dappled glasshouse light — sun through glass roof, cream-green clouds.
+    tintGradient: 'linear-gradient(180deg, #fffaee 0%, #f8f0d8 15%, #ece6c8 35%, #d6e0b8 60%, #b8c8a0 80%, #8eaf7a 100%)',
+    tintShadow:   'drop-shadow(0 10px 22px rgba(120,160,90,0.30)) drop-shadow(0 4px 14px rgba(255,240,180,0.32))',
+    shadeOpacity: 0.78,
+    shadeFilter:  'contrast(1.30) brightness(1.02)',
+    glowOpacity:  0.55,
+    glowFilter:   'brightness(1.5) contrast(0.9) sepia(0.18) saturate(1.15)',
+  },
   'Neon Nights': {
     // Purple cloud bodies LIT BY EXTERNAL NEON — magenta from above, cyan from
     // below. The stacked colored drop-shadows on the tint paint light spill
     // into the surrounding sky so each cloud has its own magenta/cyan aura.
     tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    tintShadow:   'drop-shadow(0 -6px 16px rgba(255,80,220,0.55)) drop-shadow(0 -3px 38px rgba(255,40,180,0.32)) drop-shadow(0 10px 22px rgba(80,160,255,0.40)) drop-shadow(0 4px 50px rgba(80,140,255,0.25)) drop-shadow(0 0 60px rgba(180,40,220,0.22))',
+    tintShadow:   'drop-shadow(0 -8px 22px rgba(255,80,220,0.70)) drop-shadow(0 -5px 55px rgba(255,40,180,0.45)) drop-shadow(0 14px 32px rgba(80,160,255,0.55)) drop-shadow(0 6px 75px rgba(80,140,255,0.38)) drop-shadow(0 0 90px rgba(180,40,220,0.32))',
     shadeOpacity: 0.75,
     shadeFilter:  'contrast(1.4) brightness(0.95)',
     glowOpacity:  0.60,
@@ -103,12 +113,15 @@ export default function CloudConveyorDrift() {
   const isThemed = !!theme
 
   const clouds = useMemo(() => {
+    // Cloud counts bumped ~40% for higher density across the scene (sky
+    // felt sparse, especially in moods like Greenhouse where lush is the
+    // whole point). Adjust if performance suffers.
     const layers = [
-      { count: 38, speed: [0.0009, 0.0024], scale: [0.45, 0.95], yMin:  2, yMax: 22 },
-      { count: 32, speed: [0.0021, 0.0048], scale: [0.85, 1.55], yMin: 12, yMax: 38 },
-      { count: 26, speed: [0.0042, 0.0084], scale: [1.30, 2.20], yMin: 25, yMax: 52 },
-      { count: 18, speed: [0.0072, 0.0132], scale: [2.00, 3.20], yMin: 42, yMax: 70 },
-      { count:  8, speed: [0.0090, 0.0165], scale: [3.50, 4.80], yMin: 55, yMax: 80 },
+      { count: 54, speed: [0.0009, 0.0024], scale: [0.45, 0.95], yMin:  2, yMax: 22 },
+      { count: 45, speed: [0.0021, 0.0048], scale: [0.85, 1.55], yMin: 12, yMax: 38 },
+      { count: 36, speed: [0.0042, 0.0084], scale: [1.30, 2.20], yMin: 25, yMax: 52 },
+      { count: 25, speed: [0.0072, 0.0132], scale: [2.00, 3.20], yMin: 42, yMax: 70 },
+      { count: 11, speed: [0.0090, 0.0165], scale: [3.50, 4.80], yMin: 55, yMax: 80 },
     ]
     const all = []
     layers.forEach(L => {
@@ -145,6 +158,8 @@ export default function CloudConveyorDrift() {
         const yOff = Math.sin(c.yPhase + tick * c.yFreq) * c.yDrift
         node.style.transform =
           `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
+        // CSS var for drape counter-scale (uniform on-screen drape size).
+        node.style.setProperty('--cs', String(c.scale))
       }
       raf = requestAnimationFrame(animate)
     }
@@ -208,6 +223,16 @@ export default function CloudConveyorDrift() {
               isolation: 'isolate',
             }}
           >
+            {/* Drape rendered FIRST so cloud body layers below cover its top */}
+            {mood === 'Greenhouse' && shouldDrapeAt(c.shape, c.y, 45) && (() => {
+              const file = drapeForShape(c.shape)
+              if (!canDrapeOnCloud(file, c.shape)) return null
+              return (
+                <div style={DRAPE_WRAPPER_STYLE}>
+                  <img src={`/${file}`} alt="" style={drapeImgStyle(file)} draggable={false} />
+                </div>
+              )
+            })()}
             <div ref={el => { tintRefs.current[idx] = el }} style={{
               ...layer,
               WebkitMaskImage: url, maskImage: url,

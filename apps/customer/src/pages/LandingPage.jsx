@@ -36,6 +36,9 @@ const SKY_BY_MOOD = {
   // Neon Nights: deep midnight purple with magenta horizon glow. Clouds are
   // lit by external neon — see MOOD_THEMES entry in CloudField.
   'Neon Nights':     { zenith: '#060318', upper: '#0c0828', middle: '#160e3a', horizon: '#2a1862', ink: '#e8d4ff' },
+  // Greenhouse: warm spring green zenith fading to creamy yellow-white at
+  // horizon, sun streaming through glass roof onto cream-green clouds.
+  'Greenhouse':      { zenith: '#6cb87a', upper: '#a8d896', middle: '#e0e8b0', horizon: '#fff5d0', ink: '#2a4828' },
 }
 
 const FONTS = {

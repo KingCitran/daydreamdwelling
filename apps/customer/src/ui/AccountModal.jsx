@@ -347,8 +347,24 @@ export default function AccountModal({ onClose, onLoadRoom }) {
           )}
 
           {tab === 'Preferences' && (
-            <div style={{ padding: '4px 0' }}>
+            <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <RevealAudioSettings t={t} />
+              <div style={{ borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: t.text, marginBottom: 6, letterSpacing: '0.3px' }}>
+                  Scene tooling
+                </div>
+                <div style={{ fontSize: 11, color: t.textSoft, marginBottom: 10, lineHeight: 1.5 }}>
+                  Internal pickers for curating cloud + drape assets. Saved choices live in this browser's localStorage and feed the runtime automatically — anchor edits show up next reload.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <a href="/asset-picker.html" target="_blank" rel="noreferrer" style={{ ...st.loadBtn, textDecoration: 'none', textAlign: 'center' }}>
+                    Open Asset Picker (shapes / vines / florals + anchors)
+                  </a>
+                  <a href="/clouds-picker.html" target="_blank" rel="noreferrer" style={{ ...st.loadBtn, textDecoration: 'none', textAlign: 'center' }}>
+                    Open Clouds Picker (per-mood + flat-bottom)
+                  </a>
+                </div>
+              </div>
             </div>
           )}
 
