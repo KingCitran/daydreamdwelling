@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrape, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
+import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
 // rendering — every other mood renders raw photographic clouds. Each entry
@@ -155,7 +156,7 @@ function pad(n) { return String(n).padStart(3, '0') }
  * bottom edge as it nears the camera, then recycles with a new image and
  * a new random horizontal position.
  */
-export default function CloudConveyorPuffs() {
+export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
   const wrapRefs = useRef([])         // wrapper div per puff — animation target
   const tintRefs = useRef([])         // tint layer (mask source = cloud silhouette)
   const shadeRefs = useRef([])        // shade layer (multiply blend)
@@ -167,6 +168,15 @@ export default function CloudConveyorPuffs() {
   // clouds — natural look, unchanged from before the theming work.
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
+  // Dev cycle mode: substitute every puff's URL with a shape from CLOUD_SHAPES,
+  // indexed by puff number so the full manifest is on screen at once and the
+  // user can audit each one against the current mood theme.
+  const cloudUrlFor = (puffNum) => {
+    if (forceEasterEggs && CLOUD_SHAPES.length) {
+      return shapeUrl(CLOUD_SHAPES[puffNum % CLOUD_SHAPES.length])
+    }
+    return `/clouds/cloud-${pad(puffNum)}.webp`
+  }
 
   // One-shot cache warm-up at mount: download all 145 puff images so subsequent
   // src swaps during recycle don't hitch from network/decode work. No `.decode()`
@@ -316,7 +326,8 @@ export default function CloudConveyorPuffs() {
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
           // Update image reference. In themed mode, mutate all 3 layers.
           // In raw mode, the wrapper IS the <img> so set its src directly.
-          const url = `url("/clouds/cloud-${pad(s.img)}.webp")`
+          const u = cloudUrlFor(s.img)
+          const url = `url("${u}")`
           if (tintRefs.current[i]) {
             tintRefs.current[i].style.webkitMaskImage = url
             tintRefs.current[i].style.maskImage = url
@@ -325,7 +336,7 @@ export default function CloudConveyorPuffs() {
           if (glowRefs.current[i]) glowRefs.current[i].style.backgroundImage = url
           const wrap = wrapRefs.current[i]
           if (wrap && wrap.tagName === 'IMG') {
-            wrap.src = `/clouds/cloud-${pad(s.img)}.webp`
+            wrap.src = u
           }
         }
         apply(i, s, now, vw, vh)
@@ -356,7 +367,8 @@ export default function CloudConveyorPuffs() {
       zIndex: 0,
     }}>
       {initial.map((s, idx) => {
-        const url = `url("/clouds/cloud-${pad(s.img)}.webp")`
+        const u = cloudUrlFor(s.img)
+        const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
         // Raw photographic rendering for all moods EXCEPT themed ones.
         if (!isThemed) {
@@ -364,7 +376,7 @@ export default function CloudConveyorPuffs() {
             <img
               key={idx}
               ref={el => { wrapRefs.current[idx] = el }}
-              src={`/clouds/cloud-${pad(s.img)}.webp`}
+              src={u}
               alt=""
               decoding="async"
               draggable={false}

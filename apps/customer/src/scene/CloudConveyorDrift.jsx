@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrapeAt, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
+import { CLOUD_SHAPES, shapeUrl } from './cloudShapes'
 
 // Per-mood theming. Add new entries to enable themed rendering for more moods —
 // every mood not listed here renders raw photographic clouds.
@@ -103,7 +104,7 @@ function pad(n) { return String(n).padStart(3, '0') }
  *
  * Constrained to the bottom 78vh band; renders behind the room canvas.
  */
-export default function CloudConveyorDrift() {
+export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   const cloudsRef = useRef([])         // raw mode: refs to <img>
   const tintRefs = useRef([])
   const shadeRefs = useRef([])
@@ -177,8 +178,10 @@ export default function CloudConveyorDrift() {
       zIndex: 0,
     }}>
       {clouds.map((c, idx) => {
-        const num = pad(c.shape)
-        const url = `url("/clouds/cloud-${num}.webp")`
+        const u = (forceEasterEggs && CLOUD_SHAPES.length)
+          ? shapeUrl(CLOUD_SHAPES[idx % CLOUD_SHAPES.length])
+          : `/clouds/cloud-${pad(c.shape)}.webp`
+        const url = `url("${u}")`
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
 
         if (!isThemed) {
@@ -187,7 +190,7 @@ export default function CloudConveyorDrift() {
             <img
               key={idx}
               ref={el => { cloudsRef.current[idx] = el }}
-              src={`/clouds/cloud-${num}.webp`}
+              src={u}
               alt=""
               decoding="async"
               draggable={false}

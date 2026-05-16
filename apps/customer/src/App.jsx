@@ -202,6 +202,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [lightsOff, setLightsOff] = useState(false)
   const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
   const [cloudVariant, setCloudVariant] = useState(() => localStorage.getItem('ddd_cloud_variant') || 'bands')
+  // Dev: cycle every cloud through the Easter-egg shape pool so the user can
+  // audit + tune cloudShapes.js manifest. Off by default.
+  const [forceEasterEggs, setForceEasterEggs] = useState(false)
 
   // Defer cloud rendering until after the room canvas + items have a chance
   // to render and settle. Clouds are visually secondary; loading them first
@@ -731,7 +734,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
-      {cloudsOn && cloudsReady && (cloudVariant === 'drift' ? <CloudConveyorDrift /> : <CloudConveyorPuffs />)}
+      {cloudsOn && cloudsReady && (cloudVariant === 'drift'
+        ? <CloudConveyorDrift key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
+        : <CloudConveyorPuffs key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
+      )}
 
 
       {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
@@ -1213,6 +1219,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
         cloudVariant={cloudVariant}
         onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
+        forceEasterEggs={forceEasterEggs}
+        onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
       />
     </DockablePanel>
     <DockablePanel tabId="social">
