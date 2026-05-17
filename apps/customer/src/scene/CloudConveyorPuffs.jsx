@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrape, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
-import { availableShapes, shapeUrl } from './cloudShapes'
+import { availableShapes, shapeUrl, shapeClearanceVw } from './cloudShapes'
 
 // Dev cycle constants — how many of the 150 puffs are Easter-egg slots at any
 // moment (the rest stay as regular photo clouds), how often we advance to the
@@ -401,9 +401,10 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       }
     }
 
-    // Puffs EE tuning — at the baseline we don't thin or fade the regular
-    // puff field; the user wants to start from "normal field + 3 pinned
-    // EE shapes" and add isolation incrementally from there.
+    // Puffs EE tuning — per-shape clearance: each EE puff has a clearance
+    // radius (vw, default DEFAULT_CLEARANCE_VW or per-shape override) and
+    // regular puffs within that radius get faded out so the silhouette
+    // stays clean.
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
@@ -411,6 +412,17 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       const arr = stateRef.current
       const vw = window.innerWidth
       const vh = window.innerHeight
+
+      // Pre-pass: EE slot screen centers + clearance radii in px.
+      let eeClearings = null
+      if (forceEasterEggs && eeSlotIndices.length) {
+        eeClearings = eeSlotIndices.map((idx, slot) => {
+          const pos = computeCenterScreenPos(arr[idx], now, vw, vh)
+          const shape = visibleShapes[slot]
+          const clearanceVw = shape ? shapeClearanceVw(shape.filename) : 18
+          return { x: pos.x, y: pos.y, radiusPx: (clearanceVw / 100) * vw }
+        })
+      }
 
       for (let i = 0; i < arr.length; i++) {
         const s = arr[i]
@@ -456,7 +468,22 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
             wrap.src = u
           }
         }
-        apply(i, s, now, vw, vh, 1)
+        // Per-shape clearance: fade regular puffs near any EE silhouette.
+        let breathing = 1
+        if (eeClearings && !isEe) {
+          const me = computeCenterScreenPos(s, now, vw, vh)
+          for (const ee of eeClearings) {
+            const dx = me.x - ee.x
+            const dy = me.y - ee.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < ee.radiusPx) {
+              const local = dist / ee.radiusPx
+              const fade = local < 0.65 ? 0 : (local - 0.65) / 0.35
+              breathing = Math.min(breathing, fade)
+            }
+          }
+        }
+        apply(i, s, now, vw, vh, breathing)
       }
       raf = requestAnimationFrame(tick)
     }

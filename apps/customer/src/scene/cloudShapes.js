@@ -96,19 +96,73 @@ function readShapeExcludes() {
 }
 export const EXCLUDED_SHAPES = readShapeExcludes()
 
+// ── Per-shape behavior config ───────────────────────────────────────────
+// Default clearance radius (in vw) that regular clouds get pushed out of
+// around any Easter-egg cloud. Per-shape overrides live in SHAPE_CONFIG
+// (eeShapeConfig localStorage / Supabase) — leave clearance undefined to
+// use the default.
+export const DEFAULT_CLEARANCE_VW = 18
+
+// Baked defaults for shapes that have a clear intrinsic behavior:
+// - text/word shapes should NEVER mirror-flip (reads backward)
+// - Happy birthday is reserved for triggered spawns (customer's birthday)
+//   so it's marked specialOnly and stays out of the normal cycle pool
+const DEFAULT_SHAPE_CONFIG = {
+  'Love.png':              { noFlip: true },
+  'Music 1.png':           { noFlip: true },
+  'Music 2.png':           { noFlip: true },
+  'Music 3.png':           { noFlip: true },
+  'Music 4.png':           { noFlip: true },
+  'Happy birthday 1.png':  { noFlip: true, specialOnly: true },
+  'Happy birthday 2.png':  { noFlip: true, specialOnly: true },
+}
+
+function readShapeConfig() {
+  let user = {}
+  if (typeof localStorage !== 'undefined') {
+    try { user = JSON.parse(localStorage.getItem('eeShapeConfig') || '{}') } catch {}
+  }
+  // Merge: bake defaults first, then layer the user-edited values on top so
+  // anything explicitly set in the picker wins.
+  const merged = {}
+  for (const key of Object.keys(DEFAULT_SHAPE_CONFIG)) merged[key] = { ...DEFAULT_SHAPE_CONFIG[key] }
+  for (const [key, val] of Object.entries(user)) {
+    merged[key] = { ...(merged[key] || {}), ...val }
+  }
+  return merged
+}
+export const SHAPE_CONFIG = readShapeConfig()
+
+export function getShapeConfig(filename) {
+  return SHAPE_CONFIG[filename] || {}
+}
+export function shapeNoFlip(filename) {
+  return !!getShapeConfig(filename).noFlip
+}
+export function shapeClearanceVw(filename) {
+  const v = getShapeConfig(filename).clearance
+  return typeof v === 'number' ? v : DEFAULT_CLEARANCE_VW
+}
+export function shapeSpecialOnly(filename) {
+  return !!getShapeConfig(filename).specialOnly
+}
+
 // Filter the shape pool to those allowed in the current mood AND not in the
-// shape-picker's exclusion list.
+// shape-picker's exclusion list AND not flagged specialOnly.
 export function shapesForMood(mood) {
   return CLOUD_SHAPES.filter(s =>
     !EXCLUDED_SHAPES.has(s.filename) &&
+    !shapeSpecialOnly(s.filename) &&
     (!s.moods || s.moods.includes('*') || s.moods.includes(mood))
   )
 }
 
-// Cycle/dev tool pool — all manifest entries minus the exclusion list, no
-// mood filter (the dev tool wants to audit every shape regardless of mood).
+// Cycle/dev tool pool — all manifest entries minus excluded + specialOnly.
 export function availableShapes() {
-  return CLOUD_SHAPES.filter(s => !EXCLUDED_SHAPES.has(s.filename))
+  return CLOUD_SHAPES.filter(s =>
+    !EXCLUDED_SHAPES.has(s.filename) &&
+    !shapeSpecialOnly(s.filename)
+  )
 }
 
 // Pick a random shape from the pool allowed in this mood, or null if no

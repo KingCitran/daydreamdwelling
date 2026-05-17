@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrapeAt, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
-import { CLOUD_SHAPES, availableShapes, shapeUrl } from './cloudShapes'
+import { CLOUD_SHAPES, availableShapes, shapeUrl, shapeNoFlip, shapeClearanceVw } from './cloudShapes'
 
 // Dev cycle constants — see CloudConveyorPuffs.jsx for rationale.
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
 
-// Drift EE tuning — start from the BASELINE: keep the regular cloud field
-// 100% intact when the cycle is on, just give three EE slots a back-layer
-// upper-band profile so they drift normally through the upper sky as
-// small/distant clouds (same speed + sway as a real cloud, just with a
-// shape PNG painted on them).
+// Drift EE tuning — three slots drift through the upper + middle sky at
+// normal cloud speed. Regular clouds within each shape's clearance radius
+// (default DEFAULT_CLEARANCE_VW, per-shape override via SHAPE_CONFIG) get
+// hidden so the silhouette stays readable.
 
 // Per-mood theming. Add new entries to enable themed rendering for more moods —
 // every mood not listed here renders raw photographic clouds.
@@ -176,27 +175,43 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   )
   const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
 
-  // Once on mount (and whenever EE mode toggles), re-profile the chosen
-  // cloud slots so they read as small upper-band back clouds — but with
-  // the SAME drift speed + yDrift oscillation as a normal layer-0 cloud
-  // (~0.0009-0.0024 horizontal, ±1.5vh vertical sway). Just enough
-  // identity to find them; their motion still feels native.
+  // Re-profile the chosen cloud slots so they drift through the upper +
+  // middle sky as small/distant clouds at REGULAR cloud speed (not the
+  // pinned-slow value we had before). Each slot's shape PNG drives its
+  // flip behavior — word shapes (Love / Music / Happy birthday) skip the
+  // mirror flip via shapeNoFlip().
+  //
+  // The cycle picks which shape paints onto each slot every EE_TICK_MS,
+  // so noFlip is also reapplied in the URL-update effect below.
   useEffect(() => {
     if (!forceEasterEggs) return
-    eeSlotIndices.forEach((cloudIdx) => {
+    eeSlotIndices.forEach((cloudIdx, slot) => {
       const c = clouds[cloudIdx]
       if (!c) return
-      c.y = rand(4, 18)                          // upper band only
-      c.scale = rand(0.55, 0.85)                 // small / distant
-      c.speed = rand(0.0009, 0.0024)             // matches layer 0 back clouds
-      c.yDrift = rand(-1.5, 1.5)                 // normal sway
+      c.y = rand(4, 42)                          // upper + middle bands
+      c.scale = rand(0.55, 0.95)                 // small / distant
+      c.speed = rand(0.0021, 0.0048)             // matches the brunt (layer 1) speed
+      c.yDrift = rand(-1.5, 1.5)
       c.yFreq = rand(0.0003, 0.0009)
       c.yPhase = rand(0, Math.PI * 2)
-      c.flip = Math.random() > 0.5
+      const shape = visibleShapes[slot]
+      c.flip = shape && shapeNoFlip(shape.filename) ? false : Math.random() > 0.5
       c.opacity = rand(0.85, 1.0)
       // xStart kept as-is — random spread across the screen on mount.
     })
-  }, [forceEasterEggs, clouds, eeSlotIndices])
+  }, [forceEasterEggs, clouds, eeSlotIndices]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the cycle advances and a new shape lands on a slot, re-apply flip
+  // for that slot since the new shape might disallow flipping.
+  useEffect(() => {
+    if (!forceEasterEggs) return
+    eeSlotIndices.forEach((cloudIdx, slot) => {
+      const c = clouds[cloudIdx]
+      const shape = visibleShapes[slot]
+      if (!c || !shape) return
+      if (shapeNoFlip(shape.filename)) c.flip = false
+    })
+  }, [eeCursor, forceEasterEggs, eeSlotIndices]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let raf
@@ -204,6 +219,28 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
     const animate = () => {
       tick += 1
       const nodes = cloudsRef.current
+      const vw = window.innerWidth
+
+      // Pre-pass: compute the live screen X/Y + clearance radius (px) for
+      // each EE slot so the per-cloud breathing pass below can fade out
+      // anything close enough to overlap.
+      let eeClearings = null
+      if (forceEasterEggs) {
+        eeClearings = eeSlotIndices.map((idx, slot) => {
+          const c = clouds[idx]
+          const xRaw = c.xStart + tick * c.speed
+          const xv = ((xRaw % 160) + 160) % 160 - 30
+          const yOff = Math.sin(c.yPhase + tick * c.yFreq) * c.yDrift
+          const shape = visibleShapes[slot]
+          const clearanceVw = shape ? shapeClearanceVw(shape.filename) : 18
+          return {
+            xVw: xv,
+            yVh: c.y + yOff,
+            radiusPx: (clearanceVw / 100) * vw,
+          }
+        })
+      }
+
       for (let i = 0; i < clouds.length; i++) {
         const c = clouds[i]
         const node = nodes[i]
@@ -215,12 +252,34 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
           `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
         // CSS var for drape counter-scale (uniform on-screen drape size).
         node.style.setProperty('--cs', String(c.scale))
+
+        // Per-shape clearance: regular clouds within the EE shape's
+        // radius get faded out so the silhouette stays distinguishable.
+        // EE slots themselves stay full opacity.
+        const isEe = forceEasterEggs && eeSlotSet.has(i)
+        let breathing = 1
+        if (eeClearings && !isEe) {
+          const myX = (x / 100) * vw
+          const myY = ((c.y + yOff) / 100) * window.innerHeight
+          for (const ee of eeClearings) {
+            const dx = myX - (ee.xVw / 100) * vw
+            const dy = myY - (ee.yVh / 100) * window.innerHeight
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < ee.radiusPx) {
+              // Hard inner clearing (inner 65%) + soft outer fade.
+              const local = dist / ee.radiusPx
+              const fade = local < 0.65 ? 0 : (local - 0.65) / 0.35
+              breathing = Math.min(breathing, fade)
+            }
+          }
+        }
+        node.style.opacity = String(c.opacity * breathing)
       }
       raf = requestAnimationFrame(animate)
     }
     raf = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(raf)
-  }, [clouds])
+  }, [clouds, forceEasterEggs, eeSlotIndices, eeSlotSet, visibleShapes])
 
   return (
     <div style={{
