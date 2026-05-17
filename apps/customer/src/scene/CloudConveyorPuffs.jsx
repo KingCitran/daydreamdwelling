@@ -93,14 +93,19 @@ const MOOD_THEMES = {
     // peach-gold underbelly. Less saturated; light blue is the shadow color,
     // not magenta. Glow mask inverted to light the underside.
     tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    // Coastal Morning EE — bottom stops were too saturated peach (read
-    // as orange against the muted horizon glow of the realistic field).
-    // Realistic photo clouds get the warm tint applied to mostly-white
-    // pixels via multiply so it stays subtle; EE silhouettes show the
-    // entire gradient at full strength, so the warm endpoint has to
-    // start duller. Pulled back to cream-peach instead of saturated
-    // peach-orange.
+    // Coastal Morning EE — bottom pulled back to muted cream-peach so
+    // the EE doesn't read as bright orange against the field.
     eggTintGradient: 'linear-gradient(180deg, #a8b4c4 0%, #c4c0c0 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
+    // Soft underbelly glow — Coastal Morning is bottom-lit (sun rising
+    // at the horizon), so the glow mask is inverted (transparent at
+    // crown, warm at underside). Much softer than the realistic glow
+    // (0.20 vs 0.50 opacity) so it adds a gentle warm horizon kiss
+    // without blowing out the EE silhouette.
+    eggGlow: {
+      opacity: 0.20,
+      filter: 'brightness(1.25) contrast(0.9) sepia(0.18) saturate(1.1)',
+      mask: 'linear-gradient(180deg, transparent 40%, rgba(255,255,255,0.5) 65%, #fff 82%, #fff 100%)',
+    },
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 12px 22px rgba(40,70,110,0.35))',
     shadeOpacity: 0.62,
     shadeFilter:  'contrast(1.15) brightness(1.08)',
