@@ -26,6 +26,7 @@ const MOOD_THEMES = {
     shadeFilter:  'contrast(1.45) brightness(1.0)',
     glowOpacity:  0.40,
     glowFilter:   'brightness(1.4) contrast(0.9)',
+    fluffOpacity: 0.3,
   },
   'Golden Hour': {
     tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
@@ -91,6 +92,7 @@ const MOOD_THEMES = {
     glowOpacity:  0.60,
     glowFilter:   'brightness(1.5) contrast(0.9) saturate(1.7) hue-rotate(280deg)',
     glowMask:     'linear-gradient(180deg, #fff 0%, #fff 30%, transparent 70%)',
+    fluffOpacity: 0.15,
   },
   'Vivid Sunset': {
     // Inverted: sun below horizon, clouds carry the saturation. Glow mask flipped
@@ -396,8 +398,8 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               )
             })()}
             {/* Fluff halo — heavily-blurred screened PNG behind the tint
-                layer. Fills in spattery thin edges with ambient cloud haze
-                so every cloud has a soft outer glow. v4 handoff. */}
+                layer. Per-mood opacity so already-glowy moods (Neon Nights,
+                Dream State) don't bloom into a wash. */}
             <div style={{
               position: 'absolute', inset: '-10%',
               backgroundImage: url,
@@ -405,7 +407,7 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               backgroundPosition: 'center',
               backgroundSize: 'contain',
               filter: 'blur(22px) brightness(1.08) saturate(0.7)',
-              opacity: 0.6,
+              opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
               mixBlendMode: 'screen',
               pointerEvents: 'none',
             }} />
