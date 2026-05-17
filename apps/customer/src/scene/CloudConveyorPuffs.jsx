@@ -624,7 +624,10 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
               WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
               WebkitMaskPosition: 'center', maskPosition: 'center',
               background: tintGradient,
-              filter: theme.tintShadow,
+              // EE clouds skip the tint drop-shadow — the colored aura
+              // above already provides their soft outer glow, so applying
+              // the shadow on top reads as a double halo.
+              filter: isEeSlot ? 'none' : theme.tintShadow,
             }} />
             <div ref={el => { shadeRefs.current[idx] = el }} style={{
               ...layer,
