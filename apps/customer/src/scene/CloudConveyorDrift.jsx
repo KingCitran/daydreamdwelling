@@ -17,9 +17,10 @@ const EE_TICK_MS = 3500
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint pulled toward purple to match the sky — pinks shifted
-    // closer to lavender, bottom half is purple-dominant.
-    eggTintGradient: 'linear-gradient(180deg, #fbe2e8 0%, #e8c4d4 15%, #cc9cc4 35%, #b078c4 60%, #9058b8 80%, #6c40a8 100%)',
+    // EE tint pulled back to pale-throughout — sits in the same value
+    // range as the regular pastel cloud field regardless of which part
+    // of the Dream State sky gradient the EE is drifting across.
+    eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f8d4d4 20%, #e8c4cc 45%, #d4b0c4 70%, #b894b8 100%)',
     eggShadeOpacity: 0.35,
     eggGlow: {
       opacity: 0.22,
