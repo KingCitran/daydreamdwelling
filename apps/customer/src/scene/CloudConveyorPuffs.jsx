@@ -27,12 +27,10 @@ const EE_SLOT_POSITIONS = [
 // shade & glow blend params).
 const MOOD_THEMES = {
   'Dream State': {
-    // Saturated v2: mid pink + lavender stops pushed to more vivid hues
-    // per user request. Cream crown unchanged so sunlit top still reads.
-    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffc8c0 18%, #f494c8 40%, #c478d4 62%, #8044c8 85%, #5c2cb8 100%)',
-    // EE tint also bumped — mid pinks + lavender stops more saturated
-    // while keeping the lifted cream crown so the EE shape still reads
-    // sun-lit on top.
+    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
+    // EE tint bumped to more saturated mid pinks + lavenders so the
+    // shape clouds pop against the pastel realistic field. Cream crown
+    // kept lifted so the EE silhouette still reads sun-lit on top.
     eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f8d0d4 12%, #ecb4c8 32%, #d094c4 55%, #b478c0 80%, #9c5cb8 100%)',
     eggShadeOpacity: 0.35,
     // Bringing back a glow layer FOR EE specifically — earlier "no glow"
