@@ -597,21 +597,23 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 </div>
               )
             })()}
-            {/* Fluff halo — heavily-blurred screened PNG behind everything,
-                fills in spattery thin edges with ambient cloud haze and
-                gives every cloud a soft glowing aura. Per-mood opacity
-                so already-glowy moods (Neon, Dream State) don't bloom. */}
-            <div style={{
-              position: 'absolute', inset: '-10%',
-              backgroundImage: url,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center',
-              backgroundSize: 'contain',
-              filter: 'blur(22px) brightness(1.08) saturate(0.7)',
-              opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
-              mixBlendMode: 'screen',
-              pointerEvents: 'none',
-            }} />
+            {/* Fluff halo — only on EE-slot puffs. The design preview added
+                this to every cloud but it over-glows the regular field;
+                user wants realistic clouds without the bloom and only the
+                special Easter-egg cloud carrying the soft aura. */}
+            {isEeSlot && (
+              <div style={{
+                position: 'absolute', inset: '-10%',
+                backgroundImage: url,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                backgroundSize: 'contain',
+                filter: 'blur(22px) brightness(1.08) saturate(0.7)',
+                opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }} />
+            )}
             <div ref={el => { tintRefs.current[idx] = el }} style={{
               ...layer,
               WebkitMaskImage: url, maskImage: url,

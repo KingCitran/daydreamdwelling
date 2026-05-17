@@ -397,20 +397,22 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
                 </div>
               )
             })()}
-            {/* Fluff halo — heavily-blurred screened PNG behind the tint
-                layer. Per-mood opacity so already-glowy moods (Neon Nights,
-                Dream State) don't bloom into a wash. */}
-            <div style={{
-              position: 'absolute', inset: '-10%',
-              backgroundImage: url,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center',
-              backgroundSize: 'contain',
-              filter: 'blur(22px) brightness(1.08) saturate(0.7)',
-              opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
-              mixBlendMode: 'screen',
-              pointerEvents: 'none',
-            }} />
+            {/* Fluff halo — only on EE-slot clouds. Realistic clouds stay
+                without the screen-blended bloom; only the special Easter-egg
+                shape carries the soft aura. */}
+            {isEeSlot && (
+              <div style={{
+                position: 'absolute', inset: '-10%',
+                backgroundImage: url,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                backgroundSize: 'contain',
+                filter: 'blur(22px) brightness(1.08) saturate(0.7)',
+                opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }} />
+            )}
             <div ref={el => { tintRefs.current[idx] = el }} style={{
               ...layer,
               WebkitMaskImage: url, maskImage: url,
