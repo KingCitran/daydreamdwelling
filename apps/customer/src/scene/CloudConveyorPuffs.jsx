@@ -66,10 +66,7 @@ const MOOD_THEMES = {
     // Moon high → cloud crowns lit (silver), undersides deep navy. Low contrast,
     // dim glow — moonlight is ~400,000× dimmer than sun.
     tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
-    // Moonlight EE — pulled the cold blue-gray stops toward silver-with-
-    // -lavender so the shape clouds carry the same purple wash as the
-    // realistic Moonlight cloud field instead of reading as plain navy.
-    eggTintGradient: 'linear-gradient(180deg, #e0e4f0 0%, #c8c4dc 22%, #a8a0c0 45%, #8478a0 70%, #5c547c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #d4dceb 0%, #b0bcd4 30%, #8898bc 60%, #6c7ca0 85%, #5a6c94 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
     shadeOpacity: 0.78,
     shadeFilter:  'contrast(1.55) brightness(0.92)',
@@ -126,7 +123,12 @@ const MOOD_THEMES = {
     // cyan reflection from below. Amplified drop-shadow stack so each cloud
     // bleeds significantly more colored light into the surrounding sky.
     tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    eggTintGradient: 'linear-gradient(172deg, #d8c8dc 0%, #c0b0c8 25%, #a898b4 50%, #88789c 75%, #6c5c80 100%)',
+    // Neon Nights EE — was reading near-white against the lavender-
+    // purple realistic cloud field (top stop #d8c8dc was too pale).
+    // Pushed every stop into the saturated lavender-purple zone the
+    // realistic Neon clouds actually occupy so the silhouette belongs
+    // in the field, not stamped onto it.
+    eggTintGradient: 'linear-gradient(172deg, #d4c0e0 0%, #b8a0d0 25%, #9880c0 50%, #7660a0 75%, #54447c 100%)',
     tintShadow:   'drop-shadow(0 -8px 22px rgba(255,80,220,0.70)) drop-shadow(0 -5px 55px rgba(255,40,180,0.45)) drop-shadow(0 14px 32px rgba(80,160,255,0.55)) drop-shadow(0 6px 75px rgba(80,140,255,0.38)) drop-shadow(0 0 90px rgba(180,40,220,0.32))',
     shadeOpacity: 0.75,
     shadeFilter:  'contrast(1.4) brightness(0.95)',
