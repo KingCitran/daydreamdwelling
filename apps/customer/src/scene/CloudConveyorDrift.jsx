@@ -122,10 +122,15 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
 
-  // Dev cycle: a few specific cloud slots become Easter-egg shapes,
-  // rotating through availableShapes() (excluded ones already filtered).
-  const [eeCursor, setEeCursor] = useState(0)
+  // EE slots: in dev cycle mode there are 3 slots cycling through the shape
+  // pool every EE_TICK_MS; in normal (production) mode there's just ONE
+  // slot showing a single random Easter-egg shape that doesn't change.
   const cyclePool = useMemo(() => availableShapes(), [forceEasterEggs])
+  const [staticEeShape] = useState(() => {
+    const pool = availableShapes()
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
+  })
+  const [eeCursor, setEeCursor] = useState(0)
   useEffect(() => {
     if (!forceEasterEggs || !cyclePool.length) return
     const total = Math.ceil(cyclePool.length / EE_SLOT_COUNT)
@@ -134,7 +139,11 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   }, [forceEasterEggs, cyclePool.length])
   const visibleShapes = forceEasterEggs && cyclePool.length
     ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => cyclePool[(eeCursor * EE_SLOT_COUNT + slot) % cyclePool.length])
-    : []
+    : (staticEeShape ? [staticEeShape] : [])
+  // Held in a ref so the animate raf can read the LATEST visible shapes
+  // without depending on them (deps would tear down the raf every cycle).
+  const visibleShapesRef = useRef(visibleShapes)
+  useEffect(() => { visibleShapesRef.current = visibleShapes })
 
   const clouds = useMemo(() => {
     // Cloud counts bumped ~40% for higher density across the scene (sky
@@ -167,24 +176,23 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
     return all
   }, [])
 
-  // EE slot indices — three positions evenly spread across the first
-  // (smallest / backmost) layer so the shape clouds sit small + far back.
+  // EE slot indices — positions within the first (smallest / backmost) layer
+  // of 54. In dev mode that's 3 evenly-spread slots; in normal mode just 1
+  // slot (so only one Easter-egg shape sails through the sky per page).
+  const slotCount = forceEasterEggs ? EE_SLOT_COUNT : (staticEeShape ? 1 : 0)
   const eeSlotIndices = useMemo(
-    () => Array.from({ length: EE_SLOT_COUNT }, (_, i) => Math.floor((i + 0.5) * 54 / EE_SLOT_COUNT)),
-    []
+    () => Array.from({ length: slotCount }, (_, i) => Math.floor((i + 0.5) * 54 / Math.max(slotCount, 1))),
+    [slotCount]
   )
   const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
 
   // Re-profile the chosen cloud slots so they drift through the upper +
-  // middle sky as small/distant clouds at REGULAR cloud speed (not the
-  // pinned-slow value we had before). Each slot's shape PNG drives its
-  // flip behavior — word shapes (Love / Music / Happy birthday) skip the
-  // mirror flip via shapeNoFlip().
-  //
-  // The cycle picks which shape paints onto each slot every EE_TICK_MS,
-  // so noFlip is also reapplied in the URL-update effect below.
+  // middle sky as small/distant clouds at REGULAR cloud speed. Each
+  // slot's shape PNG drives its flip behavior — word shapes (Love /
+  // Music / Happy birthday) skip the mirror flip via shapeNoFlip().
+  // Runs in both prod (1 slot, static shape) and dev (3 slots cycling).
   useEffect(() => {
-    if (!forceEasterEggs) return
+    if (!eeSlotIndices.length) return
     eeSlotIndices.forEach((cloudIdx, slot) => {
       const c = clouds[cloudIdx]
       if (!c) return
@@ -199,7 +207,7 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
       c.opacity = rand(0.85, 1.0)
       // xStart kept as-is — random spread across the screen on mount.
     })
-  }, [forceEasterEggs, clouds, eeSlotIndices]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clouds, eeSlotIndices]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // When the cycle advances and a new shape lands on a slot, re-apply flip
   // for that slot since the new shape might disallow flipping.
@@ -216,26 +224,35 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   useEffect(() => {
     let raf
     let tick = 0
+    // Per-cloud previous-opacity cache so we only write to .style.opacity
+    // when the value actually changes — eliminates the per-frame style
+    // recalc storm that was causing the jerking on a 171-cloud field.
+    const lastOpacity = new Array(clouds.length).fill(-1)
+
     const animate = () => {
       tick += 1
       const nodes = cloudsRef.current
       const vw = window.innerWidth
+      const vh = window.innerHeight
 
-      // Pre-pass: compute the live screen X/Y + clearance radius (px) for
-      // each EE slot so the per-cloud breathing pass below can fade out
-      // anything close enough to overlap.
+      // Pre-pass: live EE slot screen positions + per-shape clearance radii.
+      // Reads from refs so a cycle-tick changing the shape doesn't tear down
+      // the raf loop (the bug behind "resetting every 3-5 seconds").
+      const liveSlots = eeSlotIndices
+      const liveShapes = visibleShapesRef.current
+      const hasEE = liveSlots.length > 0
       let eeClearings = null
-      if (forceEasterEggs) {
-        eeClearings = eeSlotIndices.map((idx, slot) => {
+      if (hasEE) {
+        eeClearings = liveSlots.map((idx, slot) => {
           const c = clouds[idx]
           const xRaw = c.xStart + tick * c.speed
           const xv = ((xRaw % 160) + 160) % 160 - 30
           const yOff = Math.sin(c.yPhase + tick * c.yFreq) * c.yDrift
-          const shape = visibleShapes[slot]
+          const shape = liveShapes[slot]
           const clearanceVw = shape ? shapeClearanceVw(shape.filename) : 18
           return {
-            xVw: xv,
-            yVh: c.y + yOff,
+            xPx: (xv / 100) * vw,
+            yPx: ((c.y + yOff) / 100) * vh,
             radiusPx: (clearanceVw / 100) * vw,
           }
         })
@@ -250,36 +267,38 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
         const yOff = Math.sin(c.yPhase + tick * c.yFreq) * c.yDrift
         node.style.transform =
           `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
-        // CSS var for drape counter-scale (uniform on-screen drape size).
         node.style.setProperty('--cs', String(c.scale))
 
-        // Per-shape clearance: regular clouds within the EE shape's
-        // radius get faded out so the silhouette stays distinguishable.
-        // EE slots themselves stay full opacity.
-        const isEe = forceEasterEggs && eeSlotSet.has(i)
+        // Per-shape clearance: regular clouds within an EE silhouette's
+        // radius fade out. EE slots themselves stay at full opacity.
+        const isEe = hasEE && eeSlotSet.has(i)
         let breathing = 1
         if (eeClearings && !isEe) {
           const myX = (x / 100) * vw
-          const myY = ((c.y + yOff) / 100) * window.innerHeight
-          for (const ee of eeClearings) {
-            const dx = myX - (ee.xVw / 100) * vw
-            const dy = myY - (ee.yVh / 100) * window.innerHeight
+          const myY = ((c.y + yOff) / 100) * vh
+          for (let k = 0; k < eeClearings.length; k++) {
+            const ee = eeClearings[k]
+            const dx = myX - ee.xPx
+            const dy = myY - ee.yPx
             const dist = Math.sqrt(dx * dx + dy * dy)
             if (dist < ee.radiusPx) {
-              // Hard inner clearing (inner 65%) + soft outer fade.
               const local = dist / ee.radiusPx
               const fade = local < 0.65 ? 0 : (local - 0.65) / 0.35
-              breathing = Math.min(breathing, fade)
+              if (fade < breathing) breathing = fade
             }
           }
         }
-        node.style.opacity = String(c.opacity * breathing)
+        const opacity = c.opacity * breathing
+        if (opacity !== lastOpacity[i]) {
+          node.style.opacity = String(opacity)
+          lastOpacity[i] = opacity
+        }
       }
       raf = requestAnimationFrame(animate)
     }
     raf = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(raf)
-  }, [clouds, forceEasterEggs, eeSlotIndices, eeSlotSet, visibleShapes])
+  }, [clouds, eeSlotIndices, eeSlotSet])
 
   return (
     <div style={{

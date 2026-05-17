@@ -198,30 +198,34 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
 
-  // Dev cycle mode: only EE_SLOT_COUNT specific puff slots are replaced with
-  // Easter-egg shapes at any time — the rest stay regular clouds so the field
-  // reads clearly. A timer advances the batch every EE_TICK_MS so all shapes
-  // in CLOUD_SHAPES get airtime in turn. EE slot puffs are pinned to the back
-  // half (depth >= EE_BACK_DEPTH) so they never drift up close where they'd
-  // dominate the field and become hard to assess.
+  // EE slots:
+  //   - dev cycle: EE_SLOT_COUNT puffs swap through the shape pool every
+  //     EE_TICK_MS so the user can audit shapes against the active mood.
+  //   - normal mode: ONE slot shows a single random Easter-egg shape that
+  //     doesn't change — the page has one rare-spawn special cloud.
+  const cyclePool = useMemo(() => availableShapes(), [forceEasterEggs])
+  const [staticEeShape] = useState(() => {
+    const pool = availableShapes()
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
+  })
+  const slotCount = forceEasterEggs ? EE_SLOT_COUNT : (staticEeShape ? 1 : 0)
   const eeSlotIndices = useMemo(
-    () => Array.from({ length: EE_SLOT_COUNT }, (_, i) => Math.floor((i + 0.5) * PUFF_COUNT / EE_SLOT_COUNT)),
-    []
+    () => Array.from({ length: slotCount }, (_, i) => Math.floor((i + 0.5) * PUFF_COUNT / Math.max(slotCount, 1))),
+    [slotCount]
   )
   const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
   const [eeCursor, setEeCursor] = useState(0)
-  // Pool of shapes for cycling — excludes everything the picker marked off
-  // (Angel 1-3, Bear 1-2, etc.) so the dev tool doesn't show shapes that
-  // are explicitly off the table.
-  const cyclePool = useMemo(() => availableShapes(), [forceEasterEggs])
   const visibleShapes = forceEasterEggs && cyclePool.length
     ? Array.from({ length: EE_SLOT_COUNT }, (_, slot) => cyclePool[(eeCursor * EE_SLOT_COUNT + slot) % cyclePool.length])
-    : []
+    : (staticEeShape ? [staticEeShape] : [])
+  // Held in a ref so the per-frame raf can read the latest shapes without
+  // having visibleShapes in its deps (that was tearing down the raf every
+  // EE_TICK_MS and teleporting all puffs back to depth=1.0).
+  const visibleShapesRef = useRef(visibleShapes)
+  useEffect(() => { visibleShapesRef.current = visibleShapes })
   const cloudUrlFor = (puffIdx, puffNum) => {
-    if (forceEasterEggs && cyclePool.length) {
-      const slot = eeSlotIndices.indexOf(puffIdx)
-      if (slot >= 0) return shapeUrl(visibleShapes[slot])
-    }
+    const slot = eeSlotIndices.indexOf(puffIdx)
+    if (slot >= 0 && visibleShapes[slot]) return shapeUrl(visibleShapes[slot])
     return `/clouds/cloud-${pad(puffNum)}.webp`
   }
 
@@ -281,17 +285,18 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       // Evenly stratified depths with tiny jitter — ensures the depth
       // distribution starts perfectly uniform so no part of the screen has
       // a "missing wave" of puffs that would leave a visible gap.
-      const isEe = forceEasterEggs && eeSlotSet.has(i)
-      const eeSlotIdx = isEe ? eeSlotIndices.indexOf(i) : -1
+      const isEe = eeSlotSet.has(i)
+      const isEeDev = isEe && forceEasterEggs
+      const eeSlotIdx = isEeDev ? eeSlotIndices.indexOf(i) : -1
       const eePos = eeSlotIdx >= 0 ? EE_SLOT_POSITIONS[eeSlotIdx] : null
-      const depth = isEe
-        ? rand(EE_BACK_DEPTH, 1.0)                              // EE slots seed in the back band so the user sees them small from frame 0
+      // Dev EE puffs spawn back-only so they read small from frame 0.
+      // Prod EE puff gets normal depth — it'll cycle through the scene
+      // like any other puff (just with a shape PNG painted on it).
+      const depth = isEeDev
+        ? rand(EE_BACK_DEPTH, 1.0)
         : ((i + 0.5) / PUFF_COUNT + rand(-0.01, 0.01)) % 1
       const img = pickPuff(lastImg)
       lastImg = img
-      // EE slots get pinned to fixed (xVw, ySkewVh) tuples so they always
-      // sit in the same three exposed upper-screen positions — left, center,
-      // right — instead of drifting into the dense band.
       const xVw = eePos
         ? eePos.xVw
         : X_SPAWN_MIN_VW + (xSlots[i] + 0.5) / PUFF_COUNT * xRange + rand(-2, 2)
@@ -299,9 +304,11 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         depth,
         img,
         speed: 1 / (TRAVEL_SECONDS * rand(0.99, 1.015)),
-        xVw,                                                   // FIXED for lifetime — see tick recycle
-        ySkewVh: eePos ? eePos.ySkewVh : rand(-38, 11),
-        sizeJitter: isEe ? rand(0.22, 0.32) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
+        xVw,
+        ySkewVh: eePos
+          ? eePos.ySkewVh
+          : (isEe ? rand(-30, -10) : rand(-38, 11)),
+        sizeJitter: isEeDev ? rand(0.22, 0.32) : rand(0.25, 1.45),
         xPhase: rand(0, Math.PI * 2),
         xSwayHz: rand(0.04, 0.09),
         xSwayPx: rand(SWAY_PX_MIN, SWAY_PX_MAX),
@@ -413,12 +420,16 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       const vw = window.innerWidth
       const vh = window.innerHeight
 
-      // Pre-pass: EE slot screen centers + clearance radii in px.
+      // Pre-pass: EE slot screen centers + clearance radii. Computed in
+      // both dev (3 cycle slots) and normal (1 static slot) so the single
+      // production EE cloud also gets its breathing room. Reads visible
+      // shapes from a ref so cycle ticks don't tear down this effect.
+      const liveShapes = visibleShapesRef.current
       let eeClearings = null
-      if (forceEasterEggs && eeSlotIndices.length) {
+      if (eeSlotIndices.length) {
         eeClearings = eeSlotIndices.map((idx, slot) => {
           const pos = computeCenterScreenPos(arr[idx], now, vw, vh)
-          const shape = visibleShapes[slot]
+          const shape = liveShapes[slot]
           const clearanceVw = shape ? shapeClearanceVw(shape.filename) : 18
           return { x: pos.x, y: pos.y, radiusPx: (clearanceVw / 100) * vw }
         })
@@ -429,27 +440,30 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         s.depth -= s.speed * delta
         // EE slot puffs recycle early so they stay in the back half — never
         // drift up close where their shape would dominate the field.
-        const isEe = forceEasterEggs && eeSlotSet.has(i)
-        const recycleAt = isEe ? EE_BACK_DEPTH : RECYCLE_AT_DEPTH
+        const isEe = eeSlotSet.has(i)
+        // Dev cycle pins EE slots to fixed top-row positions + recycles
+        // them early so they stay back. In normal mode the lone EE slot
+        // just gets a back-band Y bias but otherwise lives a regular puff
+        // life, so the special cloud sails through the scene naturally.
+        const isEeDev = isEe && forceEasterEggs
+        const recycleAt = isEeDev ? EE_BACK_DEPTH : RECYCLE_AT_DEPTH
         if (s.depth < recycleAt) {
           s.depth = 1.0
           s.img = pickPuff(s.img)
           s.speed = 1 / (TRAVEL_SECONDS * rand(0.99, 1.015))
           s.t0 = now / 1000
-          // KEEP s.xVw — each puff stays at its assigned lateral slot across
-          // recycles. This is what prevents horizontal gaps from emerging
-          // between waves over time (random re-rolling causes clusters/gaps).
-          // EE slots reset to their pinned (xVw, ySkewVh) tuple — they live
-          // in three fixed sparse spots high on the screen.
-          const eeSlotIdx = isEe ? eeSlotIndices.indexOf(i) : -1
+          const eeSlotIdx = isEeDev ? eeSlotIndices.indexOf(i) : -1
           const eePos = eeSlotIdx >= 0 ? EE_SLOT_POSITIONS[eeSlotIdx] : null
           if (eePos) {
             s.xVw = eePos.xVw
             s.ySkewVh = eePos.ySkewVh
+          } else if (isEe) {
+            // Normal-mode EE: keep it in the upper band but don't pin X.
+            s.ySkewVh = rand(-30, -10)
           } else {
             s.ySkewVh = rand(-38, 10)
           }
-          s.sizeJitter = isEe ? rand(0.35, 0.55) : rand(0.25, 1.45)
+          s.sizeJitter = isEeDev ? rand(0.35, 0.55) : rand(0.25, 1.45)
           s.xPhase = rand(0, Math.PI * 2)
           s.xSwayHz = rand(0.04, 0.09)
           s.xSwayPx = rand(SWAY_PX_MIN, SWAY_PX_MAX)
