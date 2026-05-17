@@ -436,15 +436,20 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               opacity: theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
-            <div ref={el => { glowRefs.current[idx] = el }} style={{
-              ...layer,
-              backgroundImage: url,
-              mixBlendMode: 'screen',
-              opacity: theme.glowOpacity,
-              filter: theme.glowFilter,
-              WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
-              maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
-            }} />
+            {/* EE clouds skip the glow layer — its screen-blended cloud
+                PNG paints a bright white halo at the top of the silhouette
+                that reads as a second halo on top of the aura ring. */}
+            {!isEeSlot && (
+              <div ref={el => { glowRefs.current[idx] = el }} style={{
+                ...layer,
+                backgroundImage: url,
+                mixBlendMode: 'screen',
+                opacity: theme.glowOpacity,
+                filter: theme.glowFilter,
+                WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
+                maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
+              }} />
+            )}
           </div>
         )
       })}
