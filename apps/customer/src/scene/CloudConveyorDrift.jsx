@@ -67,9 +67,9 @@ const MOOD_THEMES = {
     // Cool steel-blue crown → pewter mid → warm peach underbelly. Less
     // saturated than Vivid Sunset; glow mask inverted to light underside.
     tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    // Coastal Morning EE — muted cream-peach bottom so it doesn't read
-    // as bright orange against the field.
-    eggTintGradient: 'linear-gradient(180deg, #a8b4c4 0%, #c4c0c0 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
+    // Coastal Morning EE — top stops a smidgen darker (cool shadow on
+    // the unlit crown), muted cream-peach bottom.
+    eggTintGradient: 'linear-gradient(180deg, #98a8bc 0%, #b8b4b4 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
     // Soft underbelly glow — Coastal Morning is bottom-lit, so the
     // mask is inverted (warm light kisses the underside).
     eggGlow: {

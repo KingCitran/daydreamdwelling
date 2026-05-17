@@ -93,9 +93,11 @@ const MOOD_THEMES = {
     // peach-gold underbelly. Less saturated; light blue is the shadow color,
     // not magenta. Glow mask inverted to light the underside.
     tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    // Coastal Morning EE — bottom pulled back to muted cream-peach so
-    // the EE doesn't read as bright orange against the field.
-    eggTintGradient: 'linear-gradient(180deg, #a8b4c4 0%, #c4c0c0 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
+    // Coastal Morning EE — top stops a touch darker (smidgen of shadow
+    // on the unlit crown — Coastal Morning is bottom-lit so the top of
+    // the silhouette sits in the cool shadow). Bottom pulled back to
+    // muted cream-peach so it doesn't read as bright orange.
+    eggTintGradient: 'linear-gradient(180deg, #98a8bc 0%, #b8b4b4 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
     // Soft underbelly glow — Coastal Morning is bottom-lit (sun rising
     // at the horizon), so the glow mask is inverted (transparent at
     // crown, warm at underside). Much softer than the realistic glow
