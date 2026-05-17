@@ -28,9 +28,10 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint: design-team v4 handoff. Pushed much lighter / cloudier so
-    // shape clouds read as soft puffs rather than tinted color blobs.
-    eggTintGradient: 'linear-gradient(180deg, #fde0d0 0%, #fbd0d4 28%, #f4c0d0 56%, #e4b4c8 82%, #d4a8c4 100%)',
+    // EE tint: design-team v5 handoff. Killed the near-white crown stop
+    // (was washing out the silhouette) and pushed one stop deeper at the
+    // bottom for a touch more body. 5 stops at 0/30/60/85/100.
+    eggTintGradient: 'linear-gradient(180deg, #ffd2c5 0%, #f8c0c8 30%, #ecb0d0 60%, #d8a0d4 85%, #c896cc 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -40,7 +41,7 @@ const MOOD_THEMES = {
   'Golden Hour': {
     // Flipped: plum/shadow at top, sunlit cream-gold at bottom (lit from below).
     tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #fbe2b4 0%, #f4cc98 28%, #e8b08c 56%, #d49484 82%, #b87880 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ffe4a8 0%, #ffcc80 30%, #f8a878 60%, #e08858 85%, #c87858 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
     shadeOpacity: 0.86,
     shadeFilter:  'contrast(1.4) brightness(1.0)',
@@ -51,7 +52,7 @@ const MOOD_THEMES = {
     // Moon high → cloud crowns lit (silver), undersides deep navy. Low contrast,
     // dim glow — moonlight is ~400,000× dimmer than sun.
     tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #dce0ec 0%, #c4ccdc 28%, #a4b0c8 56%, #8090b0 82%, #6c7c9c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #d4dceb 0%, #b0bcd4 30%, #8898bc 60%, #6c7ca0 85%, #5a6c94 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
     shadeOpacity: 0.78,
     shadeFilter:  'contrast(1.55) brightness(0.92)',
@@ -64,7 +65,7 @@ const MOOD_THEMES = {
     // no warm/yellow stops (would muddy the pink). Lower shade contrast for
     // a softer pillowy read.
     tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #fde2e4 0%, #fbcad4 28%, #f0b4c4 56%, #e4a4b8 82%, #d094ac 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ffe0e4 0%, #fccad4 30%, #f4b0c8 60%, #e89cc0 85%, #d888b4 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
     shadeOpacity: 0.82,
     shadeFilter:  'contrast(1.25) brightness(1.05)',
@@ -78,7 +79,7 @@ const MOOD_THEMES = {
     // peach-gold underbelly. Less saturated; light blue is the shadow color,
     // not magenta. Glow mask inverted to light the underside.
     tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #cdd4dc 0%, #cccdd0 28%, #d4c8bc 56%, #ddb8a4 82%, #d8a890 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #a0b0c4 0%, #c4c0c0 25%, #d8c8b4 55%, #ecc4a4 80%, #f4b890 100%)',
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 12px 22px rgba(40,70,110,0.35))',
     shadeOpacity: 0.62,
     shadeFilter:  'contrast(1.15) brightness(1.08)',
@@ -92,7 +93,7 @@ const MOOD_THEMES = {
     // crown, green-tinted body, deeper forest-green underbelly reflecting the
     // leaves below. Bright, optimistic, fresh.
     tintGradient: 'linear-gradient(180deg, #fffaee 0%, #f8f0d8 15%, #ece6c8 35%, #d6e0b8 60%, #b8c8a0 80%, #8eaf7a 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #f4e0a8 0%, #e8cc94 20%, #d8cca8 44%, #c4c4a8 64%, #a8b894 84%, #94ac8c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ffdc78 0%, #f8d058 30%, #ecdca0 60%, #d0d8a4 85%, #b8c898 100%)',
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,210,90,0.32)) drop-shadow(0 10px 22px rgba(120,160,90,0.30))',
     // v3 dropped shade opacity (was 0.78) so the green isn't crushed,
     // and warmed the glow (sepia 0.18→0.35, saturate 1.15→1.4) so
@@ -108,7 +109,7 @@ const MOOD_THEMES = {
     // cyan reflection from below. Amplified drop-shadow stack so each cloud
     // bleeds significantly more colored light into the surrounding sky.
     tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    eggTintGradient: 'linear-gradient(172deg, #f098e4 0%, #d878d0 18%, #b060c4 40%, #8854ac 62%, #6c489c 82%, #5c4894 100%)',
+    eggTintGradient: 'linear-gradient(172deg, #ec80d4 0%, #c860c8 30%, #a050bc 60%, #7044a8 85%, #543a98 100%)',
     tintShadow:   'drop-shadow(0 -8px 22px rgba(255,80,220,0.70)) drop-shadow(0 -5px 55px rgba(255,40,180,0.45)) drop-shadow(0 14px 32px rgba(80,160,255,0.55)) drop-shadow(0 6px 75px rgba(80,140,255,0.38)) drop-shadow(0 0 90px rgba(180,40,220,0.32))',
     shadeOpacity: 0.75,
     shadeFilter:  'contrast(1.4) brightness(0.95)',
@@ -123,7 +124,7 @@ const MOOD_THEMES = {
     // is INVERTED so the screened highlight lands on the cloud's underside.
     // Gold/yellow rim pulled back to amber so the warm zone doesn't dominate.
     tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #7c6890 0%, #a06090 22%, #c46078 44%, #e07064 64%, #e8804c 82%, #e89c4c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #5a6890 0%, #8a5890 25%, #c45878 50%, #f88060 75%, #ffb850 100%)',
     // Upward bloom dialed back (was -4px/16px) so it doesn't clip the drift
     // band's top edge.
     tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 14px 24px rgba(20,28,80,0.45))',
