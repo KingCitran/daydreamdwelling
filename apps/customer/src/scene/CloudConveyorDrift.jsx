@@ -16,11 +16,12 @@ const EE_TICK_MS = 3500
 // every mood not listed here renders raw photographic clouds.
 const MOOD_THEMES = {
   'Dream State': {
-    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // v7c Dream-State spec — 6-stop gradient opening with lifted cream
-    // highlight so the EE crown reads sun-lit. Paired with a soft
-    // eggGlow layer for the lit-cloud feel (see below).
-    eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f4d8d4 12%, #ecc8cc 32%, #dcb8c8 55%, #c8a8c4 80%, #b49cba 100%)',
+    // Saturated v2: mid pink + lavender stops pushed more vivid.
+    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffc8c0 18%, #f494c8 40%, #c478d4 62%, #8044c8 85%, #5c2cb8 100%)',
+    // EE tint also bumped to keep the same chromatic relationship to
+    // the realistic gradient — cream crown, vivid mid pink + lavender,
+    // deeper lavender shadow.
+    eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f8d0d4 12%, #ecb4c8 32%, #d094c4 55%, #b478c0 80%, #9c5cb8 100%)',
     eggShadeOpacity: 0.35,
     eggGlow: {
       opacity: 0.22,
