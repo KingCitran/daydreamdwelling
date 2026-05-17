@@ -28,10 +28,11 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint bumped to more saturated mid pinks + lavenders so the
-    // shape clouds pop against the pastel realistic field. Cream crown
-    // kept lifted so the EE silhouette still reads sun-lit on top.
-    eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f8d0d4 12%, #ecb4c8 32%, #d094c4 55%, #b478c0 80%, #9c5cb8 100%)',
+    // EE tint pulled toward purple — the pink-leaning mid stops were
+    // reading too warm against the purple Dream State sky. Pinks now
+    // sit closer to lavender, and the bottom half is purple-dominant
+    // so the silhouette belongs in the same chromatic space as the sky.
+    eggTintGradient: 'linear-gradient(180deg, #fbe2e8 0%, #e8c4d4 15%, #cc9cc4 35%, #b078c4 60%, #9058b8 80%, #6c40a8 100%)',
     eggShadeOpacity: 0.35,
     // Bringing back a glow layer FOR EE specifically — earlier "no glow"
     // rule made EE clouds look dead next to realistic ones. Much softer
