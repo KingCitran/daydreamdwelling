@@ -597,26 +597,12 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 </div>
               )
             })()}
-            {/* Colored aura — only on EE-slot puffs. Earlier version
-                screen-blended the raw cloud PNG, but the PNG is mostly
-                white so the halo bleached to white. This version uses
-                the mood's tintGradient masked by the same silhouette,
-                blurred and expanded — so the aura is the cloud's COLOR
-                in soft form, not a white glow. Makes the EE shape stand
-                out without washing it out. */}
-            {isEeSlot && (
-              <div style={{
-                position: 'absolute', inset: '-12%',
-                WebkitMaskImage: url, maskImage: url,
-                WebkitMaskSize: 'contain', maskSize: 'contain',
-                WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
-                WebkitMaskPosition: 'center', maskPosition: 'center',
-                background: tintGradient,
-                filter: 'blur(18px)',
-                opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.55,
-                pointerEvents: 'none',
-              }} />
-            )}
+            {/* No aura on EE clouds — every halo variant we've tried
+                (screen-blended white PNG, tinted blurred silhouette)
+                reads as a visible ring outside the cloud body. The PNG's
+                own fluffy alpha edge + tint + shade give the silhouette
+                enough cloud quality; the EE shape stands out because the
+                silhouette IS the easter egg, not because of a glow. */}
             <div ref={el => { tintRefs.current[idx] = el }} style={{
               ...layer,
               WebkitMaskImage: url, maskImage: url,
