@@ -397,19 +397,23 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
                 </div>
               )
             })()}
-            {/* Fluff halo — only on EE-slot clouds. Realistic clouds stay
-                without the screen-blended bloom; only the special Easter-egg
-                shape carries the soft aura. */}
+            {/* Colored aura — only on EE-slot clouds. Earlier version
+                screen-blended the raw cloud PNG which bleached the halo
+                to white (PNG is mostly white pixels). This version uses
+                the mood's tintGradient masked by the same silhouette,
+                blurred + expanded — so the aura is the cloud's COLOR
+                in soft form. EE shape stands out by silhouette, not by
+                a bright white glow. */}
             {isEeSlot && (
               <div style={{
-                position: 'absolute', inset: '-10%',
-                backgroundImage: url,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-                backgroundSize: 'contain',
-                filter: 'blur(22px) brightness(1.08) saturate(0.7)',
-                opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.6,
-                mixBlendMode: 'screen',
+                position: 'absolute', inset: '-12%',
+                WebkitMaskImage: url, maskImage: url,
+                WebkitMaskSize: 'contain', maskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center', maskPosition: 'center',
+                background: tintGradient,
+                filter: 'blur(18px)',
+                opacity: typeof theme.fluffOpacity === 'number' ? theme.fluffOpacity : 0.55,
                 pointerEvents: 'none',
               }} />
             )}
