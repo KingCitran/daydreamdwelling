@@ -14,11 +14,11 @@ import { availableShapes, shapeUrl } from './cloudShapes'
 // actually tell them apart.
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
-const EE_BACK_DEPTH = 0.78          // recycle EE slots when they dip below this
+const EE_BACK_DEPTH = 0.84          // recycle EE slots when they dip below this — way back
 const EE_SLOT_POSITIONS = [
-  { xVw: 18, ySkewVh: -52 },        // top-left, well above the cloud band
-  { xVw: 50, ySkewVh: -55 },        // top-center, highest point
-  { xVw: 82, ySkewVh: -52 },        // top-right, mirror of left
+  { xVw: 16, ySkewVh: -62 },        // top-left, well above the cloud band
+  { xVw: 50, ySkewVh: -66 },        // top-center, highest point
+  { xVw: 84, ySkewVh: -62 },        // top-right, mirror of left
 ]
 
 // Per-mood cloud theming. Only moods listed here get the 3-layer themed
@@ -301,7 +301,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
         speed: 1 / (TRAVEL_SECONDS * rand(0.99, 1.015)),
         xVw,                                                   // FIXED for lifetime — see tick recycle
         ySkewVh: eePos ? eePos.ySkewVh : rand(-38, 11),
-        sizeJitter: isEe ? rand(0.35, 0.55) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
+        sizeJitter: isEe ? rand(0.22, 0.32) : rand(0.25, 1.45), // EE slots shrink so they read as far/atmospheric
         xPhase: rand(0, Math.PI * 2),
         xSwayHz: rand(0.04, 0.09),
         xSwayPx: rand(SWAY_PX_MIN, SWAY_PX_MAX),
@@ -403,8 +403,12 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
 
     // Screen-space radius around each EE slot inside which regular puffs
     // fully fade out — gives the shape clouds an exposed, open-sky frame.
-    // Big enough that the silhouette has a clear halo at any cloud density.
-    const EE_BREATHING_RADIUS = 640
+    // EE_BREATHING_INNER is the percentage of the radius that's a HARD
+    // clearing (puffs fully hidden) — the outer band linearly fades back
+    // to full opacity. Hard inner zone is what stops shapes from looking
+    // buried inside a partially-transparent halo of regular clouds.
+    const EE_BREATHING_RADIUS = 720
+    const EE_BREATHING_INNER  = 0.78
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
@@ -465,7 +469,9 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
           }
         }
         // Breathing room: regular puffs near an EE slot fade out so the
-        // shape gets exposed open-sky space around it.
+        // shape gets exposed open-sky space around it. Hard inner clearing
+        // (no partial-transparency halo) + soft outer fade so the edge
+        // doesn't read as a hard circle.
         let breathing = 1
         if (eePositions && !isEe) {
           const me = computeCenterScreenPos(s, now, vw, vh)
@@ -475,7 +481,10 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
             const dist = Math.sqrt(dx * dx + dy * dy)
             if (dist < EE_BREATHING_RADIUS) {
               const local = dist / EE_BREATHING_RADIUS              // 0..1
-              breathing = Math.min(breathing, local)
+              const fade = local < EE_BREATHING_INNER
+                ? 0                                                  // hard hidden inside the inner ring
+                : (local - EE_BREATHING_INNER) / (1 - EE_BREATHING_INNER)
+              breathing = Math.min(breathing, fade)
             }
           }
         }
