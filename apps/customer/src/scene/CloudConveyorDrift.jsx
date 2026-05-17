@@ -417,7 +417,10 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
-              opacity: theme.shadeOpacity,
+              // EE clouds get half-strength shade — the PNG's blue-gray
+              // photo crevices multiply with the lighter egg tint and
+              // read as a purple/blue cast (very obvious in Blush Hour).
+              opacity: isEeSlot ? theme.shadeOpacity * 0.5 : theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
             {/* EE clouds skip the glow layer — its screen-blended cloud
