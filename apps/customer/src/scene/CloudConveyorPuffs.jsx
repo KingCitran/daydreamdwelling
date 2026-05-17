@@ -28,13 +28,20 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint: design-team v7b Dream-State spec — pale throughout, warm
-    // crown drifting to muted lavender shadow (mirrors the realistic
-    // gradient's arc, just at pale-pastel intensity). Paired with
-    // eggShadeOpacity 0.35 (vs default half-of-realistic 0.44) so the
-    // overall body stays soft.
-    eggTintGradient: 'linear-gradient(180deg, #f4d8d4 0%, #ecc8cc 25%, #dcb8c8 50%, #c8a8c4 75%, #b49cba 100%)',
+    // EE tint: v7c Dream-State spec — 6-stop gradient, opens with a
+    // lifted cream highlight (#fdebe2) so the crown reads as sun-lit,
+    // resolves into the same pale lavender shadow path as v7b.
+    eggTintGradient: 'linear-gradient(180deg, #fdebe2 0%, #f4d8d4 12%, #ecc8cc 32%, #dcb8c8 55%, #c8a8c4 80%, #b49cba 100%)',
     eggShadeOpacity: 0.35,
+    // Bringing back a glow layer FOR EE specifically — earlier "no glow"
+    // rule made EE clouds look dead next to realistic ones. Much softer
+    // than the realistic glow (0.22 vs 0.40 opacity, tighter mask that
+    // kisses only the crown, never fills the upper half).
+    eggGlow: {
+      opacity: 0.22,
+      filter: 'brightness(1.25) contrast(0.95)',
+      mask: 'linear-gradient(180deg, #fff 0%, #fff 18%, rgba(255,255,255,0.5) 35%, transparent 60%)',
+    },
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -631,12 +638,12 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 : theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
-            {/* EE clouds skip the glow layer — its screen-blended cloud
-                PNG paints a bright white halo at the top of the silhouette
-                that reads as a second halo on top of the aura ring. Aura
-                + tint + shade gives the EE shape its mood color + shadow
-                depth without that bright bloom. */}
-            {!isEeSlot && (
+            {/* Realistic clouds: full glow layer (theme.glow*). EE clouds:
+                skip glow by default, BUT if the mood ships an `eggGlow`
+                override (softer opacity + tighter mask that kisses only
+                the crown), use that — keeps EE shapes from looking dead
+                flat next to lit realistic clouds. */}
+            {!isEeSlot ? (
               <div ref={el => { glowRefs.current[idx] = el }} style={{
                 ...layer,
                 backgroundImage: url,
@@ -646,7 +653,17 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
                 WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
                 maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
               }} />
-            )}
+            ) : theme.eggGlow ? (
+              <div style={{
+                ...layer,
+                backgroundImage: url,
+                mixBlendMode: 'screen',
+                opacity: theme.eggGlow.opacity,
+                filter: theme.eggGlow.filter,
+                WebkitMaskImage: theme.eggGlow.mask,
+                maskImage: theme.eggGlow.mask,
+              }} />
+            ) : null}
           </div>
         )
       })}
