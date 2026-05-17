@@ -17,10 +17,11 @@ const EE_TICK_MS = 3500
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // v6 egg tints — dustier / softer palette to sit in the chromatic
-    // neighborhood of the realistic clouds without pushing saturation
-    // past what photo clouds naturally show in the same sky.
-    eggTintGradient: 'linear-gradient(180deg, #f4dad4 0%, #ecc8d0 25%, #dcb8cc 50%, #c8a8c8 75%, #b498bc 100%)',
+    // v7 Dream-State spec — runs WARM throughout (no lavender stops).
+    // PNG's natural blue-grey crevices via shade already supply the cool
+    // contrast; adding cool gradient stops on top stacks cools and reads
+    // as dark dusty-grey shadow that doesn't belong in this sky.
+    eggTintGradient: 'linear-gradient(180deg, #f8dccc 0%, #f4cabc 25%, #ecb8b4 50%, #dca4a8 75%, #c08c98 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',

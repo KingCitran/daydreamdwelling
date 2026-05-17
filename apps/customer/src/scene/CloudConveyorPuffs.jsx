@@ -28,10 +28,12 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint: design-team v6 handoff. Dustier / softer palette — sits in
-    // the same chromatic neighborhood as the realistic clouds but never
-    // pushes saturation past what photo clouds naturally show.
-    eggTintGradient: 'linear-gradient(180deg, #f4dad4 0%, #ecc8d0 25%, #dcb8cc 50%, #c8a8c8 75%, #b498bc 100%)',
+    // EE tint: design-team v7 Dream-State spec. Runs WARM throughout —
+    // no lavender stops. The cloud PNG's natural blue-grey crevices
+    // (coming through via the shade multiply) already supply enough
+    // cool contrast; stacking cool gradient stops on top reads as
+    // dark dusty-grey shadow that doesn't belong in a Dream State sky.
+    eggTintGradient: 'linear-gradient(180deg, #f8dccc 0%, #f4cabc 25%, #ecb8b4 50%, #dca4a8 75%, #c08c98 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
