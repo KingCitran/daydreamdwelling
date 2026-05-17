@@ -401,16 +401,9 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       }
     }
 
-    // Dev mode thinning: only the very-foreground puffs (depth < this) are
-    // hidden — they're the screen-spanning blobs that would overlap an EE
-    // slot from far away. Mid + back puffs stay so the sky retains its
-    // regular cloud cover and the EE shapes have atmospheric context.
-    const EE_THIN_DEPTH = 0.40
-    // Around each EE slot itself, this screen-space breathing radius
-    // clears nearby clouds out of the silhouette area. Hard inner
-    // clearing + soft outer fade.
-    const EE_BREATHING_RADIUS = 580
-    const EE_BREATHING_INNER  = 0.65
+    // Puffs EE tuning — at the baseline we don't thin or fade the regular
+    // puff field; the user wants to start from "normal field + 3 pinned
+    // EE shapes" and add isolation incrementally from there.
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)
@@ -418,13 +411,6 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       const arr = stateRef.current
       const vw = window.innerWidth
       const vh = window.innerHeight
-
-      // Pre-pass: compute EE slot screen centers so the per-puff breathing
-      // calculation in apply() can fade out neighbors.
-      let eePositions = null
-      if (forceEasterEggs && eeSlotIndices.length) {
-        eePositions = eeSlotIndices.map(idx => computeCenterScreenPos(arr[idx], now, vw, vh))
-      }
 
       for (let i = 0; i < arr.length; i++) {
         const s = arr[i]
@@ -470,37 +456,7 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
             wrap.src = u
           }
         }
-        // Breathing room: in EE dev mode the surrounding cloud field gets
-        // thinned out aggressively so the shape clouds aren't competing
-        // with overlapping puff masses.
-        // 1) Any non-EE puff with depth < EE_THIN_DEPTH is fully hidden —
-        //    that wipes out the foreground / mid clouds whose bodies
-        //    extend across most of the screen and can intrude into an EE
-        //    silhouette even when their CENTERS are far from it.
-        // 2) Among the remaining back puffs, the screen-space breathing
-        //    radius still applies (hard inner clearing + soft outer fade)
-        //    so even distant clouds clear out near the EE shape.
-        let breathing = 1
-        if (eePositions && !isEe) {
-          if (s.depth < EE_THIN_DEPTH) {
-            breathing = 0
-          } else {
-            const me = computeCenterScreenPos(s, now, vw, vh)
-            for (const ee of eePositions) {
-              const dx = me.x - ee.x
-              const dy = me.y - ee.y
-              const dist = Math.sqrt(dx * dx + dy * dy)
-              if (dist < EE_BREATHING_RADIUS) {
-                const local = dist / EE_BREATHING_RADIUS
-                const fade = local < EE_BREATHING_INNER
-                  ? 0
-                  : (local - EE_BREATHING_INNER) / (1 - EE_BREATHING_INNER)
-                breathing = Math.min(breathing, fade)
-              }
-            }
-          }
-        }
-        apply(i, s, now, vw, vh, breathing)
+        apply(i, s, now, vw, vh, 1)
       }
       raf = requestAnimationFrame(tick)
     }

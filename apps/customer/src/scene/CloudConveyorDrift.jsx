@@ -7,17 +7,10 @@ import { CLOUD_SHAPES, availableShapes, shapeUrl } from './cloudShapes'
 const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
 
-// Drift-specific EE tuning. Drift doesn't have a depth concept, just a per-
-// cloud scale (0.45 small-back .. 4.80 huge-foreground). For the cycle:
-// - Pin the 3 EE slots to fixed (xVw, yVh, scale) tuples high on the screen.
-// - Hide only the very largest clouds (scale >= EE_HIDE_SCALE) so the rest
-//   of the sky still has plenty of ambient cloud cover — we don't want a
-//   void around each shape, just enough exposure to read the silhouette.
-// - Around the EE slot itself, a screen-space breathing radius pushes
-//   nearby clouds out so the shape doesn't get overlapped.
-const EE_HIDE_SCALE = 2.8                  // only hide layers 3-4 (the big foreground ones)
-const EE_BREATHING_RADIUS = 580
-const EE_BREATHING_INNER  = 0.65
+// Drift EE tuning — start from the BASELINE: keep the regular cloud field
+// 100% intact when the cycle is on, just pin three EE slots to fixed
+// upper-screen positions so they're easy to find. Any isolation (breathing
+// fade, foreground hide) gets layered back in cautiously from here.
 const EE_SLOT_POSITIONS_DRIFT = [
   { xStart: 18, yVh: 12, scale: 0.65 },
   { xStart: 50, yVh:  8, scale: 0.70 },
@@ -212,20 +205,6 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
     const animate = () => {
       tick += 1
       const nodes = cloudsRef.current
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-
-      // Pre-pass: EE slot screen centers for breathing-room math.
-      let eePositions = null
-      if (forceEasterEggs) {
-        eePositions = eeSlotIndices.map(idx => {
-          const c = clouds[idx]
-          const xRaw = c.xStart + tick * c.speed
-          const xv = ((xRaw % 160) + 160) % 160 - 30
-          return { x: (xv / 100) * vw, y: (c.y / 100) * vh }
-        })
-      }
-
       for (let i = 0; i < clouds.length; i++) {
         const c = clouds[i]
         const node = nodes[i]
@@ -237,37 +216,12 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
           `translate3d(${x}vw, ${c.y + yOff}vh, 0) scale(${c.scale})${c.flip ? ' scaleX(-1)' : ''}`
         // CSS var for drape counter-scale (uniform on-screen drape size).
         node.style.setProperty('--cs', String(c.scale))
-
-        // EE breathing room (only when dev cycle is on).
-        const isEe = forceEasterEggs && eeSlotSet.has(i)
-        let breathing = 1
-        if (forceEasterEggs && !isEe) {
-          if (c.scale >= EE_HIDE_SCALE) {
-            breathing = 0                         // hide all foreground / mid clouds
-          } else if (eePositions) {
-            const myScreenX = (x / 100) * vw
-            const myScreenY = ((c.y + yOff) / 100) * vh
-            for (const ee of eePositions) {
-              const dx = myScreenX - ee.x
-              const dy = myScreenY - ee.y
-              const dist = Math.sqrt(dx * dx + dy * dy)
-              if (dist < EE_BREATHING_RADIUS) {
-                const local = dist / EE_BREATHING_RADIUS
-                const fade = local < EE_BREATHING_INNER
-                  ? 0
-                  : (local - EE_BREATHING_INNER) / (1 - EE_BREATHING_INNER)
-                breathing = Math.min(breathing, fade)
-              }
-            }
-          }
-        }
-        node.style.opacity = String(c.opacity * breathing)
       }
       raf = requestAnimationFrame(animate)
     }
     raf = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(raf)
-  }, [clouds, forceEasterEggs, eeSlotIndices, eeSlotSet])
+  }, [clouds])
 
   return (
     <div style={{
