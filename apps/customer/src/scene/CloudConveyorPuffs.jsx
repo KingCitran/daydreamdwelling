@@ -28,10 +28,10 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint: compressed lightness range from the design-team v2 handoff —
-    // brightest top stops pulled down, darkest bottom stops pulled up. Same
-    // saturated mid color so the shape still reads as "this mood".
-    eggTintGradient: 'linear-gradient(180deg, #f8d4b4 0%, #f4c0b8 18%, #ecb4c8 40%, #c89cd0 62%, #a489cc 85%, #8a72bc 100%)',
+    // EE tint: design-team v3 handoff. Further-compressed lightness range
+    // (5 stops, all in the saturated mid). Apply blur(1px) on the EE tint
+    // layer so the silhouette edges soften toward a cloud-like read.
+    eggTintGradient: 'linear-gradient(180deg, #ecc8b4 0%, #e8bcc0 22%, #dcb0c8 48%, #c098c4 72%, #ac8cbc 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -41,7 +41,7 @@ const MOOD_THEMES = {
   'Golden Hour': {
     // Flipped: plum/shadow at top, sunlit cream-gold at bottom (lit from below).
     tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #f8dca0 0%, #f0c478 18%, #e89858 40%, #c86848 62%, #a04855 85%, #743a55 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ecc888 0%, #e0a868 22%, #c87850 48%, #a85856 72%, #884858 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
     shadeOpacity: 0.86,
     shadeFilter:  'contrast(1.4) brightness(1.0)',
@@ -52,7 +52,7 @@ const MOOD_THEMES = {
     // Moon high → cloud crowns lit (silver), undersides deep navy. Low contrast,
     // dim glow — moonlight is ~400,000× dimmer than sun.
     tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #c8d0e0 0%, #b0bcd0 20%, #8090b4 42%, #586484 64%, #384878 86%, #283860 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #b8c0d4 0%, #a0acc4 22%, #7c8ca8 48%, #5e6c8c 72%, #404e74 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
     shadeOpacity: 0.78,
     shadeFilter:  'contrast(1.55) brightness(0.92)',
@@ -65,7 +65,7 @@ const MOOD_THEMES = {
     // no warm/yellow stops (would muddy the pink). Lower shade contrast for
     // a softer pillowy read.
     tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #f8d8d4 0%, #f8c4d0 18%, #f0a8c4 40%, #d878a0 62%, #b06088 85%, #88406c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ecc4c8 0%, #ecb0c4 22%, #d894b0 48%, #b87898 72%, #985878 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
     shadeOpacity: 0.82,
     shadeFilter:  'contrast(1.25) brightness(1.05)',
@@ -79,7 +79,7 @@ const MOOD_THEMES = {
     // peach-gold underbelly. Less saturated; light blue is the shadow color,
     // not magenta. Glow mask inverted to light the underside.
     tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #7888a4 0%, #8a9ab0 20%, #b4b4b8 42%, #d0c0ac 62%, #d8ac8c 80%, #d89878 92%, #d8a884 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #8898ac 0%, #98a4b4 22%, #b4b8b8 46%, #ccbcac 70%, #d0a890 92%, #cc9c84 100%)',
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 12px 22px rgba(40,70,110,0.35))',
     shadeOpacity: 0.62,
     shadeFilter:  'contrast(1.15) brightness(1.08)',
@@ -93,7 +93,7 @@ const MOOD_THEMES = {
     // crown, green-tinted body, deeper forest-green underbelly reflecting the
     // leaves below. Bright, optimistic, fresh.
     tintGradient: 'linear-gradient(180deg, #fffaee 0%, #f8f0d8 15%, #ece6c8 35%, #d6e0b8 60%, #b8c8a0 80%, #8eaf7a 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #f0dca0 0%, #ecc878 14%, #e0b858 28%, #ddd0a8 44%, #d4d4bc 58%, #b4c094 76%, #94ac80 90%, #708868 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #e4c890 0%, #d8b06c 18%, #ccc09c 38%, #c4c4b0 56%, #a8b890 74%, #88a07c 92%, #7c9474 100%)',
     tintShadow:   'drop-shadow(0 10px 22px rgba(120,160,90,0.30)) drop-shadow(0 4px 14px rgba(255,240,180,0.32))',
     shadeOpacity: 0.78,
     shadeFilter:  'contrast(1.30) brightness(1.02)',
@@ -105,7 +105,7 @@ const MOOD_THEMES = {
     // cyan reflection from below. Amplified drop-shadow stack so each cloud
     // bleeds significantly more colored light into the surrounding sky.
     tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    eggTintGradient: 'linear-gradient(172deg, #dc70c8 0%, #c860c8 10%, #a050c4 22%, #7448b4 38%, #5a3898 54%, #44288c 70%, #382878 84%, #2a2870 94%, #344884 100%)',
+    eggTintGradient: 'linear-gradient(172deg, #c468c0 0%, #b85cc0 14%, #9450bc 30%, #6c48ac 48%, #543c9c 66%, #443488 82%, #3c3880 100%)',
     tintShadow:   'drop-shadow(0 -8px 22px rgba(255,80,220,0.70)) drop-shadow(0 -5px 55px rgba(255,40,180,0.45)) drop-shadow(0 14px 32px rgba(80,160,255,0.55)) drop-shadow(0 6px 75px rgba(80,140,255,0.38)) drop-shadow(0 0 90px rgba(180,40,220,0.32))',
     shadeOpacity: 0.75,
     shadeFilter:  'contrast(1.4) brightness(0.95)',
@@ -120,7 +120,7 @@ const MOOD_THEMES = {
     // is INVERTED so the screened highlight lands on the cloud's underside.
     // Gold/yellow rim pulled back to amber so the warm zone doesn't dominate.
     tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #3a4878 0%, #5a4888 20%, #88488a 36%, #c84478 52%, #e85a78 66%, #ec7050 78%, #e89040 87%, #e8a838 94%, #e8b848 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #4c5484 0%, #6c5090 22%, #8e5090 38%, #c45878 54%, #dc6478 68%, #dc7860 80%, #d88a4c 92%, #d49850 100%)',
     // Upward bloom dialed back (was -4px/16px) so it doesn't clip the drift
     // band's top edge.
     tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 14px 24px rgba(20,28,80,0.45))',
@@ -584,7 +584,9 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
               WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
               WebkitMaskPosition: 'center', maskPosition: 'center',
               background: tintGradient,
-              filter: theme.tintShadow,
+              // EE shapes get a 1px blur on the tint per design-team v3 handoff
+              // — softens the edge so the silhouette reads as cloud, not cutout.
+              filter: isEeSlot ? `blur(1px) ${theme.tintShadow}` : theme.tintShadow,
             }} />
             <div ref={el => { shadeRefs.current[idx] = el }} style={{
               ...layer,

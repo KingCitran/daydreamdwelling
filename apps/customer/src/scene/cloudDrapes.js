@@ -159,6 +159,7 @@ export const DRAPE_POOL = buildActivePool()
 const SCENE_CURATION_KEYS = [
   'assetAnchors', 'vineExclude', 'floralExclude',
   'shapeExclude', 'flatBottomClouds', 'shapeExcludeByMood',
+  'eeShapeConfig',
 ]
 
 export async function syncCurationFromSupabase(supabase) {
