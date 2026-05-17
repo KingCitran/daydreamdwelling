@@ -70,12 +70,12 @@ const MOOD_THEMES = {
     // Coastal Morning EE — top stops a smidgen darker (cool shadow on
     // the unlit crown), muted cream-peach bottom.
     eggTintGradient: 'linear-gradient(180deg, #98a8bc 0%, #b8b4b4 25%, #d4ccb8 55%, #dcc8b0 80%, #d8b89c 100%)',
-    // Soft underbelly glow — Coastal Morning is bottom-lit, so the
-    // mask is inverted (warm light kisses the underside).
+    // Underbelly glow — bumped to paint more white-cream highlights
+    // (opacity 0.34, less sepia, wider mask).
     eggGlow: {
-      opacity: 0.20,
-      filter: 'brightness(1.25) contrast(0.9) sepia(0.18) saturate(1.1)',
-      mask: 'linear-gradient(180deg, transparent 40%, rgba(255,255,255,0.5) 65%, #fff 82%, #fff 100%)',
+      opacity: 0.34,
+      filter: 'brightness(1.4) contrast(0.9) sepia(0.08) saturate(1.05)',
+      mask: 'linear-gradient(180deg, transparent 28%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.85) 72%, #fff 100%)',
     },
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 12px 22px rgba(40,70,110,0.35))',
     shadeOpacity: 0.62,
