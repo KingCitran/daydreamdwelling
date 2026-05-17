@@ -17,11 +17,11 @@ const EE_TICK_MS = 3500
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // v7 Dream-State spec — runs WARM throughout (no lavender stops).
-    // PNG's natural blue-grey crevices via shade already supply the cool
-    // contrast; adding cool gradient stops on top stacks cools and reads
-    // as dark dusty-grey shadow that doesn't belong in this sky.
-    eggTintGradient: 'linear-gradient(180deg, #f8dccc 0%, #f4cabc 25%, #ecb8b4 50%, #dca4a8 75%, #c08c98 100%)',
+    // v7b Dream-State spec — pale throughout, warm cream-pink crown
+    // drifting to muted lavender shadow. Paired with eggShadeOpacity
+    // 0.35 (vs default 0.44) so the body stays soft.
+    eggTintGradient: 'linear-gradient(180deg, #f4d8d4 0%, #ecc8cc 25%, #dcb8c8 50%, #c8a8c4 75%, #b49cba 100%)',
+    eggShadeOpacity: 0.35,
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -418,10 +418,11 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
-              // EE clouds get half-strength shade — the PNG's blue-gray
-              // photo crevices multiply with the lighter egg tint and
-              // read as a purple/blue cast (very obvious in Blush Hour).
-              opacity: isEeSlot ? theme.shadeOpacity * 0.5 : theme.shadeOpacity,
+              // EE shade defaults to half the realistic strength.
+              // Per-mood `eggShadeOpacity` overrides when needed.
+              opacity: isEeSlot
+                ? (typeof theme.eggShadeOpacity === 'number' ? theme.eggShadeOpacity : theme.shadeOpacity * 0.5)
+                : theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
             {/* EE clouds skip the glow layer — its screen-blended cloud

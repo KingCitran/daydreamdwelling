@@ -28,12 +28,13 @@ const EE_SLOT_POSITIONS = [
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // EE tint: design-team v7 Dream-State spec. Runs WARM throughout —
-    // no lavender stops. The cloud PNG's natural blue-grey crevices
-    // (coming through via the shade multiply) already supply enough
-    // cool contrast; stacking cool gradient stops on top reads as
-    // dark dusty-grey shadow that doesn't belong in a Dream State sky.
-    eggTintGradient: 'linear-gradient(180deg, #f8dccc 0%, #f4cabc 25%, #ecb8b4 50%, #dca4a8 75%, #c08c98 100%)',
+    // EE tint: design-team v7b Dream-State spec — pale throughout, warm
+    // crown drifting to muted lavender shadow (mirrors the realistic
+    // gradient's arc, just at pale-pastel intensity). Paired with
+    // eggShadeOpacity 0.35 (vs default half-of-realistic 0.44) so the
+    // overall body stays soft.
+    eggTintGradient: 'linear-gradient(180deg, #f4d8d4 0%, #ecc8cc 25%, #dcb8c8 50%, #c8a8c4 75%, #b49cba 100%)',
+    eggShadeOpacity: 0.35,
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -621,12 +622,13 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
-              // EE clouds get half the shade strength — the cloud PNG's
-              // natural blue-gray crevices were multiplying with the
-              // lighter egg tint and reading as a purple/blue cast (very
-              // obvious in Blush Hour). Half-strength keeps body depth
-              // without the cool shadow shift.
-              opacity: isEeSlot ? theme.shadeOpacity * 0.5 : theme.shadeOpacity,
+              // EE shade defaults to half the realistic strength so the
+              // photo's blue-grey crevices don't shift the egg tint cool.
+              // Per-mood `eggShadeOpacity` overrides when a mood needs
+              // something other than half (Dream State wants 0.35).
+              opacity: isEeSlot
+                ? (typeof theme.eggShadeOpacity === 'number' ? theme.eggShadeOpacity : theme.shadeOpacity * 0.5)
+                : theme.shadeOpacity,
               filter: theme.shadeFilter,
             }} />
             {/* EE clouds skip the glow layer — its screen-blended cloud
