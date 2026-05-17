@@ -8,14 +8,10 @@ const EE_SLOT_COUNT = 3
 const EE_TICK_MS = 3500
 
 // Drift EE tuning — start from the BASELINE: keep the regular cloud field
-// 100% intact when the cycle is on, just pin three EE slots to fixed
-// upper-screen positions so they're easy to find. Any isolation (breathing
-// fade, foreground hide) gets layered back in cautiously from here.
-const EE_SLOT_POSITIONS_DRIFT = [
-  { xStart: 18, yVh: 12, scale: 0.65 },
-  { xStart: 50, yVh:  8, scale: 0.70 },
-  { xStart: 82, yVh: 12, scale: 0.65 },
-]
+// 100% intact when the cycle is on, just give three EE slots a back-layer
+// upper-band profile so they drift normally through the upper sky as
+// small/distant clouds (same speed + sway as a real cloud, just with a
+// shape PNG painted on them).
 
 // Per-mood theming. Add new entries to enable themed rendering for more moods —
 // every mood not listed here renders raw photographic clouds.
@@ -180,22 +176,25 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   )
   const eeSlotSet = useMemo(() => new Set(eeSlotIndices), [eeSlotIndices])
 
-  // Once on mount (and whenever EE mode toggles), pin the chosen cloud
-  // slots to fixed (xStart, y, scale) so they don't drift away from the
-  // top-row open-sky positions.
+  // Once on mount (and whenever EE mode toggles), re-profile the chosen
+  // cloud slots so they read as small upper-band back clouds — but with
+  // the SAME drift speed + yDrift oscillation as a normal layer-0 cloud
+  // (~0.0009-0.0024 horizontal, ±1.5vh vertical sway). Just enough
+  // identity to find them; their motion still feels native.
   useEffect(() => {
     if (!forceEasterEggs) return
-    eeSlotIndices.forEach((cloudIdx, slot) => {
+    eeSlotIndices.forEach((cloudIdx) => {
       const c = clouds[cloudIdx]
-      const p = EE_SLOT_POSITIONS_DRIFT[slot]
-      if (!c || !p) return
-      c.xStart = p.xStart
-      c.y = p.yVh
-      c.scale = p.scale
-      c.flip = false
-      c.yDrift = 0                     // pinned — no vertical oscillation
-      c.speed = 0.0006                 // very slow drift so the shape lingers
-      c.opacity = 1                    // always full
+      if (!c) return
+      c.y = rand(4, 18)                          // upper band only
+      c.scale = rand(0.55, 0.85)                 // small / distant
+      c.speed = rand(0.0009, 0.0024)             // matches layer 0 back clouds
+      c.yDrift = rand(-1.5, 1.5)                 // normal sway
+      c.yFreq = rand(0.0003, 0.0009)
+      c.yPhase = rand(0, Math.PI * 2)
+      c.flip = Math.random() > 0.5
+      c.opacity = rand(0.85, 1.0)
+      // xStart kept as-is — random spread across the screen on mount.
     })
   }, [forceEasterEggs, clouds, eeSlotIndices])
 
