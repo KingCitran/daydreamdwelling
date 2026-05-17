@@ -401,18 +401,16 @@ export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
       }
     }
 
-    // Dev mode thinning: any non-EE puff with depth below this is fully
-    // hidden. Foreground / mid puffs are huge (many viewport widths) so
-    // their bodies overlap EE slots even when their centers are far away.
-    // Hiding them outright is the only way to give the EE shapes genuinely
-    // empty surrounding sky. Back puffs (depth >= EE_THIN_DEPTH) stay so
-    // the scene still reads as a sky, not a void.
-    const EE_THIN_DEPTH = 0.70
-    // Among the remaining back puffs, screen-space breathing radius keeps
-    // even small clouds clear of the EE silhouette. Hard inner clearing +
-    // soft outer fade.
-    const EE_BREATHING_RADIUS = 720
-    const EE_BREATHING_INNER  = 0.78
+    // Dev mode thinning: only the very-foreground puffs (depth < this) are
+    // hidden — they're the screen-spanning blobs that would overlap an EE
+    // slot from far away. Mid + back puffs stay so the sky retains its
+    // regular cloud cover and the EE shapes have atmospheric context.
+    const EE_THIN_DEPTH = 0.40
+    // Around each EE slot itself, this screen-space breathing radius
+    // clears nearby clouds out of the silhouette area. Hard inner
+    // clearing + soft outer fade.
+    const EE_BREATHING_RADIUS = 580
+    const EE_BREATHING_INNER  = 0.65
 
     const tick = (now) => {
       const delta = Math.min(0.05, (now - last) / 1000)

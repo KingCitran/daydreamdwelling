@@ -10,13 +10,14 @@ const EE_TICK_MS = 3500
 // Drift-specific EE tuning. Drift doesn't have a depth concept, just a per-
 // cloud scale (0.45 small-back .. 4.80 huge-foreground). For the cycle:
 // - Pin the 3 EE slots to fixed (xVw, yVh, scale) tuples high on the screen.
-// - Any non-EE cloud with scale above EE_HIDE_SCALE is hidden (kills the
-//   foreground + mid clouds that would otherwise overlap the shapes).
-// - Among the remaining back clouds, screen-space breathing radius keeps
-//   even small clouds clear of the EE silhouettes.
-const EE_HIDE_SCALE = 1.4
-const EE_BREATHING_RADIUS = 720
-const EE_BREATHING_INNER  = 0.78
+// - Hide only the very largest clouds (scale >= EE_HIDE_SCALE) so the rest
+//   of the sky still has plenty of ambient cloud cover — we don't want a
+//   void around each shape, just enough exposure to read the silhouette.
+// - Around the EE slot itself, a screen-space breathing radius pushes
+//   nearby clouds out so the shape doesn't get overlapped.
+const EE_HIDE_SCALE = 2.8                  // only hide layers 3-4 (the big foreground ones)
+const EE_BREATHING_RADIUS = 580
+const EE_BREATHING_INNER  = 0.65
 const EE_SLOT_POSITIONS_DRIFT = [
   { xStart: 18, yVh: 12, scale: 0.65 },
   { xStart: 50, yVh:  8, scale: 0.70 },
