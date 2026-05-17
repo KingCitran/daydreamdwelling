@@ -17,10 +17,10 @@ const EE_TICK_MS = 3500
 const MOOD_THEMES = {
   'Dream State': {
     tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    // v5 egg tints — dropped the near-white crown stop and extended one
-    // stop deeper at the bottom so shape clouds are saturated all the way
-    // up instead of washing out at the top. 5 stops at 0/30/60/85/100.
-    eggTintGradient: 'linear-gradient(180deg, #ffd2c5 0%, #f8c0c8 30%, #ecb0d0 60%, #d8a0d4 85%, #c896cc 100%)',
+    // v6 egg tints — dustier / softer palette to sit in the chromatic
+    // neighborhood of the realistic clouds without pushing saturation
+    // past what photo clouds naturally show in the same sky.
+    eggTintGradient: 'linear-gradient(180deg, #f4dad4 0%, #ecc8d0 25%, #dcb8cc 50%, #c8a8c8 75%, #b498bc 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,80,180,0.20))',
     shadeOpacity: 0.88,
     shadeFilter:  'contrast(1.45) brightness(1.0)',
@@ -30,7 +30,7 @@ const MOOD_THEMES = {
   },
   'Golden Hour': {
     tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #ffe4a8 0%, #ffcc80 30%, #f8a878 60%, #e08858 85%, #c87858 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #fcdbb8 0%, #f4c098 25%, #e8a888 50%, #d49078 75%, #b8806c 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
     shadeOpacity: 0.86,
     shadeFilter:  'contrast(1.4) brightness(1.0)',
@@ -49,7 +49,7 @@ const MOOD_THEMES = {
   },
   'Blush Hour': {
     tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #ffe0e4 0%, #fccad4 30%, #f4b0c8 60%, #e89cc0 85%, #d888b4 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #fbdcd6 0%, #f4ccd0 25%, #ecb4c0 50%, #d89cb0 75%, #c088a0 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
     shadeOpacity: 0.82,
     shadeFilter:  'contrast(1.25) brightness(1.05)',
@@ -85,7 +85,7 @@ const MOOD_THEMES = {
     // below. The stacked colored drop-shadows on the tint paint light spill
     // into the surrounding sky so each cloud has its own magenta/cyan aura.
     tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    eggTintGradient: 'linear-gradient(172deg, #ec80d4 0%, #c860c8 30%, #a050bc 60%, #7044a8 85%, #543a98 100%)',
+    eggTintGradient: 'linear-gradient(172deg, #d8c8dc 0%, #c0b0c8 25%, #a898b4 50%, #88789c 75%, #6c5c80 100%)',
     tintShadow:   'drop-shadow(0 -8px 22px rgba(255,80,220,0.70)) drop-shadow(0 -5px 55px rgba(255,40,180,0.45)) drop-shadow(0 14px 32px rgba(80,160,255,0.55)) drop-shadow(0 6px 75px rgba(80,140,255,0.38)) drop-shadow(0 0 90px rgba(180,40,220,0.32))',
     shadeOpacity: 0.75,
     shadeFilter:  'contrast(1.4) brightness(0.95)',
@@ -99,7 +99,7 @@ const MOOD_THEMES = {
     // so the screened highlight lights the underbelly. Warmer-amber rim instead
     // of canary yellow; upward bloom reduced so it doesn't clip the band edge.
     tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #5a6890 0%, #8a5890 25%, #c45878 50%, #f88060 75%, #ffb850 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #b878a8 0%, #d878a0 25%, #e88078 50%, #f8a060 75%, #ffba48 100%)',
     tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 14px 24px rgba(20,28,80,0.45))',
     shadeOpacity: 0.50,
     shadeFilter:  'contrast(1.3) brightness(1.1)',
