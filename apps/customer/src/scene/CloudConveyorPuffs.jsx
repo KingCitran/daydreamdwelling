@@ -55,7 +55,7 @@ const MOOD_THEMES = {
   'Golden Hour': {
     // Flipped: plum/shadow at top, sunlit cream-gold at bottom (lit from below).
     tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #fcdbb8 0%, #f4c098 25%, #e8a888 50%, #d49078 75%, #b8806c 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #b88474 0%, #d49c80 25%, #ecb088 50%, #f8c490 75%, #ffd880 100%)',
     tintShadow:   'drop-shadow(0 12px 24px rgba(120,40,30,0.25))',
     shadeOpacity: 0.86,
     shadeFilter:  'contrast(1.4) brightness(1.0)',
@@ -66,7 +66,7 @@ const MOOD_THEMES = {
     // Moon high → cloud crowns lit (silver), undersides deep navy. Low contrast,
     // dim glow — moonlight is ~400,000× dimmer than sun.
     tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #d4dceb 0%, #b0bcd4 30%, #8898bc 60%, #6c7ca0 85%, #5a6c94 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #d4dceb 0%, #b0bcd4 30%, #8898bc 60%, #5e7098 85%, #45567c 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(8,12,28,0.55))',
     shadeOpacity: 0.78,
     shadeFilter:  'contrast(1.55) brightness(0.92)',
@@ -79,7 +79,7 @@ const MOOD_THEMES = {
     // no warm/yellow stops (would muddy the pink). Lower shade contrast for
     // a softer pillowy read.
     tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #fbdcd6 0%, #f4ccd0 25%, #ecb4c0 50%, #d89cb0 75%, #c088a0 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #ffe8e6 0%, #fcd0d2 25%, #f4bcc8 55%, #ec98b4 80%, #dc80a4 100%)',
     tintShadow:   'drop-shadow(0 14px 28px rgba(180,72,122,0.28))',
     shadeOpacity: 0.82,
     shadeFilter:  'contrast(1.25) brightness(1.05)',
@@ -121,7 +121,7 @@ const MOOD_THEMES = {
     // crown, green-tinted body, deeper forest-green underbelly reflecting the
     // leaves below. Bright, optimistic, fresh.
     tintGradient: 'linear-gradient(180deg, #fffaee 0%, #f8f0d8 15%, #ece6c8 35%, #d6e0b8 60%, #b8c8a0 80%, #8eaf7a 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #ffdc78 0%, #f8d058 30%, #ecdca0 60%, #d0d8a4 85%, #b8c898 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #e8e4c4 0%, #dcd8b4 25%, #ccd0a0 50%, #b8c490 75%, #a4b47c 100%)',
     tintShadow:   'drop-shadow(0 -3px 14px rgba(255,210,90,0.32)) drop-shadow(0 10px 22px rgba(120,160,90,0.30))',
     // v3 dropped shade opacity (was 0.78) so the green isn't crushed,
     // and warmed the glow (sepia 0.18→0.35, saturate 1.15→1.4) so
@@ -160,7 +160,7 @@ const MOOD_THEMES = {
     // is INVERTED so the screened highlight lands on the cloud's underside.
     // Gold/yellow rim pulled back to amber so the warm zone doesn't dominate.
     tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
-    eggTintGradient: 'linear-gradient(180deg, #b878a8 0%, #d878a0 25%, #e88078 50%, #f8a060 75%, #ffba48 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #5c3878 0%, #c45888 25%, #e86090 50%, #f48894 75%, #fcb898 100%)',
     // Upward bloom dialed back (was -4px/16px) so it doesn't clip the drift
     // band's top edge.
     tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 14px 24px rgba(20,28,80,0.45))',
@@ -170,6 +170,15 @@ const MOOD_THEMES = {
     // v3 nudged sepia 0.30→0.35 + saturate 1.3→1.4 — slightly richer warm.
     glowFilter:   'brightness(1.4) contrast(0.85) sepia(0.35) saturate(1.4) hue-rotate(-8deg)',
     glowMask:     'linear-gradient(180deg, transparent 35%, #fff 75%, #fff 100%)',
+  },
+  'Bright Day': {
+    tintGradient: 'linear-gradient(180deg, #ffffff 0%, #f0f8ff 15%, #c8dcf0 38%, #88b0d8 60%, #5080b8 82%, #2858a0 100%)',
+    eggTintGradient: 'linear-gradient(180deg, #fafdff 0%, #e0ecf8 25%, #b0ccea 55%, #78a4d4 80%, #4880c8 100%)',
+    tintShadow:   'drop-shadow(0 14px 28px rgba(40,88,160,0.32))',
+    shadeOpacity: 0.72,
+    shadeFilter:  'contrast(1.3) brightness(1.05)',
+    glowOpacity:  0.55,
+    glowFilter:   'brightness(1.5) contrast(0.9) saturate(0.85)',
   },
 }
 const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
