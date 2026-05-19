@@ -113,6 +113,13 @@ export default function OrdersPage() {
   const [notes,    setNotes]    = useState({}) // itemId → in-progress note draft
   const [noteSaved, setNoteSaved] = useState({}) // itemId → transient "Saved" flash
   const [uploading, setUploading] = useState({}) // itemId → currently uploading
+  const [sellerName, setSellerName] = useState('')
+
+  useEffect(() => {
+    if (!user) { setSellerName(''); return }
+    supabase.from('profiles').select('display_name').eq('id', user.id).single()
+      .then(({ data }) => setSellerName(data?.display_name || user.email || ''))
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -249,8 +256,8 @@ export default function OrdersPage() {
         </tbody>
       </table>
       <div class="footer">
-        Made with care · daydreamdwelling.com<br>
-        Questions? Reply to your order confirmation email.
+        ${sellerName ? `Packed with care by <strong>${escapeHtml(sellerName)}</strong><br>` : ''}
+        daydreamdwelling.com · Questions? Reply to your order confirmation email.
       </div>
       <script>window.onload = () => { window.print(); };</script>
       </body></html>`
@@ -458,28 +465,30 @@ export default function OrdersPage() {
                       <div>
                         <p style={s.detailLabel}>Customer</p>
                         <p style={s.detailValue}>{customer}</p>
-                        {(() => {
-                          const stats = statsForOrder(order)
-                          if (!stats || stats.count < 2) return null
-                          return (
-                            <div style={s.ltvBadge} title={stats.first ? `First order: ${new Date(stats.first).toLocaleDateString()}` : undefined}>
-                              ⭐ Repeat customer · {stats.count} paid orders · ${stats.lifetime.toFixed(2)} lifetime
-                            </div>
-                          )
-                        })()}
-                        {order?.buyer_mood && (
-                          <div style={s.moodBadge}>
-                            ✨ Ordered for their <strong>{order.buyer_mood}</strong>
-                            {order.buyer_room_name ? <> <em>{order.buyer_room_name}</em></> : ' room'}
-                          </div>
-                        )}
                         {email ? (
-                          <a href={`mailto:${email}?subject=${encodeURIComponent('Your DaydreamDwelling order')}`} style={s.contactLink} onClick={e => e.stopPropagation()}>
+                          <a href={`mailto:${email}?subject=${encodeURIComponent('Your DaydreamDwelling order')}`} style={s.contactEmail} onClick={e => e.stopPropagation()}>
                             ✉ {email}
                           </a>
                         ) : (
                           <p style={s.dimMicro}>No contact email on file</p>
                         )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                          {(() => {
+                            const stats = statsForOrder(order)
+                            if (!stats || stats.count < 2) return null
+                            return (
+                              <div style={s.ltvBadge} title={stats.first ? `First order: ${new Date(stats.first).toLocaleDateString()}` : undefined}>
+                                ⭐ Repeat customer · {stats.count} paid orders · ${stats.lifetime.toFixed(2)} lifetime
+                              </div>
+                            )
+                          })()}
+                          {order?.buyer_mood && (
+                            <div style={s.moodBadge}>
+                              ✨ Ordered for their <strong>{order.buyer_mood}</strong>
+                              {order.buyer_room_name ? <> <em>{order.buyer_room_name}</em></> : ' room'}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <p style={s.detailLabel}>Shipping Address</p>
@@ -685,6 +694,7 @@ function makeStyles(t) {
     detailLabel:     { fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
     detailValue:     { fontSize: 13, color: t.text, fontWeight: 500, margin: 0 },
     contactLink:     { display: 'inline-block', marginTop: 4, fontSize: 12, color: t.accent, textDecoration: 'none', fontWeight: 500 },
+    contactEmail:    { display: 'inline-block', marginTop: 6, padding: '4px 10px', background: `${t.accent}14`, color: t.accent, textDecoration: 'none', fontWeight: 600, fontSize: 13, borderRadius: 6, fontFamily: 'ui-monospace, system-ui, sans-serif' },
     addressBlock:    { fontSize: 13, color: t.text, lineHeight: 1.55 },
     fulfillmentPanel:{ marginTop: 4 },
     stepRow:         { display: 'flex', gap: 8, marginTop: 8, marginBottom: 12 },
