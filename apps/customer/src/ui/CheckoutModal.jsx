@@ -2,8 +2,8 @@ import { ITEM_CATALOGUE } from '../data/items'
 import useCheckout from '../hooks/useCheckout'
 import { useTheme } from '@shared/ThemeProvider'
 
-export default function CheckoutModal({ cart, catalogue, onClose }) {
-  const { startCheckout, loading, error } = useCheckout({ cart, catalogue })
+export default function CheckoutModal({ cart, catalogue, onClose, roomName }) {
+  const { startCheckout, loading, error } = useCheckout({ cart, catalogue, roomName })
   const t = useTheme()
   const st = makeStyles(t)
   const cat = catalogue ?? ITEM_CATALOGUE

@@ -110,6 +110,9 @@ export default function OrdersPage() {
   const [dateTo,   setDateTo]   = useState('')
   const [expanded, setExpanded] = useState(null)
   const [tracking, setTracking] = useState({}) // orderId → tracking number input
+  const [notes,    setNotes]    = useState({}) // itemId → in-progress note draft
+  const [noteSaved, setNoteSaved] = useState({}) // itemId → transient "Saved" flash
+  const [uploading, setUploading] = useState({}) // itemId → currently uploading
 
   useEffect(() => {
     if (!user) return
@@ -124,9 +127,11 @@ export default function OrdersPage() {
         .from('order_items')
         .select(`
           id, quantity, unit_price, size_label, swatch_name, created_at,
-          fulfillment_status, tracking_number,
+          fulfillment_status, tracking_number, seller_note,
+          pre_ship_photo_path, pre_ship_photo_uploaded_at,
           products(label, product_images(storage_path, is_primary)),
           orders(id, status, created_at, shipping_address, guest_email, user_id,
+                 buyer_mood, buyer_room_name,
                  customer:profiles!orders_user_id_fkey(display_name))
         `)
         .in('product_id', productIds)
@@ -141,6 +146,132 @@ export default function OrdersPage() {
   async function markFulfillment(itemId, status) {
     await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
     setRows(prev => prev.map(r => r.id === itemId ? { ...r, fulfillment_status: status } : r))
+  }
+
+  async function uploadPreShipPhoto(itemId, file) {
+    if (!file || !user) return
+    setUploading(prev => ({ ...prev, [itemId]: true }))
+    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
+    const path = `${user.id}/${itemId}.${ext}`
+    const { error: upErr } = await supabase.storage.from('order-photos').upload(path, file, { upsert: true, contentType: file.type })
+    if (upErr) {
+      console.warn('[pre-ship upload]', upErr.message)
+      setUploading(prev => { const { [itemId]: _, ...rest } = prev; return rest })
+      return
+    }
+    await supabase.from('order_items')
+      .update({ pre_ship_photo_path: path, pre_ship_photo_uploaded_at: new Date().toISOString() })
+      .eq('id', itemId)
+    setRows(prev => prev.map(r => r.id === itemId
+      ? { ...r, pre_ship_photo_path: path, pre_ship_photo_uploaded_at: new Date().toISOString() }
+      : r))
+    setUploading(prev => { const { [itemId]: _, ...rest } = prev; return rest })
+  }
+
+  async function removePreShipPhoto(itemId, currentPath) {
+    if (!user) return
+    if (currentPath) {
+      await supabase.storage.from('order-photos').remove([currentPath])
+    }
+    await supabase.from('order_items')
+      .update({ pre_ship_photo_path: null, pre_ship_photo_uploaded_at: null })
+      .eq('id', itemId)
+    setRows(prev => prev.map(r => r.id === itemId
+      ? { ...r, pre_ship_photo_path: null, pre_ship_photo_uploaded_at: null }
+      : r))
+  }
+
+  function preShipUrlFor(item) {
+    if (!item.pre_ship_photo_path) return null
+    return supabase.storage.from('order-photos').getPublicUrl(item.pre_ship_photo_path).data.publicUrl
+  }
+
+  // Open a clean printable window for the whole order (all of THIS seller's
+  // line items on the order — buyers may have ordered from other sellers in
+  // the same checkout, but those aren't ours to ship).
+  function printPackingSlip(orderId) {
+    const orderRows = rows.filter(r => r.orders?.id === orderId)
+    if (!orderRows.length) return
+    const order = orderRows[0].orders
+    const customer = customerNameFor(order)
+    const addr = formatAddress(order?.shipping_address) ?? []
+    const created = order?.created_at ? new Date(order.created_at).toLocaleDateString() : ''
+    const itemsHtml = orderRows.map(r => {
+      const label = r.products?.label ?? '—'
+      const variant = [r.size_label, r.swatch_name].filter(Boolean).join(' · ')
+      const lineTotal = ((r.quantity ?? 0) * (r.unit_price ?? 0)).toFixed(2)
+      return `
+        <tr>
+          <td>${escapeHtml(label)}${variant ? `<br><span class="dim">${escapeHtml(variant)}</span>` : ''}</td>
+          <td class="num">${r.quantity ?? 0}</td>
+          <td class="num">$${(r.unit_price ?? 0).toFixed(2)}</td>
+          <td class="num">$${lineTotal}</td>
+        </tr>`
+    }).join('')
+    const total = orderRows.reduce((sum, r) => sum + (r.quantity ?? 0) * (r.unit_price ?? 0), 0).toFixed(2)
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Packing Slip — ${escapeHtml(orderId.slice(0, 8))}</title>
+      <style>
+        body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
+        h1 { font-size: 24px; margin: 0 0 4px; }
+        .brand { font-size: 12px; color: #7a6ca6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
+        .row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+        .col { flex: 1; }
+        .label { font-size: 10px; color: #9a8fb0; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        .value { font-size: 13px; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e4e0ec; font-size: 13px; }
+        th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: #9a8fb0; }
+        .num { text-align: right; }
+        .total-row td { border-bottom: none; font-weight: 700; padding-top: 14px; }
+        .dim { color: #9a8fb0; font-size: 11px; }
+        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e4e0ec; font-size: 11px; color: #7a6ca6; text-align: center; line-height: 1.6; }
+        @media print { body { padding: 12px 20px; } }
+      </style></head><body>
+      <div class="brand">DaydreamDwelling</div>
+      <h1>Packing Slip</h1>
+      <div class="row">
+        <div class="col">
+          <div class="label">Order ID</div>
+          <div class="value" style="font-family:ui-monospace,monospace;font-size:12px">${escapeHtml(orderId)}</div>
+          <div class="label" style="margin-top:10px">Date</div>
+          <div class="value">${escapeHtml(created)}</div>
+        </div>
+        <div class="col">
+          <div class="label">Ship To</div>
+          <div class="value">${escapeHtml(customer)}<br>${addr.map(escapeHtml).join('<br>')}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          ${itemsHtml}
+          <tr class="total-row"><td colspan="3" class="num">Subtotal</td><td class="num">$${total}</td></tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        Made with care · daydreamdwelling.com<br>
+        Questions? Reply to your order confirmation email.
+      </div>
+      <script>window.onload = () => { window.print(); };</script>
+      </body></html>`
+    const w = window.open('', '_blank', 'width=820,height=900')
+    if (!w) return
+    w.document.write(html)
+    w.document.close()
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c])
+  }
+
+  async function saveNote(itemId, text) {
+    const trimmed = text.trim()
+    const value = trimmed.length ? trimmed : null
+    await supabase.from('order_items').update({ seller_note: value }).eq('id', itemId)
+    setRows(prev => prev.map(r => r.id === itemId ? { ...r, seller_note: value } : r))
+    setNotes(prev => { const { [itemId]: _, ...rest } = prev; return rest })
+    setNoteSaved(prev => ({ ...prev, [itemId]: true }))
+    setTimeout(() => setNoteSaved(prev => { const { [itemId]: _, ...rest } = prev; return rest }), 2000)
   }
 
   async function saveTracking(itemId, number) {
@@ -159,6 +290,35 @@ export default function OrdersPage() {
     const primary = imgs.find(im => im.is_primary) ?? imgs[0]
     if (!primary?.storage_path) return null
     return supabase.storage.from('product-images').getPublicUrl(primary.storage_path).data.publicUrl
+  }
+
+  // Per-buyer lifetime stats (this seller only). Buyer key falls back to
+  // guest_email for non-logged-in checkouts so repeat guests still count.
+  const buyerStats = useMemo(() => {
+    const map = new Map()
+    for (const r of rows) {
+      const o = r.orders
+      if (!o) continue
+      if (o.status !== 'paid' && o.status !== 'fulfilled') continue
+      const key = o.user_id || o.guest_email
+      if (!key) continue
+      const entry = map.get(key) || { orderIds: new Set(), lifetime: 0, first: null }
+      entry.orderIds.add(o.id)
+      entry.lifetime += (r.quantity ?? 0) * (r.unit_price ?? 0)
+      const createdAt = o.created_at ? new Date(o.created_at).getTime() : null
+      if (createdAt && (!entry.first || createdAt < entry.first)) entry.first = createdAt
+      map.set(key, entry)
+    }
+    return map
+  }, [rows])
+
+  function statsForOrder(order) {
+    if (!order) return null
+    const key = order.user_id || order.guest_email
+    if (!key) return null
+    const entry = buyerStats.get(key)
+    if (!entry) return null
+    return { count: entry.orderIds.size, lifetime: entry.lifetime, first: entry.first }
   }
 
   const s = makeStyles(t)
@@ -284,11 +444,35 @@ export default function OrdersPage() {
                           {variant && <p style={{ ...s.dimMicro, fontStyle: 'normal', marginTop: 2 }}>{variant}</p>}
                           <p style={{ ...s.detailLabel, marginTop: 10 }}>Order ID</p>
                           <p style={{ ...s.detailValue, fontFamily: 'ui-monospace, monospace', fontSize: 11 }}>{order?.id ?? '—'}</p>
+                          {order?.id && (
+                            <button
+                              style={s.printBtn}
+                              onClick={e => { e.stopPropagation(); printPackingSlip(order.id) }}
+                              title="Open a printable packing slip for this order"
+                            >
+                              🖨 Print Packing Slip
+                            </button>
+                          )}
                         </div>
                       </div>
                       <div>
                         <p style={s.detailLabel}>Customer</p>
                         <p style={s.detailValue}>{customer}</p>
+                        {(() => {
+                          const stats = statsForOrder(order)
+                          if (!stats || stats.count < 2) return null
+                          return (
+                            <div style={s.ltvBadge} title={stats.first ? `First order: ${new Date(stats.first).toLocaleDateString()}` : undefined}>
+                              ⭐ Repeat customer · {stats.count} paid orders · ${stats.lifetime.toFixed(2)} lifetime
+                            </div>
+                          )
+                        })()}
+                        {order?.buyer_mood && (
+                          <div style={s.moodBadge}>
+                            ✨ Ordered for their <strong>{order.buyer_mood}</strong>
+                            {order.buyer_room_name ? <> <em>{order.buyer_room_name}</em></> : ' room'}
+                          </div>
+                        )}
                         {email ? (
                           <a href={`mailto:${email}?subject=${encodeURIComponent('Your DaydreamDwelling order')}`} style={s.contactLink} onClick={e => e.stopPropagation()}>
                             ✉ {email}
@@ -310,6 +494,28 @@ export default function OrdersPage() {
                       <div>
                         <p style={s.detailLabel}>Tracking Number</p>
                         <p style={s.detailValue}>{item.tracking_number || 'Not entered yet'}</p>
+                      </div>
+                      <div onClick={e => e.stopPropagation()}>
+                        <p style={s.detailLabel}>
+                          Private Note <span style={s.dimMicro}>(only you see this)</span>
+                        </p>
+                        <textarea
+                          style={s.noteInput}
+                          placeholder="Reminders for yourself — e.g. waiting on ribbon resupply, custom engraving requested, etc."
+                          value={notes[item.id] ?? item.seller_note ?? ''}
+                          onChange={e => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          rows={2}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                          <button
+                            style={s.noteSaveBtn}
+                            onClick={() => saveNote(item.id, notes[item.id] ?? item.seller_note ?? '')}
+                            disabled={(notes[item.id] ?? item.seller_note ?? '') === (item.seller_note ?? '')}
+                          >
+                            Save Note
+                          </button>
+                          {noteSaved[item.id] && <span style={s.noteSavedFlash}>✓ Saved</span>}
+                        </div>
                       </div>
                     </div>
 
@@ -347,11 +553,49 @@ export default function OrdersPage() {
                             ? 'Tap "Mark Delivered" when the carrier confirms delivery, or wait for automated carrier sync (coming soon).'
                             : 'Entering a tracking number automatically marks this item as shipped — no extra clicks.'}
                         </p>
+
+                        <div style={s.preShipBlock}>
+                          <p style={s.detailLabel}>
+                            Pre-Ship Photo <span style={s.dimMicro}>(buyer sees this in their order)</span>
+                          </p>
+                          {(() => {
+                            const url = preShipUrlFor(item)
+                            if (url) {
+                              return (
+                                <div style={s.preShipRow}>
+                                  <a href={url} target="_blank" rel="noopener noreferrer">
+                                    <img src={url} alt="Pre-ship photo" style={s.preShipThumb} />
+                                  </a>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <label style={{ ...s.noteSaveBtn, textAlign: 'center', cursor: uploading[item.id] ? 'default' : 'pointer', opacity: uploading[item.id] ? 0.6 : 1 }}>
+                                      {uploading[item.id] ? 'Uploading…' : 'Replace'}
+                                      <input type="file" accept="image/*" hidden disabled={uploading[item.id]} onChange={e => uploadPreShipPhoto(item.id, e.target.files?.[0])} />
+                                    </label>
+                                    <button style={s.preShipRemoveBtn} onClick={() => removePreShipPhoto(item.id, item.pre_ship_photo_path)}>Remove</button>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            return (
+                              <label style={{ ...s.noteSaveBtn, display: 'inline-block', cursor: uploading[item.id] ? 'default' : 'pointer', opacity: uploading[item.id] ? 0.6 : 1 }}>
+                                {uploading[item.id] ? 'Uploading…' : '+ Add Photo'}
+                                <input type="file" accept="image/*" hidden disabled={uploading[item.id]} onChange={e => uploadPreShipPhoto(item.id, e.target.files?.[0])} />
+                              </label>
+                            )
+                          })()}
+                        </div>
                       </div>
                     )}
                     {item.fulfillment_status === 'delivered' && (
                       <div style={s.deliveredNote}>
-                        ✓ Delivered — no further action needed
+                        <span>✓ Delivered — no further action needed</span>
+                        <button
+                          style={s.undoBtn}
+                          onClick={() => markFulfillment(item.id, 'shipped')}
+                          title="Revert this item back to shipped"
+                        >
+                          Undo
+                        </button>
                       </div>
                     )}
                   </div>
@@ -449,6 +693,17 @@ function makeStyles(t) {
     trackingInput:   { flex: 1, minWidth: 200, padding: '8px 12px', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 13, background: t.surface, color: t.text, outline: 'none' },
     trackingBtn:     { padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
     deliveredBtn:    { padding: '8px 14px', background: '#7adda0', color: '#1a4a2a', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
-    deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500 },
+    noteInput:       { width: '100%', padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', border: '1px solid rgba(180,160,220,0.32)', borderRadius: 8, background: 'rgba(255,255,255,0.6)', color: 'inherit', resize: 'vertical', boxSizing: 'border-box' },
+    noteSaveBtn:     { padding: '5px 12px', background: 'rgba(180,160,220,0.18)', color: '#6a4ca6', border: '1px solid rgba(180,160,220,0.32)', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    noteSavedFlash:  { fontSize: 11, color: '#3a7a4e', fontWeight: 500 },
+    preShipBlock:    { marginTop: 14, paddingTop: 14, borderTop: '1px dashed rgba(180,160,220,0.25)' },
+    preShipRow:      { display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: 6 },
+    preShipThumb:    { width: 96, height: 96, objectFit: 'cover', borderRadius: 10, border: '1px solid rgba(180,160,220,0.32)', display: 'block', cursor: 'zoom-in' },
+    preShipRemoveBtn:{ padding: '5px 12px', background: 'transparent', color: '#9a6868', border: '1px solid rgba(180,120,120,0.32)', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
+    ltvBadge:        { display: 'inline-block', marginTop: 6, padding: '4px 10px', background: 'linear-gradient(135deg, #fdf3d8 0%, #f5e1a8 100%)', border: '1px solid #d4b870', borderRadius: 14, fontSize: 11, fontWeight: 600, color: '#8a6a1c' },
+    printBtn:        { marginTop: 8, padding: '6px 12px', background: 'transparent', color: '#6a4ca6', border: '1px solid rgba(180,160,220,0.32)', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
+    moodBadge:       { display: 'inline-block', marginTop: 6, padding: '4px 10px', background: 'linear-gradient(135deg, #f0e8ff 0%, #d8c8f4 100%)', border: '1px solid #b89ce0', borderRadius: 14, fontSize: 11, color: '#5a3a8a', fontWeight: 500 },
+    deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
+    undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
 }

@@ -1,10 +1,12 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@shared/supabase'
+import { useMood } from '@shared/useMood'
 import { ITEM_CATALOGUE } from '../data/items'
 
-export default function useCheckout({ cart, catalogue }) {
+export default function useCheckout({ cart, catalogue, roomName }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
+  const { mood }              = useMood('customer')
 
   const startCheckout = useCallback(async () => {
     if (!cart.length) return
@@ -30,8 +32,10 @@ export default function useCheckout({ cart, catalogue }) {
       const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
         body: {
           items,
-          successUrl: `${window.location.origin}?checkout=success`,
-          cancelUrl:  `${window.location.origin}?checkout=cancelled`,
+          buyerMood:    mood ?? null,
+          buyerRoom:    roomName ?? null,
+          successUrl:   `${window.location.origin}?checkout=success`,
+          cancelUrl:    `${window.location.origin}?checkout=cancelled`,
         },
       })
 
@@ -43,7 +47,7 @@ export default function useCheckout({ cart, catalogue }) {
     } finally {
       setLoading(false)
     }
-  }, [cart, catalogue])
+  }, [cart, catalogue, mood, roomName])
 
   return { startCheckout, loading, error }
 }

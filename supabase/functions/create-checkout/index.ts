@@ -21,8 +21,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { items, successUrl, cancelUrl } = await req.json()
+    const { items, successUrl, cancelUrl, buyerMood, buyerRoom } = await req.json()
     // items: [{ typeKey, label, sizeLabel, swatchName, unitPrice, qty }]
+    // buyerMood / buyerRoom: optional snapshot of the buyer's current room
+    // context for the seller's "ordered for their X room" badge.
 
     if (!items?.length) {
       return new Response(JSON.stringify({ error: 'No items provided' }), {
@@ -53,6 +55,9 @@ Deno.serve(async (req) => {
         items: JSON.stringify(items.map((i: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number; sellerId?: string }) => ({
           typeKey: i.typeKey, label: i.label, sizeLabel: i.sizeLabel, qty: i.qty, unitPrice: i.unitPrice, sellerId: i.sellerId ?? null,
         }))),
+        // Stripe metadata values must be strings; null skipped.
+        ...(buyerMood ? { buyer_mood: String(buyerMood).slice(0, 60) } : {}),
+        ...(buyerRoom ? { buyer_room_name: String(buyerRoom).slice(0, 100) } : {}),
       },
     })
 

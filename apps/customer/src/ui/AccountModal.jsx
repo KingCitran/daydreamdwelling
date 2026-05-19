@@ -81,21 +81,6 @@ export default function AccountModal({ onClose, onLoadRoom }) {
     setRooms(prev => prev.filter(r => r.id !== id))
   }
 
-  // ── Orders ────────────────────────────────────────────────────────
-  const [orders,        setOrders]        = useState([])
-  const [ordersLoading, setOrdersLoading] = useState(false)
-
-  useEffect(() => {
-    if (tab !== 'Orders' || !user) return
-    setOrdersLoading(true)
-    supabase.from('orders')
-      .select('id, status, total_cents, created_at, order_items(product_name, qty, unit_price_cents)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20)
-      .then(({ data }) => { setOrders(data ?? []); setOrdersLoading(false) })
-  }, [tab, user])
-
   function fmt(iso) {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
@@ -197,7 +182,14 @@ export default function AccountModal({ onClose, onLoadRoom }) {
         {/* Tabs */}
         <div style={st.tabs}>
           {TABS.map(tb => (
-            <button key={tb} style={{ ...st.tab, ...(tab === tb ? st.tabActive : {}) }} onClick={() => setTab(tb)}>{tb}</button>
+            <button key={tb} style={{ ...st.tab, ...(tab === tb ? st.tabActive : {}) }} onClick={() => {
+              if (tb === 'Orders') {
+                onClose()
+                window.location.search = '?orders=1'
+                return
+              }
+              setTab(tb)
+            }}>{tb}</button>
           ))}
         </div>
 
@@ -225,29 +217,6 @@ export default function AccountModal({ onClose, onLoadRoom }) {
                     </button>
                     <button style={st.loadBtn} onClick={() => { onLoadRoom(room.id); onClose() }}>Load</button>
                     <button style={st.deleteBtn} onClick={() => deleteRoom(room.id)} title="Delete"><Icon name="trash" size={13} /></button>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {tab === 'Orders' && (
-            <>
-              {ordersLoading && <p style={st.hint}>Loading…</p>}
-              {!ordersLoading && orders.length === 0 && <p style={st.hint}>No orders yet.</p>}
-              {!ordersLoading && orders.map(order => (
-                <div key={order.id} style={st.orderCard}>
-                  <div style={st.orderHeader}>
-                    <span style={st.orderDate}>{fmt(order.created_at)}</span>
-                    <span style={{ ...st.orderStatus, ...(order.status === 'paid' || order.status === 'fulfilled' ? st.orderStatusGreen : {}) }}>
-                      {order.status}
-                    </span>
-                    <span style={st.orderTotal}>${(order.total_cents / 100).toFixed(2)}</span>
-                  </div>
-                  <div style={st.orderItems}>
-                    {(order.order_items ?? []).map((it, i) => (
-                      <span key={i} style={st.orderItem}>{it.product_name} ×{it.qty}</span>
-                    ))}
                   </div>
                 </div>
               ))}

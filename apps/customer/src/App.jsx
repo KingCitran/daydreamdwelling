@@ -985,7 +985,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
       {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} cloudRoomId={cloudRoomId} />}
-      {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} onClose={() => setCheckoutOpen(false)} />}
+      {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} roomName={getRoomName(currentRoomId)} onClose={() => setCheckoutOpen(false)} />}
       {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}

@@ -203,6 +203,8 @@ Deno.serve(async (req) => {
     }
 
     // Default: product checkout — create order row
+    const buyerMood     = session.metadata?.buyer_mood ?? null
+    const buyerRoomName = session.metadata?.buyer_room_name ?? null
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
@@ -210,6 +212,8 @@ Deno.serve(async (req) => {
         status:            'paid',
         total_cents:       session.amount_total ?? 0,
         guest_email:       customerEmail,
+        buyer_mood:        buyerMood,
+        buyer_room_name:   buyerRoomName,
       })
       .select('id')
       .single()
