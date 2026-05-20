@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import useMessageThread from '@shared/useMessageThread'
 
 const PAYMENT_COLORS = { paid: ['#88d8b0', '#eeffF6'], pending: ['#ffc87a', '#fff8ee'], cancelled: ['#f09090', '#fff0f0'] }
 const FULFILLMENT_STEPS = ['packed', 'shipped', 'delivered']
@@ -607,11 +608,84 @@ export default function OrdersPage() {
                         </button>
                       </div>
                     )}
+                    {order?.user_id && (
+                      <SellerMessageBlock orderId={order.id} partnerId={order.user_id} partnerName={customer} t={t} s={s} user={user} />
+                    )}
+                    {!order?.user_id && order?.guest_email && (
+                      <div style={s.guestMsgNote}>
+                        This buyer checked out as a guest — they don't have an in-app inbox.
+                        Reach them via <a href={`mailto:${order.guest_email}`} style={s.contactLink}>{order.guest_email}</a>.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Order-scoped buyer↔seller thread. Collapsed by default; opens to show
+// conversation + send box. Only renders when the buyer is logged-in (we have
+// their user_id); guests fall back to the mailto path.
+function SellerMessageBlock({ orderId, partnerId, partnerName, t, s, user }) {
+  const { messages, sending, send, unreadCount } = useMessageThread({ user, orderId, partnerId })
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  if (!user) return null
+  return (
+    <div style={s.msgBlock}>
+      <button
+        style={s.msgToggle}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+      >
+        💬 {open ? `Hide messages with ${partnerName}` : `Message ${partnerName}`}
+        {messages.length > 0 && <span style={s.msgCount}>· {messages.length}</span>}
+        {unreadCount > 0 && <span style={s.msgUnread}>{unreadCount} new</span>}
+      </button>
+      {open && (
+        <div style={s.msgPanel} onClick={e => e.stopPropagation()}>
+          <div style={s.msgList}>
+            {messages.length === 0 ? (
+              <p style={s.msgEmpty}>No messages yet — start the conversation.</p>
+            ) : messages.map(m => {
+              const mine = m.from_user_id === user.id
+              return (
+                <div key={m.id} style={{ ...s.msgBubble, ...(mine ? s.msgBubbleMine : s.msgBubbleTheirs) }}>
+                  <p style={s.msgBody}>{m.body}</p>
+                  <p style={s.msgTime}>{new Date(m.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                </div>
+              )
+            })}
+          </div>
+          <div style={s.msgInputRow}>
+            <input
+              style={s.msgInput}
+              placeholder={`Message ${partnerName}…`}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && draft.trim() && !sending) {
+                  const { error } = await send(draft)
+                  if (!error) setDraft('')
+                }
+              }}
+            />
+            <button
+              style={s.msgSend}
+              onClick={async () => {
+                if (!draft.trim() || sending) return
+                const { error } = await send(draft)
+                if (!error) setDraft('')
+              }}
+              disabled={!draft.trim() || sending}
+            >
+              {sending ? '…' : 'Send'}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -713,6 +787,22 @@ function makeStyles(t) {
     ltvBadge:        { display: 'inline-block', marginTop: 6, padding: '4px 10px', background: 'linear-gradient(135deg, #fdf3d8 0%, #f5e1a8 100%)', border: '1px solid #d4b870', borderRadius: 14, fontSize: 11, fontWeight: 600, color: '#8a6a1c' },
     printBtn:        { marginTop: 8, padding: '6px 12px', background: 'transparent', color: '#6a4ca6', border: '1px solid rgba(180,160,220,0.32)', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     moodBadge:       { display: 'inline-block', marginTop: 6, padding: '4px 10px', background: 'linear-gradient(135deg, #f0e8ff 0%, #d8c8f4 100%)', border: '1px solid #b89ce0', borderRadius: 14, fontSize: 11, color: '#5a3a8a', fontWeight: 500 },
+    msgBlock:        { marginTop: 16, paddingTop: 14, borderTop: '1px dashed rgba(180,160,220,0.25)' },
+    msgToggle:       { background: 'transparent', border: 'none', color: t.accent, fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 },
+    msgCount:        { color: t.textSoft, fontWeight: 400, fontSize: 12 },
+    msgUnread:       { marginLeft: 6, padding: '2px 7px', background: t.accent, color: t.accentText, borderRadius: 10, fontSize: 10, fontWeight: 700 },
+    msgPanel:        { marginTop: 10, background: `${t.accent}06`, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, padding: 12, display: 'flex', flexDirection: 'column', gap: 10 },
+    msgList:         { display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto', paddingRight: 4 },
+    msgEmpty:        { fontSize: 12, color: t.textSoft, fontStyle: 'italic', margin: 0, padding: '8px 0', textAlign: 'center' },
+    msgBubble:       { padding: '7px 11px', borderRadius: 10, maxWidth: '80%' },
+    msgBubbleMine:   { background: t.accent, color: t.accentText, alignSelf: 'flex-end' },
+    msgBubbleTheirs: { background: t.surface, color: t.text, alignSelf: 'flex-start', border: `1px solid ${t.surfaceBorder}` },
+    msgBody:         { margin: 0, fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
+    msgTime:         { margin: '3px 0 0', fontSize: 10, opacity: 0.65 },
+    msgInputRow:     { display: 'flex', gap: 6 },
+    msgInput:        { flex: 1, padding: '8px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none' },
+    msgSend:         { padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    guestMsgNote:    { marginTop: 14, padding: '10px 14px', background: 'rgba(255,200,120,0.12)', border: '1px solid rgba(255,200,120,0.4)', borderRadius: 8, color: t.text, fontSize: 12, lineHeight: 1.5 },
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }

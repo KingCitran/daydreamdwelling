@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import useMessageThread from '@shared/useMessageThread'
 
 // Buyer-facing order history. Mounts via `?orders=1`. Mirrors the seller
 // OrdersPage data shape but presented from the buyer's POV: their orders,
@@ -240,7 +241,76 @@ function ItemRow({ item, order, t, s, onMarkDelivered }) {
         {item.fulfillment_status === 'delivered' && (
           <div style={s.deliveredNote}>Delivered — enjoy.</div>
         )}
+
+        {sellerId && <MessageBlock orderId={order.id} partnerId={sellerId} partnerName={sellerName} t={t} s={s} />}
       </div>
+    </div>
+  )
+}
+
+// Inline thread between buyer and one seller, scoped to a specific order.
+// Collapsed by default (just shows "Message X" + unread count); expands to
+// the conversation on click.
+function MessageBlock({ orderId, partnerId, partnerName, t, s }) {
+  const { user } = useAuth()
+  const { messages, sending, send, unreadCount } = useMessageThread({ user, orderId, partnerId })
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  if (!user) return null
+
+  return (
+    <div style={s.msgBlock}>
+      <button
+        style={s.msgToggle}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+      >
+        💬 {open ? `Hide messages with ${partnerName}` : `Message ${partnerName}`}
+        {messages.length > 0 && <span style={s.msgCount}>· {messages.length}</span>}
+        {unreadCount > 0 && <span style={s.msgUnread}>{unreadCount} new</span>}
+      </button>
+      {open && (
+        <div style={s.msgPanel} onClick={e => e.stopPropagation()}>
+          <div style={s.msgList}>
+            {messages.length === 0 ? (
+              <p style={s.msgEmpty}>No messages yet — say hi.</p>
+            ) : messages.map(m => {
+              const mine = m.from_user_id === user.id
+              return (
+                <div key={m.id} style={{ ...s.msgBubble, ...(mine ? s.msgBubbleMine : s.msgBubbleTheirs) }}>
+                  <p style={s.msgBody}>{m.body}</p>
+                  <p style={s.msgTime}>{new Date(m.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+                </div>
+              )
+            })}
+          </div>
+          <div style={s.msgInputRow}>
+            <input
+              style={s.msgInput}
+              placeholder={`Message ${partnerName}…`}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && draft.trim() && !sending) {
+                  const { error } = await send(draft)
+                  if (!error) setDraft('')
+                }
+              }}
+            />
+            <button
+              style={s.msgSend}
+              onClick={async () => {
+                if (!draft.trim() || sending) return
+                const { error } = await send(draft)
+                if (!error) setDraft('')
+              }}
+              disabled={!draft.trim() || sending}
+            >
+              {sending ? '…' : 'Send'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -327,5 +397,20 @@ function makeStyles(t) {
     section:     { paddingTop: 6 },
     sectionLabel:{ fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
     address:     { fontSize: 13, color: t.text, lineHeight: 1.55 },
+    msgBlock:    { marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${t.surfaceBorder}` },
+    msgToggle:   { background: 'transparent', border: 'none', color: t.accent, fontSize: 12, fontWeight: 500, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 },
+    msgCount:    { color: t.textSoft, fontWeight: 400 },
+    msgUnread:   { marginLeft: 6, padding: '2px 7px', background: t.accent, color: t.accentText, borderRadius: 10, fontSize: 10, fontWeight: 700 },
+    msgPanel:    { marginTop: 10, background: `${t.accent}08`, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 10 },
+    msgList:     { display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto', paddingRight: 4 },
+    msgEmpty:    { fontSize: 12, color: t.textSoft, fontStyle: 'italic', margin: 0, padding: '8px 0', textAlign: 'center' },
+    msgBubble:   { padding: '6px 10px', borderRadius: 10, maxWidth: '80%' },
+    msgBubbleMine:   { background: t.accent, color: t.accentText, alignSelf: 'flex-end' },
+    msgBubbleTheirs: { background: t.surface, color: t.text, alignSelf: 'flex-start', border: `1px solid ${t.surfaceBorder}` },
+    msgBody:     { margin: 0, fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
+    msgTime:     { margin: '3px 0 0', fontSize: 10, opacity: 0.65 },
+    msgInputRow: { display: 'flex', gap: 6 },
+    msgInput:    { flex: 1, padding: '7px 10px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none' },
+    msgSend:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
   }
 }
