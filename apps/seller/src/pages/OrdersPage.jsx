@@ -248,15 +248,15 @@ export default function OrdersPage() {
   function bulkPrintSlips() {
     if (!selected.size) return
     const orderIds = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.orders?.id).filter(Boolean))]
-    for (const oid of orderIds) printPackingSlip(oid)
+    printPackingSlips(orderIds)
   }
 
-  // Open a clean printable window for the whole order (all of THIS seller's
-  // line items on the order — buyers may have ordered from other sellers in
-  // the same checkout, but those aren't ours to ship).
-  function printPackingSlip(orderId) {
+  // Render the inner body of a single slip — no doctype/head/script. Used to
+  // assemble multi-slip print docs by concatenating with a page-break div
+  // between each entry.
+  function renderSlipBody(orderId) {
     const orderRows = rows.filter(r => r.orders?.id === orderId)
-    if (!orderRows.length) return
+    if (!orderRows.length) return ''
     const order = orderRows[0].orders
     const customer = customerNameFor(order)
     const addr = formatAddress(order?.shipping_address) ?? []
@@ -274,7 +274,48 @@ export default function OrdersPage() {
         </tr>`
     }).join('')
     const total = orderRows.reduce((sum, r) => sum + (r.quantity ?? 0) * (r.unit_price ?? 0), 0).toFixed(2)
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Packing Slip — ${escapeHtml(orderId.slice(0, 8))}</title>
+    return `
+      <section class="slip">
+        <div class="brand">DaydreamDwelling</div>
+        <h1>Packing Slip</h1>
+        <div class="row">
+          <div class="col">
+            <div class="label">Order ID</div>
+            <div class="value" style="font-family:ui-monospace,monospace;font-size:12px">${escapeHtml(orderId)}</div>
+            <div class="label" style="margin-top:10px">Date</div>
+            <div class="value">${escapeHtml(created)}</div>
+          </div>
+          <div class="col">
+            <div class="label">Ship To</div>
+            <div class="value">${escapeHtml(customer)}<br>${addr.map(escapeHtml).join('<br>')}</div>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            ${itemsHtml}
+            <tr class="total-row"><td colspan="3" class="num">Subtotal</td><td class="num">$${total}</td></tr>
+          </tbody>
+        </table>
+        <div class="footer">
+          ${sellerName ? `Packed with care by <strong>${escapeHtml(sellerName)}</strong><br>` : ''}
+          daydreamdwelling.com · Questions? Reply to your order confirmation email.
+        </div>
+      </section>`
+  }
+
+  // Open one printable window containing any number of packing slips, each
+  // on its own page via CSS page-break-after. Browsers only honor one
+  // window.open() per click, so bulk printing must stay in a single doc.
+  function printPackingSlips(orderIds) {
+    if (!orderIds?.length) return
+    const bodies = orderIds.map(renderSlipBody).filter(Boolean).join(
+      '<div class="page-break"></div>'
+    )
+    const title = orderIds.length === 1
+      ? `Packing Slip — ${escapeHtml(orderIds[0].slice(0, 8))}`
+      : `Packing Slips — ${orderIds.length} orders`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
       <style>
         body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
         h1 { font-size: 24px; margin: 0 0 4px; }
@@ -290,39 +331,24 @@ export default function OrdersPage() {
         .total-row td { border-bottom: none; font-weight: 700; padding-top: 14px; }
         .dim { color: #9a8fb0; font-size: 11px; }
         .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e4e0ec; font-size: 11px; color: #7a6ca6; text-align: center; line-height: 1.6; }
-        @media print { body { padding: 12px 20px; } }
+        .slip { page-break-inside: avoid; }
+        .page-break { page-break-after: always; height: 0; }
+        @media screen { .page-break { border-top: 2px dashed #d4ccea; margin: 40px 0; } }
+        @media print { body { padding: 12px 20px; } .page-break { border: none; margin: 0; } }
       </style></head><body>
-      <div class="brand">DaydreamDwelling</div>
-      <h1>Packing Slip</h1>
-      <div class="row">
-        <div class="col">
-          <div class="label">Order ID</div>
-          <div class="value" style="font-family:ui-monospace,monospace;font-size:12px">${escapeHtml(orderId)}</div>
-          <div class="label" style="margin-top:10px">Date</div>
-          <div class="value">${escapeHtml(created)}</div>
-        </div>
-        <div class="col">
-          <div class="label">Ship To</div>
-          <div class="value">${escapeHtml(customer)}<br>${addr.map(escapeHtml).join('<br>')}</div>
-        </div>
-      </div>
-      <table>
-        <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr></thead>
-        <tbody>
-          ${itemsHtml}
-          <tr class="total-row"><td colspan="3" class="num">Subtotal</td><td class="num">$${total}</td></tr>
-        </tbody>
-      </table>
-      <div class="footer">
-        ${sellerName ? `Packed with care by <strong>${escapeHtml(sellerName)}</strong><br>` : ''}
-        daydreamdwelling.com · Questions? Reply to your order confirmation email.
-      </div>
+      ${bodies}
       <script>window.onload = () => { window.print(); };</script>
       </body></html>`
     const w = window.open('', '_blank', 'width=820,height=900')
     if (!w) return
     w.document.write(html)
     w.document.close()
+  }
+
+  // Single-order entry point (kept for the per-order "🖨 Print Packing Slip"
+  // button in the expanded detail view).
+  function printPackingSlip(orderId) {
+    printPackingSlips([orderId])
   }
 
   function escapeHtml(s) {
