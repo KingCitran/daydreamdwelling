@@ -118,6 +118,7 @@ export default function OrdersPage() {
   const [selected, setSelected]     = useState(() => new Set())
   const [bulkTracking, setBulkTracking] = useState('')
   const [bulkBusy,     setBulkBusy]     = useState(false)
+  const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
 
   useEffect(() => {
     if (!user) { setSellerName(''); return }
@@ -143,6 +144,7 @@ export default function OrdersPage() {
           products(label, product_images(storage_path, is_primary)),
           orders(id, status, created_at, shipping_address, guest_email, user_id,
                  buyer_mood, buyer_room_name,
+                 escalated_at, escalation_note, cancelled_at, cancellation_reason,
                  customer:profiles!orders_user_id_fkey(display_name))
         `)
         .in('product_id', productIds)
@@ -243,6 +245,34 @@ export default function OrdersPage() {
     setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, fulfillment_status: status } : r))
     clearSelection()
     setBulkBusy(false)
+  }
+
+  async function confirmCancelOrder(orderId, reason) {
+    const { error } = await supabase.rpc('seller_cancel_order', { p_order_id: orderId, p_reason: reason || null })
+    if (error) { console.warn('[cancel]', error.message); return }
+    const now = new Date().toISOString()
+    setRows(prev => prev.map(r => r.orders?.id === orderId
+      ? { ...r, orders: { ...r.orders, status: 'cancelled', cancelled_at: now, cancellation_reason: reason || null } }
+      : r))
+    setActionPrompt(null)
+  }
+
+  async function confirmEscalateOrder(orderId, note) {
+    const { error } = await supabase.rpc('seller_escalate_order', { p_order_id: orderId, p_note: note || null })
+    if (error) { console.warn('[escalate]', error.message); return }
+    const now = new Date().toISOString()
+    setRows(prev => prev.map(r => r.orders?.id === orderId
+      ? { ...r, orders: { ...r.orders, escalated_at: now, escalation_note: note || null } }
+      : r))
+    setActionPrompt(null)
+  }
+
+  async function clearEscalation(orderId) {
+    const { error } = await supabase.rpc('seller_clear_escalation', { p_order_id: orderId })
+    if (error) { console.warn('[clear-escalation]', error.message); return }
+    setRows(prev => prev.map(r => r.orders?.id === orderId
+      ? { ...r, orders: { ...r.orders, escalated_at: null, escalation_note: null } }
+      : r))
   }
 
   function bulkPrintSlips() {
@@ -560,12 +590,20 @@ export default function OrdersPage() {
             const clusterSize = currentKey ? (buyerOrdersInView.get(currentKey)?.size ?? 0) : 0
             const isContinuation = clusterSize >= 2 && currentKey && currentKey === prevKey
             const isClusterMember = clusterSize >= 2 && currentKey
+            const isClusterStart  = isClusterMember && currentKey !== prevKey
+            const clusterAddress  = isClusterStart ? (formatAddress(order?.shipping_address) ?? []).join(', ') : null
             return (
               <div key={item.id}>
+                {isClusterStart && (
+                  <div style={s.clusterHeader}>
+                    📦 <strong>Ship together:</strong> {buyerOrdersInView.get(currentKey).size} active orders for <strong>{customer}</strong>
+                    {clusterAddress ? <> · <span style={s.clusterAddress}>{clusterAddress}</span></> : null}
+                  </div>
+                )}
                 <div
                   style={{
                     ...s.tableRow,
-                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent',
+                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : isClusterMember ? `${t.accent}0a` : 'transparent',
                     cursor: 'pointer',
                     ...(isClusterMember ? s.clusterTrail : {}),
                   }}
@@ -771,11 +809,83 @@ export default function OrdersPage() {
                         Reach them via <a href={`mailto:${order.guest_email}`} style={s.contactLink}>{order.guest_email}</a>.
                       </div>
                     )}
+
+                    {/* Order-level seller actions: escalate (flag for Hayley)
+                        or cancel outright. Both write to RPCs that gate on
+                        order_items.seller_id = auth.uid(). */}
+                    <div style={s.actionRow} onClick={e => e.stopPropagation()}>
+                      {order?.escalated_at ? (
+                        <div style={s.escalatedBanner}>
+                          🚩 <strong>Escalated</strong>
+                          {order.escalation_note ? <> · {order.escalation_note}</> : null}
+                          <button style={s.clearEscalateBtn} onClick={() => clearEscalation(order.id)} title="Mark resolved">
+                            Clear
+                          </button>
+                        </div>
+                      ) : order?.status !== 'cancelled' && (
+                        <button
+                          style={s.escalateBtn}
+                          onClick={() => setActionPrompt({ type: 'escalate', orderId: order.id, reason: '' })}
+                          title="Flag this order for admin attention"
+                        >
+                          🚩 Escalate
+                        </button>
+                      )}
+                      {order?.status === 'cancelled' ? (
+                        <div style={s.cancelledBanner}>
+                          ❌ <strong>Cancelled</strong>
+                          {order.cancellation_reason ? <> · {order.cancellation_reason}</> : null}
+                        </div>
+                      ) : (
+                        <button
+                          style={s.cancelBtn}
+                          onClick={() => setActionPrompt({ type: 'cancel', orderId: order.id, reason: '' })}
+                          title="Cancel this order (buyer refund handled separately)"
+                        >
+                          ❌ Cancel order
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
             )
           })}
+        </div>
+      )}
+
+      {actionPrompt && (
+        <div style={s.modalBackdrop} onClick={() => setActionPrompt(null)}>
+          <div style={s.modalCard} onClick={e => e.stopPropagation()}>
+            <h3 style={s.modalTitle}>
+              {actionPrompt.type === 'cancel' ? 'Cancel this order?' : 'Escalate this order'}
+            </h3>
+            <p style={s.modalBody}>
+              {actionPrompt.type === 'cancel'
+                ? "The order status flips to cancelled. The buyer's payment isn't auto-refunded — refund through Stripe (or your payment dashboard) separately."
+                : "Flags this order for admin review. Use when something is wrong that you can't resolve alone (damaged stock, suspicious address, buyer dispute)."}
+            </p>
+            <textarea
+              style={s.modalInput}
+              placeholder={actionPrompt.type === 'cancel' ? 'Reason (optional, but recommended)' : 'What needs admin attention?'}
+              value={actionPrompt.reason}
+              onChange={e => setActionPrompt(p => ({ ...p, reason: e.target.value }))}
+              rows={3}
+              autoFocus
+            />
+            <div style={s.modalActions}>
+              <button style={s.modalCancel} onClick={() => setActionPrompt(null)}>Never mind</button>
+              <button
+                style={actionPrompt.type === 'cancel' ? s.modalConfirmDanger : s.modalConfirm}
+                onClick={() => {
+                  if (actionPrompt.type === 'cancel') confirmCancelOrder(actionPrompt.orderId, actionPrompt.reason)
+                  else confirmEscalateOrder(actionPrompt.orderId, actionPrompt.reason)
+                }}
+              >
+                {actionPrompt.type === 'cancel' ? 'Cancel order' : 'Send escalation'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1003,7 +1113,24 @@ function makeStyles(t) {
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     continuationCustomer: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
-    clusterTrail:    { boxShadow: `inset 3px 0 0 ${t.accent}55` },
+    clusterTrail:    { boxShadow: `inset 4px 0 0 ${t.accent}` },
+    clusterHeader:   { padding: '10px 18px', background: `linear-gradient(90deg, ${t.accent}22 0%, ${t.accent}10 100%)`, borderTop: `1px solid ${t.accent}40`, borderLeft: `4px solid ${t.accent}`, fontSize: 12, color: t.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+    clusterAddress:  { color: t.textSoft, fontStyle: 'italic' },
+    actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
+    escalateBtn:     { padding: '7px 14px', background: 'transparent', border: '1px solid #e4a868', color: '#8a5a2a', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    cancelBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #d49090', color: '#9a4848', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    escalatedBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fff4e0', border: '1px solid #f0c890', borderRadius: 8, color: '#8a5a2a', fontSize: 13 },
+    cancelledBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fce8e8', border: '1px solid #d8a8a8', borderRadius: 8, color: '#8a3a3a', fontSize: 13 },
+    clearEscalateBtn:{ marginLeft: 'auto', padding: '4px 10px', background: 'transparent', border: '1px solid #c89868', color: '#8a5a2a', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer' },
+    modalBackdrop:   { position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 },
+    modalCard:       { background: t.bg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: 24, maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 20px 40px rgba(20,16,40,0.35)' },
+    modalTitle:      { fontSize: 18, fontWeight: 700, color: t.text, margin: 0 },
+    modalBody:       { fontSize: 13, color: t.textSoft, lineHeight: 1.55, margin: 0 },
+    modalInput:      { padding: '10px 12px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, background: t.surface, color: t.text, outline: 'none', resize: 'vertical' },
+    modalActions:    { display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
+    modalCancel:     { padding: '8px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.text, borderRadius: 7, fontSize: 13, cursor: 'pointer' },
+    modalConfirm:    { padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    modalConfirmDanger: { padding: '8px 16px', background: '#c25656', color: '#fff', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
