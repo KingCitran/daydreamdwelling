@@ -385,6 +385,29 @@ export default function OrdersPage() {
 
   // Per-buyer lifetime stats (this seller only). Buyer key falls back to
   // guest_email for non-logged-in checkouts so repeat guests still count.
+  // Distinct order ids per buyer across all rows — drives the "Same buyer,
+  // N orders" badge so sellers can spot bundles to ship together. Computed
+  // against the full row set (not the filtered view) so the count stays
+  // stable regardless of date/status filters.
+  const buyerOrdersInView = useMemo(() => {
+    const map = new Map()
+    for (const r of rows) {
+      const o = r.orders
+      if (!o) continue
+      const key = o.user_id || o.guest_email || (o.shipping_address && (o.shipping_address.name || o.shipping_address.email))
+      if (!key) continue
+      const entry = map.get(key) || new Set()
+      entry.add(o.id)
+      map.set(key, entry)
+    }
+    return map
+  }, [rows])
+
+  function buyerKeyFor(order) {
+    if (!order) return null
+    return order.user_id || order.guest_email || (order.shipping_address && (order.shipping_address.name || order.shipping_address.email)) || null
+  }
+
   const buyerStats = useMemo(() => {
     const map = new Map()
     for (const r of rows) {
@@ -532,7 +555,23 @@ export default function OrdersPage() {
                       {variant && <div style={s.variantSub}>{variant}</div>}
                     </div>
                   </span>
-                  <span style={s.cell}>{customer}</span>
+                  <span style={s.cell}>
+                    {customer}
+                    {(() => {
+                      const key = buyerKeyFor(order)
+                      const buyerOrders = key ? buyerOrdersInView.get(key) : null
+                      if (!buyerOrders || buyerOrders.size < 2) return null
+                      return (
+                        <button
+                          style={s.sameBuyerBadge}
+                          onClick={e => { e.stopPropagation(); setSearch(customer) }}
+                          title={`${buyerOrders.size} orders from this buyer — click to filter to just them`}
+                        >
+                          📦 +{buyerOrders.size - 1}
+                        </button>
+                      )
+                    })()}
+                  </span>
                   <span style={s.cell}>×{item.quantity}</span>
                   <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
                   <span style={s.cell}><PayBadge status={order?.status} /></span>
@@ -947,6 +986,7 @@ function makeStyles(t) {
     bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
+    sameBuyerBadge:  { marginLeft: 6, padding: '2px 8px', background: '#fff4e0', color: '#8a5a2a', border: '1px solid #f0c890', borderRadius: 10, fontSize: 10, fontWeight: 700, cursor: 'pointer', verticalAlign: 'middle' },
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
