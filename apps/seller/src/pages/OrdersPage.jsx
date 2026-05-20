@@ -115,6 +115,9 @@ export default function OrdersPage() {
   const [noteSaved, setNoteSaved] = useState({}) // itemId → transient "Saved" flash
   const [uploading, setUploading] = useState({}) // itemId → currently uploading
   const [sellerName, setSellerName] = useState('')
+  const [selected, setSelected]     = useState(() => new Set())
+  const [bulkTracking, setBulkTracking] = useState('')
+  const [bulkBusy,     setBulkBusy]     = useState(false)
 
   useEffect(() => {
     if (!user) { setSellerName(''); return }
@@ -192,6 +195,60 @@ export default function OrdersPage() {
   function preShipUrlFor(item) {
     if (!item.pre_ship_photo_path) return null
     return supabase.storage.from('order-photos').getPublicUrl(item.pre_ship_photo_path).data.publicUrl
+  }
+
+  function toggleSelect(itemId, checked) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (checked) next.add(itemId)
+      else next.delete(itemId)
+      return next
+    })
+  }
+
+  function toggleSelectAll(visibleIds, checked) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      for (const id of visibleIds) {
+        if (checked) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
+  }
+
+  function clearSelection() { setSelected(new Set()) }
+
+  async function bulkMarkShipped() {
+    const trimmed = bulkTracking.trim()
+    if (!trimmed || !selected.size) return
+    setBulkBusy(true)
+    const ids = [...selected]
+    await supabase.from('order_items')
+      .update({ tracking_number: trimmed, fulfillment_status: 'shipped' })
+      .in('id', ids)
+    setRows(prev => prev.map(r => ids.includes(r.id)
+      ? { ...r, tracking_number: trimmed, fulfillment_status: 'shipped' }
+      : r))
+    setBulkTracking('')
+    clearSelection()
+    setBulkBusy(false)
+  }
+
+  async function bulkMarkStatus(status) {
+    if (!selected.size) return
+    setBulkBusy(true)
+    const ids = [...selected]
+    await supabase.from('order_items').update({ fulfillment_status: status }).in('id', ids)
+    setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, fulfillment_status: status } : r))
+    clearSelection()
+    setBulkBusy(false)
+  }
+
+  function bulkPrintSlips() {
+    if (!selected.size) return
+    const orderIds = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.orders?.id).filter(Boolean))]
+    for (const oid of orderIds) printPackingSlip(oid)
   }
 
   // Open a clean printable window for the whole order (all of THIS seller's
@@ -410,6 +467,15 @@ export default function OrdersPage() {
       ) : (
         <div style={s.tableWrap}>
           <div style={s.tableHead}>
+            <span>
+              <input
+                type="checkbox"
+                checked={filtered.length > 0 && filtered.every(r => selected.has(r.id))}
+                ref={el => { if (el) el.indeterminate = filtered.some(r => selected.has(r.id)) && !filtered.every(r => selected.has(r.id)) }}
+                onChange={e => toggleSelectAll(filtered.map(r => r.id), e.target.checked)}
+                title={filtered.every(r => selected.has(r.id)) ? 'Deselect all' : 'Select all'}
+              />
+            </span>
             <span>Product</span><span>Customer</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
           </div>
           {filtered.map(item => {
@@ -423,9 +489,16 @@ export default function OrdersPage() {
             return (
               <div key={item.id}>
                 <div
-                  style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : 'transparent', cursor: 'pointer' }}
+                  style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent', cursor: 'pointer' }}
                   onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                 >
+                  <span style={s.cell} onClick={e => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(item.id)}
+                      onChange={e => toggleSelect(item.id, e.target.checked)}
+                    />
+                  </span>
                   <span style={{ ...s.cell, display: 'flex', alignItems: 'center', gap: 10 }}>
                     <ProductThumb url={imgUrl} label={productLabel} size={42} />
                     <div style={{ minWidth: 0 }}>
@@ -624,6 +697,43 @@ export default function OrdersPage() {
           })}
         </div>
       )}
+
+      {selected.size > 0 && (
+        <div style={s.bulkBar} onClick={e => e.stopPropagation()}>
+          <div style={s.bulkInfo}>
+            <strong>{selected.size}</strong> item{selected.size === 1 ? '' : 's'} selected
+            <button style={s.bulkClear} onClick={clearSelection}>Clear</button>
+          </div>
+          <div style={s.bulkActions}>
+            <div style={s.bulkTrackingGroup}>
+              <input
+                style={s.bulkInput}
+                placeholder="Tracking number…"
+                value={bulkTracking}
+                onChange={e => setBulkTracking(e.target.value)}
+                disabled={bulkBusy}
+              />
+              <button
+                style={s.bulkPrimary}
+                disabled={!bulkTracking.trim() || bulkBusy}
+                onClick={bulkMarkShipped}
+                title="Set this tracking number on all selected items and mark them shipped"
+              >
+                {bulkBusy ? '…' : 'Ship All'}
+              </button>
+            </div>
+            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={() => bulkMarkStatus('packed')}>
+              Mark Packed
+            </button>
+            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={() => bulkMarkStatus('delivered')}>
+              Mark Delivered
+            </button>
+            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintSlips}>
+              🖨 Print Slips
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -759,8 +869,8 @@ function makeStyles(t) {
     empty:           { background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: '40px', textAlign: 'center' },
     emptyTitle:      { fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 8 },
     tableWrap:       { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, overflow: 'hidden' },
-    tableHead:       { display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', background: `${t.accent}06`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' },
-    tableRow:        { display: 'grid', gridTemplateColumns: '2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', borderTop: `1px solid ${t.surfaceBorder}`, alignItems: 'center' },
+    tableHead:       { display: 'grid', gridTemplateColumns: '36px 2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', background: `${t.accent}06`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' },
+    tableRow:        { display: 'grid', gridTemplateColumns: '36px 2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', borderTop: `1px solid ${t.surfaceBorder}`, alignItems: 'center' },
     cell:            { fontSize: 13, color: t.text },
     variantSub:      { fontSize: 10, color: '#9a88bb', marginTop: 2 },
     detail:          { background: `${t.accent}05`, borderTop: `1px solid ${t.surfaceBorder}`, padding: '16px 18px 18px' },
@@ -803,6 +913,14 @@ function makeStyles(t) {
     msgInput:        { flex: 1, padding: '8px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none' },
     msgSend:         { padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     guestMsgNote:    { marginTop: 14, padding: '10px 14px', background: 'rgba(255,200,120,0.12)', border: '1px solid rgba(255,200,120,0.4)', borderRadius: 8, color: t.text, fontSize: 12, lineHeight: 1.5 },
+    bulkBar:         { position: 'fixed', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 18, padding: '14px 20px', background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, boxShadow: '0 10px 30px rgba(60,40,120,0.18), 0 4px 12px rgba(60,40,120,0.10)', zIndex: 50, backdropFilter: 'blur(12px)' },
+    bulkInfo:        { display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: t.text },
+    bulkClear:       { background: 'transparent', border: 'none', color: t.textSoft, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' },
+    bulkActions:     { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    bulkTrackingGroup: { display: 'flex', alignItems: 'center', gap: 6 },
+    bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
+    bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
