@@ -442,7 +442,7 @@ export default function OrdersPage() {
     const fromMs = dateFrom ? new Date(dateFrom).getTime() : null
     // Date "to" is inclusive of that whole day.
     const toMs   = dateTo   ? new Date(dateTo).getTime() + 86_400_000 : null
-    return rows.filter(r => {
+    const passed = rows.filter(r => {
       if (filter !== 'all' && r.orders?.status !== filter) return false
       if (q) {
         const productMatch = (r.products?.label ?? '').toLowerCase().includes(q)
@@ -455,6 +455,25 @@ export default function OrdersPage() {
       if (toMs   != null && created >= toMs) return false
       return true
     })
+    // Group rows by buyer so multiple current orders from the same person sit
+    // together visually. Within a group, keep the most-recent order first.
+    // For ungrouped buyers (single order), sort the buyer's earliest-active
+    // order to its natural position by date.
+    const byBuyer = new Map()
+    for (const r of passed) {
+      const key = buyerKeyFor(r.orders) ?? `__solo_${r.id}`
+      if (!byBuyer.has(key)) byBuyer.set(key, [])
+      byBuyer.get(key).push(r)
+    }
+    // Sort groups themselves by the most recent order_item created_at in each
+    // group (so the table top stays "most recent activity first").
+    const groups = [...byBuyer.entries()].map(([key, items]) => ({
+      key,
+      items: items.sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)),
+      recent: Math.max(...items.map(it => new Date(it.created_at ?? 0).getTime() || 0)),
+    }))
+    groups.sort((a, b) => b.recent - a.recent)
+    return groups.flatMap(g => g.items)
   }, [rows, filter, search, dateFrom, dateTo])
 
   function exportCsv() {
@@ -527,7 +546,7 @@ export default function OrdersPage() {
             </span>
             <span>Product</span><span>Customer</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
           </div>
-          {filtered.map(item => {
+          {filtered.map((item, idx) => {
             const order = item.orders
             const email = contactEmailFor(order)
             const customer = customerNameFor(order)
@@ -535,10 +554,21 @@ export default function OrdersPage() {
             const variant = [item.size_label, item.swatch_name].filter(Boolean).join(' · ')
             const imgUrl = imageUrlFor(item)
             const productLabel = item.products?.label ?? item.product_name ?? '—'
+            // Continuation row = same buyer as previous AND part of a 2+ cluster.
+            const currentKey = buyerKeyFor(order)
+            const prevKey    = idx > 0 ? buyerKeyFor(filtered[idx - 1]?.orders) : null
+            const clusterSize = currentKey ? (buyerOrdersInView.get(currentKey)?.size ?? 0) : 0
+            const isContinuation = clusterSize >= 2 && currentKey && currentKey === prevKey
+            const isClusterMember = clusterSize >= 2 && currentKey
             return (
               <div key={item.id}>
                 <div
-                  style={{ ...s.tableRow, background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent', cursor: 'pointer' }}
+                  style={{
+                    ...s.tableRow,
+                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent',
+                    cursor: 'pointer',
+                    ...(isClusterMember ? s.clusterTrail : {}),
+                  }}
                   onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                 >
                   <span style={s.cell} onClick={e => e.stopPropagation()}>
@@ -556,21 +586,7 @@ export default function OrdersPage() {
                     </div>
                   </span>
                   <span style={s.cell}>
-                    {customer}
-                    {(() => {
-                      const key = buyerKeyFor(order)
-                      const buyerOrders = key ? buyerOrdersInView.get(key) : null
-                      if (!buyerOrders || buyerOrders.size < 2) return null
-                      return (
-                        <button
-                          style={s.sameBuyerBadge}
-                          onClick={e => { e.stopPropagation(); setSearch(customer) }}
-                          title={`${buyerOrders.size} orders from this buyer — click to filter to just them`}
-                        >
-                          📦 +{buyerOrders.size - 1}
-                        </button>
-                      )
-                    })()}
+                    {isContinuation ? <span style={s.continuationCustomer}>↪ {customer}</span> : customer}
                   </span>
                   <span style={s.cell}>×{item.quantity}</span>
                   <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
@@ -986,7 +1002,8 @@ function makeStyles(t) {
     bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
-    sameBuyerBadge:  { marginLeft: 6, padding: '2px 8px', background: '#fff4e0', color: '#8a5a2a', border: '1px solid #f0c890', borderRadius: 10, fontSize: 10, fontWeight: 700, cursor: 'pointer', verticalAlign: 'middle' },
+    continuationCustomer: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
+    clusterTrail:    { boxShadow: `inset 3px 0 0 ${t.accent}55` },
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
