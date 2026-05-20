@@ -472,8 +472,10 @@ export default function OrdersPage() {
     const fromMs = dateFrom ? new Date(dateFrom).getTime() : null
     // Date "to" is inclusive of that whole day.
     const toMs   = dateTo   ? new Date(dateTo).getTime() + 86_400_000 : null
-    const passed = rows.filter(r => {
-      if (filter !== 'all' && r.orders?.status !== filter) return false
+    return rows.filter(r => {
+      if (filter === 'escalated') {
+        if (!r.orders?.escalated_at) return false
+      } else if (filter !== 'all' && r.orders?.status !== filter) return false
       if (q) {
         const productMatch = (r.products?.label ?? '').toLowerCase().includes(q)
         const orderIdMatch = (r.orders?.id ?? '').toLowerCase().includes(q)
@@ -485,26 +487,22 @@ export default function OrdersPage() {
       if (toMs   != null && created >= toMs) return false
       return true
     })
-    // Group rows by buyer so multiple current orders from the same person sit
-    // together visually. Within a group, keep the most-recent order first.
-    // For ungrouped buyers (single order), sort the buyer's earliest-active
-    // order to its natural position by date.
-    const byBuyer = new Map()
-    for (const r of passed) {
-      const key = buyerKeyFor(r.orders) ?? `__solo_${r.id}`
-      if (!byBuyer.has(key)) byBuyer.set(key, [])
-      byBuyer.get(key).push(r)
-    }
-    // Sort groups themselves by the most recent order_item created_at in each
-    // group (so the table top stays "most recent activity first").
-    const groups = [...byBuyer.entries()].map(([key, items]) => ({
-      key,
-      items: items.sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)),
-      recent: Math.max(...items.map(it => new Date(it.created_at ?? 0).getTime() || 0)),
-    }))
-    groups.sort((a, b) => b.recent - a.recent)
-    return groups.flatMap(g => g.items)
   }, [rows, filter, search, dateFrom, dateTo])
+
+  // Map each visible order_id to a zebra band (0 or 1) so multi-item orders
+  // share one tint and adjacent orders alternate. Order encountered first in
+  // the filtered list gets band 0.
+  const orderBands = useMemo(() => {
+    const bands = new Map()
+    let next = 0
+    for (const r of filtered) {
+      const oid = r.orders?.id
+      if (!oid || bands.has(oid)) continue
+      bands.set(oid, next)
+      next = 1 - next
+    }
+    return bands
+  }, [filtered])
 
   function exportCsv() {
     if (!filtered.length) return
@@ -522,12 +520,17 @@ export default function OrdersPage() {
 
       <div style={s.toolbar}>
         <div style={s.tabs}>
-          {['all', 'paid', 'pending', 'cancelled'].map(f => (
-            <button key={f} style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              {f !== 'all' && <span style={s.tabCount}>{rows.filter(r => r.orders?.status === f).length}</span>}
-            </button>
-          ))}
+          {['all', 'paid', 'pending', 'cancelled', 'escalated'].map(f => {
+            const count = f === 'escalated'
+              ? new Set(rows.filter(r => r.orders?.escalated_at).map(r => r.orders.id)).size
+              : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
+            return (
+              <button key={f} style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
+                {f === 'escalated' ? '🚩 Escalated' : f.charAt(0).toUpperCase() + f.slice(1)}
+                {f !== 'all' && <span style={s.tabCount}>{count}</span>}
+              </button>
+            )
+          })}
         </div>
         <div style={s.toolbarRight}>
           <input
@@ -584,20 +587,20 @@ export default function OrdersPage() {
             const variant = [item.size_label, item.swatch_name].filter(Boolean).join(' · ')
             const imgUrl = imageUrlFor(item)
             const productLabel = item.products?.label ?? item.product_name ?? '—'
-            // Continuation row = same buyer as previous AND part of a 2+ cluster.
-            const currentKey = buyerKeyFor(order)
-            const prevKey    = idx > 0 ? buyerKeyFor(filtered[idx - 1]?.orders) : null
-            const clusterSize = currentKey ? (buyerOrdersInView.get(currentKey)?.size ?? 0) : 0
-            const isContinuation = clusterSize >= 2 && currentKey && currentKey === prevKey
-            const isClusterMember = clusterSize >= 2 && currentKey
+            const band = orderBands.get(order?.id) ?? 0
+            const zebraBg = band === 0 ? `${t.accent}0d` : 'transparent'
+            const rowBg = expanded === item.id ? `${t.accent}10` : selected.has(item.id) ? `${t.accent}1a` : zebraBg
+            const isEscalated = !!order?.escalated_at
+            const isCancelled = order?.status === 'cancelled'
             return (
               <div key={item.id}>
                 <div
                   style={{
                     ...s.tableRow,
-                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent',
+                    background: rowBg,
                     cursor: 'pointer',
-                    ...(isClusterMember ? s.clusterTrail : {}),
+                    ...(isEscalated ? s.escalatedRowEdge : {}),
+                    ...(isCancelled ? s.cancelledRow : {}),
                   }}
                   onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                 >
@@ -616,7 +619,8 @@ export default function OrdersPage() {
                     </div>
                   </span>
                   <span style={s.cell}>
-                    {isContinuation ? <span style={s.continuationCustomer}>↪ {customer}</span> : customer}
+                    {isEscalated && <span style={s.escalatedFlag} title={order.escalation_note || 'Escalated'}>🚩</span>}
+                    {customer}
                   </span>
                   <span style={s.cell}>×{item.quantity}</span>
                   <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
@@ -1104,8 +1108,9 @@ function makeStyles(t) {
     bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
-    continuationCustomer: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
-    clusterTrail:    { boxShadow: `inset 3px 0 0 ${t.accent}80` },
+    escalatedFlag:   { marginRight: 6, fontSize: 13 },
+    escalatedRowEdge:{ boxShadow: `inset 3px 0 0 #e4a868` },
+    cancelledRow:    { opacity: 0.55, textDecoration: 'line-through', textDecorationColor: 'rgba(180,80,80,0.4)' },
     actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
     escalateBtn:     { padding: '7px 14px', background: 'transparent', border: '1px solid #e4a868', color: '#8a5a2a', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     cancelBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #d49090', color: '#9a4848', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
