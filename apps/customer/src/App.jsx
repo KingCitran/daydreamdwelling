@@ -65,6 +65,7 @@ import LandingPage from './pages/LandingPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import WispyPreview from './pages/WispyPreview'
 import OrderHistoryPage from './pages/OrderHistoryPage'
+import MessagesPage from './pages/MessagesPage'
 import CommunityFeed from './pages/CommunityFeed'
 import ContestsPage from './pages/ContestsPage'
 import ProfilePage from './pages/ProfilePage'
@@ -173,6 +174,7 @@ function Gate() {
 
   let page
   if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />

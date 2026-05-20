@@ -5,7 +5,7 @@ import { supabase } from '@shared/supabase'
 import { Icon } from '@shared/ui/Icon'
 import { RevealAudioSettings } from './RevealAudioToggle'
 
-const TABS = ['Rooms', 'Orders', 'Wishlists', 'Rewards', 'Pets', 'Profile', 'Preferences']
+const TABS = ['Rooms', 'Orders', 'Messages', 'Wishlists', 'Rewards', 'Pets', 'Profile', 'Preferences']
 
 export default function AccountModal({ onClose, onLoadRoom }) {
   const t = useTheme()
@@ -186,6 +186,11 @@ export default function AccountModal({ onClose, onLoadRoom }) {
               if (tb === 'Orders') {
                 onClose()
                 window.location.search = '?orders=1'
+                return
+              }
+              if (tb === 'Messages') {
+                onClose()
+                window.location.search = '?messages=1'
                 return
               }
               setTab(tb)
