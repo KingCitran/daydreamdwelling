@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
+import { useAuth } from '@shared/auth/AuthContext'
+import useMessageThread from '@shared/useMessageThread'
 import RaindropIcon from '@shared/RaindropIcon'
 import Logo from '@shared/Logo'
 
@@ -88,6 +90,8 @@ export default function ProfilePage({ userId, onEnterBuilder }) {
         {profile.bio && (
           <p style={{ margin: 0, fontSize: 14, color: t.textSoft, maxWidth: 440, textAlign: 'center', lineHeight: 1.7 }}>{profile.bio}</p>
         )}
+
+        <MessageProfileBlock profileUserId={userId} partnerName={profile.display_name || 'Seller'} t={t} />
       </div>
 
       {/* Stats row */}
@@ -176,6 +180,99 @@ export default function ProfilePage({ userId, onEnterBuilder }) {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Direct-message block on the profile (general thread, no order_id). Hidden
+// if the viewer isn't signed in or is on their own profile.
+function MessageProfileBlock({ profileUserId, partnerName, t }) {
+  const { user } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState('')
+  const { messages, sending, send, unreadCount } = useMessageThread({
+    user,
+    orderId: null,
+    partnerId: profileUserId,
+  })
+
+  if (!user || !profileUserId || user.id === profileUserId) return null
+
+  return (
+    <div style={{ marginTop: 14, width: '100%', maxWidth: 520, textAlign: 'center' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          padding: '8px 18px', borderRadius: 10, border: `1px solid ${t.accent}`,
+          background: open ? t.accent : 'transparent',
+          color: open ? t.accentText : t.accent,
+          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+        }}
+      >
+        💬 {open ? 'Close' : `Message ${partnerName}`}
+        {unreadCount > 0 && (
+          <span style={{ padding: '2px 8px', background: open ? t.accentText : t.accent, color: open ? t.accent : t.accentText, borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+            {unreadCount} new
+          </span>
+        )}
+      </button>
+      {open && (
+        <div style={{
+          marginTop: 12, padding: 14, textAlign: 'left',
+          background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12,
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', paddingRight: 4 }}>
+            {messages.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 12, color: t.textSoft, fontStyle: 'italic', textAlign: 'center', padding: '12px 0' }}>
+                No messages yet — say hi.
+              </p>
+            ) : messages.map(m => {
+              const mine = m.from_user_id === user.id
+              return (
+                <div key={m.id} style={{
+                  padding: '7px 11px', borderRadius: 10, maxWidth: '78%',
+                  alignSelf: mine ? 'flex-end' : 'flex-start',
+                  background: mine ? t.accent : t.bg,
+                  color: mine ? t.accentText : t.text,
+                  border: mine ? 'none' : `1px solid ${t.surfaceBorder}`,
+                }}>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.body}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 10, opacity: 0.65 }}>
+                    {new Date(m.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              style={{ flex: 1, padding: '8px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none' }}
+              placeholder={`Message ${partnerName}…`}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={async e => {
+                if (e.key === 'Enter' && draft.trim() && !sending) {
+                  const { error } = await send(draft)
+                  if (!error) setDraft('')
+                }
+              }}
+            />
+            <button
+              style={{ padding: '8px 16px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: (!draft.trim() || sending) ? 'default' : 'pointer', opacity: (!draft.trim() || sending) ? 0.6 : 1 }}
+              onClick={async () => {
+                if (!draft.trim() || sending) return
+                const { error } = await send(draft)
+                if (!error) setDraft('')
+              }}
+              disabled={!draft.trim() || sending}
+            >
+              {sending ? '…' : 'Send'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

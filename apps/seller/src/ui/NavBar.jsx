@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { key: 'products',      label: 'Products',      icon: 'products' },
   { key: 'shop',          label: 'My 3D Shop',    icon: 'shop3d' },
   { key: 'orders',        label: 'Orders',        icon: 'orders' },
+  { key: 'messages',      label: 'Messages',      icon: 'messages' },
   { key: 'earnings',      label: 'Earnings',      icon: 'earnings' },
   { key: 'notifications', label: 'Notifications', icon: 'notifications' },
   { key: 'reviews',       label: 'Reviews',       icon: 'reviews' },

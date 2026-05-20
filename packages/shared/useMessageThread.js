@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
-// Order-scoped message thread between two parties (typically buyer <-> seller).
+// Message thread between two parties (typically buyer <-> seller). Scoped
+// to an order when `orderId` is provided, otherwise a general 1:1 thread.
 //
 // Args:
 //   user        : current auth user
-//   orderId     : the order both parties share
+//   orderId     : (optional) the order both parties share; null/undefined for
+//                 pre-purchase or general inquiries
 //   partnerId   : the other user's id (their auth.uid())
 //
 // Returns:
@@ -23,14 +25,15 @@ export default function useMessageThread({ user, orderId, partnerId }) {
   const [sending,  setSending]  = useState(false)
 
   const fetch = useCallback(async () => {
-    if (!user || !orderId || !partnerId) return
+    if (!user || !partnerId) return
     setLoading(true)
-    const { data } = await supabase
+    let q = supabase
       .from('messages')
-      .select('id, from_user_id, to_user_id, body, created_at, read_at')
-      .eq('order_id', orderId)
+      .select('id, order_id, from_user_id, to_user_id, body, created_at, read_at')
       .or(`and(from_user_id.eq.${user.id},to_user_id.eq.${partnerId}),and(from_user_id.eq.${partnerId},to_user_id.eq.${user.id})`)
       .order('created_at', { ascending: true })
+    q = orderId ? q.eq('order_id', orderId) : q.is('order_id', null)
+    const { data } = await q
     setMessages(data ?? [])
     setLoading(false)
 
@@ -48,11 +51,11 @@ export default function useMessageThread({ user, orderId, partnerId }) {
 
   const send = useCallback(async (body) => {
     const trimmed = (body ?? '').trim()
-    if (!trimmed || !user || !orderId || !partnerId) return { error: 'invalid' }
+    if (!trimmed || !user || !partnerId) return { error: 'invalid' }
     setSending(true)
     const { data, error } = await supabase
       .from('messages')
-      .insert({ order_id: orderId, from_user_id: user.id, to_user_id: partnerId, body: trimmed })
+      .insert({ order_id: orderId ?? null, from_user_id: user.id, to_user_id: partnerId, body: trimmed })
       .select()
       .single()
     setSending(false)
