@@ -590,20 +590,12 @@ export default function OrdersPage() {
             const clusterSize = currentKey ? (buyerOrdersInView.get(currentKey)?.size ?? 0) : 0
             const isContinuation = clusterSize >= 2 && currentKey && currentKey === prevKey
             const isClusterMember = clusterSize >= 2 && currentKey
-            const isClusterStart  = isClusterMember && currentKey !== prevKey
-            const clusterAddress  = isClusterStart ? (formatAddress(order?.shipping_address) ?? []).join(', ') : null
             return (
               <div key={item.id}>
-                {isClusterStart && (
-                  <div style={s.clusterHeader}>
-                    📦 <strong>Ship together:</strong> {buyerOrdersInView.get(currentKey).size} active orders for <strong>{customer}</strong>
-                    {clusterAddress ? <> · <span style={s.clusterAddress}>{clusterAddress}</span></> : null}
-                  </div>
-                )}
                 <div
                   style={{
                     ...s.tableRow,
-                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : isClusterMember ? `${t.accent}0a` : 'transparent',
+                    background: expanded === item.id ? `${t.accent}08` : selected.has(item.id) ? `${t.accent}05` : 'transparent',
                     cursor: 'pointer',
                     ...(isClusterMember ? s.clusterTrail : {}),
                   }}
@@ -1113,9 +1105,7 @@ function makeStyles(t) {
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     continuationCustomer: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
-    clusterTrail:    { boxShadow: `inset 4px 0 0 ${t.accent}` },
-    clusterHeader:   { padding: '10px 18px', background: `linear-gradient(90deg, ${t.accent}22 0%, ${t.accent}10 100%)`, borderTop: `1px solid ${t.accent}40`, borderLeft: `4px solid ${t.accent}`, fontSize: 12, color: t.text, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-    clusterAddress:  { color: t.textSoft, fontStyle: 'italic' },
+    clusterTrail:    { boxShadow: `inset 3px 0 0 ${t.accent}80` },
     actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
     escalateBtn:     { padding: '7px 14px', background: 'transparent', border: '1px solid #e4a868', color: '#8a5a2a', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     cancelBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #d49090', color: '#9a4848', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
