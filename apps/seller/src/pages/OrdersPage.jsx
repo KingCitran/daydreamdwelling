@@ -141,6 +141,7 @@ export default function OrdersPage() {
           id, quantity, unit_price, size_label, swatch_name, created_at,
           fulfillment_status, tracking_number, seller_note,
           pre_ship_photo_path, pre_ship_photo_uploaded_at,
+          label_url, shipping_carrier, shipping_service, shipping_cost_cents, label_purchased_at,
           products(label, product_images(storage_path, is_primary)),
           orders(id, status, total_cents, created_at, shipping_address, guest_email, user_id,
                  buyer_mood, buyer_room_name,
@@ -156,6 +157,32 @@ export default function OrdersPage() {
     }
     load()
   }, [user])
+
+  const [labelBusy, setLabelBusy] = useState({})
+
+  async function generateLabel(itemId) {
+    setLabelBusy(prev => ({ ...prev, [itemId]: true }))
+    const { data, error } = await supabase.functions.invoke('create-shipping-label', {
+      body: { orderItemId: itemId },
+    })
+    setLabelBusy(prev => { const { [itemId]: _, ...rest } = prev; return rest })
+    if (error || data?.error) {
+      const msg = data?.error || error?.message || 'Label generation failed'
+      alert(`Label failed: ${msg}`)
+      return
+    }
+    setRows(prev => prev.map(r => r.id === itemId
+      ? {
+          ...r,
+          tracking_number: data.trackingNumber,
+          label_url: data.labelUrl,
+          shipping_carrier: data.carrier,
+          shipping_service: data.service,
+          shipping_cost_cents: Math.round(parseFloat(data.cost) * 100),
+          fulfillment_status: 'shipped',
+        }
+      : r))
+  }
 
   async function markFulfillment(itemId, status) {
     await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
@@ -741,6 +768,32 @@ export default function OrdersPage() {
                         <p style={s.detailLabel}>
                           {item.fulfillment_status === 'shipped' ? 'In Transit' : 'Ready to Ship'}
                         </p>
+                        {!item.label_url && (
+                          <div style={s.labelGenerateRow}>
+                            <button
+                              style={s.generateLabelBtn}
+                              onClick={() => generateLabel(item.id)}
+                              disabled={!!labelBusy[item.id]}
+                              title="Buy cheapest USPS label via Shippo using your ship-from address from Settings"
+                            >
+                              {labelBusy[item.id] ? 'Generating…' : '📦 Generate Shipping Label'}
+                            </button>
+                            <span style={s.dimMicro}>· or enter tracking manually below</span>
+                          </div>
+                        )}
+                        {item.label_url && (
+                          <div style={s.labelInfoBlock}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                              <a href={item.label_url} target="_blank" rel="noopener noreferrer" style={s.labelDownloadBtn}>
+                                ⬇ Download Label PDF
+                              </a>
+                              <span style={s.dimMicro}>
+                                {item.shipping_carrier} {item.shipping_service}
+                                {typeof item.shipping_cost_cents === 'number' && ` · $${(item.shipping_cost_cents / 100).toFixed(2)}`}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         <div style={s.trackingRow}>
                           <input
                             style={s.trackingInput}
@@ -1173,6 +1226,10 @@ function makeStyles(t) {
     refundBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #9890d4', color: '#5a4ca6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     refundedBanner:  { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#ece4ff', border: '1px solid #b4a0e0', borderRadius: 8, color: '#5a3a8a', fontSize: 13, flexWrap: 'wrap' },
     refundedMeta:    { marginLeft: 'auto', fontSize: 11, color: '#7a5fb8', fontStyle: 'italic' },
+    labelGenerateRow:{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 10, flexWrap: 'wrap' },
+    generateLabelBtn:{ padding: '8px 16px', background: `${t.accent}15`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    labelInfoBlock:  { marginTop: 8, marginBottom: 10, padding: '10px 14px', background: `${t.accent}08`, border: `1px solid ${t.accent}25`, borderRadius: 8 },
+    labelDownloadBtn:{ display: 'inline-block', padding: '6px 14px', background: t.accent, color: t.accentText, textDecoration: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600 },
     clearEscalateBtn:{ marginLeft: 'auto', padding: '4px 10px', background: 'transparent', border: '1px solid #c89868', color: '#8a5a2a', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer' },
     modalBackdrop:   { position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 },
     modalCard:       { background: t.bg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: 24, maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 20px 40px rgba(20,16,40,0.35)' },

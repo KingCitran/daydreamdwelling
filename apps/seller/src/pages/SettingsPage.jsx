@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [bio,         setBio]         = useState('')
   const [storeName,   setStoreName]   = useState('')
   const [socials,     setSocials]     = useState({ instagram: '', website: '', tiktok: '', pinterest: '' })
+  const [shipFrom,    setShipFrom]    = useState({ name: '', company: '', street1: '', street2: '', city: '', state: '', zip: '', country: 'US', phone: '', email: '' })
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [error,       setError]       = useState(null)
@@ -30,6 +31,18 @@ export default function SettingsPage() {
       website:   profile.social_website   || '',
       tiktok:    profile.social_tiktok    || '',
       pinterest: profile.social_pinterest || '',
+    })
+    setShipFrom({
+      name:    profile.ship_from_name    || '',
+      company: profile.ship_from_company || '',
+      street1: profile.ship_from_street1 || '',
+      street2: profile.ship_from_street2 || '',
+      city:    profile.ship_from_city    || '',
+      state:   profile.ship_from_state   || '',
+      zip:     profile.ship_from_zip     || '',
+      country: profile.ship_from_country || 'US',
+      phone:   profile.ship_from_phone   || '',
+      email:   profile.ship_from_email   || '',
     })
   }, [profile])
 
@@ -47,6 +60,16 @@ export default function SettingsPage() {
         social_website:    socials.website.trim()   || null,
         social_tiktok:     socials.tiktok.trim()    || null,
         social_pinterest:  socials.pinterest.trim() || null,
+        ship_from_name:    shipFrom.name.trim()    || null,
+        ship_from_company: shipFrom.company.trim() || null,
+        ship_from_street1: shipFrom.street1.trim() || null,
+        ship_from_street2: shipFrom.street2.trim() || null,
+        ship_from_city:    shipFrom.city.trim()    || null,
+        ship_from_state:   shipFrom.state.trim()   || null,
+        ship_from_zip:     shipFrom.zip.trim()     || null,
+        ship_from_country: shipFrom.country.trim() || 'US',
+        ship_from_phone:   shipFrom.phone.trim()   || null,
+        ship_from_email:   shipFrom.email.trim()   || null,
       })
       if (err) throw err
       setSaved(true)
@@ -96,6 +119,44 @@ export default function SettingsPage() {
               <p style={s.logoHint}>Image upload coming soon via Supabase Storage.</p>
               <p style={{ ...s.logoHint, color: '#b0a0cc' }}>Your initials are used as a placeholder across the marketplace.</p>
             </div>
+          </div>
+        </Section>
+
+        {/* Ship From — used to generate shipping labels via Shippo */}
+        <Section title="Ship From Address">
+          <p style={{ fontSize: 12, color: '#7a6ca6', margin: '0 0 14px', lineHeight: 1.55 }}>
+            Where packages physically ship from. Used to generate shipping labels via Shippo. Your address isn't shown to buyers — they only see your display name on the slip.
+          </p>
+          <Field label="Full name">
+            <input style={s.input} value={shipFrom.name} onChange={e => setShipFrom(p => ({ ...p, name: e.target.value }))} placeholder="Jane Doe" />
+          </Field>
+          <Field label="Company (optional)">
+            <input style={s.input} value={shipFrom.company} onChange={e => setShipFrom(p => ({ ...p, company: e.target.value }))} placeholder="Studio Nord" />
+          </Field>
+          <Field label="Street address">
+            <input style={s.input} value={shipFrom.street1} onChange={e => setShipFrom(p => ({ ...p, street1: e.target.value }))} placeholder="123 Main St" />
+          </Field>
+          <Field label="Apt/Suite (optional)">
+            <input style={s.input} value={shipFrom.street2} onChange={e => setShipFrom(p => ({ ...p, street2: e.target.value }))} placeholder="Apt 4B" />
+          </Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }}>
+            <Field label="City">
+              <input style={s.input} value={shipFrom.city} onChange={e => setShipFrom(p => ({ ...p, city: e.target.value }))} placeholder="Portland" />
+            </Field>
+            <Field label="State">
+              <input style={s.input} value={shipFrom.state} onChange={e => setShipFrom(p => ({ ...p, state: e.target.value }))} placeholder="OR" maxLength={2} />
+            </Field>
+            <Field label="ZIP">
+              <input style={s.input} value={shipFrom.zip} onChange={e => setShipFrom(p => ({ ...p, zip: e.target.value }))} placeholder="97214" />
+            </Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Phone (for carriers)">
+              <input style={s.input} value={shipFrom.phone} onChange={e => setShipFrom(p => ({ ...p, phone: e.target.value }))} placeholder="+1 503 555 0100" />
+            </Field>
+            <Field label="Email (for shipping notifications)">
+              <input style={s.input} value={shipFrom.email} onChange={e => setShipFrom(p => ({ ...p, email: e.target.value }))} placeholder="ship@example.com" />
+            </Field>
           </div>
         </Section>
 
