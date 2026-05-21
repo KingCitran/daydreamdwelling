@@ -3,13 +3,9 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
-// Stat card accent colors — intentional per-stat highlights, not mood-driven
-const STAT_COLORS = [
-  { color: '#b8a0ff', bg: 'rgba(184,160,255,0.12)' },
-  { color: '#f0a8d8', bg: 'rgba(240,168,216,0.12)' },
-  { color: '#ffc87a', bg: 'rgba(255,200,122,0.12)' },
-  { color: '#88d8b0', bg: 'rgba(136,216,176,0.12)' },
-]
+// Stat cards use a single neutral palette — visual differentiation comes
+// from the value itself and the delta, not background color. Overdue gets
+// special amber/green treatment because it's actionable.
 
 export default function DashboardPage({ onNavigate }) {
   const { user, profile } = useAuth()
@@ -179,42 +175,19 @@ export default function DashboardPage({ onNavigate }) {
               label="Revenue (30d)"
               value={`$${(stats.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
               delta={pctChange(stats.revenue, stats.revPrev)}
-              sparkline={stats.dailyRev}
-              {...STAT_COLORS[0]} t={t}
-            />
-            <StatCard
-              label="Orders (30d)"
-              value={stats.orderCount}
-              delta={pctChange(stats.orderCount, stats.orderPrev)}
-              {...STAT_COLORS[1]} t={t}
+              t={t}
             />
             <StatCard
               label="Avg Order Value"
               value={`$${(stats.aov || 0).toFixed(2)}`}
               delta={pctChange(stats.aov, stats.aovPrev)}
-              {...STAT_COLORS[2]} t={t}
+              t={t}
             />
             <StatCard
-              label="Active Products"
-              value={stats.productCount}
-              {...STAT_COLORS[3]} t={t}
-            />
-          </div>
-
-          <div style={s.statsGrid}>
-            <StatCard
-              label="Pending"
-              value={stats.pendingCount}
-              delta={pctChange(stats.pendingCount, stats.pendingPrev)}
-              deltaInverse
-              {...STAT_COLORS[1]} t={t}
-            />
-            <StatCard
-              label="Overdue (3d+)"
+              label="Overdue"
               value={stats.overdueCount}
-              hint={stats.overdueCount > 0 ? 'Paid orders awaiting shipment' : 'All caught up'}
-              color={stats.overdueCount > 0 ? '#e89868' : '#88d8b0'}
-              bg={stats.overdueCount > 0 ? 'rgba(232,152,104,0.12)' : 'rgba(136,216,176,0.12)'}
+              hint={stats.overdueCount > 0 ? 'Paid orders awaiting shipment 3+ days' : 'All caught up'}
+              accent={stats.overdueCount > 0 ? '#c47c4a' : '#5a9a76'}
               t={t}
             />
             <StatCard
@@ -222,14 +195,8 @@ export default function DashboardPage({ onNavigate }) {
               value={`${stats.repeatRate.toFixed(0)}%`}
               hint={stats.totalCustomers === 0
                 ? 'No customers yet'
-                : `${stats.totalCustomers} unique customer${stats.totalCustomers === 1 ? '' : 's'}`}
-              {...STAT_COLORS[0]} t={t}
-            />
-            <StatCard
-              label="Total Customers"
-              value={stats.totalCustomers}
-              hint="Distinct buyers, all-time"
-              {...STAT_COLORS[3]} t={t}
+                : `${stats.totalCustomers} unique customer${stats.totalCustomers === 1 ? '' : 's'} all-time`}
+              t={t}
             />
           </div>
 
@@ -343,57 +310,31 @@ export default function DashboardPage({ onNavigate }) {
   )
 }
 
-function StatCard({ label, value, delta, deltaInverse, sparkline, hint, color, bg, t }) {
+function StatCard({ label, value, delta, deltaInverse, hint, accent, t }) {
   const hasDelta = typeof delta === 'number' && !Number.isNaN(delta)
-  // For pending/overdue: a *decrease* is good, so flip the color when deltaInverse.
   const goodDir = hasDelta && (deltaInverse ? delta < 0 : delta > 0)
   const badDir  = hasDelta && (deltaInverse ? delta > 0 : delta < 0)
   const deltaColor = goodDir ? '#3a9a64' : badDir ? '#c25656' : t.textSoft
   const arrow = !hasDelta ? '' : delta > 0 ? '↑' : delta < 0 ? '↓' : '→'
+  const valueColor = accent || t.text
   return (
-    <div style={{ background: bg, border: `1px solid ${color}30`, borderRadius: 16, padding: '20px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color, marginBottom: 4, lineHeight: 1.1 }}>{value}</div>
-          <div style={{ fontSize: 11, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{label}</div>
-          {hasDelta && (
-            <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: deltaColor, display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span>{arrow}</span>
-              <span>{Math.abs(delta).toFixed(0)}%</span>
-              <span style={{ color: t.textSoft, fontWeight: 400 }}>vs prior 30d</span>
-            </div>
-          )}
-          {!hasDelta && delta === null && (
-            <div style={{ marginTop: 8, fontSize: 10, color: t.textSoft, fontStyle: 'italic' }}>new — no prior period</div>
-          )}
-          {hint && !hasDelta && (
-            <div style={{ marginTop: 8, fontSize: 11, color: t.textSoft }}>{hint}</div>
-          )}
+    <div style={{ background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: '20px 22px' }}>
+      <div style={{ fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: valueColor, lineHeight: 1.1 }}>{value}</div>
+      {hasDelta && (
+        <div style={{ marginTop: 10, fontSize: 12, fontWeight: 500, color: deltaColor, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span>{arrow}</span>
+          <span>{Math.abs(delta).toFixed(0)}%</span>
+          <span style={{ color: t.textSoft, fontWeight: 400 }}>vs prior 30d</span>
         </div>
-        {sparkline && sparkline.length > 1 && <Sparkline points={sparkline} color={color} />}
-      </div>
+      )}
+      {!hasDelta && delta === null && (
+        <div style={{ marginTop: 10, fontSize: 11, color: t.textSoft, fontStyle: 'italic' }}>new — no prior period</div>
+      )}
+      {hint && !hasDelta && (
+        <div style={{ marginTop: 10, fontSize: 11, color: t.textSoft }}>{hint}</div>
+      )}
     </div>
-  )
-}
-
-// Inline mini line chart. Accepts a numeric array and renders a smooth-ish
-// polyline scaled to its bounding box, with a soft fill underneath.
-function Sparkline({ points, color, width = 80, height = 36 }) {
-  const max = Math.max(...points, 1)
-  const min = Math.min(...points, 0)
-  const range = (max - min) || 1
-  const xStep = points.length > 1 ? width / (points.length - 1) : 0
-  const path = points.map((p, i) => {
-    const x = i * xStep
-    const y = height - ((p - min) / range) * height
-    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-  const areaPath = `${path} L${width},${height} L0,${height} Z`
-  return (
-    <svg width={width} height={height} style={{ flexShrink: 0, overflow: 'visible' }}>
-      <path d={areaPath} fill={color} fillOpacity={0.15} />
-      <path d={path} stroke={color} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
   )
 }
 
