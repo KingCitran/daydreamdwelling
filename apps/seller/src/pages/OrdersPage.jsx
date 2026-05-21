@@ -142,9 +142,10 @@ export default function OrdersPage() {
           fulfillment_status, tracking_number, seller_note,
           pre_ship_photo_path, pre_ship_photo_uploaded_at,
           products(label, product_images(storage_path, is_primary)),
-          orders(id, status, created_at, shipping_address, guest_email, user_id,
+          orders(id, status, total_cents, created_at, shipping_address, guest_email, user_id,
                  buyer_mood, buyer_room_name,
                  escalated_at, escalation_note, cancelled_at, cancellation_reason,
+                 refunded_at, refund_amount_cents, stripe_refund_id, refund_reason,
                  customer:profiles!orders_user_id_fkey(display_name))
         `)
         .in('product_id', productIds)
@@ -263,6 +264,23 @@ export default function OrdersPage() {
     const now = new Date().toISOString()
     setRows(prev => prev.map(r => r.orders?.id === orderId
       ? { ...r, orders: { ...r.orders, escalated_at: now, escalation_note: note || null } }
+      : r))
+    setActionPrompt(null)
+  }
+
+  async function confirmRefundOrder(orderId, reason) {
+    const { data, error } = await supabase.functions.invoke('refund-order', {
+      body: { orderId, reason: reason || null },
+    })
+    if (error || data?.error) {
+      const msg = data?.error || error?.message || 'Refund failed'
+      console.warn('[refund]', msg)
+      alert(`Refund failed: ${msg}`)
+      return
+    }
+    const now = new Date().toISOString()
+    setRows(prev => prev.map(r => r.orders?.id === orderId
+      ? { ...r, orders: { ...r.orders, status: 'refunded', refunded_at: now, refund_amount_cents: data.amountCents, stripe_refund_id: data.refundId, refund_reason: reason || null } }
       : r))
     setActionPrompt(null)
   }
@@ -520,7 +538,7 @@ export default function OrdersPage() {
 
       <div style={s.toolbar}>
         <div style={s.tabs}>
-          {['all', 'paid', 'pending', 'cancelled', 'escalated'].map(f => {
+          {['all', 'paid', 'pending', 'cancelled', 'refunded', 'escalated'].map(f => {
             const count = f === 'escalated'
               ? new Set(rows.filter(r => r.orders?.escalated_at).map(r => r.orders.id)).size
               : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
@@ -592,6 +610,7 @@ export default function OrdersPage() {
             const rowBg = expanded === item.id ? `${t.accent}10` : selected.has(item.id) ? `${t.accent}1a` : zebraBg
             const isEscalated = !!order?.escalated_at
             const isCancelled = order?.status === 'cancelled'
+            const isRefunded  = order?.status === 'refunded'
             return (
               <div key={item.id}>
                 <div
@@ -600,7 +619,7 @@ export default function OrdersPage() {
                     background: rowBg,
                     cursor: 'pointer',
                     ...(isEscalated ? s.escalatedRowEdge : {}),
-                    ...(isCancelled ? s.cancelledRow : {}),
+                    ...(isCancelled || isRefunded ? s.cancelledRow : {}),
                   }}
                   onClick={() => setExpanded(expanded === item.id ? null : item.id)}
                 >
@@ -806,9 +825,8 @@ export default function OrdersPage() {
                       </div>
                     )}
 
-                    {/* Order-level seller actions: escalate (flag for Hayley)
-                        or cancel outright. Both write to RPCs that gate on
-                        order_items.seller_id = auth.uid(). */}
+                    {/* Order-level seller actions: escalate, cancel, refund.
+                        All gate on order_items.seller_id = auth.uid(). */}
                     <div style={s.actionRow} onClick={e => e.stopPropagation()}>
                       {order?.escalated_at ? (
                         <div style={s.escalatedBanner}>
@@ -818,7 +836,7 @@ export default function OrdersPage() {
                             Clear
                           </button>
                         </div>
-                      ) : order?.status !== 'cancelled' && (
+                      ) : order?.status !== 'cancelled' && order?.status !== 'refunded' && (
                         <button
                           style={s.escalateBtn}
                           onClick={() => setActionPrompt({ type: 'escalate', orderId: order.id, reason: '' })}
@@ -827,19 +845,48 @@ export default function OrdersPage() {
                           🚩 Escalate
                         </button>
                       )}
-                      {order?.status === 'cancelled' ? (
-                        <div style={s.cancelledBanner}>
-                          ❌ <strong>Cancelled</strong>
-                          {order.cancellation_reason ? <> · {order.cancellation_reason}</> : null}
+
+                      {order?.refunded_at ? (
+                        <div style={s.refundedBanner}>
+                          💸 <strong>Refunded ${((order.refund_amount_cents ?? 0) / 100).toFixed(2)}</strong>
+                          {order.refund_reason ? <> · {order.refund_reason}</> : null}
+                          <span style={s.refundedMeta}>{new Date(order.refunded_at).toLocaleDateString()}</span>
                         </div>
+                      ) : order?.status === 'cancelled' ? (
+                        <>
+                          <div style={s.cancelledBanner}>
+                            ❌ <strong>Cancelled</strong>
+                            {order.cancellation_reason ? <> · {order.cancellation_reason}</> : null}
+                          </div>
+                          {order.stripe_payment_id && (
+                            <button
+                              style={s.refundBtn}
+                              onClick={() => setActionPrompt({ type: 'refund', orderId: order.id, reason: order.cancellation_reason || '' })}
+                              title="Issue Stripe refund to buyer"
+                            >
+                              💸 Issue Refund
+                            </button>
+                          )}
+                        </>
                       ) : (
-                        <button
-                          style={s.cancelBtn}
-                          onClick={() => setActionPrompt({ type: 'cancel', orderId: order.id, reason: '' })}
-                          title="Cancel this order (buyer refund handled separately)"
-                        >
-                          ❌ Cancel order
-                        </button>
+                        <>
+                          <button
+                            style={s.cancelBtn}
+                            onClick={() => setActionPrompt({ type: 'cancel', orderId: order.id, reason: '' })}
+                            title="Cancel this order"
+                          >
+                            ❌ Cancel order
+                          </button>
+                          {order?.status === 'paid' && order.stripe_payment_id && (
+                            <button
+                              style={s.refundBtn}
+                              onClick={() => setActionPrompt({ type: 'refund', orderId: order.id, reason: '' })}
+                              title="Issue Stripe refund to buyer (full amount)"
+                            >
+                              💸 Refund
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -854,16 +901,20 @@ export default function OrdersPage() {
         <div style={s.modalBackdrop} onClick={() => setActionPrompt(null)}>
           <div style={s.modalCard} onClick={e => e.stopPropagation()}>
             <h3 style={s.modalTitle}>
-              {actionPrompt.type === 'cancel' ? 'Cancel this order?' : 'Escalate this order'}
+              {actionPrompt.type === 'cancel'   ? 'Cancel this order?'
+              : actionPrompt.type === 'refund'  ? 'Refund this order?'
+              : 'Escalate this order'}
             </h3>
             <p style={s.modalBody}>
-              {actionPrompt.type === 'cancel'
-                ? "The order status flips to cancelled. The buyer's payment isn't auto-refunded — refund through Stripe (or your payment dashboard) separately."
-                : "Flags this order for admin review. Use when something is wrong that you can't resolve alone (damaged stock, suspicious address, buyer dispute)."}
+              {actionPrompt.type === 'cancel'  ? "The order status flips to cancelled. Money still sits with Stripe — to give it back, use the Refund button after cancelling (or directly from a paid order)."
+              : actionPrompt.type === 'refund' ? "Issues a full Stripe refund to the buyer's original payment method. The order status becomes 'refunded' and the buyer sees the refund in their order history. This action can't be undone from here."
+              : "Flags this order for admin review. Use when something is wrong that you can't resolve alone (damaged stock, suspicious address, buyer dispute)."}
             </p>
             <textarea
               style={s.modalInput}
-              placeholder={actionPrompt.type === 'cancel' ? 'Reason (optional, but recommended)' : 'What needs admin attention?'}
+              placeholder={actionPrompt.type === 'cancel' ? 'Reason (optional, but recommended)'
+                         : actionPrompt.type === 'refund' ? 'Refund reason (shown to buyer + admin)'
+                         : 'What needs admin attention?'}
               value={actionPrompt.reason}
               onChange={e => setActionPrompt(p => ({ ...p, reason: e.target.value }))}
               rows={3}
@@ -872,13 +923,16 @@ export default function OrdersPage() {
             <div style={s.modalActions}>
               <button style={s.modalCancel} onClick={() => setActionPrompt(null)}>Never mind</button>
               <button
-                style={actionPrompt.type === 'cancel' ? s.modalConfirmDanger : s.modalConfirm}
+                style={actionPrompt.type === 'escalate' ? s.modalConfirm : s.modalConfirmDanger}
                 onClick={() => {
-                  if (actionPrompt.type === 'cancel') confirmCancelOrder(actionPrompt.orderId, actionPrompt.reason)
+                  if (actionPrompt.type === 'cancel')   confirmCancelOrder(actionPrompt.orderId, actionPrompt.reason)
+                  else if (actionPrompt.type === 'refund') confirmRefundOrder(actionPrompt.orderId, actionPrompt.reason)
                   else confirmEscalateOrder(actionPrompt.orderId, actionPrompt.reason)
                 }}
               >
-                {actionPrompt.type === 'cancel' ? 'Cancel order' : 'Send escalation'}
+                {actionPrompt.type === 'cancel'  ? 'Cancel order'
+                : actionPrompt.type === 'refund' ? 'Issue refund'
+                : 'Send escalation'}
               </button>
             </div>
           </div>
@@ -1116,6 +1170,9 @@ function makeStyles(t) {
     cancelBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #d49090', color: '#9a4848', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     escalatedBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fff4e0', border: '1px solid #f0c890', borderRadius: 8, color: '#8a5a2a', fontSize: 13 },
     cancelledBanner: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#fce8e8', border: '1px solid #d8a8a8', borderRadius: 8, color: '#8a3a3a', fontSize: 13 },
+    refundBtn:       { padding: '7px 14px', background: 'transparent', border: '1px solid #9890d4', color: '#5a4ca6', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    refundedBanner:  { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', background: '#ece4ff', border: '1px solid #b4a0e0', borderRadius: 8, color: '#5a3a8a', fontSize: 13, flexWrap: 'wrap' },
+    refundedMeta:    { marginLeft: 'auto', fontSize: 11, color: '#7a5fb8', fontStyle: 'italic' },
     clearEscalateBtn:{ marginLeft: 'auto', padding: '4px 10px', background: 'transparent', border: '1px solid #c89868', color: '#8a5a2a', borderRadius: 6, fontSize: 11, fontWeight: 500, cursor: 'pointer' },
     modalBackdrop:   { position: 'fixed', inset: 0, background: 'rgba(20,16,40,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 },
     modalCard:       { background: t.bg, border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, padding: 24, maxWidth: 460, width: '100%', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 20px 40px rgba(20,16,40,0.35)' },

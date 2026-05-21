@@ -80,6 +80,7 @@ export default function OrderHistoryPage({ onBack }) {
         .from('orders')
         .select(`
           id, status, total_cents, shipping_address, created_at,
+          refunded_at, refund_amount_cents, refund_reason,
           order_items(
             id, quantity, unit_price, size_label, swatch_name, product_name,
             fulfillment_status, tracking_number, pre_ship_photo_path, seller_id,
@@ -173,6 +174,15 @@ function OrderCard({ order, t, s, expanded, onToggle, onMarkDelivered }) {
 
       {expanded && (
         <div style={s.cardBody}>
+          {order.refunded_at && (
+            <div style={s.refundNotice}>
+              💸 <strong>Refunded ${((order.refund_amount_cents ?? order.total_cents ?? 0) / 100).toFixed(2)}</strong>
+              {' '}on {new Date(order.refunded_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+              {order.refund_reason ? <div style={s.refundReason}>Reason from seller: {order.refund_reason}</div> : null}
+              <div style={s.refundReason}>The funds will return to your original payment method within 5-10 business days.</div>
+            </div>
+          )}
+
           {items.map(item => (
             <ItemRow key={item.id} item={item} order={order} t={t} s={s} onMarkDelivered={onMarkDelivered} />
           ))}
@@ -397,6 +407,8 @@ function makeStyles(t) {
     section:     { paddingTop: 6 },
     sectionLabel:{ fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
     address:     { fontSize: 13, color: t.text, lineHeight: 1.55 },
+    refundNotice:{ padding: '12px 16px', background: `${t.accent}12`, border: `1px solid ${t.accent}40`, borderRadius: 10, color: t.text, fontSize: 14, lineHeight: 1.55 },
+    refundReason:{ fontSize: 12, color: t.textSoft, marginTop: 6 },
     msgBlock:    { marginTop: 14, paddingTop: 12, borderTop: `1px dashed ${t.surfaceBorder}` },
     msgToggle:   { background: 'transparent', border: 'none', color: t.accent, fontSize: 12, fontWeight: 500, cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 6 },
     msgCount:    { color: t.textSoft, fontWeight: 400 },
