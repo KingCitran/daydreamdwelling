@@ -29,33 +29,106 @@ export default function DashboardPage({ onNavigate }) {
       const productIds   = (products || []).map(p => p.id)
       const productNames = Object.fromEntries((products || []).map(p => [p.id, p.label]))
 
-      let revenue = 0, orderCount = 0, pendingCount = 0
+      const empty = {
+        revenue: 0, revPrev: 0,
+        orderCount: 0, orderPrev: 0,
+        pendingCount: 0, pendingPrev: 0,
+        productCount: productIds.length,
+        aov: 0, aovPrev: 0,
+        repeatRate: 0, totalCustomers: 0,
+        overdueCount: 0,
+        dailyRev: Array(30).fill(0),
+      }
       let recentOrders = [], topRows = [], attnOrders = []
 
       if (productIds.length) {
         const { data: items } = await supabase
           .from('order_items')
-          .select('product_id, quantity, unit_price, orders(status)')
+          .select('product_id, quantity, unit_price, created_at, fulfillment_status, orders(id, status, created_at, user_id, guest_email)')
           .in('product_id', productIds)
 
-        // revenue + counts
-        for (const item of items || []) {
-          if (item.orders?.status === 'paid') revenue += item.quantity * item.unit_price
-        }
-        orderCount = (items || []).length
-        pendingCount = (items || []).filter(it => it.orders?.status === 'pending').length
+        const now = Date.now()
+        const day = 24 * 60 * 60 * 1000
+        const cutoff30 = now - 30 * day
+        const cutoff60 = now - 60 * day
+        const cutoffOverdue = now - 3 * day
 
-        // top sellers — group by product
+        // Per-period aggregates (last 30d vs prior 30d)
+        let revC = 0, revP = 0, orderItemsC = 0, orderItemsP = 0, pendC = 0, pendP = 0
+        const paidOrderIdsC = new Set()
+        const paidOrderIdsP = new Set()
+        const dailyRev = Array(30).fill(0)
+        const buyerOrderMap = new Map() // buyerKey -> Set<orderId>
+        let overdueCount = 0
+
+        for (const it of items ?? []) {
+          const o = it.orders
+          const ts = o?.created_at ? new Date(o.created_at).getTime() : 0
+          if (!ts) continue
+          const inCurrent = ts >= cutoff30
+          const inPrev    = ts >= cutoff60 && ts < cutoff30
+          const rev = (it.quantity ?? 0) * (it.unit_price ?? 0)
+
+          if (o.status === 'paid' || o.status === 'fulfilled') {
+            if (inCurrent) {
+              revC += rev
+              paidOrderIdsC.add(o.id)
+              const dayIdx = 29 - Math.floor((now - ts) / day)
+              if (dayIdx >= 0 && dayIdx < 30) dailyRev[dayIdx] += rev
+            }
+            if (inPrev) {
+              revP += rev
+              paidOrderIdsP.add(o.id)
+            }
+            // All-time buyer-grouping for repeat rate
+            const buyerKey = o.user_id || o.guest_email
+            if (buyerKey) {
+              const set = buyerOrderMap.get(buyerKey) || new Set()
+              set.add(o.id)
+              buyerOrderMap.set(buyerKey, set)
+            }
+          }
+          if (inCurrent) orderItemsC += 1
+          if (inPrev) orderItemsP += 1
+          if (o.status === 'pending') {
+            if (inCurrent) pendC += 1
+            if (inPrev) pendP += 1
+          }
+          // Overdue: paid > 3d old, not shipped/delivered
+          if (o.status === 'paid'
+              && it.fulfillment_status !== 'shipped'
+              && it.fulfillment_status !== 'delivered'
+              && ts < cutoffOverdue) {
+            overdueCount += 1
+          }
+        }
+
+        const aovC = paidOrderIdsC.size > 0 ? revC / paidOrderIdsC.size : 0
+        const aovP = paidOrderIdsP.size > 0 ? revP / paidOrderIdsP.size : 0
+        const totalCustomers = buyerOrderMap.size
+        const repeatBuyers = [...buyerOrderMap.values()].filter(set => set.size >= 2).length
+        const repeatRate = totalCustomers > 0 ? (repeatBuyers / totalCustomers) * 100 : 0
+
+        Object.assign(empty, {
+          revenue: revC, revPrev: revP,
+          orderCount: orderItemsC, orderPrev: orderItemsP,
+          pendingCount: pendC, pendingPrev: pendP,
+          aov: aovC, aovPrev: aovP,
+          repeatRate, totalCustomers,
+          overdueCount,
+          dailyRev,
+        })
+
+        // Top sellers — all-time by quantity
         const totals = {}
-        for (const it of items || []) {
-          totals[it.product_id] = (totals[it.product_id] || 0) + it.quantity
+        for (const it of items ?? []) {
+          totals[it.product_id] = (totals[it.product_id] || 0) + (it.quantity ?? 0)
         }
         topRows = Object.entries(totals)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 5)
           .map(([id, qty]) => ({ id, label: productNames[id] ?? '—', qty }))
 
-        // recent orders
         const { data: ro } = await supabase
           .from('order_items')
           .select('id, quantity, unit_price, created_at, products(label), orders(id, status, created_at)')
@@ -64,7 +137,6 @@ export default function DashboardPage({ onNavigate }) {
           .limit(5)
         recentOrders = ro || []
 
-        // needs attention — paid orders not yet shipped
         const { data: attn } = await supabase
           .from('order_items')
           .select('id, quantity, products(label), orders(id, status, created_at)')
@@ -75,7 +147,7 @@ export default function DashboardPage({ onNavigate }) {
         attnOrders = (attn || []).filter(it => it.orders?.status === 'paid')
       }
 
-      setStats({ revenue, orderCount, pendingCount, productCount: productIds.length })
+      setStats(empty)
       setRecent(recentOrders)
       setTopSellers(topRows)
       setNeedsAttn(attnOrders)
@@ -83,6 +155,11 @@ export default function DashboardPage({ onNavigate }) {
     }
     load()
   }, [user])
+
+  function pctChange(curr, prev) {
+    if (prev === 0) return curr > 0 ? null : 0  // null = "no prior data"
+    return ((curr - prev) / prev) * 100
+  }
 
   const name = profile?.display_name || user?.email?.split('@')[0] || 'Seller'
   const s = makeStyles(t)
@@ -96,17 +173,64 @@ export default function DashboardPage({ onNavigate }) {
 
       {loading ? <p style={s.dim}>Loading…</p> : (
         <>
+          <div style={s.metricRowLabel}>Last 30 days vs prior 30 days</div>
           <div style={s.statsGrid}>
-            {[
-              // pct placeholders removed — real progress metrics will be wired
-              // in the analytics phase (e.g. revenue vs monthly goal, % fulfilled).
-              { label: 'Total Revenue',   value: `$${(stats.revenue || 0).toLocaleString()}` },
-              { label: 'Total Orders',    value: stats.orderCount },
-              { label: 'Pending',         value: stats.pendingCount },
-              { label: 'Active Products', value: stats.productCount },
-            ].map((stat, i) => (
-              <StatCard key={stat.label} {...stat} {...STAT_COLORS[i]} t={t} />
-            ))}
+            <StatCard
+              label="Revenue (30d)"
+              value={`$${(stats.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+              delta={pctChange(stats.revenue, stats.revPrev)}
+              sparkline={stats.dailyRev}
+              {...STAT_COLORS[0]} t={t}
+            />
+            <StatCard
+              label="Orders (30d)"
+              value={stats.orderCount}
+              delta={pctChange(stats.orderCount, stats.orderPrev)}
+              {...STAT_COLORS[1]} t={t}
+            />
+            <StatCard
+              label="Avg Order Value"
+              value={`$${(stats.aov || 0).toFixed(2)}`}
+              delta={pctChange(stats.aov, stats.aovPrev)}
+              {...STAT_COLORS[2]} t={t}
+            />
+            <StatCard
+              label="Active Products"
+              value={stats.productCount}
+              {...STAT_COLORS[3]} t={t}
+            />
+          </div>
+
+          <div style={s.statsGrid}>
+            <StatCard
+              label="Pending"
+              value={stats.pendingCount}
+              delta={pctChange(stats.pendingCount, stats.pendingPrev)}
+              deltaInverse
+              {...STAT_COLORS[1]} t={t}
+            />
+            <StatCard
+              label="Overdue (3d+)"
+              value={stats.overdueCount}
+              hint={stats.overdueCount > 0 ? 'Paid orders awaiting shipment' : 'All caught up'}
+              color={stats.overdueCount > 0 ? '#e89868' : '#88d8b0'}
+              bg={stats.overdueCount > 0 ? 'rgba(232,152,104,0.12)' : 'rgba(136,216,176,0.12)'}
+              t={t}
+            />
+            <StatCard
+              label="Repeat Rate"
+              value={`${stats.repeatRate.toFixed(0)}%`}
+              hint={stats.totalCustomers === 0
+                ? 'No customers yet'
+                : `${stats.totalCustomers} unique customer${stats.totalCustomers === 1 ? '' : 's'}`}
+              {...STAT_COLORS[0]} t={t}
+            />
+            <StatCard
+              label="Total Customers"
+              value={stats.totalCustomers}
+              hint="Distinct buyers, all-time"
+              {...STAT_COLORS[3]} t={t}
+            />
           </div>
 
           <div style={s.twoCol}>
@@ -219,28 +343,57 @@ export default function DashboardPage({ onNavigate }) {
   )
 }
 
-function StatCard({ label, value, pct, color, bg, t }) {
-  const r = 24, circ = 2 * Math.PI * r
-  const hasPct = typeof pct === 'number' && !Number.isNaN(pct)
-  const dash = hasPct ? circ * (1 - pct / 100) : circ
+function StatCard({ label, value, delta, deltaInverse, sparkline, hint, color, bg, t }) {
+  const hasDelta = typeof delta === 'number' && !Number.isNaN(delta)
+  // For pending/overdue: a *decrease* is good, so flip the color when deltaInverse.
+  const goodDir = hasDelta && (deltaInverse ? delta < 0 : delta > 0)
+  const badDir  = hasDelta && (deltaInverse ? delta > 0 : delta < 0)
+  const deltaColor = goodDir ? '#3a9a64' : badDir ? '#c25656' : t.textSoft
+  const arrow = !hasDelta ? '' : delta > 0 ? '↑' : delta < 0 ? '↓' : '→'
   return (
     <div style={{ background: bg, border: `1px solid ${color}30`, borderRadius: 16, padding: '20px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color, marginBottom: 4, lineHeight: 1.1 }}>{value}</div>
           <div style={{ fontSize: 11, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{label}</div>
+          {hasDelta && (
+            <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: deltaColor, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>{arrow}</span>
+              <span>{Math.abs(delta).toFixed(0)}%</span>
+              <span style={{ color: t.textSoft, fontWeight: 400 }}>vs prior 30d</span>
+            </div>
+          )}
+          {!hasDelta && delta === null && (
+            <div style={{ marginTop: 8, fontSize: 10, color: t.textSoft, fontStyle: 'italic' }}>new — no prior period</div>
+          )}
+          {hint && !hasDelta && (
+            <div style={{ marginTop: 8, fontSize: 11, color: t.textSoft }}>{hint}</div>
+          )}
         </div>
-        {hasPct && (
-          <svg width={60} height={60} style={{ flexShrink: 0 }}>
-            <circle cx={30} cy={30} r={r} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth={6} />
-            <circle cx={30} cy={30} r={r} fill="none" stroke={color} strokeWidth={6}
-              strokeDasharray={circ} strokeDashoffset={dash}
-              strokeLinecap="round" transform="rotate(-90 30 30)" />
-            <text x={30} y={34} textAnchor="middle" fontSize={10} fill={color} fontWeight={700}>{pct}%</text>
-          </svg>
-        )}
+        {sparkline && sparkline.length > 1 && <Sparkline points={sparkline} color={color} />}
       </div>
     </div>
+  )
+}
+
+// Inline mini line chart. Accepts a numeric array and renders a smooth-ish
+// polyline scaled to its bounding box, with a soft fill underneath.
+function Sparkline({ points, color, width = 80, height = 36 }) {
+  const max = Math.max(...points, 1)
+  const min = Math.min(...points, 0)
+  const range = (max - min) || 1
+  const xStep = points.length > 1 ? width / (points.length - 1) : 0
+  const path = points.map((p, i) => {
+    const x = i * xStep
+    const y = height - ((p - min) / range) * height
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  const areaPath = `${path} L${width},${height} L0,${height} Z`
+  return (
+    <svg width={width} height={height} style={{ flexShrink: 0, overflow: 'visible' }}>
+      <path d={areaPath} fill={color} fillOpacity={0.15} />
+      <path d={path} stroke={color} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   )
 }
 
@@ -255,7 +408,8 @@ function makeStyles(t) {
     pageTitle:  { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
     pageSubtitle:{ fontSize: 13, color: t.textSoft },
     dim:        { fontSize: 13, color: t.textSoft },
-    statsGrid:  { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14, marginBottom: 24 },
+    statsGrid:  { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 14, marginBottom: 14 },
+    metricRowLabel: { fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 600 },
     twoCol:     { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 20 },
     card:       { background: t.surface, backdropFilter: 'blur(12px)', borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)', border: `1px solid ${t.surfaceBorder}` },
     cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
