@@ -560,11 +560,63 @@ export default function OrdersPage() {
 
   function bulkPrintSlips() {
     if (!selected.size) { showToast('error', 'Nothing selected'); return }
-    const orderIds = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.orders?.id).filter(Boolean))]
-    const opened = printPackingSlips(orderIds)
+    // Group by tracking_number so bundled orders (sharing one tracking) print
+    // as ONE consolidated slip. Items without tracking fall back to their
+    // own order grouping.
+    const groups = new Map() // groupKey -> array of order_item rows
+    for (const id of selected) {
+      const r = rows.find(row => row.id === id)
+      if (!r) continue
+      const key = r.tracking_number ? `trk:${r.tracking_number}` : `ord:${r.orders?.id ?? id}`
+      const list = groups.get(key) || []
+      list.push(r)
+      groups.set(key, list)
+    }
+    const opened = printConsolidatedSlips([...groups.values()])
     if (opened === false) {
       showToast('error', 'Popup blocked — allow popups for this site')
     }
+  }
+
+  function bulkPrintLabels() {
+    if (!selected.size) { showToast('error', 'Nothing selected'); return }
+    const labelUrls = [...new Set(
+      [...selected]
+        .map(id => rows.find(r => r.id === id)?.label_url)
+        .filter(Boolean)
+    )]
+    if (!labelUrls.length) {
+      showToast('error', 'None of the selected items have labels yet — Ship All first')
+      return
+    }
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Labels — ${labelUrls.length} of them</title>
+      <style>
+        body { margin: 0; padding: 0; font-family: system-ui, sans-serif; background: #fff; }
+        .label-page { width: 4in; height: 6in; page-break-after: always; overflow: hidden; }
+        .label-page:last-child { page-break-after: auto; }
+        iframe { width: 100%; height: 100%; border: 0; }
+        @media print {
+          body { margin: 0; padding: 0; }
+          @page { size: 4in 6in; margin: 0; }
+        }
+      </style></head><body>
+      ${labelUrls.map(u => `<div class="label-page"><iframe src="${escapeHtml(u)}"></iframe></div>`).join('')}
+      <script>
+        let loaded = 0
+        const frames = document.querySelectorAll('iframe')
+        frames.forEach(f => f.addEventListener('load', () => {
+          loaded += 1
+          if (loaded === frames.length) {
+            setTimeout(() => window.print(), 600)
+          }
+        }))
+      </script>
+      </body></html>`
+    const w = window.open('', '_blank', 'width=820,height=900')
+    if (!w) { showToast('error', 'Popup blocked — allow popups for this site'); return }
+    w.document.write(html)
+    w.document.close()
+    showToast('success', `Opened ${labelUrls.length} label${labelUrls.length === 1 ? '' : 's'} for printing`)
   }
 
   // Render the inner body of a single slip — no doctype/head/script. Used to
@@ -666,6 +718,102 @@ export default function OrdersPage() {
   // button in the expanded detail view).
   function printPackingSlip(orderId) {
     printPackingSlips([orderId])
+  }
+
+  // Render a packing slip body from a list of order_item rows (instead of by
+  // order_id). Used when we want to consolidate items across orders that
+  // share a tracking number into one slip.
+  function renderSlipBodyFromItems(itemRows) {
+    if (!itemRows?.length) return ''
+    // All items in the group share the destination (validated by caller via
+    // tracking_number grouping), so use the first item's order for context.
+    const order = itemRows[0].orders
+    const orderId = order?.id ?? ''
+    const tracking = itemRows[0].tracking_number || null
+    const customer = customerNameFor(order)
+    const addr = formatAddress(order?.shipping_address) ?? []
+    const created = order?.created_at ? new Date(order.created_at).toLocaleDateString() : ''
+    const itemsHtml = itemRows.map(r => {
+      const label = r.products?.label ?? '—'
+      const variant = [r.size_label, r.swatch_name].filter(Boolean).join(' · ')
+      const lineTotal = ((r.quantity ?? 0) * (r.unit_price ?? 0)).toFixed(2)
+      return `
+        <tr>
+          <td>${escapeHtml(label)}${variant ? `<br><span class="dim">${escapeHtml(variant)}</span>` : ''}</td>
+          <td class="num">${r.quantity ?? 0}</td>
+          <td class="num">$${(r.unit_price ?? 0).toFixed(2)}</td>
+          <td class="num">$${lineTotal}</td>
+        </tr>`
+    }).join('')
+    const total = itemRows.reduce((sum, r) => sum + (r.quantity ?? 0) * (r.unit_price ?? 0), 0).toFixed(2)
+    return `
+      <section class="slip">
+        <div class="brand">DaydreamDwelling</div>
+        <h1>Packing Slip${itemRows.length > 1 ? ` · ${itemRows.length} items in one box` : ''}</h1>
+        <div class="row">
+          <div class="col">
+            <div class="label">${tracking ? 'Tracking' : 'Order ID'}</div>
+            <div class="value" style="font-family:ui-monospace,monospace;font-size:12px">${escapeHtml(tracking || orderId)}</div>
+            <div class="label" style="margin-top:10px">Date</div>
+            <div class="value">${escapeHtml(created)}</div>
+          </div>
+          <div class="col">
+            <div class="label">Ship To</div>
+            <div class="value">${escapeHtml(customer)}<br>${addr.map(escapeHtml).join('<br>')}</div>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            ${itemsHtml}
+            <tr class="total-row"><td colspan="3" class="num">Subtotal</td><td class="num">$${total}</td></tr>
+          </tbody>
+        </table>
+        <div class="footer">
+          ${sellerName ? `Packed with care by <strong>${escapeHtml(sellerName)}</strong><br>` : ''}
+          daydreamdwelling.com · Questions? Reply to your order confirmation email.
+        </div>
+      </section>`
+  }
+
+  // Open one printable window for a list of item-groups. Each group becomes
+  // one consolidated slip. Items within a group are listed as line items on
+  // the same slip (use case: bundled orders shipped in one box).
+  function printConsolidatedSlips(groups) {
+    if (!groups?.length) return
+    const bodies = groups.map(renderSlipBodyFromItems).filter(Boolean).join(
+      '<div class="page-break"></div>'
+    )
+    const title = groups.length === 1 ? 'Packing Slip' : `Packing Slips — ${groups.length} shipments`
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+      <style>
+        body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        .brand { font-size: 12px; color: #7a6ca6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
+        .row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+        .col { flex: 1; }
+        .label { font-size: 10px; color: #9a8fb0; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        .value { font-size: 13px; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e4e0ec; font-size: 13px; }
+        th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: #9a8fb0; }
+        .num { text-align: right; }
+        .total-row td { border-bottom: none; font-weight: 700; padding-top: 14px; }
+        .dim { color: #9a8fb0; font-size: 11px; }
+        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e4e0ec; font-size: 11px; color: #7a6ca6; text-align: center; line-height: 1.6; }
+        .slip { page-break-inside: avoid; }
+        .page-break { page-break-after: always; height: 0; }
+        @media screen { .page-break { border-top: 2px dashed #d4ccea; margin: 40px 0; } }
+        @media print { body { padding: 12px 20px; } .page-break { border: none; margin: 0; } }
+      </style></head><body>
+      ${bodies}
+      <script>window.onload = () => { window.print(); };</script>
+      </body></html>`
+    const w = window.open('', '_blank', 'width=820,height=900')
+    if (!w) return false
+    w.document.write(html)
+    w.document.close()
+    return true
   }
 
   function escapeHtml(s) {
@@ -1327,47 +1475,39 @@ export default function OrdersPage() {
             <button style={s.bulkClear} onClick={clearSelection}>Clear</button>
           </div>
           <div style={s.bulkActions}>
-            <div style={s.bulkTrackingGroup}>
-              <label
-                style={s.bulkCombineLabel}
-                title="When checked: buy ONE label for everything selected and apply the same tracking to every item. Use when packing everything into one box."
-              >
-                <input
-                  type="checkbox"
-                  checked={bulkCombine}
-                  onChange={e => setBulkCombine(e.target.checked)}
-                  disabled={bulkBusy}
-                />
-                <span>📦 One box</span>
-              </label>
+            <label
+              style={s.bulkCombineLabel}
+              title="When checked: buy ONE label for everything selected and apply the same tracking to every item. Use when packing everything into one box."
+            >
               <input
-                style={s.bulkInput}
-                placeholder={bulkCombine ? 'Tracking # (optional — blank = auto-buy one label)' : 'Tracking # (optional — blank = auto-buy a label per item)'}
-                value={bulkTracking}
-                onChange={e => setBulkTracking(e.target.value)}
+                type="checkbox"
+                checked={bulkCombine}
+                onChange={e => setBulkCombine(e.target.checked)}
                 disabled={bulkBusy}
               />
-              <button
-                style={bulkBusy ? s.bulkPrimaryDisabled : s.bulkPrimary}
-                disabled={bulkBusy}
-                onClick={bulkMarkShipped}
-                title={bulkTracking.trim()
-                  ? 'Stamp this tracking number on all selected items'
-                  : bulkCombine
-                    ? 'Buy ONE Shippo label, apply the same tracking to all selected items'
-                    : 'Buy a Shippo label per selected item (each gets its own tracking)'}
-              >
-                {bulkBusy ? '…' : 'Ship All'}
-              </button>
-            </div>
+              <span>📦 One box</span>
+            </label>
+            <button
+              style={bulkBusy ? s.bulkPrimaryDisabled : s.bulkPrimary}
+              disabled={bulkBusy}
+              onClick={bulkMarkShipped}
+              title={bulkCombine
+                ? 'Buy ONE Shippo label and apply the same tracking to all selected'
+                : 'Buy a Shippo label per selected item (each gets its own tracking)'}
+            >
+              {bulkBusy ? '…' : 'Ship All'}
+            </button>
+            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintLabels} title="Print all labels on the selected items">
+              🏷️ Print Labels
+            </button>
+            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintSlips}>
+              🖨 Print Slips
+            </button>
             <button style={s.bulkSecondary} disabled={bulkBusy} onClick={() => bulkMarkStatus('packed')}>
               Mark Packed
             </button>
             <button style={s.bulkSecondary} disabled={bulkBusy} onClick={() => bulkMarkStatus('delivered')}>
               Mark Delivered
-            </button>
-            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintSlips}>
-              🖨 Print Slips
             </button>
           </div>
         </div>
