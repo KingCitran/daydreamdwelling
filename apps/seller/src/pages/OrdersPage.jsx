@@ -126,7 +126,8 @@ export default function OrdersPage() {
   const [sessionPrintedIds, setSessionPrintedIds] = useState(() => new Set())
   // One uuid per page session — stamped onto every order_item this session
   // labels. Powers the 'Past sessions' history view across page reloads.
-  const sessionUuid = useMemo(() => crypto.randomUUID(), [])
+  // useState so 'Clear session' can rotate to a fresh uuid for new labels.
+  const [sessionUuid, setSessionUuid] = useState(() => crypto.randomUUID())
 
   async function markSessionItem(itemId) {
     setSessionItemIds(prev => {
@@ -135,10 +136,20 @@ export default function OrdersPage() {
       return next
     })
     // Stamp the session id on the row (persists across reloads via the
-    // existing seller-update RLS policy). Fire-and-forget — if it fails
-    // we still have the in-memory session.
+    // existing seller-update RLS policy) AND update the local row state
+    // so the History panel reflects the current session immediately.
+    setRows(prev => prev.map(r => r.id === itemId ? { ...r, label_session_id: sessionUuid } : r))
     supabase.from('order_items').update({ label_session_id: sessionUuid }).eq('id', itemId)
       .then(({ error }) => { if (error) console.warn('[session stamp]', error.message) })
+  }
+
+  function rotateSession() {
+    // 'Clear session' starts a new session for future labels. Past sessions in
+    // the DB are unchanged — they still appear in the history panel.
+    setSessionUuid(crypto.randomUUID())
+    setSessionItemIds(new Set())
+    setSessionPrintedIds(new Set())
+    showToast('info', 'Session reset — next label starts a new session')
   }
 
   // Warn the seller if they try to leave the page with unprinted session
@@ -157,6 +168,16 @@ export default function OrdersPage() {
     return () => window.removeEventListener('beforeunload', handler)
   }, [sessionItemIds, sessionPrintedIds])
   const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
+  // Column sort: default by date desc. Click a header to switch column /
+  // flip direction. 'date' uses label_purchased_at when available (ship
+  // date) and falls back to order created_at.
+  const [sort, setSort] = useState({ col: 'date', dir: 'desc' })
+
+  function toggleSort(col) {
+    setSort(prev => prev.col === col
+      ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: 'desc' })
+  }
   const [toast, setToast] = useState(null) // { kind: 'success'|'error'|'info', message }
 
   function showToast(kind, message) {
@@ -1033,8 +1054,31 @@ export default function OrdersPage() {
       if (fromMs != null && created < fromMs) return false
       if (toMs   != null && created >= toMs) return false
       return true
+    }).sort((a, b) => {
+      // Sort comparator — default 'date' uses ship date when available
+      // (label_purchased_at), falls back to order created_at otherwise.
+      const dir = sort.dir === 'asc' ? 1 : -1
+      const get = (r) => {
+        switch (sort.col) {
+          case 'product':    return (r.products?.label ?? '').toLowerCase()
+          case 'customer':   return customerNameFor(r.orders).toLowerCase()
+          case 'qty':        return r.quantity ?? 0
+          case 'amount':     return (r.quantity ?? 0) * (r.unit_price ?? 0)
+          case 'payment':    return r.orders?.status ?? ''
+          case 'fulfillment':return r.fulfillment_status ?? ''
+          case 'date':
+          default:
+            return r.label_purchased_at
+              ? new Date(r.label_purchased_at).getTime()
+              : new Date(r.orders?.created_at ?? 0).getTime()
+        }
+      }
+      const av = get(a), bv = get(b)
+      if (av < bv) return -1 * dir
+      if (av > bv) return 1 * dir
+      return 0
     })
-  }, [rows, filter, search, dateFrom, dateTo])
+  }, [rows, filter, search, dateFrom, dateTo, sort])
 
   // Buyers with 2+ paid-but-unshipped orders need to be grouped so the seller
   // can see "combine these into one box." Anything already shipped/delivered/
@@ -1060,25 +1104,25 @@ export default function OrdersPage() {
     return map
   }, [filtered])
 
-  // Sort: cluster rows from the same ship-together buyer adjacent (keeping
-  // their date order within the cluster). Non-clustered rows stay where
-  // they were. Date order is preserved across the file as the global sort.
+  // When user is on the default date sort, cluster rows from the same
+  // ship-together buyer adjacent. When user clicks any other column header,
+  // honor that sort verbatim — clusters break (items intermix by amount/qty/
+  // whatever they sorted by).
   const sortedFiltered = useMemo(() => {
+    if (sort.col !== 'date') return filtered
     const arr = [...filtered]
     arr.sort((a, b) => {
       const ka = shipTogetherClusters.has(buyerKeyFor(a.orders) ?? '') ? (buyerKeyFor(a.orders) ?? '') : null
       const kb = shipTogetherClusters.has(buyerKeyFor(b.orders) ?? '') ? (buyerKeyFor(b.orders) ?? '') : null
-      // Clustered rows group by buyer key (alphabetical key for stability),
-      // then date desc within. Non-clustered rows fall through to date desc.
       if (ka && kb && ka !== kb) return ka.localeCompare(kb)
       if (ka && !kb) return -1
       if (!ka && kb) return 1
       const ta = a.orders?.created_at ? new Date(a.orders.created_at).getTime() : 0
       const tb = b.orders?.created_at ? new Date(b.orders.created_at).getTime() : 0
-      return tb - ta
+      return sort.dir === 'asc' ? ta - tb : tb - ta
     })
     return arr
-  }, [filtered, shipTogetherClusters])
+  }, [filtered, shipTogetherClusters, sort])
 
   // Map each visible order_id to a zebra band (0 or 1) so multi-item orders
   // share one tint and adjacent orders alternate. Order encountered first in
@@ -1109,52 +1153,26 @@ export default function OrdersPage() {
         {filtered.length !== rows.length && ` · ${filtered.length} matching filters`}
       </p>
 
-      {/* Session bar — always visible. Counts labels generated this session
-          and gives one-click access to print them (and their slips). */}
-      <div style={s.sessionBar}>
-        <div style={s.sessionInfo}>
-          <span style={s.sessionCount}>{sessionItemIds.size}</span>
-          <span style={s.sessionLabel}>label{sessionItemIds.size === 1 ? '' : 's'} this session</span>
-        </div>
-        <div style={s.sessionActions}>
-          <button
-            style={sessionItemIds.size ? s.sessionBtn : s.sessionBtnMuted}
-            onClick={printSessionLabels}
-            disabled={!sessionItemIds.size}
-            title="Open one print job containing every label generated in this browser session"
-          >
-            🏷️ Print Labels ({sessionItemIds.size})
-          </button>
-          <button
-            style={sessionItemIds.size ? s.sessionBtn : s.sessionBtnMuted}
-            onClick={printSessionSlips}
-            disabled={!sessionItemIds.size}
-            title="Open consolidated packing slips for every order labeled this session"
-          >
-            🖨 Print Slips ({sessionItemIds.size})
-          </button>
-          {sessionItemIds.size > 0 && (
-            <button
-              style={s.sessionClear}
-              onClick={() => setSessionItemIds(new Set())}
-              title="Reset the session counter (won't undo any labels you generated)"
-            >
-              Clear session
-            </button>
-          )}
-        </div>
-      </div>
-
       {filter === 'labeled' && pastSessions.length > 0 && (
         <div style={s.sessionsPanel}>
-          <div style={s.sessionsHeader}>Past sessions ({pastSessions.length})</div>
+          <div style={s.sessionsHeader}>Shipping sessions ({pastSessions.length})</div>
           <div style={s.sessionsList}>
             {pastSessions.map(sess => {
               const date = sess.earliest ? new Date(sess.earliest).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
               const urls = [...new Set(sess.items.map(r => r.label_url).filter(Boolean))]
               const isCurrent = sess.id === sessionUuid
+              const slipsGroups = () => {
+                const groups = new Map()
+                for (const r of sess.items) {
+                  const key = r.tracking_number ? `trk:${r.tracking_number}` : `ord:${r.orders?.id ?? r.id}`
+                  const list = groups.get(key) || []
+                  list.push(r)
+                  groups.set(key, list)
+                }
+                return [...groups.values()]
+              }
               return (
-                <div key={sess.id} style={s.sessionRow}>
+                <div key={sess.id} style={{ ...s.sessionRow, ...(isCurrent ? s.sessionRowCurrent : {}) }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={s.sessionRowTitle}>
                       {date}
@@ -1167,28 +1185,37 @@ export default function OrdersPage() {
                   </div>
                   <button
                     style={urls.length ? s.sessionRowBtn : s.sessionBtnMuted}
-                    onClick={() => printLabelsByUrls(urls)}
+                    onClick={() => {
+                      printLabelsByUrls(urls)
+                      if (isCurrent) {
+                        setSessionPrintedIds(prev => {
+                          const next = new Set(prev)
+                          sess.items.forEach(r => next.add(r.id))
+                          return next
+                        })
+                      }
+                    }}
                     disabled={!urls.length}
                     title="Reprint all labels from this session"
                   >
-                    🏷️ Labels
+                    🏷️ Print Labels ({urls.length})
                   </button>
                   <button
                     style={s.sessionRowBtn}
-                    onClick={() => {
-                      const groups = new Map()
-                      for (const r of sess.items) {
-                        const key = r.tracking_number ? `trk:${r.tracking_number}` : `ord:${r.orders?.id ?? r.id}`
-                        const list = groups.get(key) || []
-                        list.push(r)
-                        groups.set(key, list)
-                      }
-                      printConsolidatedSlips([...groups.values()])
-                    }}
-                    title="Reprint consolidated packing slips for this session"
+                    onClick={() => printConsolidatedSlips(slipsGroups())}
+                    title="Print consolidated packing slips for this session"
                   >
-                    🖨 Slips
+                    🖨 Print Slips ({slipsGroups().length})
                   </button>
+                  {isCurrent && (
+                    <button
+                      style={s.sessionClear}
+                      onClick={rotateSession}
+                      title="Start a new session for future labels (past labels stay in history)"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
               )
             })}
@@ -1260,7 +1287,28 @@ export default function OrdersPage() {
                 title={filtered.every(r => selected.has(r.id)) ? 'Deselect all' : 'Select all'}
               />
             </span>
-            <span>Product</span><span>Customer</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
+            {[
+              { col: 'product',     label: 'Product' },
+              { col: 'customer',    label: 'Customer' },
+              { col: 'qty',         label: 'Qty' },
+              { col: 'amount',      label: 'Amount' },
+              { col: 'payment',     label: 'Payment' },
+              { col: 'fulfillment', label: 'Fulfillment' },
+              { col: 'date',        label: 'Date' },
+            ].map(({ col, label }) => {
+              const active = sort.col === col
+              const arrow = active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''
+              return (
+                <span
+                  key={col}
+                  onClick={() => toggleSort(col)}
+                  style={{ ...s.tableHeadCell, ...(active ? s.tableHeadCellActive : {}) }}
+                  title={`Sort by ${label}`}
+                >
+                  {label}{arrow}
+                </span>
+              )
+            })}
           </div>
           {sortedFiltered.map((item, idx) => {
             const order = item.orders
@@ -1846,6 +1894,8 @@ function makeStyles(t) {
     emptyTitle:      { fontSize: 15, fontWeight: 600, color: t.text, marginBottom: 8 },
     tableWrap:       { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, overflow: 'hidden' },
     tableHead:       { display: 'grid', gridTemplateColumns: '36px 2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', background: `${t.accent}06`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' },
+    tableHeadCell:   { cursor: 'pointer', userSelect: 'none' },
+    tableHeadCellActive: { color: t.accent, fontWeight: 700 },
     tableRow:        { display: 'grid', gridTemplateColumns: '36px 2fr 1.4fr 0.5fr 1fr 0.9fr 1fr 0.9fr', gap: 10, padding: '12px 18px', borderTop: `1px solid ${t.surfaceBorder}`, alignItems: 'center' },
     cell:            { fontSize: 13, color: t.text },
     variantSub:      { fontSize: 10, color: '#9a88bb', marginTop: 2 },
@@ -1921,6 +1971,7 @@ function makeStyles(t) {
     sessionCurrentTag: { padding: '2px 8px', background: `${t.accent}20`, color: t.accent, borderRadius: 10, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' },
     sessionRowMeta: { fontSize: 11, color: t.textSoft, marginTop: 2 },
     sessionRowBtn: { padding: '6px 12px', background: 'transparent', color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer' },
+    sessionRowCurrent: { background: `${t.accent}08`, borderBottom: `1px solid ${t.accent}30` },
     toastSuccess: { background: '#3a9a64', borderLeft: '4px solid #2a7a50' },
     toastError:   { background: '#c25656', borderLeft: '4px solid #9a3a3a' },
     toastInfo:    { background: '#6a4ca6', borderLeft: '4px solid #5a3a8a' },
