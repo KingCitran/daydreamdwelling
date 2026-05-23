@@ -534,6 +534,50 @@ export default function OrdersPage() {
     })
   }, [rows, filter, search, dateFrom, dateTo])
 
+  // Buyers with 2+ paid-but-unshipped orders need to be grouped so the seller
+  // can see "combine these into one box." Anything already shipped/delivered/
+  // cancelled/refunded doesn't count — only the active fulfillment queue.
+  const shipTogetherClusters = useMemo(() => {
+    const byBuyer = new Map()
+    for (const r of filtered) {
+      const o = r.orders
+      if (!o) continue
+      if (o.status !== 'paid') continue
+      if (r.fulfillment_status === 'shipped' || r.fulfillment_status === 'delivered') continue
+      const key = buyerKeyFor(o)
+      if (!key) continue
+      const s = byBuyer.get(key) || new Set()
+      s.add(o.id)
+      byBuyer.set(key, s)
+    }
+    // Only keep buyers with 2+ orders that need shipping
+    const map = new Map()
+    for (const [key, set] of byBuyer) {
+      if (set.size >= 2) map.set(key, set)
+    }
+    return map
+  }, [filtered])
+
+  // Sort: cluster rows from the same ship-together buyer adjacent (keeping
+  // their date order within the cluster). Non-clustered rows stay where
+  // they were. Date order is preserved across the file as the global sort.
+  const sortedFiltered = useMemo(() => {
+    const arr = [...filtered]
+    arr.sort((a, b) => {
+      const ka = shipTogetherClusters.has(buyerKeyFor(a.orders) ?? '') ? (buyerKeyFor(a.orders) ?? '') : null
+      const kb = shipTogetherClusters.has(buyerKeyFor(b.orders) ?? '') ? (buyerKeyFor(b.orders) ?? '') : null
+      // Clustered rows group by buyer key (alphabetical key for stability),
+      // then date desc within. Non-clustered rows fall through to date desc.
+      if (ka && kb && ka !== kb) return ka.localeCompare(kb)
+      if (ka && !kb) return -1
+      if (!ka && kb) return 1
+      const ta = a.orders?.created_at ? new Date(a.orders.created_at).getTime() : 0
+      const tb = b.orders?.created_at ? new Date(b.orders.created_at).getTime() : 0
+      return tb - ta
+    })
+    return arr
+  }, [filtered, shipTogetherClusters])
+
   // Map each visible order_id to a zebra band (0 or 1) so multi-item orders
   // share one tint and adjacent orders alternate. Order encountered first in
   // the filtered list gets band 0.
@@ -624,7 +668,7 @@ export default function OrdersPage() {
             </span>
             <span>Product</span><span>Customer</span><span>Qty</span><span>Amount</span><span>Payment</span><span>Fulfillment</span><span>Date</span>
           </div>
-          {filtered.map((item, idx) => {
+          {sortedFiltered.map((item, idx) => {
             const order = item.orders
             const email = contactEmailFor(order)
             const customer = customerNameFor(order)
@@ -638,6 +682,15 @@ export default function OrdersPage() {
             const isEscalated = !!order?.escalated_at
             const isCancelled = order?.status === 'cancelled'
             const isRefunded  = order?.status === 'refunded'
+            // Ship-together cluster: same buyer has 2+ unshipped paid orders.
+            // We mark every row in the cluster so the seller sees them as a
+            // group, but the labels still generate independently per order.
+            const buyerKey = buyerKeyFor(order)
+            const clusterSet = buyerKey ? shipTogetherClusters.get(buyerKey) : null
+            const inCluster = !!clusterSet
+            const prevBuyerKey = idx > 0 ? buyerKeyFor(sortedFiltered[idx - 1]?.orders) : null
+            const isClusterStart = inCluster && prevBuyerKey !== buyerKey
+            const isClusterCont  = inCluster && prevBuyerKey === buyerKey
             return (
               <div key={item.id}>
                 <div
@@ -666,7 +719,15 @@ export default function OrdersPage() {
                   </span>
                   <span style={s.cell}>
                     {isEscalated && <span style={s.escalatedFlag} title={order.escalation_note || 'Escalated'}>🚩</span>}
-                    {customer}
+                    {isClusterCont ? <span style={s.clusterContName}>↪ {customer}</span> : customer}
+                    {isClusterStart && (
+                      <span
+                        style={s.shipTogetherBadge}
+                        title={`This buyer has ${clusterSet.size} unshipped orders. Combine into one box if items fit — otherwise label each order separately.`}
+                      >
+                        📦 Same buyer · {clusterSet.size} orders
+                      </span>
+                    )}
                   </span>
                   <span style={s.cell}>×{item.quantity}</span>
                   <span style={{ ...s.cell, fontWeight: 600, color: '#4a3a6a' }}>${(item.quantity * item.unit_price).toLocaleString()}</span>
@@ -1216,6 +1277,8 @@ function makeStyles(t) {
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     escalatedFlag:   { marginRight: 6, fontSize: 13 },
+    clusterContName: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
+    shipTogetherBadge: { display: 'inline-block', marginLeft: 8, padding: '2px 8px', background: `${t.accent}18`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 10, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' },
     escalatedRowEdge:{ boxShadow: `inset 3px 0 0 #e4a868` },
     cancelledRow:    { opacity: 0.55, textDecoration: 'line-through', textDecorationColor: 'rgba(180,80,80,0.4)' },
     actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
