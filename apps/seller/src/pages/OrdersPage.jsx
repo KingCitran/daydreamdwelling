@@ -328,20 +328,74 @@ export default function OrdersPage() {
   async function bulkMarkShipped() {
     const trimmed = bulkTracking.trim()
     if (!selected.size) { showToast('error', 'Nothing selected'); return }
-    if (!trimmed) { showToast('info', 'Type a tracking number first'); return }
-    setBulkBusy(true)
     const ids = [...selected]
-    const { error } = await supabase.from('order_items')
-      .update({ tracking_number: trimmed, fulfillment_status: 'shipped' })
-      .in('id', ids)
+    setBulkBusy(true)
+
+    // Manual-tracking path: stamp the same tracking + shipped status on all
+    // selected. Used when sellers ship outside Shippo (e.g. carried tracking).
+    if (trimmed) {
+      const { error } = await supabase.from('order_items')
+        .update({ tracking_number: trimmed, fulfillment_status: 'shipped' })
+        .in('id', ids)
+      setBulkBusy(false)
+      if (error) { showToast('error', `Bulk ship failed: ${error.message}`); return }
+      setRows(prev => prev.map(r => ids.includes(r.id)
+        ? { ...r, tracking_number: trimmed, fulfillment_status: 'shipped' }
+        : r))
+      setBulkTracking('')
+      clearSelection()
+      showToast('success', `Shipped ${ids.length} item${ids.length === 1 ? '' : 's'} with tracking ${trimmed}`)
+      return
+    }
+
+    // Auto-generate path: hit Shippo for each selected item in parallel.
+    // Skip items that already have a label (idempotent). Each gets its own
+    // tracking and label PDF — open the first label automatically.
+    const targetIds = ids.filter(id => !rows.find(r => r.id === id)?.label_url)
+    const skipped = ids.length - targetIds.length
+
+    const results = await Promise.all(targetIds.map(itemId =>
+      supabase.functions.invoke('create-shipping-label', { body: { orderItemId: itemId } })
+        .then(res => ({ itemId, data: res.data, error: res.error }))
+    ))
+
+    const succeeded = results.filter(r => r.data && !r.data.error && !r.error)
+    const failed    = results.filter(r => !r.data || r.data?.error || r.error)
+
+    // Apply success updates to the rows in one setRows pass
+    if (succeeded.length) {
+      const updateMap = new Map(succeeded.map(r => [r.itemId, r.data]))
+      setRows(prev => prev.map(row => {
+        const data = updateMap.get(row.id)
+        if (!data) return row
+        return {
+          ...row,
+          tracking_number: data.trackingNumber,
+          label_url: data.labelUrl,
+          shipping_carrier: data.carrier,
+          shipping_service: data.service,
+          shipping_cost_cents: Math.round(parseFloat(data.cost) * 100),
+          fulfillment_status: 'shipped',
+          label_purchased_at: new Date().toISOString(),
+        }
+      }))
+      // Auto-open the first label PDF so the print dialog is one click away.
+      // (Multiple window.open() calls would be popup-blocked; the rest are
+      // accessible via the 🏷️ Label pill on each row.)
+      const firstUrl = succeeded[0]?.data?.labelUrl
+      if (firstUrl) window.open(firstUrl, '_blank', 'noopener')
+    }
+
     setBulkBusy(false)
-    if (error) { showToast('error', `Bulk ship failed: ${error.message}`); return }
-    setRows(prev => prev.map(r => ids.includes(r.id)
-      ? { ...r, tracking_number: trimmed, fulfillment_status: 'shipped' }
-      : r))
-    setBulkTracking('')
     clearSelection()
-    showToast('success', `Shipped ${ids.length} item${ids.length === 1 ? '' : 's'}`)
+
+    const bits = []
+    if (succeeded.length) bits.push(`${succeeded.length} label${succeeded.length === 1 ? '' : 's'} generated`)
+    if (failed.length)    bits.push(`${failed.length} failed`)
+    if (skipped)          bits.push(`${skipped} already labeled`)
+    if (succeeded.length && !failed.length) showToast('success', bits.join(' · '))
+    else if (succeeded.length) showToast('info', bits.join(' · '))
+    else showToast('error', failed[0]?.data?.error || failed[0]?.error?.message || 'All labels failed')
   }
 
   async function bulkMarkStatus(status) {
@@ -818,21 +872,12 @@ export default function OrdersPage() {
                     )}
                     {isClusterCont ? <span style={s.clusterContName}>↪ {customer}</span> : customer}
                     {isClusterStart && (
-                      <>
-                        <span
-                          style={s.shipTogetherBadge}
-                          title={`This buyer has ${clusterSet.size} unshipped orders. Combine into one box if items fit — otherwise label each order separately.`}
-                        >
-                          📦 Same buyer · {clusterSet.size} orders
-                        </span>
-                        <button
-                          style={s.shipAllBtn}
-                          onClick={e => { e.stopPropagation(); shipClusterTogether(buyerKey) }}
-                          title={`Generate ONE label for all ${clusterSet.size} orders. Use only if items fit in one box.`}
-                        >
-                          Ship all together
-                        </button>
-                      </>
+                      <span
+                        style={s.shipTogetherBadge}
+                        title={`This buyer has ${clusterSet.size} open (unshipped) orders. Select them all + Ship All in the bottom bar to label them together.`}
+                      >
+                        📦 {clusterSet.size} Open Orders
+                      </span>
                     )}
                   </span>
                   <span style={s.cell}>×{item.quantity}</span>
@@ -1182,16 +1227,18 @@ export default function OrdersPage() {
             <div style={s.bulkTrackingGroup}>
               <input
                 style={s.bulkInput}
-                placeholder="Tracking number…"
+                placeholder="Tracking # (optional — leave blank to auto-buy labels)"
                 value={bulkTracking}
                 onChange={e => setBulkTracking(e.target.value)}
                 disabled={bulkBusy}
               />
               <button
-                style={(!bulkTracking.trim() || bulkBusy) ? s.bulkPrimaryDisabled : s.bulkPrimary}
-                disabled={!bulkTracking.trim() || bulkBusy}
+                style={bulkBusy ? s.bulkPrimaryDisabled : s.bulkPrimary}
+                disabled={bulkBusy}
                 onClick={bulkMarkShipped}
-                title={bulkTracking.trim() ? 'Set this tracking number on all selected items and mark them shipped' : 'Type a tracking number first, then Ship All applies it to every selected item'}
+                title={bulkTracking.trim()
+                  ? 'Stamp this tracking number on all selected items and mark them shipped'
+                  : 'Auto-buy a Shippo label for each selected item (each gets its own tracking)'}
               >
                 {bulkBusy ? '…' : 'Ship All'}
               </button>
@@ -1392,7 +1439,7 @@ function makeStyles(t) {
     bulkClear:       { background: 'transparent', border: 'none', color: t.textSoft, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' },
     bulkActions:     { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     bulkTrackingGroup: { display: 'flex', alignItems: 'center', gap: 6 },
-    bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
+    bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 320 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkPrimaryDisabled: { padding: '7px 14px', background: `${t.accent}40`, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.6 },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
