@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { items, successUrl, cancelUrl, buyerMood, buyerRoom } = await req.json()
+    const { items, successUrl, cancelUrl, buyerMood, buyerRoom, shipping, address } = await req.json()
     // items: [{ typeKey, label, sizeLabel, swatchName, unitPrice, qty }]
     // buyerMood / buyerRoom: optional snapshot of the buyer's current room
     // context for the seller's "ordered for their X room" badge.
@@ -34,20 +34,38 @@ Deno.serve(async (req) => {
 
     const siteUrl = Deno.env.get('SITE_URL') ?? 'http://localhost:5173'
 
+    const lineItems = items.map((item: { label: string; sizeLabel: string; swatchName: string; unitPrice: number; qty: number }) => ({
+      price_data: {
+        currency: 'usd',
+        unit_amount: Math.round(item.unitPrice * 100),
+        product_data: {
+          name: item.label,
+          description: `${item.sizeLabel} · ${item.swatchName}`,
+        },
+      },
+      quantity: item.qty,
+    }))
+
+    // Add the buyer-chosen shipping rate as its own line item so they pay
+    // items + postage in one Stripe session. v1 = single rate for whole cart.
+    if (shipping?.amount) {
+      lineItems.push({
+        price_data: {
+          currency: (shipping.currency || 'usd').toLowerCase(),
+          unit_amount: Math.round(parseFloat(shipping.amount) * 100),
+          product_data: {
+            name: 'Shipping',
+            description: `${shipping.carrier ?? ''} ${shipping.service ?? ''}`.trim() || 'Shipping',
+          },
+        },
+        quantity: 1,
+      })
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
-      line_items: items.map((item: { label: string; sizeLabel: string; swatchName: string; unitPrice: number; qty: number }) => ({
-        price_data: {
-          currency: 'usd',
-          unit_amount: Math.round(item.unitPrice * 100), // cents
-          product_data: {
-            name: item.label,
-            description: `${item.sizeLabel} · ${item.swatchName}`,
-          },
-        },
-        quantity: item.qty,
-      })),
+      line_items: lineItems,
       success_url: successUrl ?? `${siteUrl}?checkout=success`,
       cancel_url:  cancelUrl  ?? `${siteUrl}?checkout=cancelled`,
       // Pass metadata so the webhook can record the order
@@ -58,6 +76,12 @@ Deno.serve(async (req) => {
         // Stripe metadata values must be strings; null skipped.
         ...(buyerMood ? { buyer_mood: String(buyerMood).slice(0, 60) } : {}),
         ...(buyerRoom ? { buyer_room_name: String(buyerRoom).slice(0, 100) } : {}),
+        // Buyer-paid shipping summary — webhook stamps these on the order
+        ...(shipping?.rateId   ? { shippo_rate_id:     String(shipping.rateId).slice(0, 100) } : {}),
+        ...(shipping?.amount   ? { shipping_cost_cents: String(Math.round(parseFloat(shipping.amount) * 100)) } : {}),
+        ...(shipping?.carrier  ? { shipping_carrier:    String(shipping.carrier).slice(0, 30) } : {}),
+        ...(shipping?.service  ? { shipping_service:    String(shipping.service).slice(0, 60) } : {}),
+        ...(address           ? { buyer_address:        JSON.stringify(address).slice(0, 500) } : {}),
       },
     })
 

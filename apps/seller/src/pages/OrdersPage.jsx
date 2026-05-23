@@ -160,6 +160,61 @@ export default function OrdersPage() {
 
   const [labelBusy, setLabelBusy] = useState({})
 
+  // Ship all unshipped items for a given buyer (the cluster) under one label.
+  // Generates a label on the first item, then copies tracking + label_url to
+  // every other item in the cluster and marks them all shipped. The seller
+  // physically pays for ONE Shippo label and ships ONE box.
+  async function shipClusterTogether(buyerKey) {
+    const clusterItems = rows.filter(r => {
+      const o = r.orders
+      if (!o || o.status !== 'paid') return false
+      if (r.fulfillment_status === 'shipped' || r.fulfillment_status === 'delivered') return false
+      return buyerKeyFor(o) === buyerKey
+    })
+    if (clusterItems.length < 2) return
+
+    const firstItem = clusterItems[0]
+    setLabelBusy(prev => ({ ...prev, [firstItem.id]: true }))
+
+    const { data, error } = await supabase.functions.invoke('create-shipping-label', {
+      body: { orderItemId: firstItem.id },
+    })
+    setLabelBusy(prev => { const { [firstItem.id]: _, ...rest } = prev; return rest })
+    if (error || data?.error) {
+      alert(`Bundle label failed: ${data?.error || error?.message || 'unknown'}`)
+      return
+    }
+
+    const restIds = clusterItems.slice(1).map(r => r.id)
+    if (restIds.length) {
+      await supabase.from('order_items')
+        .update({
+          tracking_number:       data.trackingNumber,
+          label_url:             data.labelUrl,
+          shipping_carrier:      data.carrier,
+          shipping_service:      data.service,
+          shipping_cost_cents:   Math.round(parseFloat(data.cost) * 100),
+          fulfillment_status:    'shipped',
+          label_purchased_at:    new Date().toISOString(),
+        })
+        .in('id', restIds)
+    }
+
+    const updatedAt = new Date().toISOString()
+    setRows(prev => prev.map(r => clusterItems.some(ci => ci.id === r.id)
+      ? {
+          ...r,
+          tracking_number: data.trackingNumber,
+          label_url: data.labelUrl,
+          shipping_carrier: data.carrier,
+          shipping_service: data.service,
+          shipping_cost_cents: Math.round(parseFloat(data.cost) * 100),
+          fulfillment_status: 'shipped',
+          label_purchased_at: updatedAt,
+        }
+      : r))
+  }
+
   async function generateLabel(itemId) {
     setLabelBusy(prev => ({ ...prev, [itemId]: true }))
     const { data, error } = await supabase.functions.invoke('create-shipping-label', {
@@ -721,12 +776,26 @@ export default function OrdersPage() {
                     {isEscalated && <span style={s.escalatedFlag} title={order.escalation_note || 'Escalated'}>🚩</span>}
                     {isClusterCont ? <span style={s.clusterContName}>↪ {customer}</span> : customer}
                     {isClusterStart && (
-                      <span
-                        style={s.shipTogetherBadge}
-                        title={`This buyer has ${clusterSet.size} unshipped orders. Combine into one box if items fit — otherwise label each order separately.`}
-                      >
-                        📦 Same buyer · {clusterSet.size} orders
-                      </span>
+                      <>
+                        <span
+                          style={s.shipTogetherBadge}
+                          title={`This buyer has ${clusterSet.size} unshipped orders. Combine into one box if items fit — otherwise label each order separately.`}
+                        >
+                          📦 Same buyer · {clusterSet.size} orders
+                        </span>
+                        <button
+                          style={s.shipAllBtn}
+                          onClick={e => {
+                            e.stopPropagation()
+                            if (confirm(`Generate ONE label for all ${clusterSet.size} orders and mark them all shipped? Use this only if everything fits in one box.`)) {
+                              shipClusterTogether(buyerKey)
+                            }
+                          }}
+                          title="Generate one Shippo label that covers all orders in this cluster"
+                        >
+                          Ship all together
+                        </button>
+                      </>
                     )}
                   </span>
                   <span style={s.cell}>×{item.quantity}</span>
@@ -1279,6 +1348,7 @@ function makeStyles(t) {
     escalatedFlag:   { marginRight: 6, fontSize: 13 },
     clusterContName: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
     shipTogetherBadge: { display: 'inline-block', marginLeft: 8, padding: '2px 8px', background: `${t.accent}18`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 10, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' },
+    shipAllBtn: { marginLeft: 6, padding: '3px 10px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
     escalatedRowEdge:{ boxShadow: `inset 3px 0 0 #e4a868` },
     cancelledRow:    { opacity: 0.55, textDecoration: 'line-through', textDecorationColor: 'rgba(180,80,80,0.4)' },
     actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },

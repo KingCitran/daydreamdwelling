@@ -3,7 +3,7 @@ import { supabase } from '@shared/supabase'
 import { useMood } from '@shared/useMood'
 import { ITEM_CATALOGUE } from '../data/items'
 
-export default function useCheckout({ cart, catalogue, roomName }) {
+export default function useCheckout({ cart, catalogue, roomName, shipping, address }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
   const { mood }              = useMood('customer')
@@ -34,6 +34,8 @@ export default function useCheckout({ cart, catalogue, roomName }) {
           items,
           buyerMood:    mood ?? null,
           buyerRoom:    roomName ?? null,
+          shipping:     shipping ?? null,   // { rateId, amount, carrier, service }
+          address:      address ?? null,    // shipping address chosen at quote time
           successUrl:   `${window.location.origin}?checkout=success`,
           cancelUrl:    `${window.location.origin}?checkout=cancelled`,
         },
@@ -47,7 +49,7 @@ export default function useCheckout({ cart, catalogue, roomName }) {
     } finally {
       setLoading(false)
     }
-  }, [cart, catalogue, mood, roomName])
+  }, [cart, catalogue, mood, roomName, shipping, address])
 
   return { startCheckout, loading, error }
 }

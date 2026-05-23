@@ -205,6 +205,32 @@ Deno.serve(async (req) => {
     // Default: product checkout — create order row
     const buyerMood     = session.metadata?.buyer_mood ?? null
     const buyerRoomName = session.metadata?.buyer_room_name ?? null
+
+    // Buyer-paid shipping bundle from create-checkout metadata
+    const shippoRateId        = session.metadata?.shippo_rate_id ?? null
+    const shippingCostCents   = session.metadata?.shipping_cost_cents
+      ? parseInt(session.metadata.shipping_cost_cents, 10)
+      : null
+    const shippingCarrier     = session.metadata?.shipping_carrier ?? null
+    const shippingService     = session.metadata?.shipping_service ?? null
+
+    // Buyer's shipping address: prefer the one stamped in metadata at quote
+    // time (it's what they confirmed rates against). Fall back to Stripe's
+    // customer_details.address if metadata isn't present.
+    let shippingAddress: Record<string, unknown> | null = null
+    if (session.metadata?.buyer_address) {
+      try { shippingAddress = JSON.parse(session.metadata.buyer_address) } catch { /* ignore */ }
+    }
+    if (!shippingAddress && session.customer_details?.address) {
+      const a = session.customer_details.address
+      shippingAddress = {
+        name: session.customer_details.name ?? null,
+        email: customerEmail,
+        line1: a.line1, line2: a.line2,
+        city: a.city, state: a.state, postal_code: a.postal_code, country: a.country,
+      }
+    }
+
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
@@ -214,6 +240,11 @@ Deno.serve(async (req) => {
         guest_email:       customerEmail,
         buyer_mood:        buyerMood,
         buyer_room_name:   buyerRoomName,
+        shipping_address:  shippingAddress,
+        shipping_cost_cents: shippingCostCents,
+        shipping_carrier:    shippingCarrier,
+        shipping_service:    shippingService,
+        shippo_rate_id:      shippoRateId,
       })
       .select('id')
       .single()
