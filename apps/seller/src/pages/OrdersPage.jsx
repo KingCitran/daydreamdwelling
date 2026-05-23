@@ -326,28 +326,33 @@ export default function OrdersPage() {
 
   async function bulkMarkShipped() {
     const trimmed = bulkTracking.trim()
-    if (!trimmed || !selected.size) return
+    if (!selected.size) { alert('No items selected.'); return }
+    if (!trimmed) { alert('Type a tracking number in the field on the left first. Ship All applies it to every selected item.'); return }
     setBulkBusy(true)
     const ids = [...selected]
-    await supabase.from('order_items')
+    const { error } = await supabase.from('order_items')
       .update({ tracking_number: trimmed, fulfillment_status: 'shipped' })
       .in('id', ids)
+    setBulkBusy(false)
+    if (error) { alert(`Bulk ship failed: ${error.message}`); return }
     setRows(prev => prev.map(r => ids.includes(r.id)
       ? { ...r, tracking_number: trimmed, fulfillment_status: 'shipped' }
       : r))
     setBulkTracking('')
     clearSelection()
-    setBulkBusy(false)
+    alert(`Marked ${ids.length} item${ids.length === 1 ? '' : 's'} as shipped with tracking ${trimmed}.`)
   }
 
   async function bulkMarkStatus(status) {
-    if (!selected.size) return
+    if (!selected.size) { alert('No items selected.'); return }
     setBulkBusy(true)
     const ids = [...selected]
-    await supabase.from('order_items').update({ fulfillment_status: status }).in('id', ids)
+    const { error } = await supabase.from('order_items').update({ fulfillment_status: status }).in('id', ids)
+    setBulkBusy(false)
+    if (error) { alert(`Bulk update failed: ${error.message}`); return }
     setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, fulfillment_status: status } : r))
     clearSelection()
-    setBulkBusy(false)
+    alert(`Marked ${ids.length} item${ids.length === 1 ? '' : 's'} as ${status}.`)
   }
 
   async function confirmCancelOrder(orderId, reason) {
@@ -396,9 +401,12 @@ export default function OrdersPage() {
   }
 
   function bulkPrintSlips() {
-    if (!selected.size) return
+    if (!selected.size) { alert('No items selected.'); return }
     const orderIds = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.orders?.id).filter(Boolean))]
-    printPackingSlips(orderIds)
+    const opened = printPackingSlips(orderIds)
+    if (opened === false) {
+      alert('Popup blocked. Allow popups for this site so the packing-slip window can open.')
+    }
   }
 
   // Render the inner body of a single slip — no doctype/head/script. Used to
@@ -490,9 +498,10 @@ export default function OrdersPage() {
       <script>window.onload = () => { window.print(); };</script>
       </body></html>`
     const w = window.open('', '_blank', 'width=820,height=900')
-    if (!w) return
+    if (!w) return false
     w.document.write(html)
     w.document.close()
+    return true
   }
 
   // Single-order entry point (kept for the per-order "🖨 Print Packing Slip"
@@ -1158,10 +1167,10 @@ export default function OrdersPage() {
                 disabled={bulkBusy}
               />
               <button
-                style={s.bulkPrimary}
+                style={(!bulkTracking.trim() || bulkBusy) ? s.bulkPrimaryDisabled : s.bulkPrimary}
                 disabled={!bulkTracking.trim() || bulkBusy}
                 onClick={bulkMarkShipped}
-                title="Set this tracking number on all selected items and mark them shipped"
+                title={bulkTracking.trim() ? 'Set this tracking number on all selected items and mark them shipped' : 'Type a tracking number first, then Ship All applies it to every selected item'}
               >
                 {bulkBusy ? '…' : 'Ship All'}
               </button>
@@ -1364,6 +1373,7 @@ function makeStyles(t) {
     bulkTrackingGroup: { display: 'flex', alignItems: 'center', gap: 6 },
     bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 180 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    bulkPrimaryDisabled: { padding: '7px 14px', background: `${t.accent}40`, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.6 },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     escalatedFlag:   { marginRight: 6, fontSize: 13 },
     clusterContName: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
