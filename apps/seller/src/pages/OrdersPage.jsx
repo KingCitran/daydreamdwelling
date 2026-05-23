@@ -118,6 +118,7 @@ export default function OrdersPage() {
   const [selected, setSelected]     = useState(() => new Set())
   const [bulkTracking, setBulkTracking] = useState('')
   const [bulkBusy,     setBulkBusy]     = useState(false)
+  const [bulkCombine,  setBulkCombine]  = useState(false)
   const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
   const [toast, setToast] = useState(null) // { kind: 'success'|'error'|'info', message }
 
@@ -348,12 +349,68 @@ export default function OrdersPage() {
       return
     }
 
-    // Auto-generate path: hit Shippo for each selected item in parallel.
-    // Skip items that already have a label (idempotent). Each gets its own
-    // tracking and label PDF — open the first label automatically.
     const targetIds = ids.filter(id => !rows.find(r => r.id === id)?.label_url)
     const skipped = ids.length - targetIds.length
 
+    // COMBINE path: generate ONE Shippo label, apply to every selected item.
+    // The seller physically packs everything into one box, prints one label.
+    if (bulkCombine) {
+      if (targetIds.length < 1) {
+        setBulkBusy(false)
+        showToast('info', 'All selected items already have labels')
+        return
+      }
+      const firstId = targetIds[0]
+      const { data, error: fnErr } = await supabase.functions.invoke('create-shipping-label', {
+        body: { orderItemId: firstId },
+      })
+      if (fnErr || data?.error) {
+        setBulkBusy(false)
+        showToast('error', `Combined label failed: ${data?.error || fnErr?.message || 'unknown'}`)
+        return
+      }
+      // Propagate the same tracking + label to every other selected item.
+      const restIds = targetIds.slice(1)
+      if (restIds.length) {
+        const { error: bulkErr } = await supabase.from('order_items')
+          .update({
+            tracking_number:     data.trackingNumber,
+            label_url:           data.labelUrl,
+            shipping_carrier:    data.carrier,
+            shipping_service:    data.service,
+            shipping_cost_cents: Math.round(parseFloat(data.cost) * 100),
+            fulfillment_status:  'shipped',
+            label_purchased_at:  new Date().toISOString(),
+          })
+          .in('id', restIds)
+        if (bulkErr) {
+          setBulkBusy(false)
+          showToast('error', `Label bought but couldn't propagate. Reconcile manually.`)
+          return
+        }
+      }
+      setRows(prev => prev.map(r => targetIds.includes(r.id)
+        ? {
+            ...r,
+            tracking_number: data.trackingNumber,
+            label_url: data.labelUrl,
+            shipping_carrier: data.carrier,
+            shipping_service: data.service,
+            shipping_cost_cents: Math.round(parseFloat(data.cost) * 100),
+            fulfillment_status: 'shipped',
+            label_purchased_at: new Date().toISOString(),
+          }
+        : r))
+      if (data.labelUrl) window.open(data.labelUrl, '_blank', 'noopener')
+      setBulkBusy(false)
+      setBulkCombine(false)
+      clearSelection()
+      showToast('success', `Bundled ${targetIds.length} orders · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
+      return
+    }
+
+    // SEPARATE path: per-item label via Shippo (in parallel). Each gets its
+    // own tracking and PDF. First label PDF opens automatically.
     const results = await Promise.all(targetIds.map(itemId =>
       supabase.functions.invoke('create-shipping-label', { body: { orderItemId: itemId } })
         .then(res => ({ itemId, data: res.data, error: res.error }))
@@ -362,7 +419,6 @@ export default function OrdersPage() {
     const succeeded = results.filter(r => r.data && !r.data.error && !r.error)
     const failed    = results.filter(r => !r.data || r.data?.error || r.error)
 
-    // Apply success updates to the rows in one setRows pass
     if (succeeded.length) {
       const updateMap = new Map(succeeded.map(r => [r.itemId, r.data]))
       setRows(prev => prev.map(row => {
@@ -379,9 +435,6 @@ export default function OrdersPage() {
           label_purchased_at: new Date().toISOString(),
         }
       }))
-      // Auto-open the first label PDF so the print dialog is one click away.
-      // (Multiple window.open() calls would be popup-blocked; the rest are
-      // accessible via the 🏷️ Label pill on each row.)
       const firstUrl = succeeded[0]?.data?.labelUrl
       if (firstUrl) window.open(firstUrl, '_blank', 'noopener')
     }
@@ -1225,9 +1278,21 @@ export default function OrdersPage() {
           </div>
           <div style={s.bulkActions}>
             <div style={s.bulkTrackingGroup}>
+              <label
+                style={s.bulkCombineLabel}
+                title="When checked: buy ONE label for everything selected and apply the same tracking to every item. Use when packing everything into one box."
+              >
+                <input
+                  type="checkbox"
+                  checked={bulkCombine}
+                  onChange={e => setBulkCombine(e.target.checked)}
+                  disabled={bulkBusy}
+                />
+                <span>📦 One box</span>
+              </label>
               <input
                 style={s.bulkInput}
-                placeholder="Tracking # (optional — leave blank to auto-buy labels)"
+                placeholder={bulkCombine ? 'Tracking # (optional — blank = auto-buy one label)' : 'Tracking # (optional — blank = auto-buy a label per item)'}
                 value={bulkTracking}
                 onChange={e => setBulkTracking(e.target.value)}
                 disabled={bulkBusy}
@@ -1237,8 +1302,10 @@ export default function OrdersPage() {
                 disabled={bulkBusy}
                 onClick={bulkMarkShipped}
                 title={bulkTracking.trim()
-                  ? 'Stamp this tracking number on all selected items and mark them shipped'
-                  : 'Auto-buy a Shippo label for each selected item (each gets its own tracking)'}
+                  ? 'Stamp this tracking number on all selected items'
+                  : bulkCombine
+                    ? 'Buy ONE Shippo label, apply the same tracking to all selected items'
+                    : 'Buy a Shippo label per selected item (each gets its own tracking)'}
               >
                 {bulkBusy ? '…' : 'Ship All'}
               </button>
@@ -1438,7 +1505,8 @@ function makeStyles(t) {
     bulkInfo:        { display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: t.text },
     bulkClear:       { background: 'transparent', border: 'none', color: t.textSoft, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' },
     bulkActions:     { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-    bulkTrackingGroup: { display: 'flex', alignItems: 'center', gap: 6 },
+    bulkTrackingGroup: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    bulkCombineLabel:  { display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: `${t.accent}10`, border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, fontSize: 12, color: t.text, cursor: 'pointer', whiteSpace: 'nowrap' },
     bulkInput:       { padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: 320 },
     bulkPrimary:     { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     bulkPrimaryDisabled: { padding: '7px 14px', background: `${t.accent}40`, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.6 },
