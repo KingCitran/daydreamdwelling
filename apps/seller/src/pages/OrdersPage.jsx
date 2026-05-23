@@ -119,6 +119,18 @@ export default function OrdersPage() {
   const [bulkTracking, setBulkTracking] = useState('')
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [bulkCombine,  setBulkCombine]  = useState(false)
+  // Session tracking: order_item ids whose label was generated/applied during
+  // the current page session. Counter ticks up on every label; click the
+  // session bar buttons to print all session labels/slips at once.
+  const [sessionItemIds, setSessionItemIds] = useState(() => new Set())
+
+  function markSessionItem(itemId) {
+    setSessionItemIds(prev => {
+      const next = new Set(prev)
+      next.add(itemId)
+      return next
+    })
+  }
   const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
   const [toast, setToast] = useState(null) // { kind: 'success'|'error'|'info', message }
 
@@ -254,9 +266,7 @@ export default function OrdersPage() {
       showToast('error', `Label failed: ${msg}`)
       return
     }
-    // Auto-open the 4x6 thermal PDF so the seller's print dialog is one click
-    // away. If the popup is blocked, the toast still surfaces the URL via the
-    // Download Label link in the expanded view.
+    markSessionItem(itemId)
     if (data.labelUrl) window.open(data.labelUrl, '_blank', 'noopener')
     showToast('success', `Label printed · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
     setRows(prev => prev.map(r => r.id === itemId
@@ -372,6 +382,29 @@ export default function OrdersPage() {
         return
       }
 
+      // Same-address guard: if items are going to different addresses, ONE
+      // label doesn't make sense (you can't ship to two places in one box).
+      // Warn before proceeding so the seller doesn't accidentally label and
+      // pay for the wrong destination.
+      const addrKeys = new Set(targetIds.map(id => {
+        const o = rows.find(r => r.id === id)?.orders
+        const a = o?.shipping_address
+        if (!a) return null
+        return `${a.line1 ?? ''}|${a.city ?? ''}|${a.state ?? ''}|${a.postal_code ?? ''}`.toLowerCase()
+      }).filter(Boolean))
+      if (addrKeys.size > 1) {
+        setBulkBusy(false)
+        const proceed = confirm(
+          `⚠️ The selected orders ship to ${addrKeys.size} different addresses.\n\n` +
+          `'One box' bundles them all under a single label going to ONE address — the first selected order's destination. ` +
+          `The other recipients will not receive their items.\n\n` +
+          `If they actually go to different places, uncheck 'One box' so each gets its own label.\n\n` +
+          `Continue anyway?`
+        )
+        if (!proceed) return
+        setBulkBusy(true)
+      }
+
       // Sum the parcel for the whole bundle. Each item's weight is multiplied
       // by quantity. Box dimensions take the max of each dimension across all
       // items — rough but reasonable; the seller knows the actual box size.
@@ -438,6 +471,7 @@ export default function OrdersPage() {
             label_purchased_at: new Date().toISOString(),
           }
         : r))
+      targetIds.forEach(markSessionItem)
       if (data.labelUrl) window.open(data.labelUrl, '_blank', 'noopener')
       setBulkBusy(false)
       setBulkCombine(false)
@@ -485,6 +519,7 @@ export default function OrdersPage() {
           label_purchased_at: new Date().toISOString(),
         }
       }))
+      succeeded.forEach(r => markSessionItem(r.itemId))
       const firstUrl = succeeded[0]?.data?.labelUrl
       if (firstUrl) window.open(firstUrl, '_blank', 'noopener')
     }
@@ -578,15 +613,11 @@ export default function OrdersPage() {
     }
   }
 
-  function bulkPrintLabels() {
-    if (!selected.size) { showToast('error', 'Nothing selected'); return }
-    const labelUrls = [...new Set(
-      [...selected]
-        .map(id => rows.find(r => r.id === id)?.label_url)
-        .filter(Boolean)
-    )]
-    if (!labelUrls.length) {
-      showToast('error', 'None of the selected items have labels yet — Ship All first')
+  // Open a print-window of N label PDFs, each on its own 4x6 page. Auto-fires
+  // window.print() once all iframes load.
+  function printLabelsByUrls(labelUrls) {
+    if (!labelUrls?.length) {
+      showToast('error', 'No labels to print')
       return
     }
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Labels — ${labelUrls.length} of them</title>
@@ -617,6 +648,33 @@ export default function OrdersPage() {
     w.document.write(html)
     w.document.close()
     showToast('success', `Opened ${labelUrls.length} label${labelUrls.length === 1 ? '' : 's'} for printing`)
+  }
+
+  function bulkPrintLabels() {
+    if (!selected.size) { showToast('error', 'Nothing selected'); return }
+    const urls = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.label_url).filter(Boolean))]
+    if (!urls.length) { showToast('error', 'None of the selected items have labels yet — Ship All first'); return }
+    printLabelsByUrls(urls)
+  }
+
+  function printSessionLabels() {
+    const urls = [...new Set([...sessionItemIds].map(id => rows.find(r => r.id === id)?.label_url).filter(Boolean))]
+    if (!urls.length) { showToast('info', 'No labels generated this session yet'); return }
+    printLabelsByUrls(urls)
+  }
+
+  function printSessionSlips() {
+    const items = [...sessionItemIds].map(id => rows.find(r => r.id === id)).filter(Boolean)
+    if (!items.length) { showToast('info', 'Nothing in this session yet'); return }
+    const groups = new Map()
+    for (const r of items) {
+      const key = r.tracking_number ? `trk:${r.tracking_number}` : `ord:${r.orders?.id ?? r.id}`
+      const list = groups.get(key) || []
+      list.push(r)
+      groups.set(key, list)
+    }
+    const opened = printConsolidatedSlips([...groups.values()])
+    if (opened === false) showToast('error', 'Popup blocked — allow popups for this site')
   }
 
   // Render the inner body of a single slip — no doctype/head/script. Used to
@@ -910,6 +968,8 @@ export default function OrdersPage() {
     return rows.filter(r => {
       if (filter === 'escalated') {
         if (!r.orders?.escalated_at) return false
+      } else if (filter === 'labeled') {
+        if (!r.label_purchased_at) return false
       } else if (filter !== 'all' && r.orders?.status !== filter) return false
       if (q) {
         const productMatch = (r.products?.label ?? '').toLowerCase().includes(q)
@@ -997,15 +1057,56 @@ export default function OrdersPage() {
         {filtered.length !== rows.length && ` · ${filtered.length} matching filters`}
       </p>
 
+      {/* Session bar — always visible. Counts labels generated this session
+          and gives one-click access to print them (and their slips). */}
+      <div style={s.sessionBar}>
+        <div style={s.sessionInfo}>
+          <span style={s.sessionCount}>{sessionItemIds.size}</span>
+          <span style={s.sessionLabel}>label{sessionItemIds.size === 1 ? '' : 's'} this session</span>
+        </div>
+        <div style={s.sessionActions}>
+          <button
+            style={sessionItemIds.size ? s.sessionBtn : s.sessionBtnMuted}
+            onClick={printSessionLabels}
+            disabled={!sessionItemIds.size}
+            title="Open one print job containing every label generated in this browser session"
+          >
+            🏷️ Print Labels ({sessionItemIds.size})
+          </button>
+          <button
+            style={sessionItemIds.size ? s.sessionBtn : s.sessionBtnMuted}
+            onClick={printSessionSlips}
+            disabled={!sessionItemIds.size}
+            title="Open consolidated packing slips for every order labeled this session"
+          >
+            🖨 Print Slips ({sessionItemIds.size})
+          </button>
+          {sessionItemIds.size > 0 && (
+            <button
+              style={s.sessionClear}
+              onClick={() => setSessionItemIds(new Set())}
+              title="Reset the session counter (won't undo any labels you generated)"
+            >
+              Clear session
+            </button>
+          )}
+        </div>
+      </div>
+
       <div style={s.toolbar}>
         <div style={s.tabs}>
-          {['all', 'paid', 'pending', 'cancelled', 'refunded', 'escalated'].map(f => {
+          {['all', 'paid', 'pending', 'labeled', 'cancelled', 'refunded', 'escalated'].map(f => {
             const count = f === 'escalated'
               ? new Set(rows.filter(r => r.orders?.escalated_at).map(r => r.orders.id)).size
-              : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
+              : f === 'labeled'
+                ? rows.filter(r => r.label_purchased_at).length
+                : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
+            const label = f === 'escalated' ? '🚩 Escalated'
+                        : f === 'labeled'   ? '🏷️ History'
+                        : f.charAt(0).toUpperCase() + f.slice(1)
             return (
               <button key={f} style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
-                {f === 'escalated' ? '🚩 Escalated' : f.charAt(0).toUpperCase() + f.slice(1)}
+                {label}
                 {f !== 'all' && <span style={s.tabCount}>{count}</span>}
               </button>
             )
@@ -1707,6 +1808,14 @@ function makeStyles(t) {
     shipTogetherBadge: { display: 'inline-block', marginLeft: 8, padding: '2px 8px', background: `${t.accent}18`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 10, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' },
     shipAllBtn: { marginLeft: 6, padding: '3px 10px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
     toast:        { position: 'fixed', bottom: 24, right: 24, padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, color: '#fff', boxShadow: '0 10px 30px rgba(20,16,40,0.25)', cursor: 'pointer', zIndex: 200, maxWidth: 380, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 10, animation: 'ddd-toast-in 0.2s ease' },
+    sessionBar:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '12px 16px', marginBottom: 16, background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, flexWrap: 'wrap' },
+    sessionInfo:  { display: 'flex', alignItems: 'baseline', gap: 8 },
+    sessionCount: { fontSize: 22, fontWeight: 700, color: t.accent },
+    sessionLabel: { fontSize: 12, color: t.textSoft, fontWeight: 500 },
+    sessionActions: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
+    sessionBtn:   { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+    sessionBtnMuted: { padding: '7px 14px', background: 'transparent', color: t.textSoft, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'not-allowed', opacity: 0.6 },
+    sessionClear: { padding: '7px 12px', background: 'transparent', color: t.textSoft, border: 'none', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' },
     toastSuccess: { background: '#3a9a64', borderLeft: '4px solid #2a7a50' },
     toastError:   { background: '#c25656', borderLeft: '4px solid #9a3a3a' },
     toastInfo:    { background: '#6a4ca6', borderLeft: '4px solid #5a3a8a' },
