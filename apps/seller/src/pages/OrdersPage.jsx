@@ -169,9 +169,13 @@ export default function OrdersPage() {
       const o = r.orders
       if (!o || o.status !== 'paid') return false
       if (r.fulfillment_status === 'shipped' || r.fulfillment_status === 'delivered') return false
+      if (r.label_url) return false
       return buyerKeyFor(o) === buyerKey
     })
-    if (clusterItems.length < 2) return
+    if (clusterItems.length < 2) {
+      alert('Not enough unshipped orders in this cluster to bundle.')
+      return
+    }
 
     const firstItem = clusterItems[0]
     setLabelBusy(prev => ({ ...prev, [firstItem.id]: true }))
@@ -181,13 +185,13 @@ export default function OrdersPage() {
     })
     setLabelBusy(prev => { const { [firstItem.id]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
-      alert(`Bundle label failed: ${data?.error || error?.message || 'unknown'}`)
+      alert(`Bundle label failed: ${data?.error || error?.message || 'unknown error'}`)
       return
     }
 
     const restIds = clusterItems.slice(1).map(r => r.id)
     if (restIds.length) {
-      await supabase.from('order_items')
+      const { error: bulkErr } = await supabase.from('order_items')
         .update({
           tracking_number:       data.trackingNumber,
           label_url:             data.labelUrl,
@@ -198,6 +202,10 @@ export default function OrdersPage() {
           label_purchased_at:    new Date().toISOString(),
         })
         .in('id', restIds)
+      if (bulkErr) {
+        alert(`Label printed (${data.trackingNumber}) on the first order, but couldn't propagate to the rest: ${bulkErr.message}. You may need to update them manually.`)
+        return
+      }
     }
 
     const updatedAt = new Date().toISOString()
@@ -213,9 +221,21 @@ export default function OrdersPage() {
           label_purchased_at: updatedAt,
         }
       : r))
+    alert(`Done. ${clusterItems.length} orders bundled under one label.\nTracking: ${data.trackingNumber}\nCarrier: ${data.carrier} ${data.service}\nLabel cost: $${parseFloat(data.cost).toFixed(2)}`)
   }
 
   async function generateLabel(itemId) {
+    // If they've got multiple rows selected via checkbox, warn that this only
+    // labels the single item, not the selection. (Generate Label is per-row;
+    // bundling is via 'Ship all together' on a same-buyer cluster.)
+    if (selected.size > 1 && selected.has(itemId)) {
+      const proceed = confirm(
+        `You have ${selected.size} items selected, but Generate Label only labels THIS one item.\n\n` +
+        `To bundle multiple under one label, use the 'Ship all together' button on a same-buyer cluster.\n\n` +
+        `Continue labeling just this item?`
+      )
+      if (!proceed) return
+    }
     setLabelBusy(prev => ({ ...prev, [itemId]: true }))
     const { data, error } = await supabase.functions.invoke('create-shipping-label', {
       body: { orderItemId: itemId },
