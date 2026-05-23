@@ -149,7 +149,7 @@ export default function OrdersPage() {
           fulfillment_status, tracking_number, seller_note,
           pre_ship_photo_path, pre_ship_photo_uploaded_at,
           label_url, shipping_carrier, shipping_service, shipping_cost_cents, label_purchased_at,
-          products(label, product_images(storage_path, is_primary)),
+          products(label, weight_oz, length_in, width_in, height_in, product_images(storage_path, is_primary)),
           orders(id, status, total_cents, created_at, shipping_address, guest_email, user_id,
                  buyer_mood, buyer_room_name,
                  escalated_at, escalation_note, cancelled_at, cancellation_reason,
@@ -234,8 +234,19 @@ export default function OrdersPage() {
 
   async function generateLabel(itemId) {
     setLabelBusy(prev => ({ ...prev, [itemId]: true }))
+    const r = rows.find(row => row.id === itemId)
+    const p = r?.products
+    const qty = r?.quantity ?? 1
+    const parcel = p ? {
+      length: p.length_in ? String(p.length_in) : '12',
+      width:  p.width_in  ? String(p.width_in)  : '9',
+      height: p.height_in ? String(p.height_in) : '3',
+      distance_unit: 'in',
+      weight: String(Math.max((p.weight_oz ?? 16) * qty, 1)),
+      mass_unit: 'oz',
+    } : undefined
     const { data, error } = await supabase.functions.invoke('create-shipping-label', {
-      body: { orderItemId: itemId },
+      body: { orderItemId: itemId, parcel },
     })
     setLabelBusy(prev => { const { [itemId]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
@@ -360,9 +371,35 @@ export default function OrdersPage() {
         showToast('info', 'All selected items already have labels')
         return
       }
+
+      // Sum the parcel for the whole bundle. Each item's weight is multiplied
+      // by quantity. Box dimensions take the max of each dimension across all
+      // items — rough but reasonable; the seller knows the actual box size.
+      let totalOz = 0
+      let maxL = 0, maxW = 0, maxH = 0
+      let hasAnyDims = false
+      for (const id of targetIds) {
+        const r = rows.find(row => row.id === id)
+        const p = r?.products
+        if (!p) continue
+        const qty = r.quantity ?? 1
+        if (p.weight_oz)  totalOz += p.weight_oz * qty
+        if (p.length_in)  { maxL = Math.max(maxL, parseFloat(p.length_in));  hasAnyDims = true }
+        if (p.width_in)   { maxW = Math.max(maxW, parseFloat(p.width_in));   hasAnyDims = true }
+        if (p.height_in)  { maxH = Math.max(maxH, parseFloat(p.height_in));  hasAnyDims = true }
+      }
+      const parcel = {
+        length: hasAnyDims && maxL ? String(maxL) : '12',
+        width:  hasAnyDims && maxW ? String(maxW) : '9',
+        height: hasAnyDims && maxH ? String(maxH) : '3',
+        distance_unit: 'in',
+        weight: String(Math.max(totalOz || 16, 1)),
+        mass_unit: 'oz',
+      }
+
       const firstId = targetIds[0]
       const { data, error: fnErr } = await supabase.functions.invoke('create-shipping-label', {
-        body: { orderItemId: firstId },
+        body: { orderItemId: firstId, parcel },
       })
       if (fnErr || data?.error) {
         setBulkBusy(false)
@@ -410,11 +447,24 @@ export default function OrdersPage() {
     }
 
     // SEPARATE path: per-item label via Shippo (in parallel). Each gets its
-    // own tracking and PDF. First label PDF opens automatically.
-    const results = await Promise.all(targetIds.map(itemId =>
-      supabase.functions.invoke('create-shipping-label', { body: { orderItemId: itemId } })
+    // own tracking and PDF. First label PDF opens automatically. Each parcel
+    // is sized to that item's product (weight × qty), so postage is accurate
+    // for heavier items.
+    const results = await Promise.all(targetIds.map(itemId => {
+      const r = rows.find(row => row.id === itemId)
+      const p = r?.products
+      const qty = r?.quantity ?? 1
+      const parcel = p ? {
+        length: p.length_in ? String(p.length_in) : '12',
+        width:  p.width_in  ? String(p.width_in)  : '9',
+        height: p.height_in ? String(p.height_in) : '3',
+        distance_unit: 'in',
+        weight: String(Math.max((p.weight_oz ?? 16) * qty, 1)),
+        mass_unit: 'oz',
+      } : undefined
+      return supabase.functions.invoke('create-shipping-label', { body: { orderItemId: itemId, parcel } })
         .then(res => ({ itemId, data: res.data, error: res.error }))
-    ))
+    }))
 
     const succeeded = results.filter(r => r.data && !r.data.error && !r.error)
     const failed    = results.filter(r => !r.data || r.data?.error || r.error)
