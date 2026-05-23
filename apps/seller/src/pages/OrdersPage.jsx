@@ -124,13 +124,21 @@ export default function OrdersPage() {
   // session bar buttons to print all session labels/slips at once.
   const [sessionItemIds, setSessionItemIds] = useState(() => new Set())
   const [sessionPrintedIds, setSessionPrintedIds] = useState(() => new Set())
+  // One uuid per page session — stamped onto every order_item this session
+  // labels. Powers the 'Past sessions' history view across page reloads.
+  const sessionUuid = useMemo(() => crypto.randomUUID(), [])
 
-  function markSessionItem(itemId) {
+  async function markSessionItem(itemId) {
     setSessionItemIds(prev => {
       const next = new Set(prev)
       next.add(itemId)
       return next
     })
+    // Stamp the session id on the row (persists across reloads via the
+    // existing seller-update RLS policy). Fire-and-forget — if it fails
+    // we still have the in-memory session.
+    supabase.from('order_items').update({ label_session_id: sessionUuid }).eq('id', itemId)
+      .then(({ error }) => { if (error) console.warn('[session stamp]', error.message) })
   }
 
   // Warn the seller if they try to leave the page with unprinted session
@@ -177,7 +185,7 @@ export default function OrdersPage() {
           id, quantity, unit_price, size_label, swatch_name, created_at,
           fulfillment_status, tracking_number, seller_note,
           pre_ship_photo_path, pre_ship_photo_uploaded_at,
-          label_url, shipping_carrier, shipping_service, shipping_cost_cents, label_purchased_at,
+          label_url, shipping_carrier, shipping_service, shipping_cost_cents, label_purchased_at, label_session_id,
           products(label, weight_oz, length_in, width_in, height_in, product_images(storage_path, is_primary)),
           orders(id, status, total_cents, created_at, shipping_address, guest_email, user_id,
                  buyer_mood, buyer_room_name,
@@ -933,6 +941,25 @@ export default function OrdersPage() {
 
   // Per-buyer lifetime stats (this seller only). Buyer key falls back to
   // guest_email for non-logged-in checkouts so repeat guests still count.
+  // Past sessions: group all rows with label_session_id by their session id.
+  // For each session, capture the earliest label_purchased_at as the session
+  // start, the count of items, total cost, and the list of label urls so we
+  // can reprint the whole batch. Sorted newest-first.
+  const pastSessions = useMemo(() => {
+    const groups = new Map()
+    for (const r of rows) {
+      if (!r.label_session_id) continue
+      const sid = r.label_session_id
+      const list = groups.get(sid) || { id: sid, items: [], earliest: null, totalCents: 0 }
+      list.items.push(r)
+      const t = r.label_purchased_at ? new Date(r.label_purchased_at).getTime() : null
+      if (t && (!list.earliest || t < list.earliest)) list.earliest = t
+      list.totalCents += r.shipping_cost_cents || 0
+      groups.set(sid, list)
+    }
+    return [...groups.values()].sort((a, b) => (b.earliest ?? 0) - (a.earliest ?? 0))
+  }, [rows])
+
   // Distinct order ids per buyer across all rows — drives the "Same buyer,
   // N orders" badge so sellers can spot bundles to ship together. Computed
   // against the full row set (not the filtered view) so the count stays
@@ -1117,6 +1144,57 @@ export default function OrdersPage() {
           )}
         </div>
       </div>
+
+      {filter === 'labeled' && pastSessions.length > 0 && (
+        <div style={s.sessionsPanel}>
+          <div style={s.sessionsHeader}>Past sessions ({pastSessions.length})</div>
+          <div style={s.sessionsList}>
+            {pastSessions.map(sess => {
+              const date = sess.earliest ? new Date(sess.earliest).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+              const urls = [...new Set(sess.items.map(r => r.label_url).filter(Boolean))]
+              const isCurrent = sess.id === sessionUuid
+              return (
+                <div key={sess.id} style={s.sessionRow}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={s.sessionRowTitle}>
+                      {date}
+                      {isCurrent && <span style={s.sessionCurrentTag}>this session</span>}
+                    </div>
+                    <div style={s.sessionRowMeta}>
+                      {sess.items.length} label{sess.items.length === 1 ? '' : 's'}
+                      {sess.totalCents > 0 && ` · $${(sess.totalCents / 100).toFixed(2)} postage`}
+                    </div>
+                  </div>
+                  <button
+                    style={urls.length ? s.sessionRowBtn : s.sessionBtnMuted}
+                    onClick={() => printLabelsByUrls(urls)}
+                    disabled={!urls.length}
+                    title="Reprint all labels from this session"
+                  >
+                    🏷️ Labels
+                  </button>
+                  <button
+                    style={s.sessionRowBtn}
+                    onClick={() => {
+                      const groups = new Map()
+                      for (const r of sess.items) {
+                        const key = r.tracking_number ? `trk:${r.tracking_number}` : `ord:${r.orders?.id ?? r.id}`
+                        const list = groups.get(key) || []
+                        list.push(r)
+                        groups.set(key, list)
+                      }
+                      printConsolidatedSlips([...groups.values()])
+                    }}
+                    title="Reprint consolidated packing slips for this session"
+                  >
+                    🖨 Slips
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={s.toolbar}>
         <div style={s.tabs}>
@@ -1835,6 +1913,14 @@ function makeStyles(t) {
     sessionBtn:   { padding: '7px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
     sessionBtnMuted: { padding: '7px 14px', background: 'transparent', color: t.textSoft, border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'not-allowed', opacity: 0.6 },
     sessionClear: { padding: '7px 12px', background: 'transparent', color: t.textSoft, border: 'none', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' },
+    sessionsPanel: { background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, padding: '14px 18px', marginBottom: 16 },
+    sessionsHeader: { fontSize: 11, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, marginBottom: 10 },
+    sessionsList:  { display: 'flex', flexDirection: 'column', gap: 4 },
+    sessionRow:    { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderBottom: `1px solid ${t.surfaceBorder}` },
+    sessionRowTitle: { fontSize: 13, fontWeight: 600, color: t.text, display: 'flex', alignItems: 'center', gap: 8 },
+    sessionCurrentTag: { padding: '2px 8px', background: `${t.accent}20`, color: t.accent, borderRadius: 10, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px' },
+    sessionRowMeta: { fontSize: 11, color: t.textSoft, marginTop: 2 },
+    sessionRowBtn: { padding: '6px 12px', background: 'transparent', color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer' },
     toastSuccess: { background: '#3a9a64', borderLeft: '4px solid #2a7a50' },
     toastError:   { background: '#c25656', borderLeft: '4px solid #9a3a3a' },
     toastInfo:    { background: '#6a4ca6', borderLeft: '4px solid #5a3a8a' },
