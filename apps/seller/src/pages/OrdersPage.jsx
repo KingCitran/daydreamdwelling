@@ -123,6 +123,7 @@ export default function OrdersPage() {
   // the current page session. Counter ticks up on every label; click the
   // session bar buttons to print all session labels/slips at once.
   const [sessionItemIds, setSessionItemIds] = useState(() => new Set())
+  const [sessionPrintedIds, setSessionPrintedIds] = useState(() => new Set())
 
   function markSessionItem(itemId) {
     setSessionItemIds(prev => {
@@ -131,6 +132,22 @@ export default function OrdersPage() {
       return next
     })
   }
+
+  // Warn the seller if they try to leave the page with unprinted session
+  // labels. Triggered by the browser-native beforeunload prompt (text is
+  // ignored by modern browsers; presence of a returnValue is enough to
+  // make the browser show its own confirmation).
+  useEffect(() => {
+    const unprinted = [...sessionItemIds].filter(id => !sessionPrintedIds.has(id))
+    if (!unprinted.length) return undefined
+    const handler = e => {
+      e.preventDefault()
+      e.returnValue = ''
+      return ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [sessionItemIds, sessionPrintedIds])
   const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
   const [toast, setToast] = useState(null) // { kind: 'success'|'error'|'info', message }
 
@@ -658,9 +675,17 @@ export default function OrdersPage() {
   }
 
   function printSessionLabels() {
-    const urls = [...new Set([...sessionItemIds].map(id => rows.find(r => r.id === id)?.label_url).filter(Boolean))]
+    const items = [...sessionItemIds].map(id => rows.find(r => r.id === id)).filter(Boolean)
+    const urls = [...new Set(items.map(r => r.label_url).filter(Boolean))]
     if (!urls.length) { showToast('info', 'No labels generated this session yet'); return }
     printLabelsByUrls(urls)
+    // Mark these as printed — the beforeunload warning will stop firing once
+    // every session item has been opened for print at least once.
+    setSessionPrintedIds(prev => {
+      const next = new Set(prev)
+      items.forEach(r => next.add(r.id))
+      return next
+    })
   }
 
   function printSessionSlips() {
@@ -1597,12 +1622,6 @@ export default function OrdersPage() {
                 : 'Buy a Shippo label per selected item (each gets its own tracking)'}
             >
               {bulkBusy ? '…' : 'Ship All'}
-            </button>
-            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintLabels} title="Print all labels on the selected items">
-              🏷️ Print Labels
-            </button>
-            <button style={s.bulkSecondary} disabled={bulkBusy} onClick={bulkPrintSlips}>
-              🖨 Print Slips
             </button>
             <button style={s.bulkSecondary} disabled={bulkBusy} onClick={() => bulkMarkStatus('packed')}>
               Mark Packed
