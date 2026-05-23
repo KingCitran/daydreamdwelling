@@ -149,7 +149,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         rate: chosen.object_id,
-        label_file_type: 'PDF',
+        // 4x6 thermal label PDF — standard format for Rollo/Brother/Zebra
+        // shipping label printers. Also prints fine on regular paper (cut/fold).
+        label_file_type: 'PDF_4x6',
         async: false,
       }),
     })

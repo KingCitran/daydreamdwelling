@@ -227,6 +227,7 @@ export default function OrdersPage() {
           label_purchased_at: updatedAt,
         }
       : r))
+    if (data.labelUrl) window.open(data.labelUrl, '_blank', 'noopener')
     showToast('success', `Bundled ${clusterItems.length} orders · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
   }
 
@@ -241,6 +242,10 @@ export default function OrdersPage() {
       showToast('error', `Label failed: ${msg}`)
       return
     }
+    // Auto-open the 4x6 thermal PDF so the seller's print dialog is one click
+    // away. If the popup is blocked, the toast still surfaces the URL via the
+    // Download Label link in the expanded view.
+    if (data.labelUrl) window.open(data.labelUrl, '_blank', 'noopener')
     showToast('success', `Label printed · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
     setRows(prev => prev.map(r => r.id === itemId
       ? {
@@ -799,6 +804,18 @@ export default function OrdersPage() {
                   </span>
                   <span style={s.cell}>
                     {isEscalated && <span style={s.escalatedFlag} title={order.escalation_note || 'Escalated'}>🚩</span>}
+                    {item.label_url && (
+                      <a
+                        href={item.label_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={s.labelReadyPill}
+                        onClick={e => e.stopPropagation()}
+                        title={`${item.shipping_carrier || ''} ${item.shipping_service || ''} · $${typeof item.shipping_cost_cents === 'number' ? (item.shipping_cost_cents / 100).toFixed(2) : '?'} · Click to open label PDF`}
+                      >
+                        🏷️ Label
+                      </a>
+                    )}
                     {isClusterCont ? <span style={s.clusterContName}>↪ {customer}</span> : customer}
                     {isClusterStart && (
                       <>
@@ -1380,6 +1397,7 @@ function makeStyles(t) {
     bulkPrimaryDisabled: { padding: '7px 14px', background: `${t.accent}40`, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.6 },
     bulkSecondary:   { padding: '7px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, color: t.text, fontSize: 12, fontWeight: 500, cursor: 'pointer' },
     escalatedFlag:   { marginRight: 6, fontSize: 13 },
+    labelReadyPill:  { display: 'inline-block', marginRight: 8, padding: '2px 8px', background: '#3a9a64', color: '#fff', textDecoration: 'none', borderRadius: 10, fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' },
     clusterContName: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
     shipTogetherBadge: { display: 'inline-block', marginLeft: 8, padding: '2px 8px', background: `${t.accent}18`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 10, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' },
     shipAllBtn: { marginLeft: 6, padding: '3px 10px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
