@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       city:     seller.ship_from_city,
       state:    seller.ship_from_state || '',
       zip:      seller.ship_from_zip,
-      country:  seller.ship_from_country || 'US',
+      country:  normalizeCountry(seller.ship_from_country) || 'US',
       phone:    seller.ship_from_phone || '',
       email:    seller.ship_from_email || '',
     }
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
       city:     buyerAddr.city  || '',
       state:    buyerAddr.state || buyerAddr.region || '',
       zip:      buyerAddr.postal_code || buyerAddr.zip || '',
-      country:  buyerAddr.country || 'US',
+      country:  normalizeCountry(buyerAddr.country) || 'US',
       phone:    buyerAddr.phone || '',
       email:    buyerAddr.email || '',
     }
@@ -192,6 +192,21 @@ Deno.serve(async (req) => {
     return json({ error: (err as Error).message }, 500)
   }
 })
+
+// Map common country name variants to their ISO 2-letter codes for Shippo.
+// Shippo requires ISO 3166-1 alpha-2 (e.g. 'US', 'CA') — full names + ISO-3 fail.
+function normalizeCountry(c: string | null | undefined): string {
+  if (!c) return ''
+  const upper = c.trim().toUpperCase()
+  const map: Record<string, string> = {
+    'USA': 'US', 'UNITED STATES': 'US', 'UNITED STATES OF AMERICA': 'US',
+    'CAN': 'CA', 'CANADA': 'CA',
+    'GBR': 'GB', 'UNITED KINGDOM': 'GB', 'UK': 'GB',
+    'AUS': 'AU', 'AUSTRALIA': 'AU',
+    'MEX': 'MX', 'MEXICO': 'MX',
+  }
+  return map[upper] || (upper.length === 2 ? upper : '')
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
