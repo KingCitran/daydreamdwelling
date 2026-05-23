@@ -119,6 +119,12 @@ export default function OrdersPage() {
   const [bulkTracking, setBulkTracking] = useState('')
   const [bulkBusy,     setBulkBusy]     = useState(false)
   const [actionPrompt, setActionPrompt] = useState(null) // { type: 'cancel'|'escalate', orderId, reason }
+  const [toast, setToast] = useState(null) // { kind: 'success'|'error'|'info', message }
+
+  function showToast(kind, message) {
+    setToast({ kind, message, id: Date.now() })
+    setTimeout(() => setToast(t => (t && t.message === message) ? null : t), 4500)
+  }
 
   useEffect(() => {
     if (!user) { setSellerName(''); return }
@@ -173,7 +179,7 @@ export default function OrdersPage() {
       return buyerKeyFor(o) === buyerKey
     })
     if (clusterItems.length < 2) {
-      alert('Not enough unshipped orders in this cluster to bundle.')
+      showToast('error', 'Not enough unshipped orders in this cluster.')
       return
     }
 
@@ -185,7 +191,7 @@ export default function OrdersPage() {
     })
     setLabelBusy(prev => { const { [firstItem.id]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
-      alert(`Bundle label failed: ${data?.error || error?.message || 'unknown error'}`)
+      showToast('error', `Bundle label failed: ${data?.error || error?.message || 'unknown error'}`)
       return
     }
 
@@ -203,7 +209,7 @@ export default function OrdersPage() {
         })
         .in('id', restIds)
       if (bulkErr) {
-        alert(`Label printed (${data.trackingNumber}) on the first order, but couldn't propagate to the rest: ${bulkErr.message}. You may need to update them manually.`)
+        showToast('error', `Label printed for first order but couldn't propagate. Reconcile manually.`)
         return
       }
     }
@@ -221,21 +227,10 @@ export default function OrdersPage() {
           label_purchased_at: updatedAt,
         }
       : r))
-    alert(`Done. ${clusterItems.length} orders bundled under one label.\nTracking: ${data.trackingNumber}\nCarrier: ${data.carrier} ${data.service}\nLabel cost: $${parseFloat(data.cost).toFixed(2)}`)
+    showToast('success', `Bundled ${clusterItems.length} orders · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
   }
 
   async function generateLabel(itemId) {
-    // If they've got multiple rows selected via checkbox, warn that this only
-    // labels the single item, not the selection. (Generate Label is per-row;
-    // bundling is via 'Ship all together' on a same-buyer cluster.)
-    if (selected.size > 1 && selected.has(itemId)) {
-      const proceed = confirm(
-        `You have ${selected.size} items selected, but Generate Label only labels THIS one item.\n\n` +
-        `To bundle multiple under one label, use the 'Ship all together' button on a same-buyer cluster.\n\n` +
-        `Continue labeling just this item?`
-      )
-      if (!proceed) return
-    }
     setLabelBusy(prev => ({ ...prev, [itemId]: true }))
     const { data, error } = await supabase.functions.invoke('create-shipping-label', {
       body: { orderItemId: itemId },
@@ -243,9 +238,10 @@ export default function OrdersPage() {
     setLabelBusy(prev => { const { [itemId]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
       const msg = data?.error || error?.message || 'Label generation failed'
-      alert(`Label failed: ${msg}`)
+      showToast('error', `Label failed: ${msg}`)
       return
     }
+    showToast('success', `Label printed · ${data.carrier} · $${parseFloat(data.cost).toFixed(2)}`)
     setRows(prev => prev.map(r => r.id === itemId
       ? {
           ...r,
@@ -326,33 +322,33 @@ export default function OrdersPage() {
 
   async function bulkMarkShipped() {
     const trimmed = bulkTracking.trim()
-    if (!selected.size) { alert('No items selected.'); return }
-    if (!trimmed) { alert('Type a tracking number in the field on the left first. Ship All applies it to every selected item.'); return }
+    if (!selected.size) { showToast('error', 'Nothing selected'); return }
+    if (!trimmed) { showToast('info', 'Type a tracking number first'); return }
     setBulkBusy(true)
     const ids = [...selected]
     const { error } = await supabase.from('order_items')
       .update({ tracking_number: trimmed, fulfillment_status: 'shipped' })
       .in('id', ids)
     setBulkBusy(false)
-    if (error) { alert(`Bulk ship failed: ${error.message}`); return }
+    if (error) { showToast('error', `Bulk ship failed: ${error.message}`); return }
     setRows(prev => prev.map(r => ids.includes(r.id)
       ? { ...r, tracking_number: trimmed, fulfillment_status: 'shipped' }
       : r))
     setBulkTracking('')
     clearSelection()
-    alert(`Marked ${ids.length} item${ids.length === 1 ? '' : 's'} as shipped with tracking ${trimmed}.`)
+    showToast('success', `Shipped ${ids.length} item${ids.length === 1 ? '' : 's'}`)
   }
 
   async function bulkMarkStatus(status) {
-    if (!selected.size) { alert('No items selected.'); return }
+    if (!selected.size) { showToast('error', 'Nothing selected'); return }
     setBulkBusy(true)
     const ids = [...selected]
     const { error } = await supabase.from('order_items').update({ fulfillment_status: status }).in('id', ids)
     setBulkBusy(false)
-    if (error) { alert(`Bulk update failed: ${error.message}`); return }
+    if (error) { showToast('error', `Update failed: ${error.message}`); return }
     setRows(prev => prev.map(r => ids.includes(r.id) ? { ...r, fulfillment_status: status } : r))
     clearSelection()
-    alert(`Marked ${ids.length} item${ids.length === 1 ? '' : 's'} as ${status}.`)
+    showToast('success', `Marked ${ids.length} as ${status}`)
   }
 
   async function confirmCancelOrder(orderId, reason) {
@@ -401,11 +397,11 @@ export default function OrdersPage() {
   }
 
   function bulkPrintSlips() {
-    if (!selected.size) { alert('No items selected.'); return }
+    if (!selected.size) { showToast('error', 'Nothing selected'); return }
     const orderIds = [...new Set([...selected].map(id => rows.find(r => r.id === id)?.orders?.id).filter(Boolean))]
     const opened = printPackingSlips(orderIds)
     if (opened === false) {
-      alert('Popup blocked. Allow popups for this site so the packing-slip window can open.')
+      showToast('error', 'Popup blocked — allow popups for this site')
     }
   }
 
@@ -814,13 +810,8 @@ export default function OrdersPage() {
                         </span>
                         <button
                           style={s.shipAllBtn}
-                          onClick={e => {
-                            e.stopPropagation()
-                            if (confirm(`Generate ONE label for all ${clusterSet.size} orders and mark them all shipped? Use this only if everything fits in one box.`)) {
-                              shipClusterTogether(buyerKey)
-                            }
-                          }}
-                          title="Generate one Shippo label that covers all orders in this cluster"
+                          onClick={e => { e.stopPropagation(); shipClusterTogether(buyerKey) }}
+                          title={`Generate ONE label for all ${clusterSet.size} orders. Use only if items fit in one box.`}
                         >
                           Ship all together
                         </button>
@@ -1109,6 +1100,19 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {toast && (
+        <div
+          key={toast.id}
+          style={{
+            ...s.toast,
+            ...(toast.kind === 'success' ? s.toastSuccess : toast.kind === 'error' ? s.toastError : s.toastInfo),
+          }}
+          onClick={() => setToast(null)}
+        >
+          {toast.kind === 'success' ? '✓' : toast.kind === 'error' ? '!' : 'ⓘ'} {toast.message}
+        </div>
+      )}
+
       {actionPrompt && (
         <div style={s.modalBackdrop} onClick={() => setActionPrompt(null)}>
           <div style={s.modalCard} onClick={e => e.stopPropagation()}>
@@ -1379,6 +1383,10 @@ function makeStyles(t) {
     clusterContName: { color: t.textSoft, fontSize: 12, fontStyle: 'italic' },
     shipTogetherBadge: { display: 'inline-block', marginLeft: 8, padding: '2px 8px', background: `${t.accent}18`, color: t.accent, border: `1px solid ${t.accent}40`, borderRadius: 10, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' },
     shipAllBtn: { marginLeft: 6, padding: '3px 10px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
+    toast:        { position: 'fixed', bottom: 24, right: 24, padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, color: '#fff', boxShadow: '0 10px 30px rgba(20,16,40,0.25)', cursor: 'pointer', zIndex: 200, maxWidth: 380, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 10, animation: 'ddd-toast-in 0.2s ease' },
+    toastSuccess: { background: '#3a9a64', borderLeft: '4px solid #2a7a50' },
+    toastError:   { background: '#c25656', borderLeft: '4px solid #9a3a3a' },
+    toastInfo:    { background: '#6a4ca6', borderLeft: '4px solid #5a3a8a' },
     escalatedRowEdge:{ boxShadow: `inset 3px 0 0 #e4a868` },
     cancelledRow:    { opacity: 0.55, textDecoration: 'line-through', textDecorationColor: 'rgba(180,80,80,0.4)' },
     actionRow:       { marginTop: 16, paddingTop: 14, borderTop: `1px dashed rgba(180,160,220,0.25)`, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
