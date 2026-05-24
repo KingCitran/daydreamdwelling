@@ -157,12 +157,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Buyer's user_id from create-checkout (resolved server-side from the
+    // forwarded JWT). Null for guest checkout. When set, the order shows up
+    // on the buyer's /orders page; guest_email-only orders don't.
+    const buyerUserId = session.metadata?.buyer_user_id ?? null
+
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
         stripe_payment_id: session.payment_intent as string,
         status:            'paid',
         total_cents:       session.amount_total ?? 0,
+        user_id:           buyerUserId,
         guest_email:       customerEmail,
         buyer_mood:        buyerMood,
         buyer_room_name:   buyerRoomName,

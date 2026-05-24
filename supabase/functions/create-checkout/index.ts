@@ -66,6 +66,24 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    // Resolve the authenticated buyer's user_id from the forwarded JWT.
+    // supabase-js auto-attaches the session JWT for signed-in users; for
+    // guests the Authorization header carries only the anon key and
+    // getUser() returns null. Either is fine — null user_id means a guest
+    // checkout, otherwise we stamp the user_id on the order so it shows up
+    // on their /orders page.
+    let buyerUserId: string | null = null
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader) {
+      const callerClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } },
+      )
+      const { data: userData } = await callerClient.auth.getUser()
+      buyerUserId = userData?.user?.id ?? null
+    }
+
     const validated: ValidatedItem[] = []
     for (const raw of items) {
       const qty = Math.max(1, parseInt(raw.qty ?? 1, 10) || 1)
@@ -241,6 +259,7 @@ Deno.serve(async (req) => {
         ...(shipping?.carrier  ? { shipping_carrier:    String(shipping.carrier).slice(0, 30) } : {}),
         ...(shipping?.service  ? { shipping_service:    String(shipping.service).slice(0, 60) } : {}),
         ...(address           ? { buyer_address:        JSON.stringify(address).slice(0, 500) } : {}),
+        ...(buyerUserId       ? { buyer_user_id:        buyerUserId } : {}),
       },
     })
 

@@ -10,14 +10,6 @@ import useMessageThread from '@shared/useMessageThread'
 // tracking link with carrier auto-detection, and a "mark received" button
 // they can hit once the carrier delivers.
 
-const PAYMENT_COLORS = {
-  paid:      ['#88d8b0', '#eef9f1'],
-  pending:   ['#ffc87a', '#fff5e6'],
-  cancelled: ['#f09090', '#fceeee'],
-  refunded:  ['#b8a0ff', '#f0eaff'],
-  fulfilled: ['#88d8b0', '#eef9f1'],
-}
-
 // Tracking-number → carrier link heuristics. Common US carriers; falls back to
 // a generic "search this tracking number" link.
 function carrierLinkFor(tracking) {
@@ -76,6 +68,13 @@ export default function OrderHistoryPage({ onBack }) {
     if (!user) { setLoading(false); return }
     async function load() {
       setLoading(true)
+      // Pull orders the user owns directly AND any past guest orders that
+      // were placed against their email before they had an account (or
+      // before we started stamping user_id on signed-in checkouts).
+      // Postgres OR via PostgREST's `.or()` filter.
+      const filter = user.email
+        ? `user_id.eq.${user.id},and(user_id.is.null,guest_email.eq.${user.email})`
+        : `user_id.eq.${user.id}`
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -88,7 +87,7 @@ export default function OrderHistoryPage({ onBack }) {
                      seller:profiles!products_seller_id_fkey(id, display_name))
           )
         `)
-        .eq('user_id', user.id)
+        .or(filter)
         .order('created_at', { ascending: false })
       if (error) console.warn('[orders] load error:', error.message)
       setOrders(data || [])
@@ -142,24 +141,96 @@ export default function OrderHistoryPage({ onBack }) {
   )
 }
 
+// Pick the single most-relevant status to surface on the order card header.
+// Order of precedence (worst/most-actionable first): refunded > cancelled >
+// delivered > shipped > paid > pending. The items array drives shipped/
+// delivered; the order row drives the rest.
+function overallStatus(order, items) {
+  if (order.status === 'refunded' || order.refunded_at) return 'refunded'
+  if (order.status === 'cancelled') return 'cancelled'
+  if (items.length > 0 && items.every(i => i.fulfillment_status === 'delivered')) return 'delivered'
+  if (items.length > 0 && items.every(i => i.fulfillment_status === 'shipped' || i.fulfillment_status === 'delivered')) return 'shipped'
+  if (items.some(i => i.fulfillment_status === 'shipped' || i.fulfillment_status === 'delivered')) return 'partially-shipped'
+  if (order.status === 'paid') return 'processing'
+  return order.status || 'pending'
+}
+
+const STATUS_LABELS = {
+  refunded:           'Refunded',
+  cancelled:          'Cancelled',
+  delivered:          'Delivered',
+  shipped:            'Shipped',
+  'partially-shipped':'Partially shipped',
+  processing:         'Processing',
+  paid:               'Processing',
+  pending:            'Pending payment',
+  fulfilled:          'Fulfilled',
+}
+
+const STATUS_TINTS = {
+  refunded:           ['#a888d8', 'rgba(168,136,216,0.18)'],
+  cancelled:          ['#c25656', 'rgba(194,86,86,0.16)'],
+  delivered:          ['#3a9070', 'rgba(110,200,160,0.18)'],
+  shipped:            ['#3a9070', 'rgba(110,200,160,0.18)'],
+  'partially-shipped':['#a07020', 'rgba(240,180,90,0.18)'],
+  processing:         ['#7a5fb8', 'rgba(154,122,238,0.16)'],
+  paid:               ['#7a5fb8', 'rgba(154,122,238,0.16)'],
+  pending:            ['#a07020', 'rgba(240,180,90,0.18)'],
+  fulfilled:          ['#3a9070', 'rgba(110,200,160,0.18)'],
+}
+
 function OrderCard({ order, t, s, expanded, onToggle }) {
   const addrLines = formatAddress(order.shipping_address)
   const items = order.order_items || []
+  const status = overallStatus(order, items)
+  const [statusColor, statusBg] = STATUS_TINTS[status] || STATUS_TINTS.processing
+
+  const thumbs = items.slice(0, 3).map(item => {
+    const photo = item.products?.product_images?.find(im => im.is_primary) ?? item.products?.product_images?.[0]
+    return {
+      key: item.id,
+      url: photo?.storage_path ? supabase.storage.from('product-images').getPublicUrl(photo.storage_path).data.publicUrl : null,
+      label: item.products?.label ?? item.product_name ?? '?',
+    }
+  })
+  const moreCount = items.length - thumbs.length
+
+  const dateStr = new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  const titleText = items.length === 1
+    ? (items[0].products?.label ?? items[0].product_name ?? 'Order')
+    : `${items.length} items`
+  const sellerNames = [...new Set(items.map(i => i.products?.seller?.display_name).filter(Boolean))]
+  const sellerLine = sellerNames.length === 1
+    ? `from ${sellerNames[0]}`
+    : sellerNames.length > 1
+      ? `from ${sellerNames.length} sellers`
+      : null
+
   return (
     <div style={s.card}>
       <button style={s.cardHeader} onClick={onToggle}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={s.cardTitle}>
-            {items.length === 1
-              ? items[0].products?.label ?? items[0].product_name ?? 'Order'
-              : `${items.length} items`}
-          </div>
+        <div style={s.thumbStack}>
+          {thumbs.map((th, i) => (
+            <div key={th.key} style={{ ...s.thumbCircle, marginLeft: i === 0 ? 0 : -12, zIndex: thumbs.length - i }}>
+              <Thumb url={th.url} label={th.label} size={44} />
+            </div>
+          ))}
+          {moreCount > 0 && (
+            <div style={{ ...s.thumbCircle, ...s.thumbMoreBadge, marginLeft: -12, zIndex: 0 }}>+{moreCount}</div>
+          )}
+        </div>
+        <div style={s.cardMid}>
+          <div style={s.cardTitle}>{titleText}</div>
           <div style={s.cardSub}>
-            Order #{order.id.slice(0, 8)} · {new Date(order.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            {dateStr}{sellerLine ? ` · ${sellerLine}` : ''} · #{order.id.slice(0, 8)}
           </div>
         </div>
-        <div style={s.cardTotal}>${((order.total_cents ?? 0) / 100).toFixed(2)}</div>
-        <PayPill status={order.status} />
+        <div style={s.cardRight}>
+          <span style={{ ...s.statusPill, color: statusColor, background: statusBg, borderColor: `${statusColor}55` }}>
+            {STATUS_LABELS[status] || status}
+          </span>
+          <div style={s.cardTotal}>${((order.total_cents ?? 0) / 100).toFixed(2)}</div>
+        </div>
         <span style={s.caret}>{expanded ? '▴' : '▾'}</span>
       </button>
 
@@ -327,11 +398,6 @@ function StageStrip({ stage, t, s }) {
   )
 }
 
-function PayPill({ status }) {
-  const [color, bg] = PAYMENT_COLORS[status] ?? ['#a098b0', '#f0ecf5']
-  return <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '4px 10px', background: bg, color, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{status ?? '—'}</span>
-}
-
 function Thumb({ url, label, size }) {
   const initial = (label ?? '').trim().charAt(0).toUpperCase() || '?'
   if (!url) {
@@ -365,12 +431,18 @@ function makeStyles(t) {
     empty:       { background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: 40, textAlign: 'center', maxWidth: 520, margin: '40px auto' },
     emptyTitle:  { fontSize: 17, fontWeight: 600, color: t.text, marginBottom: 8 },
     list:        { display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 920, margin: '0 auto' },
-    card:        { background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, overflow: 'hidden' },
-    cardHeader:  { width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: t.text },
+    card:        { background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 16, overflow: 'hidden', transition: 'box-shadow 0.15s, border-color 0.15s' },
+    cardHeader:  { width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '14px 18px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: t.text },
+    thumbStack:  { display: 'flex', alignItems: 'center', flexShrink: 0 },
+    thumbCircle: { width: 44, height: 44, borderRadius: 10, overflow: 'hidden', border: `2px solid ${t.bg}`, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    thumbMoreBadge: { background: `${t.accent}18`, color: t.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.2px' },
+    cardMid:     { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 },
     cardTitle:   { fontSize: 15, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    cardSub:     { fontSize: 11, color: t.textSoft, marginTop: 2 },
-    cardTotal:   { fontSize: 15, fontWeight: 700, color: t.text, whiteSpace: 'nowrap' },
-    caret:       { color: t.textSoft, fontSize: 12, marginLeft: 4 },
+    cardSub:     { fontSize: 11, color: t.textSoft, letterSpacing: '0.2px' },
+    cardRight:   { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 },
+    statusPill:  { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', padding: '4px 10px', borderRadius: 999, border: '1px solid transparent', whiteSpace: 'nowrap' },
+    cardTotal:   { fontSize: 17, fontWeight: 700, color: t.text, whiteSpace: 'nowrap', letterSpacing: '-0.2px' },
+    caret:       { color: t.textSoft, fontSize: 11, marginLeft: 2, flexShrink: 0 },
     cardBody:    { borderTop: `1px solid ${t.surfaceBorder}`, background: `${t.accent}05`, padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 18 },
     itemRow:     { display: 'flex', gap: 14, paddingBottom: 14, borderBottom: `1px dashed ${t.surfaceBorder}` },
     itemTitle:   { fontSize: 14, fontWeight: 600, color: t.text },
