@@ -27,6 +27,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    // AUTH GATE — without this, anyone on the internet can spam Shippo rate
+    // quotes (each call costs us in live mode) and bulk-probe seller ship-from
+    // zips by diffing rates. We only require a Bearer token (either a signed-in
+    // user JWT or the project anon key auto-sent by supabase.functions.invoke);
+    // guest checkout still works because supabase-js always sends an anon JWT.
+    // Real rate-limiting (per-IP, per-user) is a TODO on the plan; this is the
+    // floor that blocks naive curl/scripted abuse.
+    const authHeader = req.headers.get('Authorization') ?? ''
+    if (!authHeader.toLowerCase().startsWith('bearer ') || authHeader.length < 20) {
+      return json({ error: 'Missing or malformed auth' }, 401)
+    }
+
     const { items, address } = await req.json() as { items: CartItem[]; address: Record<string, string> }
     if (!items?.length) return json({ error: 'No items in cart' }, 400)
     if (!address?.line1 || !address?.city || !address?.postal_code) {

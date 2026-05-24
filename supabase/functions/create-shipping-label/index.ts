@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       .select(`
         id, seller_id, quantity, label_url, tracking_number,
         product_name, products(label),
-        orders(id, shipping_address, status)
+        orders(id, shipping_address, status, shippo_rate_id, shipping_cost_cents)
       `)
       .eq('id', orderItemId)
       .single()
@@ -63,6 +63,62 @@ Deno.serve(async (req) => {
     if (item.seller_id !== callerId) return json({ error: 'Not authorized' }, 403)
     if (item.label_url) return json({ error: 'Label already exists for this item' }, 400)
     if (!item.orders?.shipping_address) return json({ error: 'No shipping address on order' }, 400)
+
+    // FAST PATH: buyer pre-paid a specific Shippo rate at checkout and the
+    // caller isn't overriding the parcel (bundle flow). Buy the label
+    // directly against that saved rate_id so the seller can't accidentally
+    // pick a cheaper service than the buyer paid for (revenue leak) or a
+    // more expensive one (platform eats the diff). Bundle/heavier-parcel
+    // path still rerates below; we accept that documented cost-leak until
+    // the bundle flow can re-quote against Shippo.
+    const savedRateId = item.orders?.shippo_rate_id || null
+    if (savedRateId && !parcel) {
+      const fastTxRes = await fetch(`${SHIPPO_API}/transactions/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `ShippoToken ${Deno.env.get('SHIPPO_API_KEY')}`,
+          'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({
+          rate: savedRateId,
+          label_file_type: 'PDF_4x6',
+          async: false,
+        }),
+      })
+      if (fastTxRes.ok) {
+        const fastTx = await fastTxRes.json()
+        if (fastTx.status === 'SUCCESS') {
+          const { error: fastStampErr } = await callerClient.rpc('stamp_order_item_label', {
+            p_item_id:      orderItemId,
+            p_tracking:     fastTx.tracking_number,
+            p_label_url:    fastTx.label_url,
+            p_shippo_tx_id: fastTx.object_id,
+            p_cost_cents:   typeof item.orders?.shipping_cost_cents === 'number'
+                              ? item.orders.shipping_cost_cents
+                              : Math.round(parseFloat(fastTx.rate?.amount ?? '0') * 100),
+            p_carrier:      fastTx.rate?.provider ?? null,
+            p_service:      fastTx.rate?.servicelevel?.name ?? fastTx.rate?.servicelevel?.token ?? null,
+          })
+          if (fastStampErr) {
+            console.error('[create-shipping-label] fast-path stamp failed:', fastStampErr, 'tx:', fastTx.object_id)
+            return json({ error: `Label purchased (${fastTx.object_id}) but DB stamp failed: ${fastStampErr.message}` }, 500)
+          }
+          return json({
+            trackingNumber: fastTx.tracking_number,
+            labelUrl:       fastTx.label_url,
+            shippoTxId:     fastTx.object_id,
+            cost:           fastTx.rate?.amount,
+            carrier:        fastTx.rate?.provider,
+            service:        fastTx.rate?.servicelevel?.name,
+          })
+        }
+        // SUCCESS != 'SUCCESS' (rate may have expired). Fall through to rerate.
+        console.warn('[create-shipping-label] saved rate failed, rerating:',
+          (fastTx.messages || []).map((m: { text: string }) => m.text).join(', '))
+      } else {
+        console.warn('[create-shipping-label] saved rate http failed, rerating:', await fastTxRes.text())
+      }
+    }
 
     // Pull the seller's ship-from address from profile
     const { data: seller, error: sellerErr } = await adminClient

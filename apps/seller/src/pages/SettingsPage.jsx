@@ -21,6 +21,11 @@ export default function SettingsPage() {
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [error,       setError]       = useState(null)
+  const [connect, setConnect] = useState({
+    accountId: null, chargesEnabled: false, payoutsEnabled: false, detailsSubmitted: false,
+  })
+  const [connectBusy, setConnectBusy] = useState(false)
+  const [connectError, setConnectError] = useState(null)
 
   useEffect(() => {
     if (!profile) return
@@ -49,7 +54,61 @@ export default function SettingsPage() {
       label:    profile.label_printer_name    || '',
       document: profile.document_printer_name || '',
     })
+    setConnect({
+      accountId:        profile.stripe_account_id        || null,
+      chargesEnabled:   !!profile.stripe_charges_enabled,
+      payoutsEnabled:   !!profile.stripe_payouts_enabled,
+      detailsSubmitted: !!profile.stripe_details_submitted,
+    })
   }, [profile])
+
+  // When Stripe redirects back from onboarding (?stripe=return) or from a
+  // mid-flow refresh (?stripe=refresh), pull the live status and update
+  // local + DB state so the seller sees their progress immediately.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const flag = params.get('stripe')
+    if (!flag) return
+    if (!user) return
+    refreshConnectStatus()
+    params.delete('stripe')
+    const next = params.toString()
+    window.history.replaceState({}, '', window.location.pathname + (next ? `?${next}` : ''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  async function refreshConnectStatus() {
+    setConnectBusy(true); setConnectError(null)
+    try {
+      const { data, error: err } = await supabase.functions.invoke('stripe-connect-refresh', { body: {} })
+      if (err) throw err
+      if (data?.error) throw new Error(data.error)
+      setConnect({
+        accountId:        data.accountId ?? null,
+        chargesEnabled:   !!data.chargesEnabled,
+        payoutsEnabled:   !!data.payoutsEnabled,
+        detailsSubmitted: !!data.detailsSubmitted,
+      })
+    } catch (e) {
+      setConnectError(e.message)
+    } finally {
+      setConnectBusy(false)
+    }
+  }
+
+  async function startConnectOnboarding() {
+    setConnectBusy(true); setConnectError(null)
+    try {
+      const { data, error: err } = await supabase.functions.invoke('stripe-connect-onboard', { body: {} })
+      if (err) throw err
+      if (data?.error) throw new Error(data.error)
+      if (data?.url) window.location.href = data.url
+    } catch (e) {
+      setConnectError(e.message)
+      setConnectBusy(false)
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -209,10 +268,47 @@ export default function SettingsPage() {
           <div style={s.payoutBox}>
             <div style={s.payoutIcon}>💳</div>
             <div style={{ flex: 1 }}>
-              <p style={s.payoutTitle}>Stripe Connect</p>
-              <p style={s.payoutDesc}>Connect your bank account to receive payouts from sales. Stripe Connect setup will be available when the platform opens for sellers.</p>
+              <p style={s.payoutTitle}>
+                Stripe Connect
+                {connect.chargesEnabled && connect.payoutsEnabled && (
+                  <span style={s.payoutPillReady}>● Ready</span>
+                )}
+                {connect.detailsSubmitted && !(connect.chargesEnabled && connect.payoutsEnabled) && (
+                  <span style={s.payoutPillPending}>● Verifying</span>
+                )}
+                {connect.accountId && !connect.detailsSubmitted && (
+                  <span style={s.payoutPillProgress}>● Onboarding</span>
+                )}
+              </p>
+              <p style={s.payoutDesc}>
+                {connect.chargesEnabled && connect.payoutsEnabled
+                  ? 'Your bank is connected. Payouts arrive on Stripe\'s standard schedule (typically 2–7 business days after each sale).'
+                  : connect.accountId
+                    ? 'Finish your Stripe onboarding (ID + bank details) to start receiving payouts directly to your bank account.'
+                    : 'Connect your bank to receive payouts from sales. We use Stripe Express — you finish KYC + bank details on Stripe\'s hosted page.'}
+              </p>
+              {connectError && <p style={{ ...s.payoutDesc, color: '#c05050', marginTop: 6 }}>{connectError}</p>}
             </div>
-            <button type="button" style={s.payoutBtn} disabled>Connect bank →</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={startConnectOnboarding}
+                disabled={connectBusy}
+                style={{ ...s.payoutBtn, opacity: connectBusy ? 0.5 : 1, cursor: connectBusy ? 'wait' : 'pointer' }}
+              >
+                {connectBusy ? '…' : connect.accountId ? (connect.chargesEnabled ? 'Manage →' : 'Continue →') : 'Connect bank →'}
+              </button>
+              {connect.accountId && (
+                <button
+                  type="button"
+                  onClick={refreshConnectStatus}
+                  disabled={connectBusy}
+                  style={{ ...s.payoutBtnGhost, opacity: connectBusy ? 0.5 : 1 }}
+                >
+                  Refresh
+                </button>
+              )}
+            </div>
           </div>
           <div style={s.payoutBox}>
             <div style={s.payoutIcon}>📊</div>
@@ -276,7 +372,11 @@ const s = {
   payoutIcon:    { fontSize: 22, flexShrink: 0, marginTop: 1 },
   payoutTitle:   { fontSize: 13, fontWeight: 600, color: '#3a2a5a', margin: '0 0 4px' },
   payoutDesc:    { fontSize: 12, color: '#9a88bb', lineHeight: 1.6, margin: 0 },
-  payoutBtn:     { padding: '8px 14px', background: 'rgba(180,140,255,0.15)', border: '1px solid rgba(180,140,255,0.3)', borderRadius: 8, color: '#7a5aaa', fontSize: 12, fontWeight: 600, cursor: 'not-allowed', flexShrink: 0, opacity: 0.6 },
+  payoutBtn:     { padding: '8px 14px', background: 'linear-gradient(135deg,#c4a8ff,#f0a8d8)', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' },
+  payoutBtnGhost:{ padding: '6px 10px', background: 'transparent', border: '1px solid rgba(180,140,255,0.3)', borderRadius: 8, color: '#7a5aaa', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0 },
+  payoutPillReady:    { marginLeft: 10, fontSize: 11, fontWeight: 600, color: '#3a9070', background: 'rgba(110,200,160,0.18)', border: '1px solid rgba(110,200,160,0.4)', borderRadius: 999, padding: '2px 8px' },
+  payoutPillPending:  { marginLeft: 10, fontSize: 11, fontWeight: 600, color: '#a07020', background: 'rgba(240,180,90,0.18)', border: '1px solid rgba(240,180,90,0.4)', borderRadius: 999, padding: '2px 8px' },
+  payoutPillProgress: { marginLeft: 10, fontSize: 11, fontWeight: 600, color: '#7a5aaa', background: 'rgba(180,140,255,0.18)', border: '1px solid rgba(180,140,255,0.4)', borderRadius: 999, padding: '2px 8px' },
   hintText:      { fontSize: 11, color: '#b0a0cc', marginTop: -4 },
   error:         { fontSize: 12, color: '#c05050', background: 'rgba(220,100,100,0.08)', border: '1px solid rgba(220,100,100,0.25)', borderRadius: 8, padding: '10px 14px' },
   saveBtn:       { padding: '14px 0', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.15s, background 0.3s' },

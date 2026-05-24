@@ -13,18 +13,25 @@ export default function useCheckout({ cart, catalogue, roomName, shipping, addre
     setLoading(true); setError(null)
 
     const cat   = catalogue ?? ITEM_CATALOGUE
+    // We send sizeIndex + swatchIndex so the server can look up the
+    // authoritative price + sellerId from product_sizes/product_swatches
+    // ordered by sort_order. Client-supplied unitPrice / sellerId is still
+    // sent for static (non-UUID) demo items that have no DB row, but the
+    // server ignores them for any item where typeKey is a UUID.
     const items = cart.map(entry => {
       const def  = cat[entry.typeKey] ?? ITEM_CATALOGUE[entry.typeKey]
       const size = def?.sizes?.[entry.sizeIndex]
       const sw   = def?.swatches?.[entry.swatchIndex]
       return {
-        typeKey:    entry.typeKey,
-        label:      def?.label ?? entry.typeKey,
-        sizeLabel:  size?.label ?? '',
-        swatchName: sw?.name ?? '',
-        unitPrice:  size?.price ?? 0,
-        qty:        entry.qty,
-        sellerId:   def?._sellerId ?? null,
+        typeKey:     entry.typeKey,
+        sizeIndex:   entry.sizeIndex,
+        swatchIndex: entry.swatchIndex,
+        label:       def?.label ?? entry.typeKey,
+        sizeLabel:   size?.label ?? '',
+        swatchName:  sw?.name ?? '',
+        unitPrice:   size?.price ?? 0,
+        qty:         entry.qty,
+        sellerId:    def?._sellerId ?? null,
       }
     })
 

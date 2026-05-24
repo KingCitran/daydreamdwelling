@@ -214,14 +214,14 @@ Deno.serve(async (req) => {
     const shippingCarrier     = session.metadata?.shipping_carrier ?? null
     const shippingService     = session.metadata?.shipping_service ?? null
 
-    // Buyer's shipping address: prefer the one stamped in metadata at quote
-    // time (it's what they confirmed rates against). Fall back to Stripe's
-    // customer_details.address if metadata isn't present.
+    // Buyer's shipping address: prefer Stripe's customer_details.address
+    // because Stripe collects it directly from the buyer at the payment step
+    // (verifiable, tied to the payment method). Metadata is just whatever
+    // the buyer's browser sent us at quote time — a buyer could have lied
+    // there. Fall back to metadata only for fields Stripe didn't collect
+    // (room context, etc.) or if Stripe didn't return an address at all.
     let shippingAddress: Record<string, unknown> | null = null
-    if (session.metadata?.buyer_address) {
-      try { shippingAddress = JSON.parse(session.metadata.buyer_address) } catch { /* ignore */ }
-    }
-    if (!shippingAddress && session.customer_details?.address) {
+    if (session.customer_details?.address) {
       const a = session.customer_details.address
       shippingAddress = {
         name: session.customer_details.name ?? null,
@@ -229,6 +229,9 @@ Deno.serve(async (req) => {
         line1: a.line1, line2: a.line2,
         city: a.city, state: a.state, postal_code: a.postal_code, country: a.country,
       }
+    }
+    if (!shippingAddress && session.metadata?.buyer_address) {
+      try { shippingAddress = JSON.parse(session.metadata.buyer_address) } catch { /* ignore */ }
     }
 
     const { data: order, error: orderErr } = await supabase
@@ -254,22 +257,47 @@ Deno.serve(async (req) => {
       return new Response('DB error', { status: 500 })
     }
 
-    // Create order_item rows from metadata
+    // Create order_item rows from metadata. The fields here are the canonical
+    // shape written by create-checkout AFTER it validated everything against
+    // the DB — productId, sellerId, sizeId, swatchId, unitPriceCents are all
+    // server-derived, not buyer-supplied. See create-checkout/index.ts for
+    // the validation pass that produced this metadata.
     const rawItems = session.metadata?.items
-    let parsedItems: { typeKey: string; label: string; sizeLabel: string; qty: number; unitPrice: number; sellerId?: string }[] = []
+    interface CanonicalItem {
+      productId: string | null; sellerId: string | null;
+      sizeId: string | null; swatchId: string | null;
+      productName: string; sizeLabel: string; swatchName: string;
+      unitPriceCents: number; qty: number; typeKey: string;
+    }
+    let parsedItems: CanonicalItem[] = []
 
     if (rawItems && order) {
       parsedItems = JSON.parse(rawItems)
       const orderItems = parsedItems.map(item => ({
         order_id:         order.id,
-        product_id:       null,
-        seller_id:        item.sellerId ?? null,
+        product_id:       item.productId,   // canonical, not null for live products
+        seller_id:        item.sellerId,
+        size_id:          item.sizeId,
+        swatch_id:        item.swatchId,
         qty:              item.qty,
-        unit_price_cents: Math.round(item.unitPrice * 100),
+        unit_price_cents: item.unitPriceCents,
         type_key:         item.typeKey,
+        product_name:     item.productName,
       }))
-      await supabase.from('order_items').insert(orderItems)
+      const { error: itemsErr } = await supabase.from('order_items').insert(orderItems)
+      if (itemsErr) {
+        console.error('[stripe-webhook] order_items insert failed:', itemsErr, 'order:', order.id)
+      }
     }
+
+    // Convenience shape for the existing email templates (they were written
+    // against {label, sizeLabel, qty, unitPrice}). Map canonical → display.
+    const emailItems = parsedItems.map(i => ({
+      label:     i.productName,
+      sizeLabel: i.sizeLabel,
+      qty:       i.qty,
+      unitPrice: i.unitPriceCents / 100,
+    }))
 
     // Send customer confirmation email
     const totalCents = session.amount_total ?? 0
@@ -277,7 +305,7 @@ Deno.serve(async (req) => {
       await sendEmail(
         customerEmail,
         'Your DaydreamDwelling order is confirmed!',
-        customerEmailHtml(parsedItems, totalCents),
+        customerEmailHtml(emailItems, totalCents),
       )
     }
 
@@ -288,14 +316,17 @@ Deno.serve(async (req) => {
 
       for (const sellerId of sellerIds) {
         const sellerItems = parsedItems.filter(i => i.sellerId === sellerId)
-        const sellerTotal = sellerItems.reduce((s, i) => s + Math.round(i.unitPrice * 100) * i.qty, 0)
+        const sellerTotal = sellerItems.reduce((s, i) => s + i.unitPriceCents * i.qty, 0)
+        const sellerEmailItems = sellerItems.map(i => ({
+          label: i.productName, sizeLabel: i.sizeLabel, qty: i.qty, unitPrice: i.unitPriceCents / 100,
+        }))
         const sellerUser  = users?.users?.find((u: { id: string }) => u.id === sellerId)
         const sellerEmail = sellerUser?.email
         if (sellerEmail) {
           await sendEmail(
             sellerEmail,
             `New order — $${(sellerTotal / 100).toFixed(2)}`,
-            sellerEmailHtml(sellerItems, sellerTotal, customerEmail ?? 'Guest'),
+            sellerEmailHtml(sellerEmailItems, sellerTotal, customerEmail ?? 'Guest'),
           )
         }
       }
@@ -307,7 +338,7 @@ Deno.serve(async (req) => {
       await sendEmail(
         adminEmail,
         `New order — $${(totalCents / 100).toFixed(2)}`,
-        sellerEmailHtml(parsedItems, totalCents, customerEmail ?? 'Guest'),
+        sellerEmailHtml(emailItems, totalCents, customerEmail ?? 'Guest'),
       )
     }
   }

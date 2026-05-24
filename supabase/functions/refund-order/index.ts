@@ -66,6 +66,29 @@ Deno.serve(async (req) => {
       return json({ error: 'No Stripe payment on this order — refund manually' }, 400)
     }
 
+    // AUTH GATE — must come before stripe.refunds.create. Anyone with a JWT
+    // can hit this endpoint, so without this check a malicious caller could
+    // trigger a real Stripe refund on someone else's order. We verify the
+    // caller is a seller on the order via the caller-scoped client (RLS will
+    // only return order_items rows where seller_id = auth.uid()).
+    const { data: callerUser } = await callerClient.auth.getUser()
+    const callerId = callerUser?.user?.id
+    if (!callerId) return json({ error: 'Auth failed' }, 401)
+
+    const { data: ownedItems, error: ownErr } = await callerClient
+      .from('order_items')
+      .select('id')
+      .eq('order_id', orderId)
+      .eq('seller_id', callerId)
+      .limit(1)
+    if (ownErr) {
+      console.error('[refund-order] ownership check failed:', ownErr)
+      return json({ error: 'Authorization check failed' }, 500)
+    }
+    if (!ownedItems?.length) {
+      return json({ error: 'Not authorized to refund this order' }, 403)
+    }
+
     // Issue the refund. Full amount = total_cents.
     const refund = await stripe.refunds.create({
       payment_intent: order.stripe_payment_id,
@@ -73,8 +96,8 @@ Deno.serve(async (req) => {
       metadata: { order_id: orderId, seller_reason: reason ?? '' },
     })
 
-    // Stamp the order — RPC authorizes against order_items.seller_id = auth.uid()
-    // so a malicious caller can't spoof a refund stamp on someone else's order.
+    // Stamp the order — RPC re-checks order_items.seller_id = auth.uid() as
+    // defense in depth, but the gate above is the primary authorization.
     const { error: stampErr } = await callerClient.rpc('stamp_order_refunded', {
       p_order_id: orderId,
       p_amount_cents: order.total_cents,
