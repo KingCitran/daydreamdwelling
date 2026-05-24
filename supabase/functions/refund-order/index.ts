@@ -90,9 +90,19 @@ Deno.serve(async (req) => {
     }
 
     // Issue the refund. Full amount = total_cents.
+    //
+    // For Connect destination charges the defaults are:
+    //   reverse_transfer:        true  (pulls money back from seller)
+    //   refund_application_fee:  false (platform keeps its cut)
+    //
+    // That's not marketplace-symmetric: if a buyer gets a full refund the
+    // platform shouldn't keep its 10% cut on a sale that didn't happen.
+    // Flipping refund_application_fee makes both sides whole.
     const refund = await stripe.refunds.create({
       payment_intent: order.stripe_payment_id,
       reason: 'requested_by_customer',
+      reverse_transfer:       true,
+      refund_application_fee: true,
       metadata: { order_id: orderId, seller_reason: reason ?? '' },
     })
 
