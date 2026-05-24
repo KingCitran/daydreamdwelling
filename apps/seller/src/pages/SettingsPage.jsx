@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [storeName,   setStoreName]   = useState('')
   const [socials,     setSocials]     = useState({ instagram: '', website: '', tiktok: '', pinterest: '' })
   const [shipFrom,    setShipFrom]    = useState({ name: '', company: '', street1: '', street2: '', city: '', state: '', zip: '', country: 'US', phone: '', email: '' })
+  const [printers,    setPrinters]    = useState({ label: '', document: '' })
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
   const [error,       setError]       = useState(null)
@@ -44,6 +45,10 @@ export default function SettingsPage() {
       phone:   profile.ship_from_phone   || '',
       email:   profile.ship_from_email   || '',
     })
+    setPrinters({
+      label:    profile.label_printer_name    || '',
+      document: profile.document_printer_name || '',
+    })
   }, [profile])
 
   async function handleSave(e) {
@@ -70,6 +75,8 @@ export default function SettingsPage() {
         ship_from_country: shipFrom.country.trim() || 'US',
         ship_from_phone:   shipFrom.phone.trim()   || null,
         ship_from_email:   shipFrom.email.trim()   || null,
+        label_printer_name:    printers.label.trim()    || null,
+        document_printer_name: printers.document.trim() || null,
       })
       if (err) throw err
       setSaved(true)
@@ -158,6 +165,29 @@ export default function SettingsPage() {
               <input style={s.input} value={shipFrom.email} onChange={e => setShipFrom(p => ({ ...p, email: e.target.value }))} placeholder="ship@example.com" />
             </Field>
           </div>
+        </Section>
+
+        {/* Printer Preferences */}
+        <Section title="Printer Preferences">
+          <p style={{ fontSize: 12, color: '#7a6ca6', margin: '0 0 14px', lineHeight: 1.55 }}>
+            Browsers can't pick your printer for you, but they remember your last choice per page size. After you confirm each printer once in the print dialog, the right one is pre-selected every time. These names are just reminders we show above the print preview.
+          </p>
+          <Field label="Label Printer (4×6 thermal)">
+            <input
+              style={s.input}
+              value={printers.label}
+              onChange={e => setPrinters(p => ({ ...p, label: e.target.value }))}
+              placeholder="e.g. Rollo X1040 — your sticker label printer"
+            />
+          </Field>
+          <Field label="Document Printer (Letter / A4)">
+            <input
+              style={s.input}
+              value={printers.document}
+              onChange={e => setPrinters(p => ({ ...p, document: e.target.value }))}
+              placeholder="e.g. HP LaserJet — for packing slips and invoices"
+            />
+          </Field>
         </Section>
 
         {/* Social Links */}

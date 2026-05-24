@@ -115,6 +115,8 @@ export default function OrdersPage({ onNavigate }) {
   const [noteSaved, setNoteSaved] = useState({}) // itemId → transient "Saved" flash
   const [uploading, setUploading] = useState({}) // itemId → currently uploading
   const [sellerName, setSellerName] = useState('')
+  const [labelPrinter, setLabelPrinter] = useState('')
+  const [docPrinter,   setDocPrinter]   = useState('')
   const [selected, setSelected]     = useState(() => new Set())
   const [bulkTracking, setBulkTracking] = useState('')
   const [bulkBusy,     setBulkBusy]     = useState(false)
@@ -187,8 +189,12 @@ export default function OrdersPage({ onNavigate }) {
 
   useEffect(() => {
     if (!user) { setSellerName(''); return }
-    supabase.from('profiles').select('display_name').eq('id', user.id).single()
-      .then(({ data }) => setSellerName(data?.display_name || user.email || ''))
+    supabase.from('profiles').select('display_name, label_printer_name, document_printer_name').eq('id', user.id).single()
+      .then(({ data }) => {
+        setSellerName(data?.display_name || user.email || '')
+        setLabelPrinter(data?.label_printer_name || '')
+        setDocPrinter(data?.document_printer_name || '')
+      })
   }, [user])
 
   useEffect(() => {
@@ -669,14 +675,18 @@ export default function OrdersPage({ onNavigate }) {
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>Labels — ${labelUrls.length} of them</title>
       <style>
         body { margin: 0; padding: 0; font-family: system-ui, sans-serif; background: #fff; }
+        .printer-hint { position: sticky; top: 0; background: #ece4ff; border-bottom: 1px solid #b4a0e0; padding: 10px 16px; font-size: 13px; color: #4a3a7a; }
+        .printer-hint strong { color: #2a1a5a; }
         .label-page { width: 4in; height: 6in; page-break-after: always; overflow: hidden; }
         .label-page:last-child { page-break-after: auto; }
         iframe { width: 100%; height: 100%; border: 0; }
         @media print {
           body { margin: 0; padding: 0; }
+          .printer-hint { display: none; }
           @page { size: 4in 6in; margin: 0; }
         }
       </style></head><body>
+      ${labelPrinter ? `<div class="printer-hint">🏷️ Print to: <strong>${escapeHtml(labelPrinter)}</strong> · Page size 4×6in. Your browser remembers the last printer per page size — pick this one once and it sticks.</div>` : ''}
       ${labelUrls.map(u => `<div class="label-page"><iframe src="${escapeHtml(u)}"></iframe></div>`).join('')}
       <script>
         let loaded = 0
@@ -795,6 +805,9 @@ export default function OrdersPage({ onNavigate }) {
     const title = orderIds.length === 1
       ? `Packing Slip — ${escapeHtml(orderIds[0].slice(0, 8))}`
       : `Packing Slips — ${orderIds.length} orders`
+    const hintBanner = docPrinter
+      ? `<div class="printer-hint">🖨 Print to: <strong>${escapeHtml(docPrinter)}</strong> · Letter size paper.</div>`
+      : ''
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
       <style>
         body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
@@ -813,9 +826,17 @@ export default function OrdersPage({ onNavigate }) {
         .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e4e0ec; font-size: 11px; color: #7a6ca6; text-align: center; line-height: 1.6; }
         .slip { page-break-inside: avoid; }
         .page-break { page-break-after: always; height: 0; }
+        .printer-hint { background: #ece4ff; border: 1px solid #b4a0e0; border-radius: 8px; padding: 10px 16px; font-size: 13px; color: #4a3a7a; margin-bottom: 24px; }
+        .printer-hint strong { color: #2a1a5a; }
         @media screen { .page-break { border-top: 2px dashed #d4ccea; margin: 40px 0; } }
-        @media print { body { padding: 12px 20px; } .page-break { border: none; margin: 0; } }
+        @media print {
+          body { padding: 12px 20px; }
+          .page-break { border: none; margin: 0; }
+          .printer-hint { display: none; }
+          @page { size: letter; margin: 0.5in; }
+        }
       </style></head><body>
+      ${hintBanner}
       ${bodies}
       <script>window.onload = () => { window.print(); };</script>
       </body></html>`
@@ -897,9 +918,15 @@ export default function OrdersPage({ onNavigate }) {
       '<div class="page-break"></div>'
     )
     const title = groups.length === 1 ? 'Packing Slip' : `Packing Slips — ${groups.length} shipments`
+    const hintBanner = docPrinter
+      ? `<div class="printer-hint">🖨 Print to: <strong>${escapeHtml(docPrinter)}</strong> · Letter size paper. First-time pick sticks for next slips.</div>`
+      : ''
     const html = `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
       <style>
         body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
+        .printer-hint { background: #ece4ff; border: 1px solid #b4a0e0; border-radius: 8px; padding: 10px 16px; font-size: 13px; color: #4a3a7a; margin-bottom: 24px; }
+        .printer-hint strong { color: #2a1a5a; }
+        @media print { .printer-hint { display: none; } @page { size: letter; margin: 0.5in; } }
         h1 { font-size: 22px; margin: 0 0 4px; }
         .brand { font-size: 12px; color: #7a6ca6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
         .row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
