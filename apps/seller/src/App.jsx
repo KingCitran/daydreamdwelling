@@ -49,7 +49,7 @@ function Shell() {
         {page === 'dashboard'       && <DashboardPage onNavigate={navigate} />}
         {page === 'products'        && <ProductsPage  onNavigate={navigate} />}
         {page === 'add-product'     && <AddProductPage productId={editProductId} onDone={() => navigate('products')} />}
-        {page === 'orders'          && <OrdersPage />}
+        {page === 'orders'          && <OrdersPage onNavigate={navigate} />}
         {page === 'shipping'        && <ShippingHistoryPage />}
         {page === 'messages'        && <MessagesPage />}
         {page === 'earnings'        && <EarningsPage />}

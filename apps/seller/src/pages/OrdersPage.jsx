@@ -100,7 +100,7 @@ function downloadCsv(filename, csv) {
   setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 
-export default function OrdersPage() {
+export default function OrdersPage({ onNavigate }) {
   const { user }  = useAuth()
   const t         = useTheme()
   const [rows,    setRows]    = useState([])
@@ -1221,6 +1221,31 @@ export default function OrdersPage() {
         </div>
       )}
 
+      {sessionItemIds.size > 0 && (
+        <div style={s.sessionStrip}>
+          <span style={s.sessionStripText}>
+            <strong>{sessionItemIds.size}</strong> label{sessionItemIds.size === 1 ? '' : 's'} this session
+          </span>
+          <button style={s.sessionStripBtn} onClick={printSessionLabels} title="Print all labels generated this session">
+            🏷️ Print Labels ({sessionItemIds.size})
+          </button>
+          <button style={s.sessionStripBtn} onClick={printSessionSlips} title="Print packing slips for everything this session">
+            🖨 Print Slips ({sessionItemIds.size})
+          </button>
+          <button style={s.sessionStripLink} onClick={rotateSession} title="Start a new session (past labels stay in Shipping history)">
+            Clear
+          </button>
+          <span style={s.sessionStripDivider}>·</span>
+          <button
+            style={s.sessionStripLink}
+            onClick={() => onNavigate && onNavigate('shipping')}
+            title="View full shipping history with past sessions and reprint options"
+          >
+            See all shipping →
+          </button>
+        </div>
+      )}
+
       <div style={s.toolbar}>
         <div style={s.tabs}>
           {['all', 'paid', 'pending', 'cancelled', 'refunded', 'escalated'].map(f => {
@@ -1950,6 +1975,11 @@ function makeStyles(t) {
     shipAllBtn: { marginLeft: 6, padding: '3px 10px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
     toast:        { position: 'fixed', bottom: 24, right: 24, padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, color: '#fff', boxShadow: '0 10px 30px rgba(20,16,40,0.25)', cursor: 'pointer', zIndex: 200, maxWidth: 380, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: 10, animation: 'ddd-toast-in 0.2s ease' },
     sessionBar:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '12px 16px', marginBottom: 16, background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12, flexWrap: 'wrap' },
+    sessionStrip: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', marginBottom: 14, background: `${t.accent}10`, border: `1px solid ${t.accent}30`, borderRadius: 10, flexWrap: 'wrap', fontSize: 12, color: t.text },
+    sessionStripText: { color: t.text, fontSize: 13 },
+    sessionStripBtn:  { padding: '6px 12px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
+    sessionStripLink: { background: 'transparent', border: 'none', color: t.accent, fontSize: 12, fontWeight: 500, cursor: 'pointer', padding: '4px 6px', textDecoration: 'none' },
+    sessionStripDivider: { color: t.textSoft, padding: '0 4px' },
     sessionInfo:  { display: 'flex', alignItems: 'baseline', gap: 8 },
     sessionCount: { fontSize: 22, fontWeight: 700, color: t.accent },
     sessionLabel: { fontSize: 12, color: t.textSoft, fontWeight: 500 },
