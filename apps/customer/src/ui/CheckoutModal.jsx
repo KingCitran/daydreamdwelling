@@ -125,6 +125,11 @@ export default function CheckoutModal({ cart, catalogue, onClose, roomName }) {
                   </span>
                   <span style={{ fontWeight: 600 }}>${parseFloat(rate.amount).toFixed(2)}</span>
                 </div>
+                {cart.length > 1 && (
+                  <div style={st.bundleNote}>
+                    Calculated for one combined package — your seller may ship multiple items together when they fit.
+                  </div>
+                )}
                 <button style={st.changeAddrLink} onClick={() => setRate(null)}>Change address</button>
               </div>
             )}
@@ -182,6 +187,7 @@ function makeStyles(t) {
     input: { padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: '100%', minWidth: 0, boxSizing: 'border-box' },
     rateBtn: { padding: '10px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, marginTop: 4 },
     rateBlock: { padding: '10px 14px', background: `${t.accent}10`, border: `1px solid ${t.accent}30`, borderRadius: 8, fontSize: 13, color: t.text },
+    bundleNote: { marginTop: 8, fontSize: 11, color: t.textSoft, lineHeight: 1.55, fontStyle: 'italic' },
     changeAddrLink: { background: 'transparent', border: 'none', color: t.accent, fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6 },
     footer: { padding: '14px 20px 20px', borderTop: `1px solid ${t.surfaceBorder}`, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 },
     summary: { display: 'flex', flexDirection: 'column', gap: 6 },
