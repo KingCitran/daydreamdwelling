@@ -59,9 +59,13 @@ export default function ProductModal({ typeKey, catalogue, onPlace, onAddToCart,
             ))}
           </div>
 
-          <p style={ms.sectionLabel}>Materials</p>
-          <ul style={ms.matList}>{def.materials.map((m, i) => <li key={i} style={ms.matItem}>{m}</li>)}</ul>
-          <p style={ms.guarantee}>{def.guarantee}</p>
+          {def.materials?.length > 0 && (
+            <>
+              <p style={ms.sectionLabel}>Materials</p>
+              <ul style={ms.matList}>{def.materials.map((m, i) => <li key={i} style={ms.matItem}>{m}</li>)}</ul>
+            </>
+          )}
+          {def.guarantee && <p style={ms.guarantee}>{def.guarantee}</p>}
 
           {(def.themes?.length > 0 || def.styles?.length > 0) && (
             <div style={ms.tagSection}>
