@@ -349,7 +349,7 @@ function makeStyles(t) {
     pageTitle:  { fontSize: 26, fontWeight: 700, color: t.text, marginBottom: 4 },
     pageSubtitle:{ fontSize: 13, color: t.textSoft },
     dim:        { fontSize: 13, color: t.textSoft },
-    statsGrid:  { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 14, marginBottom: 14 },
+    statsGrid:  { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 14, minWidth: 0 },
     metricRowLabel: { fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: 8, fontWeight: 600 },
     twoCol:     { display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 20 },
     card:       { background: t.surface, backdropFilter: 'blur(12px)', borderRadius: 16, padding: '20px 22px', boxShadow: '0 2px 16px rgba(0,0,0,0.05)', border: `1px solid ${t.surfaceBorder}` },

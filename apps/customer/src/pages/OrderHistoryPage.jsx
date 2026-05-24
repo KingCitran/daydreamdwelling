@@ -97,14 +97,6 @@ export default function OrderHistoryPage({ onBack }) {
     load()
   }, [user])
 
-  async function markDelivered(itemId) {
-    await supabase.from('order_items').update({ fulfillment_status: 'delivered' }).eq('id', itemId)
-    setOrders(prev => prev.map(o => ({
-      ...o,
-      order_items: o.order_items.map(i => i.id === itemId ? { ...i, fulfillment_status: 'delivered' } : i),
-    })))
-  }
-
   const s = makeStyles(t)
 
   if (!user) {
@@ -142,7 +134,6 @@ export default function OrderHistoryPage({ onBack }) {
               s={s}
               expanded={expanded === order.id}
               onToggle={() => setExpanded(expanded === order.id ? null : order.id)}
-              onMarkDelivered={markDelivered}
             />
           ))}
         </div>
@@ -151,7 +142,7 @@ export default function OrderHistoryPage({ onBack }) {
   )
 }
 
-function OrderCard({ order, t, s, expanded, onToggle, onMarkDelivered }) {
+function OrderCard({ order, t, s, expanded, onToggle }) {
   const addrLines = formatAddress(order.shipping_address)
   const items = order.order_items || []
   return (
@@ -184,7 +175,7 @@ function OrderCard({ order, t, s, expanded, onToggle, onMarkDelivered }) {
           )}
 
           {items.map(item => (
-            <ItemRow key={item.id} item={item} order={order} t={t} s={s} onMarkDelivered={onMarkDelivered} />
+            <ItemRow key={item.id} item={item} order={order} t={t} s={s} />
           ))}
 
           {addrLines && (
@@ -199,7 +190,7 @@ function OrderCard({ order, t, s, expanded, onToggle, onMarkDelivered }) {
   )
 }
 
-function ItemRow({ item, order, t, s, onMarkDelivered }) {
+function ItemRow({ item, order, t, s }) {
   const photo = item.products?.product_images?.find(im => im.is_primary) ?? item.products?.product_images?.[0]
   const productImgUrl = photo?.storage_path
     ? supabase.storage.from('product-images').getPublicUrl(photo.storage_path).data.publicUrl
@@ -240,12 +231,6 @@ function ItemRow({ item, order, t, s, onMarkDelivered }) {
               <img src={preShipUrl} alt="Pre-ship photo from seller" style={s.preShipImg} />
             </a>
           </div>
-        )}
-
-        {item.fulfillment_status === 'shipped' && (
-          <button style={s.markBtn} onClick={() => onMarkDelivered(item.id)}>
-            ✓ I've received this
-          </button>
         )}
 
         {item.fulfillment_status === 'delivered' && (
@@ -402,7 +387,6 @@ function makeStyles(t) {
     trackLink:   { color: t.accent, textDecoration: 'none', fontWeight: 500, fontFamily: 'ui-monospace, monospace' },
     preShipBlock:{ marginTop: 10 },
     preShipImg:  { maxWidth: 240, maxHeight: 180, borderRadius: 10, marginTop: 4, border: `1px solid ${t.surfaceBorder}`, display: 'block' },
-    markBtn:     { marginTop: 12, padding: '8px 16px', background: '#7adda0', color: '#1a4a2a', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
     deliveredNote: { marginTop: 10, fontSize: 12, color: '#3a7a4e', fontWeight: 500 },
     section:     { paddingTop: 6 },
     sectionLabel:{ fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
