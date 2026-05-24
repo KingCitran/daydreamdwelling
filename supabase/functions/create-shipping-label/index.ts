@@ -16,6 +16,7 @@
 // Env vars: SHIPPO_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno'
+import { sendEmail, shippingNotificationEmail, trackingUrlFor } from '../_shared/emails.ts'
 
 const SHIPPO_API = 'https://api.goshippo.com'
 
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
       .select(`
         id, seller_id, quantity, label_url, tracking_number,
         product_name, products(label),
-        orders(id, shipping_address, status, shippo_rate_id, shipping_cost_cents)
+        orders(id, shipping_address, status, shippo_rate_id, shipping_cost_cents, guest_email, user_id)
       `)
       .eq('id', orderItemId)
       .single()
@@ -63,6 +64,18 @@ Deno.serve(async (req) => {
     if (item.seller_id !== callerId) return json({ error: 'Not authorized' }, 403)
     if (item.label_url) return json({ error: 'Label already exists for this item' }, 400)
     if (!item.orders?.shipping_address) return json({ error: 'No shipping address on order' }, 400)
+
+    // Buyer email for the "your package is on the way" notification. Prefer
+    // the address-block email (collected at checkout), then guest_email, then
+    // look up the auth user as a last resort. Null is fine — we just skip.
+    const shipAddr = item.orders.shipping_address as Record<string, unknown> | null
+    const shipAddrEmail = typeof shipAddr?.email === 'string' ? shipAddr.email : null
+    let buyerEmail: string | null = shipAddrEmail || item.orders.guest_email || null
+    if (!buyerEmail && item.orders.user_id) {
+      const { data: u } = await adminClient.auth.admin.getUserById(item.orders.user_id)
+      buyerEmail = u?.user?.email ?? null
+    }
+    const productDisplayLabel: string = item.product_name || item.products?.label || 'your order'
 
     // FAST PATH: buyer pre-paid a specific Shippo rate at checkout and the
     // caller isn't overriding the parcel (bundle flow). Buy the label
@@ -102,6 +115,18 @@ Deno.serve(async (req) => {
           if (fastStampErr) {
             console.error('[create-shipping-label] fast-path stamp failed:', fastStampErr, 'tx:', fastTx.object_id)
             return json({ error: `Label purchased (${fastTx.object_id}) but DB stamp failed: ${fastStampErr.message}` }, 500)
+          }
+          if (buyerEmail) {
+            const fastCarrier = fastTx.rate?.provider ?? 'Carrier'
+            const fastService = fastTx.rate?.servicelevel?.name ?? fastTx.rate?.servicelevel?.token ?? null
+            const { subject, html } = shippingNotificationEmail({
+              carrier:        fastCarrier,
+              service:        fastService,
+              trackingNumber: fastTx.tracking_number,
+              trackingUrl:    trackingUrlFor(fastCarrier, fastTx.tracking_number),
+              itemLabel:      productDisplayLabel,
+            })
+            await sendEmail({ to: buyerEmail, subject, html })
           }
           return json({
             trackingNumber: fastTx.tracking_number,
@@ -235,6 +260,18 @@ Deno.serve(async (req) => {
     if (stampErr) {
       console.error('[create-shipping-label] stamp failed:', stampErr, 'tx:', tx.object_id)
       return json({ error: `Label purchased (${tx.object_id}) but DB stamp failed: ${stampErr.message}` }, 500)
+    }
+
+    if (buyerEmail) {
+      const svc = chosen.servicelevel?.name || chosen.servicelevel?.token || null
+      const { subject, html } = shippingNotificationEmail({
+        carrier:        chosen.provider,
+        service:        svc,
+        trackingNumber: tx.tracking_number,
+        trackingUrl:    trackingUrlFor(chosen.provider, tx.tracking_number),
+        itemLabel:      productDisplayLabel,
+      })
+      await sendEmail({ to: buyerEmail, subject, html })
     }
 
     return json({

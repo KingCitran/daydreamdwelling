@@ -15,6 +15,7 @@
 
 import Stripe from 'https://esm.sh/stripe@14?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno'
+import { sendEmail, refundIssuedEmail } from '../_shared/emails.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   apiVersion: '2024-04-10',
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
 
     const { data: order, error: lookupErr } = await adminClient
       .from('orders')
-      .select('id, status, total_cents, stripe_payment_id, refunded_at')
+      .select('id, status, total_cents, stripe_payment_id, refunded_at, shipping_address, guest_email, user_id')
       .eq('id', orderId)
       .single()
     if (lookupErr || !order) {
@@ -119,6 +120,23 @@ Deno.serve(async (req) => {
       // admin can reconcile. Don't auto-reverse the Stripe refund.
       console.error('[refund-order] stamp failed after Stripe refund:', stampErr, 'refund:', refund.id)
       return json({ error: `Stripe refund ${refund.id} succeeded but DB stamp failed: ${stampErr.message}` }, 500)
+    }
+
+    // Email the buyer that their refund is on its way. Best-effort —
+    // failure to send doesn't roll back the refund.
+    const shipAddr = order.shipping_address as Record<string, unknown> | null
+    const shipAddrEmail = typeof shipAddr?.email === 'string' ? shipAddr.email : null
+    let buyerEmail: string | null = shipAddrEmail || order.guest_email || null
+    if (!buyerEmail && order.user_id) {
+      const { data: u } = await adminClient.auth.admin.getUserById(order.user_id)
+      buyerEmail = u?.user?.email ?? null
+    }
+    if (buyerEmail) {
+      const { subject, html } = refundIssuedEmail({
+        amountCents: order.total_cents,
+        reason:      reason ?? null,
+      })
+      await sendEmail({ to: buyerEmail, subject, html })
     }
 
     return json({ refundId: refund.id, amountCents: order.total_cents })
