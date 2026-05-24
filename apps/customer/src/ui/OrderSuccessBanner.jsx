@@ -5,11 +5,11 @@ export default function OrderSuccessBanner({ onClose }) {
   const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
-    // Trigger entrance on next frame
+    // Trigger entrance on next frame. No auto-dismiss — first-time buyers
+    // want to read the confirmation, click into their order, etc. They'll
+    // close it themselves when they've absorbed the moment.
     const t1 = setTimeout(() => setVisible(true), 30)
-    // Auto-dismiss after 5.5 s
-    const t2 = setTimeout(() => dismiss(), 5500)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    return () => { clearTimeout(t1) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function dismiss() {
@@ -54,14 +54,12 @@ export default function OrderSuccessBanner({ onClose }) {
 
         <p style={st.hint}>Your room is saved · Items marked as owned once shipped</p>
 
-        <button style={st.btn} onClick={dismiss}>
-          Continue decorating →
+        <button style={st.primaryBtn} onClick={() => { window.location.search = '?orders=1' }}>
+          View order details →
         </button>
-
-        {/* Auto-dismiss progress bar */}
-        <div style={st.progressTrack}>
-          <div style={{ ...st.progressFill, animationDuration: '5.5s' }} />
-        </div>
+        <button style={st.btn} onClick={dismiss}>
+          Continue decorating
+        </button>
       </div>
 
       <style>{KEYFRAMES}</style>
@@ -190,7 +188,7 @@ const st = {
     textAlign: 'center',
     letterSpacing: '0.3px',
   },
-  btn: {
+  primaryBtn: {
     width: '100%',
     padding: '13px 0',
     background: 'linear-gradient(135deg, #4a3a7a 0%, #7a4aaa 100%)',
@@ -201,6 +199,19 @@ const st = {
     cursor: 'pointer',
     letterSpacing: '0.2px',
     transition: 'opacity 0.15s',
+    marginBottom: 10,
+  },
+  btn: {
+    width: '100%',
+    padding: '11px 0',
+    background: 'transparent',
+    border: '1px solid rgba(154,122,238,0.3)',
+    borderRadius: 12,
+    color: '#a090c8',
+    fontSize: 13, fontWeight: 600,
+    cursor: 'pointer',
+    letterSpacing: '0.2px',
+    transition: 'opacity 0.15s, background 0.15s',
     marginBottom: 0,
   },
   progressTrack: {
