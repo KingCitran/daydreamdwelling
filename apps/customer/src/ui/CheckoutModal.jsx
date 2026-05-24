@@ -38,8 +38,22 @@ export default function CheckoutModal({ cart, catalogue, onClose, roomName }) {
       body: { items, address },
     })
     setRateBusy(false)
+    // supabase-js wraps non-2xx responses in fnErr but doesn't auto-parse the
+    // function's JSON body. Try to read the real {error: ...} from
+    // fnErr.context so buyers see "this seller can't accept orders yet"
+    // instead of "Edge Function returned a non-2xx status code".
+    let serverMessage = data?.error || null
+    if (fnErr && !serverMessage) {
+      try {
+        const ctx = fnErr.context
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json()
+          serverMessage = body?.error || null
+        }
+      } catch { /* swallow, fall back to generic */ }
+    }
     if (fnErr || data?.error) {
-      setRateErr(data?.error || fnErr?.message || 'Could not get shipping rate')
+      setRateErr(serverMessage || fnErr?.message || 'Could not get shipping rate')
       return
     }
     setRate(data)
