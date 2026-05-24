@@ -6,6 +6,7 @@ import DashboardPage       from './pages/DashboardPage'
 import ProductsPage        from './pages/ProductsPage'
 import AddProductPage      from './pages/AddProductPage'
 import OrdersPage          from './pages/OrdersPage'
+import ShippingHistoryPage from './pages/ShippingHistoryPage'
 import MessagesPage        from './pages/MessagesPage'
 import EarningsPage        from './pages/EarningsPage'
 import SettingsPage        from './pages/SettingsPage'
@@ -49,6 +50,7 @@ function Shell() {
         {page === 'products'        && <ProductsPage  onNavigate={navigate} />}
         {page === 'add-product'     && <AddProductPage productId={editProductId} onDone={() => navigate('products')} />}
         {page === 'orders'          && <OrdersPage />}
+        {page === 'shipping'        && <ShippingHistoryPage />}
         {page === 'messages'        && <MessagesPage />}
         {page === 'earnings'        && <EarningsPage />}
         {page === 'settings'        && <SettingsPage />}

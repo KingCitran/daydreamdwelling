@@ -1041,8 +1041,6 @@ export default function OrdersPage() {
     return rows.filter(r => {
       if (filter === 'escalated') {
         if (!r.orders?.escalated_at) return false
-      } else if (filter === 'labeled') {
-        if (!r.label_purchased_at) return false
       } else if (filter !== 'all' && r.orders?.status !== filter) return false
       if (q) {
         const productMatch = (r.products?.label ?? '').toLowerCase().includes(q)
@@ -1153,7 +1151,7 @@ export default function OrdersPage() {
         {filtered.length !== rows.length && ` · ${filtered.length} matching filters`}
       </p>
 
-      {filter === 'labeled' && pastSessions.length > 0 && (
+      {false && pastSessions.length > 0 && (
         <div style={s.sessionsPanel}>
           <div style={s.sessionsHeader}>Shipping sessions ({pastSessions.length})</div>
           <div style={s.sessionsList}>
@@ -1225,15 +1223,11 @@ export default function OrdersPage() {
 
       <div style={s.toolbar}>
         <div style={s.tabs}>
-          {['all', 'paid', 'pending', 'labeled', 'cancelled', 'refunded', 'escalated'].map(f => {
+          {['all', 'paid', 'pending', 'cancelled', 'refunded', 'escalated'].map(f => {
             const count = f === 'escalated'
               ? new Set(rows.filter(r => r.orders?.escalated_at).map(r => r.orders.id)).size
-              : f === 'labeled'
-                ? rows.filter(r => r.label_purchased_at).length
-                : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
-            const label = f === 'escalated' ? '🚩 Escalated'
-                        : f === 'labeled'   ? '🏷️ History'
-                        : f.charAt(0).toUpperCase() + f.slice(1)
+              : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
+            const label = f === 'escalated' ? '🚩 Escalated' : f.charAt(0).toUpperCase() + f.slice(1)
             return (
               <button key={f} style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
                 {label}
