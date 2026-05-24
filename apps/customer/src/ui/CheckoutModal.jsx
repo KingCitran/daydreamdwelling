@@ -179,7 +179,7 @@ function makeStyles(t) {
     itemPrice: { fontSize: 13, fontWeight: 600, color: t.accent },
     section: { padding: '16px 20px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', flexDirection: 'column', gap: 8 },
     sectionLabel: { fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600, margin: '0 0 4px' },
-    input: { padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none' },
+    input: { padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', width: '100%', minWidth: 0, boxSizing: 'border-box' },
     rateBtn: { padding: '10px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, marginTop: 4 },
     rateBlock: { padding: '10px 14px', background: `${t.accent}10`, border: `1px solid ${t.accent}30`, borderRadius: 8, fontSize: 13, color: t.text },
     changeAddrLink: { background: 'transparent', border: 'none', color: t.accent, fontSize: 11, cursor: 'pointer', padding: 0, marginTop: 6 },

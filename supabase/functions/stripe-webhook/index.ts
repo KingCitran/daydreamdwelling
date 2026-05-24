@@ -133,24 +133,28 @@ Deno.serve(async (req) => {
     const shippingCarrier     = session.metadata?.shipping_carrier ?? null
     const shippingService     = session.metadata?.shipping_service ?? null
 
-    // Buyer's shipping address: prefer Stripe's customer_details.address
-    // because Stripe collects it directly from the buyer at the payment step
-    // (verifiable, tied to the payment method). Metadata is just whatever
-    // the buyer's browser sent us at quote time — a buyer could have lied
-    // there. Fall back to metadata only for fields Stripe didn't collect
-    // (room context, etc.) or if Stripe didn't return an address at all.
+    // Buyer's shipping address: the buyer explicitly chose this in our
+    // CheckoutModal (it's the address Shippo quoted against), so we trust
+    // it as the primary ship-to. We did NOT enable Stripe's
+    // billing_address_collection, so customer_details.address is usually a
+    // sparse object with only `country` populated — using it as "primary"
+    // (the previous version of this code) caused orders to land with
+    // line1=null/city=null and the seller couldn't generate labels.
+    // Stripe's address is now only a last-resort fallback, and only if it
+    // has a real street line.
     let shippingAddress: Record<string, unknown> | null = null
-    if (session.customer_details?.address) {
-      const a = session.customer_details.address
-      shippingAddress = {
-        name: session.customer_details.name ?? null,
-        email: customerEmail,
-        line1: a.line1, line2: a.line2,
-        city: a.city, state: a.state, postal_code: a.postal_code, country: a.country,
-      }
-    }
-    if (!shippingAddress && session.metadata?.buyer_address) {
+    if (session.metadata?.buyer_address) {
       try { shippingAddress = JSON.parse(session.metadata.buyer_address) } catch { /* ignore */ }
+    }
+    const stripeAddr = session.customer_details?.address
+    if (!shippingAddress && stripeAddr?.line1) {
+      shippingAddress = {
+        name: session.customer_details?.name ?? null,
+        email: customerEmail,
+        line1: stripeAddr.line1, line2: stripeAddr.line2,
+        city: stripeAddr.city, state: stripeAddr.state,
+        postal_code: stripeAddr.postal_code, country: stripeAddr.country,
+      }
     }
 
     const { data: order, error: orderErr } = await supabase

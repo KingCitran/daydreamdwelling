@@ -7,6 +7,22 @@ import useMessageThread from '@shared/useMessageThread'
 const PAYMENT_COLORS = { paid: ['#88d8b0', '#eeffF6'], pending: ['#ffc87a', '#fff8ee'], cancelled: ['#f09090', '#fff0f0'] }
 const FULFILLMENT_STEPS = ['packed', 'shipped', 'delivered']
 
+// supabase-js wraps non-2xx edge function responses in `fnErr` but doesn't
+// parse the JSON body, so sellers were getting "Edge Function returned a
+// non-2xx status code" instead of e.g. "No shipping address on order". This
+// pulls the real { error: '...' } out of fnErr.context for the toast.
+async function readEdgeError(fnErr, data) {
+  if (data?.error) return data.error
+  try {
+    const ctx = fnErr?.context
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await ctx.json()
+      if (body?.error) return body.error
+    }
+  } catch { /* fall through */ }
+  return fnErr?.message || 'unknown error'
+}
+
 // Pull a usable contact email out of an order. The buyer can be:
 //   - A guest (orders.guest_email is set)
 //   - A logged-in user who entered their email at checkout (often stashed in
@@ -256,7 +272,8 @@ export default function OrdersPage({ onNavigate }) {
     })
     setLabelBusy(prev => { const { [firstItem.id]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
-      showToast('error', `Bundle label failed: ${data?.error || error?.message || 'unknown error'}`)
+      const real = await readEdgeError(error, data)
+      showToast('error', `Bundle label failed: ${real}`)
       return
     }
 
@@ -314,8 +331,8 @@ export default function OrdersPage({ onNavigate }) {
     })
     setLabelBusy(prev => { const { [itemId]: _, ...rest } = prev; return rest })
     if (error || data?.error) {
-      const msg = data?.error || error?.message || 'Label generation failed'
-      showToast('error', `Label failed: ${msg}`)
+      const real = await readEdgeError(error, data)
+      showToast('error', `Label failed: ${real}`)
       return
     }
     markSessionItem(itemId)
