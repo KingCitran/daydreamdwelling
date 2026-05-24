@@ -100,7 +100,12 @@ export default function SettingsPage() {
   async function startConnectOnboarding() {
     setConnectBusy(true); setConnectError(null)
     try {
-      const { data, error: err } = await supabase.functions.invoke('stripe-connect-onboard', { body: {} })
+      // Pass the seller app's current origin so Stripe redirects back here
+      // (not to the customer landing page on daydreamdwelling.com).
+      const returnOrigin = typeof window !== 'undefined' ? window.location.origin : null
+      const { data, error: err } = await supabase.functions.invoke('stripe-connect-onboard', {
+        body: { returnOrigin },
+      })
       if (err) throw err
       if (data?.error) throw new Error(data.error)
       if (data?.url) window.location.href = data.url

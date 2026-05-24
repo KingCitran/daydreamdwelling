@@ -74,11 +74,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://daydreamsellers.com'
+    // Return URL has to be the SELLER app's origin, never SITE_URL (which is
+    // wired to the customer site daydreamdwelling.com for create-checkout).
+    // Caller passes their own window.location.origin so dev/preview/prod all
+    // work without ceremony; we fall back to daydreamsellers.com production.
+    const requestBody = await req.json().catch(() => ({} as Record<string, unknown>))
+    const callerOrigin = typeof requestBody?.returnOrigin === 'string' ? requestBody.returnOrigin : null
+    const sellerOrigin = callerOrigin || 'https://daydreamsellers.com'
     const accountLink = await stripe.accountLinks.create({
       account:     accountId,
-      refresh_url: `${siteUrl}/settings?stripe=refresh`,
-      return_url:  `${siteUrl}/settings?stripe=return`,
+      refresh_url: `${sellerOrigin}/settings?stripe=refresh`,
+      return_url:  `${sellerOrigin}/settings?stripe=return`,
       type:        'account_onboarding',
     })
 
