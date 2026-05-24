@@ -90,10 +90,42 @@ Deno.serve(async (req) => {
       email:    address.email || '',
     }
 
-    // Default parcel — same as create-shipping-label. Per-product physical
-    // dimensions (migration 026) could refine this when multi-item carts
-    // start mattering for accurate rates.
-    const parcel = { length: '12', width: '9', height: '3', distance_unit: 'in', weight: '16', mass_unit: 'oz' }
+    // Build parcel from REAL product dimensions (migration 026 columns) so
+    // the quote matches what create-shipping-label will charge at label
+    // purchase time. Previously this hard-coded 12x9x3 16oz, which meant
+    // the buyer paid one amount and the label cost a different amount —
+    // platform was eating the spread (or pocketing it) silently.
+    //
+    // Multi-item rule: weight = Σ (weight_oz × qty); dimensions = max of
+    // each axis across items (one-box assumption — same as bundle flow).
+    const productIds = [...new Set(items.map(i => i.typeKey).filter(k => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k ?? '')))]
+    let weightOz = 0
+    let maxLen = 0, maxWid = 0, maxHt = 0
+    if (productIds.length) {
+      const { data: prods } = await adminClient
+        .from('products')
+        .select('id, weight_oz, length_in, width_in, height_in')
+        .in('id', productIds)
+      const dimsById = new Map<string, { weight_oz: number; length_in: number; width_in: number; height_in: number }>()
+      for (const p of prods ?? []) dimsById.set(p.id, p)
+      for (const item of items) {
+        const p = dimsById.get(item.typeKey)
+        if (!p) continue
+        weightOz += (p.weight_oz ?? 16) * Math.max(1, item.qty)
+        maxLen = Math.max(maxLen, p.length_in ?? 12)
+        maxWid = Math.max(maxWid, p.width_in  ?? 9)
+        maxHt  = Math.max(maxHt,  p.height_in ?? 3)
+      }
+    }
+    // Fall back to the old defaults when we couldn't resolve any product.
+    const parcel = {
+      length: String(maxLen || 12),
+      width:  String(maxWid || 9),
+      height: String(maxHt  || 3),
+      distance_unit: 'in',
+      weight: String(Math.max(weightOz || 16, 1)),
+      mass_unit: 'oz',
+    }
 
     const shipmentRes = await fetch(`${SHIPPO_API}/shipments/`, {
       method: 'POST',

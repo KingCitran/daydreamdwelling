@@ -214,10 +214,17 @@ Deno.serve(async (req) => {
         .eq('id', sellerId)
         .single()
       if (seller?.stripe_account_id && seller?.stripe_charges_enabled) {
-        // Compute the seller's portion (items only — platform absorbs the
-        // Shippo cost separately for now since postage is pass-through).
-        const itemsCents = validated.reduce((s, v) => s + v.unitPriceCents * v.qty, 0)
-        const applicationFee = Math.round(itemsCents * PLATFORM_FEE_BPS / 10000)
+        // application_fee_amount = (items × platform-fee%) + ALL of the
+        // buyer-paid shipping. The platform pays Shippo for the label out
+        // of its balance, so the shipping money has to stay platform-side
+        // or every shipped order loses the platform real dollars. Earlier
+        // version split shipping money to the seller's connected account
+        // (gross transfer minus fee), which made the platform negative on
+        // every order.
+        const itemsCents       = validated.reduce((s, v) => s + v.unitPriceCents * v.qty, 0)
+        const shippingCents    = shipping?.amount ? Math.round(parseFloat(shipping.amount) * 100) : 0
+        const itemsFee         = Math.round(itemsCents * PLATFORM_FEE_BPS / 10000)
+        const applicationFee   = itemsFee + shippingCents
         payment_intent_data = {
           application_fee_amount: applicationFee,
           transfer_data: { destination: seller.stripe_account_id },
