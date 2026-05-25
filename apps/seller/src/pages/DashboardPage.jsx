@@ -200,6 +200,8 @@ export default function DashboardPage({ onNavigate }) {
             />
           </div>
 
+          <RevenueChart dailyRev={stats.dailyRev} t={t} s={s} />
+
           <div style={s.twoCol}>
             <div style={s.card}>
               <div style={s.cardHeader}>
@@ -342,6 +344,72 @@ function StatusBadge({ status }) {
   const map = { paid: ['#88d8b0','rgba(136,216,176,0.15)'], pending: ['#ffc87a','rgba(255,200,122,0.15)'], cancelled: ['#f09090','rgba(240,144,144,0.15)'] }
   const [color, bg] = map[status] ?? ['#b8a0ff', 'rgba(184,160,255,0.15)']
   return <span style={{ fontSize: 10, fontWeight: 600, borderRadius: 20, padding: '3px 8px', background: bg, color, textTransform: 'capitalize' }}>{status ?? '—'}</span>
+}
+
+// Revenue bar chart — 30 daily buckets, inline SVG, no charting library.
+// Renders nothing if every day is zero (avoids a flat empty bar shelf).
+// Hover state shows the exact day + amount.
+function RevenueChart({ dailyRev, t, s }) {
+  const [hover, setHover] = useState(null)
+  if (!dailyRev || dailyRev.every(v => v === 0)) return null
+
+  const W = 720, H = 140, padL = 36, padR = 8, padT = 14, padB = 22
+  const innerW = W - padL - padR
+  const innerH = H - padT - padB
+  const max    = Math.max(...dailyRev, 1)
+  const slot   = innerW / dailyRev.length
+  const barW   = Math.max(slot * 0.7, 3)
+
+  const today  = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const yTicks = [0, 0.5, 1].map(p => ({ y: padT + innerH * (1 - p), label: `$${Math.round(max * p).toLocaleString()}` }))
+
+  return (
+    <div style={{ ...s.card, padding: '18px 22px 12px', marginBottom: 14 }}>
+      <div style={{ ...s.cardHeader, marginBottom: 10 }}>
+        <h2 style={s.cardTitle}>Revenue · last 30 days</h2>
+        <span style={{ fontSize: 11, color: t.textSoft }}>
+          {hover != null
+            ? `${dayLabel(today, 29 - hover)} · $${(dailyRev[hover] ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+            : `Peak day $${Math.round(max).toLocaleString()}`}
+        </span>
+      </div>
+      <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }}>
+        {yTicks.map((tick, i) => (
+          <g key={i}>
+            <line x1={padL} y1={tick.y} x2={W - padR} y2={tick.y} stroke={t.surfaceBorder} strokeWidth={1} opacity={0.6} />
+            <text x={padL - 6} y={tick.y + 3} fontSize="9" textAnchor="end" fill={t.textSoft}>{tick.label}</text>
+          </g>
+        ))}
+        {dailyRev.map((v, i) => {
+          const h = max > 0 ? (v / max) * innerH : 0
+          const x = padL + i * slot + (slot - barW) / 2
+          const y = padT + innerH - h
+          const isHover = hover === i
+          return (
+            <rect
+              key={i}
+              x={x} y={y} width={barW} height={Math.max(h, v > 0 ? 1 : 0)}
+              fill={isHover ? t.accent : `${t.accent}aa`}
+              rx={2}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover(null)}
+              style={{ transition: 'fill 0.1s' }}
+            />
+          )
+        })}
+        <text x={padL} y={H - 4} fontSize="9" textAnchor="start" fill={t.textSoft}>{dayLabel(today, 29)}</text>
+        <text x={W - padR} y={H - 4} fontSize="9" textAnchor="end" fill={t.textSoft}>today</text>
+      </svg>
+    </div>
+  )
+}
+
+function dayLabel(today, daysAgo) {
+  const d = new Date(today)
+  d.setDate(d.getDate() - daysAgo)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 function makeStyles(t) {
