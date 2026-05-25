@@ -3,6 +3,7 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 import useMessageThread from '@shared/useMessageThread'
+import useSignedOrderPhoto from '@shared/useSignedOrderPhoto'
 
 // Buyer-facing order history. Mounts via `?orders=1`. Mirrors the seller
 // OrdersPage data shape but presented from the buyer's POV: their orders,
@@ -266,9 +267,7 @@ function ItemRow({ item, order, t, s }) {
   const productImgUrl = photo?.storage_path
     ? supabase.storage.from('product-images').getPublicUrl(photo.storage_path).data.publicUrl
     : null
-  const preShipUrl = item.pre_ship_photo_path
-    ? supabase.storage.from('order-photos').getPublicUrl(item.pre_ship_photo_path).data.publicUrl
-    : null
+  const preShipUrl = useSignedOrderPhoto(item.pre_ship_photo_path)
   const variant = [item.size_label, item.swatch_name].filter(Boolean).join(' · ')
   const stage = stageOf(order.status, item.fulfillment_status)
   const tracking = item.tracking_number

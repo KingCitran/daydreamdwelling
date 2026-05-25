@@ -3,6 +3,7 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 import useMessageThread from '@shared/useMessageThread'
+import useSignedOrderPhoto from '@shared/useSignedOrderPhoto'
 
 const PAYMENT_COLORS = { paid: ['#88d8b0', '#eeffF6'], pending: ['#ffc87a', '#fff8ee'], cancelled: ['#f09090', '#fff0f0'] }
 const FULFILLMENT_STEPS = ['packed', 'shipped', 'delivered']
@@ -389,10 +390,9 @@ export default function OrdersPage({ onNavigate }) {
       : r))
   }
 
-  function preShipUrlFor(item) {
-    if (!item.pre_ship_photo_path) return null
-    return supabase.storage.from('order-photos').getPublicUrl(item.pre_ship_photo_path).data.publicUrl
-  }
+  // Pre-ship photo URLs come from the now-private order-photos bucket.
+  // Each PreShipPhoto component calls useSignedOrderPhoto with its row's
+  // path so RLS gates whether the buyer/seller can read it.
 
   function toggleSelect(itemId, checked) {
     setSelected(prev => {
@@ -1606,31 +1606,13 @@ export default function OrdersPage({ onNavigate }) {
                           <p style={s.detailLabel}>
                             Pre-Ship Photo <span style={s.dimMicro}>(buyer sees this in their order)</span>
                           </p>
-                          {(() => {
-                            const url = preShipUrlFor(item)
-                            if (url) {
-                              return (
-                                <div style={s.preShipRow}>
-                                  <a href={url} target="_blank" rel="noopener noreferrer">
-                                    <img src={url} alt="Pre-ship photo" style={s.preShipThumb} />
-                                  </a>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    <label style={{ ...s.noteSaveBtn, textAlign: 'center', cursor: uploading[item.id] ? 'default' : 'pointer', opacity: uploading[item.id] ? 0.6 : 1 }}>
-                                      {uploading[item.id] ? 'Uploading…' : 'Replace'}
-                                      <input type="file" accept="image/*" hidden disabled={uploading[item.id]} onChange={e => uploadPreShipPhoto(item.id, e.target.files?.[0])} />
-                                    </label>
-                                    <button style={s.preShipRemoveBtn} onClick={() => removePreShipPhoto(item.id, item.pre_ship_photo_path)}>Remove</button>
-                                  </div>
-                                </div>
-                              )
-                            }
-                            return (
-                              <label style={{ ...s.noteSaveBtn, display: 'inline-block', cursor: uploading[item.id] ? 'default' : 'pointer', opacity: uploading[item.id] ? 0.6 : 1 }}>
-                                {uploading[item.id] ? 'Uploading…' : '+ Add Photo'}
-                                <input type="file" accept="image/*" hidden disabled={uploading[item.id]} onChange={e => uploadPreShipPhoto(item.id, e.target.files?.[0])} />
-                              </label>
-                            )
-                          })()}
+                          <PreShipPhoto
+                            item={item}
+                            uploading={!!uploading[item.id]}
+                            s={s}
+                            onUpload={file => uploadPreShipPhoto(item.id, file)}
+                            onRemove={() => removePreShipPhoto(item.id, item.pre_ship_photo_path)}
+                          />
                         </div>
                       </div>
                     )}
@@ -2070,4 +2052,33 @@ function makeStyles(t) {
     deliveredNote:   { marginTop: 6, padding: '10px 14px', background: '#eef9f1', border: '1px solid #c8e8d4', borderRadius: 8, color: '#3a7a4e', fontSize: 13, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 },
     undoBtn:         { background: 'transparent', border: '1px solid #88c896', color: '#3a7a4e', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer' },
   }
+}
+
+// Renders the pre-ship photo block. Needs its own component so the
+// useSignedOrderPhoto hook has a real component scope to live in (the
+// previous inline IIFE pattern couldn't call hooks).
+function PreShipPhoto({ item, uploading, s, onUpload, onRemove }) {
+  const url = useSignedOrderPhoto(item.pre_ship_photo_path)
+  if (url) {
+    return (
+      <div style={s.preShipRow}>
+        <a href={url} target="_blank" rel="noopener noreferrer">
+          <img src={url} alt="Pre-ship photo" style={s.preShipThumb} />
+        </a>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ ...s.noteSaveBtn, textAlign: 'center', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? 'Uploading…' : 'Replace'}
+            <input type="file" accept="image/*" hidden disabled={uploading} onChange={e => onUpload(e.target.files?.[0])} />
+          </label>
+          <button style={s.preShipRemoveBtn} onClick={onRemove}>Remove</button>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <label style={{ ...s.noteSaveBtn, display: 'inline-block', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+      {uploading ? 'Uploading…' : '+ Add Photo'}
+      <input type="file" accept="image/*" hidden disabled={uploading} onChange={e => onUpload(e.target.files?.[0])} />
+    </label>
+  )
 }
