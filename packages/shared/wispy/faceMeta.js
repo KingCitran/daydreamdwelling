@@ -86,6 +86,10 @@ export const FACE_META = {
 
 export const SLOT_PRIMARY = {
   neutral:       'f025',
+  // 'resting' is the default idle expression — soft smile, eyes
+  // gently closed. She drifts most of the time so this reads better
+  // than the wide-eyed happy variant (which felt like staring).
+  resting:       'f008',
   happy:         'f001',  // two open eyes + smile (f005 was the wink variant)
   surprised:     'f013',
   blink:         'f008',
