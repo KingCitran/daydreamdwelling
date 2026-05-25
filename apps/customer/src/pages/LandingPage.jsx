@@ -5,6 +5,7 @@ import { supabase } from '@shared/supabase'
 import CloudField from './landing/CloudField'
 import RotatingRoom from './landing/RotatingRoom'
 import MoodSwatch from './landing/MoodSwatch'
+import WispyArt from '@shared/wispy/art'
 
 // "Above the clouds" sky palette — independent of mood. The mood-tinted glow
 // (radial gradient over this base) is what shifts when the user picks a mood.
@@ -347,18 +348,8 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           boxShadow: '0 24px 60px rgba(120,150,200,0.18)',
           display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 48, alignItems: 'center',
         }}>
-          <div style={{ textAlign: 'center' }}>
-            <svg width="200" height="140" viewBox="0 0 200 140" style={{ filter: 'drop-shadow(0 12px 32px rgba(120,150,200,0.25))' }}>
-              <ellipse cx="100" cy="80" rx="78" ry="42" fill="#fff"/>
-              <ellipse cx="55"  cy="72" rx="34" ry="28" fill="#fff"/>
-              <ellipse cx="138" cy="66" rx="38" ry="30" fill="#fff"/>
-              <ellipse cx="100" cy="54" rx="30" ry="24" fill="#fff"/>
-              <ellipse cx="86"  cy="74" rx="3"  ry="4"  fill={sky.ink}/>
-              <ellipse cx="115" cy="74" rx="3"  ry="4"  fill={sky.ink}/>
-              <ellipse cx="72"  cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
-              <ellipse cx="128" cy="82" rx="6"  ry="2.5" fill="#ffb8d0" fillOpacity="0.5"/>
-              <path d="M 92 86 Q 100 92 108 86" stroke={sky.ink} strokeWidth="1.6" fill="none" strokeLinecap="round"/>
-            </svg>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <WispyArt slot="happy" ink="dark" width={220} />
           </div>
           <div>
             <div style={{ fontSize: 11, color: sky.accent, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 12 }}>
