@@ -18,11 +18,13 @@
 // design dropped them in favor of richer face variants). The old
 // signature is accepted but ignored so nothing crashes during migration.
 
-import { CLOUD_BASE_URL, getFaceUrl, getLegsUrl } from './faceMeta.js'
+import { CLOUD_BASE_URL, CLOUD_SILHOUETTE_URL, getFaceUrl, getLegsUrl } from './faceMeta.js'
+import { cloudStyleForMood } from './cloudPalette.js'
 
 export default function WispyArt({
   slot = 'happy',
   ink  = 'dark',
+  mood,    // mood name (e.g. 'Dream State'); when set, tints the cloud
   width  = 140,
   height,  // optional override; defaults to width (square)
   // ── legacy props from v1 — kept for back-compat, otherwise no-op ──
@@ -35,6 +37,11 @@ export default function WispyArt({
   const faceUrl = getFaceUrl(effectiveSlot, ink)
   const legsUrl = getLegsUrl(ink)
   const h = height ?? width
+
+  // Mood-tinted cloud: silhouette PNG as a CSS mask + per-mood linear
+  // gradient + drop shadow. Falls back to the bundle's cloud-base.png
+  // for moods that aren't themed yet.
+  const cloudStyle = cloudStyleForMood(mood)
 
   return (
     <div style={{ position: 'relative', width, height: h, pointerEvents: 'none' }}>
@@ -54,12 +61,36 @@ export default function WispyArt({
             'linear-gradient(to bottom, transparent 0%, transparent 18%, rgba(0,0,0,0.6) 35%, black 55%)',
         }}
       />
-      {/* cloud body */}
-      <img
-        src={CLOUD_BASE_URL}
-        alt=""
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-      />
+      {/* cloud body — themed (silhouette + gradient) when mood matches,
+          else the bundle's pre-shaded dusk-pastel cloud-base.png */}
+      {cloudStyle ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            WebkitMaskImage: `url(${CLOUD_SILHOUETTE_URL})`,
+            maskImage: `url(${CLOUD_SILHOUETTE_URL})`,
+            WebkitMaskSize: 'contain',
+            maskSize: 'contain',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            maskPosition: 'center',
+            background: cloudStyle.gradient,
+            filter: cloudStyle.shadow,
+            transform: 'rotate(-9deg)',  // match the tilt baked into cloud-base.png
+            transformOrigin: 'center',
+          }}
+        />
+      ) : (
+        <img
+          src={CLOUD_BASE_URL}
+          alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        />
+      )}
       {/* face on top of cloud, anchored center, 16% wide */}
       {faceUrl && (
         <img
