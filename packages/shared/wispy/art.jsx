@@ -134,4 +134,8 @@ export const WISPY_KEYFRAMES = `
   0%, 100% { box-shadow: 0 0 0 0 rgba(180,140,230,0.6), 0 0 0 0 rgba(180,140,230,0.4); }
   50%      { box-shadow: 0 0 0 6px rgba(180,140,230,0.0), 0 0 24px 4px rgba(180,140,230,0.55); }
 }
+@keyframes wispyHalo {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
 `

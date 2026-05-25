@@ -58,12 +58,13 @@ import OrderSuccessBanner from './ui/OrderSuccessBanner'
 import Wispy from './ui/Wispy'
 import useWispy from './hooks/useWispy'
 import useWaitingInventory from './hooks/useWaitingInventory'
-import WispyCashier from './ui/WispyCashier'
+// WispyCashier + WispyPreview moved to _archive_wispy_legacy/ — they used
+// the OG inline-SVG character. The shared @shared/wispy mascot replaces
+// them everywhere; shop greeting is piped via useWispy().say().
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
-import WispyPreview from './pages/WispyPreview'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import MessagesPage from './pages/MessagesPage'
 import CommunityFeed from './pages/CommunityFeed'
@@ -84,6 +85,7 @@ import Logo from '@shared/Logo'
 import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
 import { WispyProvider } from '@shared/wispy'
+import useSharedWispy from '@shared/wispy/useWispy'
 import { syncCurationFromSupabase } from './scene/cloudDrapes'
 
 const DEFAULT_wallHeight = 8
@@ -168,7 +170,6 @@ function Gate() {
     setInBuilder(true)
   }
 
-  if (params.get('preview') === 'wispy') return <WispyPreview />
   if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
 
@@ -1013,7 +1014,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         />
       )}
       {shopBuilderSellerId && (
-        <WispyCashier greeting={wispyGreeting ?? 'Welcome to my shop! ☁'} />
+        <ShopGreeter greeting={wispyGreeting ?? 'Welcome to my shop ☁'} />
       )}
 
       {saveModalOpen && (
@@ -1261,4 +1262,16 @@ function PanelPlaceholder({ name, detail }) {
       <div style={{ marginTop: 12, fontSize: 10, fontStyle: 'italic', color: '#8a78a8', textShadow: 'none', WebkitTextStroke: 0 }}>Drag the header to undock; release near the tab to snap back.</div>
     </div>
   )
+}
+
+// Was a standalone WispyCashier component with its own SVG character;
+// now the shared mascot is already on screen, so all we do is push the
+// shop's custom greeting into its speech bubble on mount.
+function ShopGreeter({ greeting }) {
+  const { say } = useSharedWispy()
+  useEffect(() => {
+    if (!greeting) return
+    say({ text: greeting })
+  }, [greeting])
+  return null
 }

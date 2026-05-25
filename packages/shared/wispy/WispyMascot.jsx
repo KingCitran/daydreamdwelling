@@ -90,14 +90,18 @@ export default function WispyMascot() {
   const isSleeping = pose === 'sleeping'
   const isTalking = pose === 'talking'
   const isPointing = pose === 'pointing-left' || pose === 'pointing-right'
+  // Bigger default so she actually catches the eye in the corner. v1
+  // rendered at 140; user feedback was "hardly visible." 200 reads as a
+  // proper companion without dominating the screen.
+  const wispyWidth = 200
 
   let poseEl
   if (isPointing) {
-    poseEl = <Pointing ink={ink} mood={mood} direction={pose === 'pointing-left' ? 'left' : 'right'} mouthOpen={mouthOpen && isTalking} eyeClosed={eyeClosed || isSleeping} />
+    poseEl = <Pointing ink={ink} mood={mood} direction={pose === 'pointing-left' ? 'left' : 'right'} mouthOpen={mouthOpen && isTalking} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
   } else if (isTalking) {
-    poseEl = <Talking ink={ink} mood={mood} mouthOpen={mouthOpen} eyeClosed={eyeClosed} />
+    poseEl = <Talking ink={ink} mood={mood} mouthOpen={mouthOpen} eyeClosed={eyeClosed} width={wispyWidth} />
   } else {
-    poseEl = <Idle ink={ink} mood={mood} eyeClosed={eyeClosed || isSleeping} />
+    poseEl = <Idle ink={ink} mood={mood} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
   }
 
   return (
@@ -110,6 +114,18 @@ export default function WispyMascot() {
         animation: 'wispyIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
       }}
     >
+      {/* Soft attention halo — gentle pulsing glow behind Wispy that draws
+          the eye without being loud. Pauses when she's asleep so it
+          matches her vibe. */}
+      <div style={{
+        position: 'absolute',
+        inset: '8% 8% 12% 8%',
+        borderRadius: '50%',
+        background: 'radial-gradient(circle at center, rgba(180,140,230,0.32) 0%, rgba(180,140,230,0.12) 40%, transparent 70%)',
+        animation: isSleeping ? 'none' : 'wispyHalo 4s ease-in-out infinite',
+        pointerEvents: 'none',
+        zIndex: -1,
+      }} />
       <div style={{
         animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
         transform: `scale(${scale})`,
