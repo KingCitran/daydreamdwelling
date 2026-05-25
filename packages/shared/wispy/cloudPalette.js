@@ -1,88 +1,40 @@
-// Per-mood cloud rendering — copied verbatim from the customer scene's
-// CloudConveyorPuffs MOOD_THEMES. We reuse the SAME tint + shade + glow
-// layer formulas the scene uses for its cloud field so Wispy doesn't
-// just have a flat colored silhouette; she renders with the exact
-// pipeline the scene's clouds do and visually belongs in the room.
+// Per-mood Wispy recipes — verbatim port of MOOD_RECIPES from the
+// bundle's picker/wispy.jsx. Each recipe ships:
+//   stops — 4-stop linear gradient for the cloud body fill
+//   ink   — color for the face PNG mask + limb fill
+//   glow  — color for the soft aura behind the cloud
 //
-// Layers (composed bottom → top):
-//   1. tint   — silhouette as CSS mask + tintGradient background +
-//               tintShadow drop-shadow filter
-//   2. shade  — cloud-base.png as background + mix-blend-mode: multiply
-//               at shadeOpacity + shadeFilter (contrast/brightness tweak)
-//   3. glow   — cloud-base.png as background + mix-blend-mode: screen
-//               at glowOpacity + glowFilter + glowMask (top-of-cloud
-//               gradient mask so highlight only kisses the crown)
-//
-// Moods without entries here fall back to plain cloud-base.png (the
-// unthemed/photographic dusk-pastel default).
+// This is the canonical mood→palette mapping Hayley curated in the
+// picker. Don't substitute scene-cloud gradients here — those are tuned
+// for a totally different rendering pipeline (big photographic field
+// clouds), and they don't have `ink` or `glow` companion values.
 
-export const DEFAULT_GLOW_MASK =
-  'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
-
-export const MOOD_CLOUD_THEMES = {
-  'Dream State': {
-    tintGradient: 'linear-gradient(180deg, #ffe4cf 0%, #ffd1c4 18%, #f0b4c8 40%, #c89cd0 62%, #9579c8 85%, #7a5fb8 100%)',
-    tintShadow:   'drop-shadow(0 8px 16px rgba(120,80,180,0.30))',
-    shadeOpacity: 0.88, shadeFilter: 'contrast(1.45) brightness(1.0)',
-    glowOpacity:  0.40, glowFilter:  'brightness(1.4) contrast(0.9)',
-  },
-  'Golden Hour': {
-    tintGradient: 'linear-gradient(180deg, #5a2540 0%, #8e3a4a 15%, #d96a40 38%, #f4a25a 60%, #ffd58a 82%, #fff2c8 100%)',
-    tintShadow:   'drop-shadow(0 8px 16px rgba(120,40,30,0.30))',
-    shadeOpacity: 0.86, shadeFilter: 'contrast(1.4) brightness(1.0)',
-    glowOpacity:  0.55, glowFilter:  'brightness(1.5) contrast(0.85) sepia(0.25) saturate(1.3)',
-  },
-  'Moonlight': {
-    tintGradient: 'linear-gradient(180deg, #e8eef8 0%, #c8d4e8 20%, #8898c0 42%, #4a5888 64%, #1f2a50 86%, #0a1230 100%)',
-    tintShadow:   'drop-shadow(0 8px 18px rgba(8,12,28,0.55))',
-    shadeOpacity: 0.78, shadeFilter: 'contrast(1.55) brightness(0.92)',
-    glowOpacity:  0.28, glowFilter:  'brightness(1.25) contrast(0.9) hue-rotate(200deg) saturate(0.55)',
-    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)',
-  },
-  'Blush Hour': {
-    tintGradient: 'linear-gradient(180deg, #fff5f0 0%, #ffd6e0 18%, #f8a8c4 40%, #e87aa0 62%, #b8487a 85%, #7a2858 100%)',
-    tintShadow:   'drop-shadow(0 8px 18px rgba(180,72,122,0.30))',
-    shadeOpacity: 0.82, shadeFilter: 'contrast(1.25) brightness(1.05)',
-    glowOpacity:  0.48, glowFilter:  'brightness(1.45) contrast(0.85) saturate(1.15)',
-  },
-  'Coastal Morning': {
-    tintGradient: 'linear-gradient(180deg, #6a7a96 0%, #8294ac 20%, #b8b8b8 42%, #d8c4b0 62%, #e8b894 80%, #f0a878 92%, #f4b888 100%)',
-    tintShadow:   'drop-shadow(0 -3px 14px rgba(255,180,90,0.30)) drop-shadow(0 8px 14px rgba(40,70,110,0.38))',
-    shadeOpacity: 0.62, shadeFilter: 'contrast(1.15) brightness(1.08)',
-    glowOpacity:  0.50, glowFilter:  'brightness(1.4) contrast(0.85) sepia(0.22) saturate(1.15) hue-rotate(-4deg)',
-    glowMask:     'linear-gradient(180deg, transparent 30%, #fff 70%, #fff 100%)',
-  },
-  'Greenhouse': {
-    tintGradient: 'linear-gradient(180deg, #fffaee 0%, #f8f0d8 15%, #ece6c8 35%, #d6e0b8 60%, #b8c8a0 80%, #8eaf7a 100%)',
-    tintShadow:   'drop-shadow(0 -3px 14px rgba(255,210,90,0.32)) drop-shadow(0 8px 14px rgba(120,160,90,0.35))',
-    shadeOpacity: 0.65, shadeFilter: 'contrast(1.30) brightness(1.0)',
-    glowOpacity:  0.55, glowFilter:  'brightness(1.5) contrast(0.88) sepia(0.35) saturate(1.4)',
-    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 72%)',
-  },
-  'Neon Nights': {
-    tintGradient: 'linear-gradient(172deg, #ff7ae0 0%, #e060d8 10%, #b048d4 22%, #7a3ec0 38%, #4e2ca0 54%, #2e1c70 70%, #161250 84%, #0a0a32 94%, #1a2470 100%)',
-    tintShadow:   'drop-shadow(0 -6px 18px rgba(255,80,220,0.65)) drop-shadow(0 8px 22px rgba(80,160,255,0.50))',
-    shadeOpacity: 0.75, shadeFilter: 'contrast(1.4) brightness(0.95)',
-    glowOpacity:  0.60, glowFilter:  'brightness(1.5) contrast(0.9) saturate(1.7) hue-rotate(280deg)',
-    glowMask:     'linear-gradient(180deg, #fff 0%, #fff 30%, transparent 70%)',
-  },
-  'Vivid Sunset': {
-    tintGradient: 'linear-gradient(180deg, #1c2858 0%, #4a3878 20%, #8a3878 36%, #d83078 52%, #ff5a78 66%, #ff7a48 78%, #f59428 87%, #e8902c 94%, #d88838 100%)',
-    tintShadow:   'drop-shadow(0 -2px 9px rgba(255,140,90,0.28)) drop-shadow(0 8px 18px rgba(20,28,80,0.45))',
-    shadeOpacity: 0.50, shadeFilter: 'contrast(1.3) brightness(1.1)',
-    glowOpacity:  0.55, glowFilter:  'brightness(1.4) contrast(0.85) sepia(0.35) saturate(1.4) hue-rotate(-8deg)',
-    glowMask:     'linear-gradient(180deg, transparent 35%, #fff 75%, #fff 100%)',
-  },
-  'Bright Day': {
-    tintGradient: 'linear-gradient(180deg, #ffffff 0%, #f0f8ff 15%, #c8dcf0 38%, #88b0d8 60%, #5080b8 82%, #2858a0 100%)',
-    tintShadow:   'drop-shadow(0 8px 16px rgba(40,88,160,0.32))',
-    shadeOpacity: 0.72, shadeFilter: 'contrast(1.3) brightness(1.05)',
-    glowOpacity:  0.55, glowFilter:  'brightness(1.5) contrast(0.9) saturate(0.85)',
-  },
+export const MOOD_RECIPES = {
+  'Dream State':            { stops: ['#e8e0f5', '#f0d8e8', '#f8d0d8', '#fcd4c8'], ink: '#2a1848', glow: 'rgba(158,118,240,0.40)' },
+  'Golden Hour':            { stops: ['#fdf0d8', '#fce0b8', '#fcd0a0', '#f8b890'], ink: '#5a2e08', glow: 'rgba(220,150,40,0.40)' },
+  'Bright Day':             { stops: ['#edf5e4', '#dceedc', '#cce4cc', '#bcd8b8'], ink: '#1a3a14', glow: 'rgba(70,170,70,0.35)'  },
+  'Blush Hour':             { stops: ['#fde8e4', '#fdd0cc', '#fcb8b0', '#f4a098'], ink: '#5a1816', glow: 'rgba(220,138,120,0.40)' },
+  'Coastal Morning':        { stops: ['#e8eef6', '#d8e4f0', '#c4d8ec', '#b0cce4'], ink: '#0c1e40', glow: 'rgba(60,128,200,0.35)'  },
+  'Moonlight':              { stops: ['#dde4f0', '#c8d2e4', '#b4c2d8', '#a0b0c8'], ink: '#0b0f1e', glow: 'rgba(80,100,200,0.45)'  },
+  'Vivid Sunset':           { stops: ['#fce8d0', '#fcc0a8', '#f898ac', '#d870b0'], ink: '#3a0820', glow: 'rgba(255,140,100,0.55)' },
+  'Neon Nights':            { stops: ['#ece4f8', '#e0c8f8', '#d8a8fc', '#c884fa'], ink: '#28006c', glow: 'rgba(158,38,240,0.55)'  },
+  'Northern Lights':        { stops: ['#e8f8f0', '#c8f0e0', '#a8e8cc', '#7cd8b4'], ink: '#04201a', glow: 'rgba(1,239,172,0.45)'   },
+  'Dark Academia':          { stops: ['#f4e8c8', '#e8d0a0', '#dcb878', '#b89858'], ink: '#1a0a04', glow: 'rgba(180,128,38,0.40)'  },
+  'Candlelit Cozy Evening': { stops: ['#fce4b8', '#fcc888', '#fca858', '#ec8838'], ink: '#1a0802', glow: 'rgba(238,158,38,0.50)'  },
+  'Greenhouse':             { stops: ['#dcecdc', '#bce0c4', '#9cd0a8', '#7cb88c'], ink: '#04140a', glow: 'rgba(58,148,58,0.45)'   },
+  'Studio':                 { stops: ['#fcfcfc', '#f0f0f0', '#e0e0e0', '#cccccc'], ink: '#101010', glow: 'rgba(0,0,0,0.10)'       },
+  'Studio Dark':            { stops: ['#48484a', '#5a5a5c', '#6c6c6e', '#7c7c7e'], ink: '#f0f0f0', glow: 'rgba(200,200,200,0.18)' },
+  "Ember's Sunrise":        { stops: ['#f8d0c8', '#fcb8a4', '#ec8898', '#a47cbc'], ink: '#2a0820', glow: 'rgba(255,210,140,0.40)' },
 }
 
-/** Returns the full theme params for a mood, or null if Wispy should
- * fall back to plain cloud-base.png. */
-export function cloudThemeForMood(mood) {
-  return MOOD_CLOUD_THEMES[mood] || null
+// Used when no mood is provided. Mirrors picker's PALETTES.dusk.
+export const DEFAULT_RECIPE = {
+  stops: ['#e8e0f5', '#f0d8e8', '#f8d0d8', '#fcd4c8'],
+  ink:   '#2a1638',
+  glow:  'rgba(180,140,230,0.40)',
+}
+
+/** Resolve a mood name → palette recipe. Falls back to dusk. */
+export function recipeForMood(mood) {
+  return MOOD_RECIPES[mood] || DEFAULT_RECIPE
 }

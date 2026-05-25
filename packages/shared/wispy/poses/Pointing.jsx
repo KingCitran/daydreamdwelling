@@ -1,12 +1,9 @@
 import WispyArt from '../art.jsx'
 
-// v1 had a literal pointing arm; v1.0.0 art has no arms. We surface the
-// "pointing" intent via a playful face slot — 'mischievous' reads as
-// "look over there" without literal hands. direction is currently
-// ignored; if we ever want a left-vs-right tilt we can flip the face
-// PNG horizontally with transform: scaleX(-1).
+// v1.0.0 art has no arms — 'pointing' is conveyed through a playful
+// face slot ('mischievous'). direction is currently ignored.
 // eslint-disable-next-line no-unused-vars
-export default function Pointing({ direction, mouthOpen = false, eyeClosed = false, ink = 'dark', mood, width }) {
+export default function Pointing({ direction, mouthOpen = false, eyeClosed = false, mood, width }) {
   const slot = mouthOpen ? 'talking-1' : 'mischievous'
-  return <WispyArt slot={slot} ink={ink} mood={mood} eyeClosed={eyeClosed} width={width} />
+  return <WispyArt slot={slot} mood={mood} eyeClosed={eyeClosed} width={width} />
 }

@@ -3,9 +3,7 @@ import { WispyContext } from './WispyProvider.jsx'
 import Idle from './poses/Idle.jsx'
 import Talking from './poses/Talking.jsx'
 import Pointing from './poses/Pointing.jsx'
-import { useTheme } from '../ThemeProvider.jsx'
 import { useMood } from '../useMood.js'
-import { inkForBg } from './inkMode.js'
 
 const FLAP_MS = 180
 const BLINK_INTERVAL_MIN = 3000
@@ -21,9 +19,7 @@ const POSITIONS = {
 
 export default function WispyMascot() {
   const ctx = useContext(WispyContext)
-  const theme = useTheme()
   const { mood } = useMood()
-  const ink = inkForBg(theme?.bg)
   const [mouthOpen, setMouthOpen] = useState(false)
   const [eyeClosed, setEyeClosed] = useState(false)
 
@@ -97,11 +93,11 @@ export default function WispyMascot() {
 
   let poseEl
   if (isPointing) {
-    poseEl = <Pointing ink={ink} mood={mood} direction={pose === 'pointing-left' ? 'left' : 'right'} mouthOpen={mouthOpen && isTalking} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
+    poseEl = <Pointing mood={mood} direction={pose === 'pointing-left' ? 'left' : 'right'} mouthOpen={mouthOpen && isTalking} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
   } else if (isTalking) {
-    poseEl = <Talking ink={ink} mood={mood} mouthOpen={mouthOpen} eyeClosed={eyeClosed} width={wispyWidth} />
+    poseEl = <Talking mood={mood} mouthOpen={mouthOpen} eyeClosed={eyeClosed} width={wispyWidth} />
   } else {
-    poseEl = <Idle ink={ink} mood={mood} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
+    poseEl = <Idle mood={mood} eyeClosed={eyeClosed || isSleeping} width={wispyWidth} />
   }
 
   return (

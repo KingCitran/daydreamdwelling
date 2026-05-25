@@ -1,5 +1,7 @@
 import WispyArt from '../art.jsx'
 
-export default function Idle({ eyeClosed = false, ink = 'dark', mood, width }) {
-  return <WispyArt slot="happy" ink={ink} mood={mood} eyeClosed={eyeClosed} width={width} />
+// Idle = the default 'happy' face (two open eyes + smile). Blink loop
+// upstream toggles eyeClosed which maps to the 'blink' slot inside WispyArt.
+export default function Idle({ eyeClosed = false, mood, width }) {
+  return <WispyArt slot="happy" mood={mood} eyeClosed={eyeClosed} width={width} />
 }
