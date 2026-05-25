@@ -18,7 +18,7 @@
 // design dropped them in favor of richer face variants). The old
 // signature is accepted but ignored so nothing crashes during migration.
 
-import { CLOUD_BASE_URL, CLOUD_SILHOUETTE_URL, getFaceUrl, getLegsUrl } from './faceMeta.js'
+import { CLOUD_BASE_URL, CLOUD_SILHOUETTE_URL, getFaceUrl, getFaceBlush, getLegsUrl } from './faceMeta.js'
 import { cloudStyleForMood } from './cloudPalette.js'
 
 export default function WispyArt({
@@ -34,17 +34,20 @@ export default function WispyArt({
   // Honor the v1 eyeClosed convention so the blink loop in WispyMascot
   // still works without knowing about slots.
   const effectiveSlot = eyeClosed ? 'blink' : slot
-  const faceUrl = getFaceUrl(effectiveSlot, ink)
-  const legsUrl = getLegsUrl(ink)
+  const faceUrl  = getFaceUrl(effectiveSlot, ink)
+  const showBlush = getFaceBlush(effectiveSlot)
+  const legsUrl  = getLegsUrl(ink)
   const h = height ?? width
 
-  // Mood-tinted cloud: silhouette PNG as a CSS mask + per-mood linear
-  // gradient + drop shadow. Falls back to the bundle's cloud-base.png
-  // for moods that aren't themed yet.
+  // Mood tint: when defined, lays a per-mood gradient over the base
+  // cloud PNG with mix-blend-mode so the bundle's baked sheen + drop
+  // shadow + tilt all survive and the cloud takes on the mood color.
+  // When undefined (moods we haven't themed yet), the base PNG renders
+  // alone — pre-shaded dusk pastel, still fully opaque.
   const cloudStyle = cloudStyleForMood(mood)
 
   return (
-    <div style={{ position: 'relative', width, height: h, pointerEvents: 'none' }}>
+    <div style={{ position: 'relative', width, height: h, pointerEvents: 'none', filter: cloudStyle?.shadow }}>
       {/* legs — behind the cloud (DOM order matters) */}
       <img
         src={legsUrl}
@@ -61,9 +64,17 @@ export default function WispyArt({
             'linear-gradient(to bottom, transparent 0%, transparent 18%, rgba(0,0,0,0.6) 35%, black 55%)',
         }}
       />
-      {/* cloud body — themed (silhouette + gradient) when mood matches,
-          else the bundle's pre-shaded dusk-pastel cloud-base.png */}
-      {cloudStyle ? (
+      {/* cloud body — the bundle's pre-shaded PNG always renders for
+          opacity + sheen + shadow + -9deg tilt. */}
+      <img
+        src={CLOUD_BASE_URL}
+        alt=""
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      />
+      {/* Mood tint — silhouette-masked gradient overlaid on the base
+          via mix-blend-mode: multiply so the cloud body picks up the
+          mood color without losing the underlying highlights. */}
+      {cloudStyle && (
         <div
           style={{
             position: 'absolute',
@@ -79,17 +90,23 @@ export default function WispyArt({
             WebkitMaskPosition: 'center',
             maskPosition: 'center',
             background: cloudStyle.gradient,
-            filter: cloudStyle.shadow,
+            mixBlendMode: 'multiply',
+            opacity: 0.78,
             transform: 'rotate(-9deg)',  // match the tilt baked into cloud-base.png
             transformOrigin: 'center',
+            pointerEvents: 'none',
           }}
         />
-      ) : (
-        <img
-          src={CLOUD_BASE_URL}
-          alt=""
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-        />
+      )}
+      {/* Blush — soft pink radial dots flanking the face. Positions per
+          wispy.json (centers at x=-2%/102%, y=60%). Hayley's per-face
+          triage decides whether to show them; the neutral face has
+          blush:false intentionally. */}
+      {showBlush && (
+        <>
+          <div style={blushDotStyle('left')} />
+          <div style={blushDotStyle('right')} />
+        </>
       )}
       {/* face on top of cloud, anchored center, 16% wide */}
       {faceUrl && (
@@ -108,6 +125,24 @@ export default function WispyArt({
       )}
     </div>
   )
+}
+
+function blushDotStyle(side) {
+  // Center the dot at x = -2% (left) or 102% (right), y = 60%. wispy.json
+  // gives those as anchors; we offset by -half-the-dot-size so the
+  // center lands there. Dot is ~10% of cloud width with a wide soft falloff.
+  const isLeft = side === 'left'
+  return {
+    position: 'absolute',
+    width: '10%',
+    height: '10%',
+    [isLeft ? 'left' : 'right']: '-7%',  // -2% center minus 5% half-width
+    top: '55%',
+    background: 'radial-gradient(circle, rgba(244,140,170,0.85) 0%, rgba(244,140,170,0.55) 35%, transparent 70%)',
+    borderRadius: '50%',
+    filter: 'blur(1.5px)',
+    pointerEvents: 'none',
+  }
 }
 
 // Shared keyframes consumed by WispyProvider. Kept stable across the

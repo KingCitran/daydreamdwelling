@@ -127,15 +127,26 @@ export const SLOT_FALLBACK = {
   sick:        'f040',
 }
 
+/** Resolve a slot to the face_id we'll render. Internal helper. */
+function resolveFaceId(slot) {
+  return SLOT_PRIMARY[slot] || SLOT_FALLBACK[slot] || SLOT_PRIMARY.neutral
+}
+
 /** Resolve slot name + ink mode → face PNG URL. Falls back through the
  * fallback table then to the neutral face. Returns null only if there's
  * no neutral face URL for the given ink mode (shouldn't happen). */
 export function getFaceUrl(slot, ink) {
   const inkSet = ink === 'light' ? FACE_URLS.light : FACE_URLS.dark
-  const direct   = SLOT_PRIMARY[slot]
-  const fallback = SLOT_FALLBACK[slot]
-  const faceId   = direct || fallback || SLOT_PRIMARY.neutral
+  const faceId = resolveFaceId(slot)
   return inkSet[faceId] || inkSet[SLOT_PRIMARY.neutral] || null
+}
+
+/** Whether the resolved face for this slot wants blush dots rendered.
+ * Hayley's triage marks most faces as blush:true; the neutral expression
+ * (f025) and a few skipped ones are blush:false. */
+export function getFaceBlush(slot) {
+  const faceId = resolveFaceId(slot)
+  return FACE_META[faceId]?.blush ?? false
 }
 
 /** Resolve legs URL for an ink mode. */

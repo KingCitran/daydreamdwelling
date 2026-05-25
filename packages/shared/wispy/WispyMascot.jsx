@@ -114,19 +114,6 @@ export default function WispyMascot() {
         animation: 'wispyIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
       }}
     >
-      {/* Attention halo — visible pulsing glow that lifts Wispy off
-          backgrounds her cloud color would otherwise blend into. Wide
-          and noticeably colored; was too subtle before. Pauses on sleep. */}
-      <div style={{
-        position: 'absolute',
-        inset: '-18% -18% -12% -18%',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle at center, rgba(180,140,230,0.55) 0%, rgba(180,140,230,0.28) 35%, rgba(180,140,230,0.10) 60%, transparent 80%)',
-        animation: isSleeping ? 'none' : 'wispyHalo 4s ease-in-out infinite',
-        pointerEvents: 'none',
-        zIndex: -1,
-        filter: 'blur(8px)',
-      }} />
       <div style={{
         animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
         transform: `scale(${scale})`,
