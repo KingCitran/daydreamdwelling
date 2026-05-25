@@ -71,9 +71,12 @@ export default function WispyArt({
         alt=""
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       />
-      {/* Mood tint — silhouette-masked gradient overlaid on the base
-          via mix-blend-mode: multiply so the cloud body picks up the
-          mood color without losing the underlying highlights. */}
+      {/* Mood tint — silhouette-masked gradient overlaid on the base via
+          mix-blend-mode: color, which replaces the base's hue and
+          saturation while preserving its luminance. The bundle's pink
+          dusk-pastel cloud keeps its highlights, shadows, and shape but
+          actually changes color to match the mood. (multiply at 78% only
+          darkened the pink — barely shifted hue.) */}
       {cloudStyle && (
         <div
           style={{
@@ -90,8 +93,8 @@ export default function WispyArt({
             WebkitMaskPosition: 'center',
             maskPosition: 'center',
             background: cloudStyle.gradient,
-            mixBlendMode: 'multiply',
-            opacity: 0.78,
+            mixBlendMode: 'color',
+            opacity: 0.95,
             transform: 'rotate(-9deg)',  // match the tilt baked into cloud-base.png
             transformOrigin: 'center',
             pointerEvents: 'none',
