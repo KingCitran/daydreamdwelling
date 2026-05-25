@@ -353,7 +353,26 @@ export default function OrdersPage({ onNavigate }) {
   }
 
   async function markFulfillment(itemId, status) {
-    await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
+    // Mark Delivered fires the buyer's "It made it." email as a side
+    // effect, so route through the mark-delivered edge function instead
+    // of a direct UPDATE. Other fulfillment_status transitions stay on
+    // the direct-update path — they don't trigger any email.
+    if (status === 'delivered') {
+      const { data, error } = await supabase.functions.invoke('mark-delivered', {
+        body: { orderItemId: itemId },
+      })
+      if (error || data?.error) {
+        const real = await readEdgeError(error, data)
+        showToast('error', `Couldn't mark delivered: ${real}`)
+        return
+      }
+    } else {
+      const { error } = await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
+      if (error) {
+        showToast('error', `Couldn't update status: ${error.message}`)
+        return
+      }
+    }
     setRows(prev => prev.map(r => r.id === itemId ? { ...r, fulfillment_status: status } : r))
   }
 

@@ -173,6 +173,23 @@ export function shippingNotificationEmail(args: {
   return { subject, html: wispyLayout({ headline: "Your package is on the way.", body, preheader: `Tracking ${args.trackingNumber}` }) }
 }
 
+/** Delivery confirmation — fires from mark-delivered after the seller flips an
+ * order item's fulfillment_status to 'delivered'. */
+export function deliveryConfirmationEmail(args: {
+  itemLabel:  string
+  sellerName: string | null
+}): { subject: string; html: string } {
+  const subject = "It made it."
+  const sellerLine = args.sellerName
+    ? `<p style="margin:14px 0 0;font-size:13px;color:#9080b8;line-height:1.7;">If anything's not quite right with it, the best thing to do is reach out to ${escapeHtml(args.sellerName)} directly through your order page — they want to make it right.</p>`
+    : `<p style="margin:14px 0 0;font-size:13px;color:#9080b8;line-height:1.7;">If anything's not quite right with it, reach out through your order page — your seller wants to make it right.</p>`
+  const body = `
+    <p style="margin:0 0 14px;">Your ${escapeHtml(args.itemLabel)} arrived. I hope it's everything you imagined when you placed it in the room.</p>
+    ${sellerLine}
+    <p style="margin:14px 0 0;font-size:13px;color:#9080b8;line-height:1.7;">Pop back into your room any time. There's more space to fill.</p>`
+  return { subject, html: wispyLayout({ headline: "Your order arrived.", body, preheader: `${args.itemLabel} delivered.` }) }
+}
+
 /** Refund issued — fires from refund-order after Stripe confirms refund. */
 export function refundIssuedEmail(args: {
   amountCents: number
