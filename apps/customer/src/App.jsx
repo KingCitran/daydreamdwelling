@@ -116,10 +116,12 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider appKey="customer">
         <MusicPlayerProvider appKey="customer">
-          <WispyProvider>
-            <Gate />
-            <GlobalMusicWidgets />
-          </WispyProvider>
+          {/* WispyProvider moved INSIDE Gate so the landing page can opt
+              out of the corner mascot. The landing page renders its own
+              Wispy illustration in the "Meet your roommate" section;
+              showing the corner mascot on top would double her up. */}
+          <Gate />
+          <GlobalMusicWidgets />
         </MusicPlayerProvider>
       </ThemeProvider>
     </AuthProvider>
@@ -174,15 +176,19 @@ function Gate() {
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
 
   let page
+  let isLanding = false
   if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else if (!quizDone) page = <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
-  else page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
+  else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
-  return <>{page}<FeedbackButton /></>
+  // Corner Wispy renders everywhere EXCEPT the landing page (which
+  // already shows Wispy as a feature illustration inside the page).
+  if (isLanding) return <>{page}<FeedbackButton /></>
+  return <WispyProvider>{page}<FeedbackButton /></WispyProvider>
 }
 
 function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
