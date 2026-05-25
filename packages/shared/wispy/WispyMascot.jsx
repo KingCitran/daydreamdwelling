@@ -10,16 +10,6 @@ const BLINK_INTERVAL_MIN = 3000
 const BLINK_INTERVAL_MAX = 7000
 const BLINK_DURATION = 110
 
-// 'top-left' is offset to the right of the DaydreamDwelling logo text so
-// Wispy lives next to the brand instead of overlapping it. Other corners
-// keep tight 24px insets — they're not in conflict with anything.
-const POSITIONS = {
-  'bottom-right': { right: 24, bottom: 24 },
-  'bottom-left':  { left: 24,  bottom: 24 },
-  'top-right':    { right: 24, top: 24 },
-  'top-left':     { left: 220, top: 8 },
-}
-
 export default function WispyMascot() {
   const ctx = useContext(WispyContext)
   const { mood } = useMood()
@@ -55,18 +45,19 @@ export default function WispyMascot() {
 
   if (!ctx) return null
 
-  const { pose, dismissed, reopen, position, isMobile, bubble } = ctx
-  const posStyle = POSITIONS[position] || POSITIONS['bottom-right']
+  const { pose, dismissed, reopen, isMobile } = ctx
 
+  // Dismissed-state mini-cloud — affordance to bring Wispy back. Stays
+  // fixed in the corner instead of drifting (the parent drift container
+  // is also conditionally rendered, so this fixed pos doesn't conflict).
   if (dismissed) {
-    // Collapsed cloud icon. Click to bring Wispy back.
     return (
       <button
         onClick={reopen}
         aria-label="Bring Wispy back"
         style={{
           position: 'fixed',
-          ...posStyle,
+          right: 24, bottom: 24,
           width: 56, height: 44,
           background: 'rgba(255,255,255,0.9)',
           border: '1.5px solid #ddd4f5',
@@ -83,16 +74,12 @@ export default function WispyMascot() {
     )
   }
 
-  // Resolve which pose component to render. Sleeping/surprised/thinking
-  // fall back to Idle visuals until those pose files exist (Phase 4 polish).
-  const scale = isMobile ? 0.7 : 1
+  // Active state — just render the art. The parent drift container in
+  // WispyProvider handles positioning + horizontal animation; we just
+  // bob inside it so she looks like she's floating on a breeze.
   const isSleeping = pose === 'sleeping'
   const isTalking = pose === 'talking'
   const isPointing = pose === 'pointing-left' || pose === 'pointing-right'
-  // Compact size so she sits beside the logo without dominating the
-  // viewport. The picker compositor gives her real presence at smaller
-  // sizes than v1's flat SVG did — 140px reads as a proper companion
-  // here, not a tiny mark.
   const wispyWidth = isMobile ? 100 : 140
 
   let poseEl
@@ -105,22 +92,11 @@ export default function WispyMascot() {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        ...posStyle,
-        zIndex: 1000,
-        pointerEvents: bubble ? 'auto' : 'auto',
-        animation: 'wispyIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
-      }}
-    >
-      <div style={{
-        animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
-        transform: `scale(${scale})`,
-        transformOrigin: 'bottom center',
-      }}>
-        {poseEl}
-      </div>
+    <div style={{
+      animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
+      pointerEvents: 'auto',
+    }}>
+      {poseEl}
     </div>
   )
 }

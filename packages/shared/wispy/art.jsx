@@ -94,9 +94,10 @@ export default function WispyArt({
 
   return (
     <div style={{ position: 'relative', width: W, height: H, pointerEvents: 'none' }}>
-      {/* Legs — rendered BEFORE the body so the top of the legs PNG sits
-          behind the cloud silhouette and looks dissolved into it. */}
-      <Legs W={W} bodyBoxH={bodyBoxH} ink={inkColor} />
+      {/* Legs are intentionally omitted in v10 — Wispy drifts across the
+          sky now, and legs read as "she's standing" which doesn't match
+          a floating cloud. Restore by re-rendering <Legs/> here if she
+          ever goes back to being a grounded corner mascot. */}
 
       {/* Cloud body sub-box — rotated as a unit so the face stays glued
           to the cloud regardless of tilt. */}
@@ -235,8 +236,12 @@ export const WISPY_KEYFRAMES = `
   50%      { transform: translateY(-7px); }
 }
 @keyframes wispyBubbleIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.95); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
+}
+@keyframes wispyDrift {
+  from { transform: translateX(-180px); }
+  to   { transform: translateX(calc(100vw + 0px)); }
 }
 @keyframes wispyHighlight {
   0%, 100% { box-shadow: 0 0 0 0 rgba(180,140,230,0.6), 0 0 0 0 rgba(180,140,230,0.4); }

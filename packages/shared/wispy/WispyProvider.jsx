@@ -158,8 +158,32 @@ export default function WispyProvider({ children, enabled = true, defaultPositio
       {enabled && portalTarget && createPortal(
         <>
           <style>{WISPY_KEYFRAMES}</style>
-          <WispyMascot />
-          <WispyBubble />
+          {/* Drift container: fixed at sky height, slowly translates from
+              off-screen-left to off-screen-right. CSS infinite animation
+              loops the position automatically — when she leaves the right
+              edge she reappears on the left. Both the mascot and bubble
+              live INSIDE this container so the bubble follows her. */}
+          {!dismissed && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 80,
+                left: 0,
+                width: 'auto',
+                zIndex: 1000,
+                animation: 'wispyDrift 90s linear infinite',
+                pointerEvents: 'none',
+              }}
+            >
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <WispyBubble />
+                <WispyMascot />
+              </div>
+            </div>
+          )}
+          {/* Dismissed-state mini-cloud stays fixed in the corner — it's
+              the affordance to bring Wispy back, so it shouldn't drift. */}
+          {dismissed && <WispyMascot />}
         </>,
         portalTarget
       )}

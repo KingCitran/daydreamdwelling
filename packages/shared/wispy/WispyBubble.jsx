@@ -2,21 +2,11 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import { WispyContext } from './WispyProvider.jsx'
 
 const TYPE_CHAR_MS = 22
-const FALLBACK_DEFAULT_MS = 20_000
-
-const BUBBLE_POSITIONS = {
-  'bottom-right': { right: 24, bottom: 210 },
-  'bottom-left':  { left: 24,  bottom: 210 },
-  'top-right':    { right: 24, top: 210 },
-  'top-left':     { left: 24,  top: 210 },
-}
 
 export default function WispyBubble() {
   const ctx = useContext(WispyContext)
   const [typed, setTyped] = useState('')
-  const [showAdvance, setShowAdvance] = useState(false)
   const targetEl = useRef(null)
-  const fallbackTimerRef = useRef(null)
 
   const bubble = ctx?.bubble
   const text = bubble?.text || ''
@@ -34,18 +24,10 @@ export default function WispyBubble() {
     return () => clearInterval(id)
   }, [bubble?.id])
 
-  // Manual-advance button reveal (after fallback timeout, or immediately for manual)
-  useEffect(() => {
-    setShowAdvance(false)
-    if (!bubble) return
-    if (bubble.advance === 'manual_button' || bubble.advance === undefined) {
-      setShowAdvance(true)
-      return
-    }
-    const ms = bubble.fallback_after ?? FALLBACK_DEFAULT_MS
-    fallbackTimerRef.current = setTimeout(() => setShowAdvance(true), ms)
-    return () => clearTimeout(fallbackTimerRef.current)
-  }, [bubble?.id])
+  // Manual-advance button is always visible once a bubble is shown. The
+  // old fallback timer that auto-revealed the buttons after 20s is gone
+  // — the user wants bubbles to be persistently visible until they
+  // dismiss them explicitly.
 
   // Highlight target element on the page
   useEffect(() => {
@@ -83,19 +65,22 @@ export default function WispyBubble() {
 
   if (!ctx || !bubble || ctx.dismissed) return null
 
-  const position = bubble.position || ctx.position || 'bottom-right'
-  const posStyle = BUBBLE_POSITIONS[position] || BUBBLE_POSITIONS['bottom-right']
-  const arrowSide = position.includes('right') ? 'right' : 'left'
-
+  // Bubble lives ABOVE Wispy inside the same drift container in
+  // WispyProvider, so it follows her across the screen. Arrow always
+  // points down toward her since she's directly below.
   return (
     <div
       style={{
-        position: 'fixed',
-        ...posStyle,
+        position: 'absolute',
+        bottom: 'calc(100% + 18px)',   // sits above Wispy with a small gap
+        left: '50%',
+        transform: 'translateX(-50%)',
         zIndex: 1001,
         maxWidth: 280,
+        minWidth: 160,
         animation: 'wispyBubbleIn 0.3s ease-out forwards',
         fontFamily: 'system-ui, sans-serif',
+        pointerEvents: 'auto',
       }}
     >
       <div style={{
@@ -125,7 +110,7 @@ export default function WispyBubble() {
           }}
         >✕</button>
 
-        {showAdvance && (
+        {bubble.advance !== 'click_target' && (
           <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button
               onClick={() => ctx.emit('bubble_skipped', { bubbleId: bubble.id })}
@@ -147,11 +132,13 @@ export default function WispyBubble() {
           </div>
         )}
 
-        {/* Arrow pointing down toward Wispy */}
+        {/* Arrow pointing down toward Wispy — centered since the bubble
+            sits directly above her in the drift container. */}
         <div style={{
           position: 'absolute',
           bottom: -10,
-          [arrowSide]: 32,
+          left: '50%',
+          transform: 'translateX(-50%)',
           width: 0, height: 0,
           borderLeft: '10px solid transparent',
           borderRight: '10px solid transparent',
@@ -160,7 +147,8 @@ export default function WispyBubble() {
         <div style={{
           position: 'absolute',
           bottom: -8,
-          [arrowSide]: 33,
+          left: '50%',
+          transform: 'translateX(-50%)',
           width: 0, height: 0,
           borderLeft: '9px solid transparent',
           borderRight: '9px solid transparent',
