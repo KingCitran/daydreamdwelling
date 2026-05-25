@@ -29,14 +29,51 @@ Deno.serve(async (req) => {
   try {
     // AUTH GATE — without this, anyone on the internet can spam Shippo rate
     // quotes (each call costs us in live mode) and bulk-probe seller ship-from
-    // zips by diffing rates. We only require a Bearer token (either a signed-in
-    // user JWT or the project anon key auto-sent by supabase.functions.invoke);
-    // guest checkout still works because supabase-js always sends an anon JWT.
-    // Real rate-limiting (per-IP, per-user) is a TODO on the plan; this is the
-    // floor that blocks naive curl/scripted abuse.
+    // zips by diffing rates. We require a Bearer token (signed-in user JWT
+    // OR the anon key auto-sent by supabase.functions.invoke); guest
+    // checkout still works because supabase-js always sends an anon JWT.
     const authHeader = req.headers.get('Authorization') ?? ''
     if (!authHeader.toLowerCase().startsWith('bearer ') || authHeader.length < 20) {
       return json({ error: 'Missing or malformed auth' }, 401)
+    }
+
+    // RATE LIMIT — cap quotes per identifier in a rolling 60-minute window.
+    // Identifier: prefer user_id from the JWT (most accurate); fall back to
+    // a salted SHA-256 hash of the client IP for anonymous traffic. Raw IPs
+    // are not stored.
+    const RATE_LIMIT_PER_HOUR = 30
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: callerUser } = await callerClient.auth.getUser()
+    const callerUserId: string | null = callerUser?.user?.id ?? null
+    const rawIp = req.headers.get('x-real-ip')
+      ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? null
+    const ipHash = !callerUserId && rawIp ? await hashIp(rawIp) : null
+    if (!callerUserId && !ipHash) {
+      // No identifier at all — can't rate-limit safely. Refuse.
+      return json({ error: 'Unable to identify caller for rate limiting' }, 400)
+    }
+
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    let countQuery = adminClient
+      .from('rate_quote_log')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', cutoff)
+    countQuery = callerUserId
+      ? countQuery.eq('user_id', callerUserId)
+      : countQuery.eq('ip_hash', ipHash!)
+    const { count: recentCount } = await countQuery
+    if ((recentCount ?? 0) >= RATE_LIMIT_PER_HOUR) {
+      return json({ error: 'Too many rate quotes in the last hour — please try again later.' }, 429)
     }
 
     const { items, address } = await req.json() as { items: CartItem[]; address: Record<string, string> }
@@ -50,11 +87,6 @@ Deno.serve(async (req) => {
     // when multi-seller carts become real.
     const sellerId = items.find(i => i.sellerId)?.sellerId
     if (!sellerId) return json({ error: 'No seller on cart items — cannot quote shipping' }, 400)
-
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    )
 
     const { data: seller, error: sellerErr } = await adminClient
       .from('profiles')
@@ -157,6 +189,15 @@ Deno.serve(async (req) => {
       numericAmount(a) <= numericAmount(b) ? a : b
     ) as { object_id: string; amount: string; currency: string; provider: string; servicelevel?: { name?: string; token?: string }; estimated_days?: number }
 
+    // Log this successful quote against the rate limiter. Fire-and-forget;
+    // a logging failure doesn't fail the user's quote.
+    adminClient.from('rate_quote_log').insert({
+      user_id: callerUserId,
+      ip_hash: ipHash,
+    }).then(({ error: logErr }) => {
+      if (logErr) console.warn('[get-shipping-rates] rate-limit log insert failed:', logErr.message)
+    })
+
     return json({
       rateId:        cheapest.object_id,
       amount:        cheapest.amount,
@@ -170,6 +211,17 @@ Deno.serve(async (req) => {
     return json({ error: (err as Error).message }, 500)
   }
 })
+
+// Salted SHA-256 of the client IP — we never store raw IPs. Salt is
+// configurable via IP_HASH_SALT env var; default is a non-empty constant
+// so a rotation is opt-in. Hash strength doesn't matter much for rate
+// limiting; we just need stable per-IP grouping without retaining PII.
+async function hashIp(ip: string): Promise<string> {
+  const salt = Deno.env.get('IP_HASH_SALT') ?? 'dd_rate_limit_v1'
+  const data = new TextEncoder().encode(`${salt}:${ip}`)
+  const buf  = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 function normalizeCountry(c: string | null | undefined): string {
   if (!c) return ''
