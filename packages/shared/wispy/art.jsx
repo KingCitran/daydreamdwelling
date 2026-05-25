@@ -42,6 +42,17 @@ import { recipeForMood } from './cloudPalette.js'
 // a percentage of the cloud body width; rotate is the baked-in tilt.
 const BODY = { anchorX: 50, anchorY: 50, scale: 16, rotate: -9 }
 
+// Slots that should blink visibly when the random blink loop fires.
+// Faces outside this set already have closed/half-closed eyes baked in
+// (sleepy, sad, etc.); swapping them to the happy-blink frame mid-state
+// produces a jarring face-change instead of a true blink.
+const BLINKING_SLOTS = new Set([
+  'happy', 'neutral', 'talking-1', 'talking-2', 'wink', 'laughing',
+  'mischievous', 'smug', 'proud', 'giggle', 'love', 'starstruck',
+  'big-surprise', 'glasses', 'surprised', 'angry', 'determined',
+  'how-dare-you', 'thinking', 'curious', 'shy',
+])
+
 const BODY_BOX_FRAC = 0.72         // cloud body occupies the top 72% of the frame
 const FRAME_ASPECT  = 0.95         // frame height as a multiple of width
 
@@ -63,13 +74,17 @@ export default function WispyArt({
   ink, mouthOpen, leftArmStyle, rightArmStyle, showSparkles, height,
   eyeClosed,
 }) {
-  const effectiveSlot = eyeClosed ? 'blink' : slot
+  // Only blink for slots whose underlying face actually has open eyes —
+  // otherwise swapping to the happy-blink frame mid-state looks like a
+  // jarring face change instead of a blink.
+  const shouldBlink = eyeClosed && BLINKING_SLOTS.has(slot)
+  const effectiveSlot = shouldBlink ? 'blink' : slot
   const faceUrl   = getFaceMaskUrl(effectiveSlot)
   const blushable = isFaceBlushable(effectiveSlot)
 
   const recipe = recipeForMood(mood)
   const inkColor = inkOverride || recipe.ink
-  const gradient = `linear-gradient(170deg, ${recipe.stops[0]} 0%, ${recipe.stops[1]} 38%, ${recipe.stops[2]} 70%, ${recipe.stops[3]} 100%)`
+  const gradient = recipe.gradient
 
   const W = width
   const H = Math.round(W * FRAME_ASPECT)
