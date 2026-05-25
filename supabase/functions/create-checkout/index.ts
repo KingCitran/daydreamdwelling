@@ -239,36 +239,41 @@ Deno.serve(async (req) => {
       success_url: successUrl ?? `${siteUrl}?checkout=success`,
       cancel_url:  cancelUrl  ?? `${siteUrl}?checkout=cancelled`,
       ...(payment_intent_data ? { payment_intent_data } : {}),
-      // Pass metadata so the webhook can record the order. We pass the
-      // CANONICAL (server-validated) items here — productId / sellerId /
-      // sizeId / swatchId / unit_price_cents all come from the DB, not the
-      // buyer. The webhook trusts metadata only because the session can
-      // only be mutated via Stripe with our secret key after creation.
+      // Metadata is intentionally thin now — Stripe caps each field at
+      // 500 chars and a multi-item canonical cart easily overflows. The
+      // full validated cart + buyer context lives in the pending_checkouts
+      // table (inserted after this call) and is looked up by the webhook
+      // via stripe_session_id. We still stamp a couple of short fields
+      // here as a redundant signal for log triage.
       metadata: {
-        items: JSON.stringify(validated.map(v => ({
-          productId:      v.productId,
-          sellerId:       v.sellerId,
-          sizeId:         v.sizeId,
-          swatchId:       v.swatchId,
-          productName:    v.productName,
-          sizeLabel:      v.sizeLabel,
-          swatchName:     v.swatchName,
-          unitPriceCents: v.unitPriceCents,
-          qty:            v.qty,
-          typeKey:        v.typeKey,
-        }))),
-        // Stripe metadata values must be strings; null skipped.
         ...(buyerMood ? { buyer_mood: String(buyerMood).slice(0, 60) } : {}),
         ...(buyerRoom ? { buyer_room_name: String(buyerRoom).slice(0, 100) } : {}),
-        // Buyer-paid shipping summary — webhook stamps these on the order
-        ...(shipping?.rateId   ? { shippo_rate_id:     String(shipping.rateId).slice(0, 100) } : {}),
-        ...(shipping?.amount   ? { shipping_cost_cents: String(Math.round(parseFloat(shipping.amount) * 100)) } : {}),
-        ...(shipping?.carrier  ? { shipping_carrier:    String(shipping.carrier).slice(0, 30) } : {}),
-        ...(shipping?.service  ? { shipping_service:    String(shipping.service).slice(0, 60) } : {}),
-        ...(address           ? { buyer_address:        JSON.stringify(address).slice(0, 500) } : {}),
-        ...(buyerUserId       ? { buyer_user_id:        buyerUserId } : {}),
+        ...(buyerUserId ? { buyer_user_id: buyerUserId } : {}),
       },
     })
+
+    // Persist the full canonical cart + buyer context for the webhook to
+    // read on checkout.session.completed. Keeps us under Stripe's 500-char
+    // metadata limit no matter how many items the buyer added.
+    const { error: pendingErr } = await adminClient.from('pending_checkouts').insert({
+      stripe_session_id:   session.id,
+      items:               validated,
+      buyer_user_id:       buyerUserId,
+      buyer_email:         address?.email ?? null,
+      buyer_mood:          buyerMood ?? null,
+      buyer_room_name:     buyerRoom  ?? null,
+      buyer_address:       address    ?? null,
+      shippo_rate_id:      shipping?.rateId ?? null,
+      shipping_cost_cents: shipping?.amount ? Math.round(parseFloat(shipping.amount) * 100) : null,
+      shipping_carrier:    shipping?.carrier ?? null,
+      shipping_service:    shipping?.service ?? null,
+    })
+    if (pendingErr) {
+      console.error('[create-checkout] pending_checkouts insert failed:', pendingErr, 'session:', session.id)
+      // Don't fail the checkout — buyer can still pay. Webhook will fall
+      // back to (now-empty) metadata.items; admin can reconcile via Stripe
+      // dashboard if it ever matters.
+    }
 
     return new Response(JSON.stringify({ url: session.url, sessionId: session.id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

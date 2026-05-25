@@ -122,28 +122,39 @@ Deno.serve(async (req) => {
     }
 
     // Default: product checkout — create order row
-    const buyerMood     = session.metadata?.buyer_mood ?? null
-    const buyerRoomName = session.metadata?.buyer_room_name ?? null
+    // Look up the full canonical cart + buyer context from pending_checkouts
+    // (inserted by create-checkout). This is the new path — Stripe metadata
+    // can't hold a multi-item canonical cart without overflowing 500 chars.
+    // Old in-flight sessions that pre-date the table fall through to the
+    // legacy metadata path below.
+    interface CanonicalItem {
+      productId: string | null; sellerId: string | null;
+      sizeId: string | null; swatchId: string | null;
+      productName: string; sizeLabel: string; swatchName: string;
+      unitPriceCents: number; qty: number; typeKey: string;
+    }
+    const { data: pending } = await supabase
+      .from('pending_checkouts')
+      .select('items, buyer_user_id, buyer_email, buyer_mood, buyer_room_name, buyer_address, shippo_rate_id, shipping_cost_cents, shipping_carrier, shipping_service')
+      .eq('stripe_session_id', session.id)
+      .maybeSingle()
 
-    // Buyer-paid shipping bundle from create-checkout metadata
-    const shippoRateId        = session.metadata?.shippo_rate_id ?? null
-    const shippingCostCents   = session.metadata?.shipping_cost_cents
-      ? parseInt(session.metadata.shipping_cost_cents, 10)
-      : null
-    const shippingCarrier     = session.metadata?.shipping_carrier ?? null
-    const shippingService     = session.metadata?.shipping_service ?? null
+    const buyerMood     = pending?.buyer_mood     ?? session.metadata?.buyer_mood ?? null
+    const buyerRoomName = pending?.buyer_room_name ?? session.metadata?.buyer_room_name ?? null
 
-    // Buyer's shipping address: the buyer explicitly chose this in our
-    // CheckoutModal (it's the address Shippo quoted against), so we trust
-    // it as the primary ship-to. We did NOT enable Stripe's
-    // billing_address_collection, so customer_details.address is usually a
-    // sparse object with only `country` populated — using it as "primary"
-    // (the previous version of this code) caused orders to land with
-    // line1=null/city=null and the seller couldn't generate labels.
-    // Stripe's address is now only a last-resort fallback, and only if it
-    // has a real street line.
-    let shippingAddress: Record<string, unknown> | null = null
-    if (session.metadata?.buyer_address) {
+    // Buyer-paid shipping bundle — table first, legacy metadata fallback.
+    const shippoRateId        = pending?.shippo_rate_id ?? session.metadata?.shippo_rate_id ?? null
+    const shippingCostCents   = pending?.shipping_cost_cents
+      ?? (session.metadata?.shipping_cost_cents ? parseInt(session.metadata.shipping_cost_cents, 10) : null)
+    const shippingCarrier     = pending?.shipping_carrier ?? session.metadata?.shipping_carrier ?? null
+    const shippingService     = pending?.shipping_service ?? session.metadata?.shipping_service ?? null
+
+    // Shipping address: pending_checkouts is the new source of truth (the
+    // buyer chose this address in our CheckoutModal and Shippo quoted
+    // against it). Fall back to legacy metadata, then to Stripe's sparse
+    // customer_details.address as a last resort (only if it has line1).
+    let shippingAddress: Record<string, unknown> | null = (pending?.buyer_address as Record<string, unknown> | null) ?? null
+    if (!shippingAddress && session.metadata?.buyer_address) {
       try { shippingAddress = JSON.parse(session.metadata.buyer_address) } catch { /* ignore */ }
     }
     const stripeAddr = session.customer_details?.address
@@ -157,10 +168,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Buyer's user_id from create-checkout (resolved server-side from the
-    // forwarded JWT). Null for guest checkout. When set, the order shows up
-    // on the buyer's /orders page; guest_email-only orders don't.
-    const buyerUserId = session.metadata?.buyer_user_id ?? null
+    // Buyer's user_id — table first, then legacy metadata. Null for guest.
+    const buyerUserId = pending?.buyer_user_id ?? session.metadata?.buyer_user_id ?? null
 
     const { data: order, error: orderErr } = await supabase
       .from('orders')
@@ -186,22 +195,25 @@ Deno.serve(async (req) => {
       return new Response('DB error', { status: 500 })
     }
 
-    // Create order_item rows from metadata. The fields here are the canonical
-    // shape written by create-checkout AFTER it validated everything against
-    // the DB — productId, sellerId, sizeId, swatchId, unitPriceCents are all
-    // server-derived, not buyer-supplied. See create-checkout/index.ts for
-    // the validation pass that produced this metadata.
-    const rawItems = session.metadata?.items
-    interface CanonicalItem {
-      productId: string | null; sellerId: string | null;
-      sizeId: string | null; swatchId: string | null;
-      productName: string; sizeLabel: string; swatchName: string;
-      unitPriceCents: number; qty: number; typeKey: string;
-    }
+    // Canonical order_items come from pending_checkouts.items (server-
+    // validated at create-checkout time), with the old metadata.items JSON
+    // as fallback for in-flight pre-table sessions.
     let parsedItems: CanonicalItem[] = []
+    if (pending?.items) {
+      parsedItems = pending.items as CanonicalItem[]
+    } else if (session.metadata?.items) {
+      try { parsedItems = JSON.parse(session.metadata.items) } catch { /* ignore */ }
+    }
 
-    if (rawItems && order) {
-      parsedItems = JSON.parse(rawItems)
+    if (parsedItems.length && order) {
+      // Stamp consumed_at on the pending row so it's clear this session has
+      // been processed. Old pre-table sessions just skip this.
+      if (pending) {
+        await supabase
+          .from('pending_checkouts')
+          .update({ consumed_at: new Date().toISOString() })
+          .eq('stripe_session_id', session.id)
+      }
       const orderItems = parsedItems.map(item => ({
         order_id:         order.id,
         product_id:       item.productId,   // canonical, not null for live products
