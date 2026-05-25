@@ -38,13 +38,19 @@ export async function sendEmail(args: {
     console.error('[email] RESEND_API_KEY missing — skipping send')
     return false
   }
+  // From address sends as orders@ for brand cohesion. Reply-to routes
+  // buyer replies into a real mailbox (orders@ isn't provisioned), so
+  // the human gets the message instead of a bounce. Configurable via the
+  // REPLY_TO_EMAIL env var; fallback is hayley@daydreamdwelling.com which
+  // is the licensed Microsoft 365 mailbox on the domain.
+  const defaultReplyTo = Deno.env.get('REPLY_TO_EMAIL') || 'hayley@daydreamdwelling.com'
   const body: Record<string, unknown> = {
-    from:    args.from    ?? 'Wispy at DaydreamDwelling <orders@daydreamdwelling.com>',
-    to:      args.to,
-    subject: args.subject,
-    html:    args.html,
+    from:     args.from    ?? 'Wispy at DaydreamDwelling <orders@daydreamdwelling.com>',
+    to:       args.to,
+    subject:  args.subject,
+    html:     args.html,
+    reply_to: args.replyTo ?? defaultReplyTo,
   }
-  if (args.replyTo) body.reply_to = args.replyTo
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
