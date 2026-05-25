@@ -171,7 +171,7 @@ export default function WispyProvider({ children, enabled = true, defaultPositio
                 left: 0,
                 width: 'auto',
                 zIndex: 1000,
-                animation: 'wispyDrift 90s linear infinite',
+                animation: 'wispyDrift 240s linear infinite',
                 pointerEvents: 'none',
               }}
             >

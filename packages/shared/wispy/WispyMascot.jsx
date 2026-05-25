@@ -3,7 +3,7 @@ import { WispyContext } from './WispyProvider.jsx'
 import Idle from './poses/Idle.jsx'
 import Talking from './poses/Talking.jsx'
 import Pointing from './poses/Pointing.jsx'
-import { useMood } from '../useMood.js'
+import { useMoodControl } from '../ThemeProvider.jsx'
 
 const FLAP_MS = 180
 const BLINK_INTERVAL_MIN = 3000
@@ -12,7 +12,10 @@ const BLINK_DURATION = 110
 
 export default function WispyMascot() {
   const ctx = useContext(WispyContext)
-  const { mood } = useMood()
+  // useMoodControl reads from ThemeProvider's shared context so mood
+  // changes from the picker propagate here. useMood() called directly
+  // creates an isolated state branch — picker changes wouldn't show.
+  const { mood } = useMoodControl()
   const [mouthOpen, setMouthOpen] = useState(false)
   const [eyeClosed, setEyeClosed] = useState(false)
 
