@@ -128,19 +128,23 @@ export default function WispyArt({
 }
 
 function blushDotStyle(side) {
-  // Center the dot at x = -2% (left) or 102% (right), y = 60%. wispy.json
-  // gives those as anchors; we offset by -half-the-dot-size so the
-  // center lands there. Dot is ~10% of cloud width with a wide soft falloff.
+  // wispy.json says blush sits at x=-0.02 / 1.02 of the FACE (not the
+  // cloud container), with the face being 16% wide centered at 50/50.
+  //   left blush x  = 50% - 8% + (-0.02 * 16%)  ≈ 41.7% of cloud
+  //   right blush x = 50% + 8% + ( 0.02 * 16%)  ≈ 58.3% of cloud
+  // y=0.60 of face puts the dot just below face center (cheek line).
+  // Dots are ~7% of cloud — small + soft, not floating blobs.
   const isLeft = side === 'left'
   return {
     position: 'absolute',
-    width: '10%',
-    height: '10%',
-    [isLeft ? 'left' : 'right']: '-7%',  // -2% center minus 5% half-width
+    width: '7%',
+    height: '7%',
+    left: isLeft ? '41.7%' : '58.3%',
     top: '55%',
-    background: 'radial-gradient(circle, rgba(244,140,170,0.85) 0%, rgba(244,140,170,0.55) 35%, transparent 70%)',
+    transform: 'translate(-50%, -50%)',
+    background: 'radial-gradient(circle, rgba(244,140,170,0.85) 0%, rgba(244,140,170,0.45) 50%, transparent 80%)',
     borderRadius: '50%',
-    filter: 'blur(1.5px)',
+    filter: 'blur(1px)',
     pointerEvents: 'none',
   }
 }
