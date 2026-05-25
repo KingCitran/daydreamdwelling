@@ -10,11 +10,14 @@ const BLINK_INTERVAL_MIN = 3000
 const BLINK_INTERVAL_MAX = 7000
 const BLINK_DURATION = 110
 
+// 'top-left' is offset to the right of the DaydreamDwelling logo text so
+// Wispy lives next to the brand instead of overlapping it. Other corners
+// keep tight 24px insets — they're not in conflict with anything.
 const POSITIONS = {
   'bottom-right': { right: 24, bottom: 24 },
   'bottom-left':  { left: 24,  bottom: 24 },
   'top-right':    { right: 24, top: 24 },
-  'top-left':     { left: 24,  top: 24 },
+  'top-left':     { left: 220, top: 8 },
 }
 
 export default function WispyMascot() {
@@ -86,10 +89,11 @@ export default function WispyMascot() {
   const isSleeping = pose === 'sleeping'
   const isTalking = pose === 'talking'
   const isPointing = pose === 'pointing-left' || pose === 'pointing-right'
-  // Bigger default so she actually catches the eye. v1 was 140 (lost),
-  // v2 bumped to 200 (still lost against open sky on light moods). 280
-  // reads as an actual companion sitting in the corner.
-  const wispyWidth = isMobile ? 200 : 280
+  // Compact size so she sits beside the logo without dominating the
+  // viewport. The picker compositor gives her real presence at smaller
+  // sizes than v1's flat SVG did — 140px reads as a proper companion
+  // here, not a tiny mark.
+  const wispyWidth = isMobile ? 100 : 140
 
   let poseEl
   if (isPointing) {

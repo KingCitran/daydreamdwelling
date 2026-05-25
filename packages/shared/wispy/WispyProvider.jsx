@@ -20,7 +20,7 @@ function saveCompletion(c) {
   try { localStorage.setItem(COMPLETION_KEY, JSON.stringify(c)) } catch { /* quota */ }
 }
 
-export default function WispyProvider({ children, enabled = true, defaultPosition = 'bottom-right' }) {
+export default function WispyProvider({ children, enabled = true, defaultPosition = 'top-left' }) {
   const [pose, setPose] = useState('idle')
   const [bubble, setBubble] = useState(null)
   const [dismissed, setDismissed] = useState(false)
