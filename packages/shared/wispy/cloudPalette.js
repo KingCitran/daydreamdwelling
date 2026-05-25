@@ -26,20 +26,20 @@ export const MOOD_CLOUD_GRADIENTS = {
   'Bright Day':    'linear-gradient(180deg, #ffffff 0%, #f0f8ff 15%, #c8dcf0 38%, #88b0d8 60%, #5080b8 82%, #2858a0 100%)',
 }
 
-// Soft drop-shadow per mood so the recolored cloud has presence against
-// the scene background. Pulled from the scene's tintShadow filters where
-// available; tuned for Wispy's smaller size (corner mascot, not a full
-// scene cloud) so shadow blur is gentler.
+// Drop-shadows per mood. v2: bumped intensity across the board because
+// Wispy was disappearing into open-sky backgrounds. Each shadow is now
+// stacked — a tight near-shadow for shape definition plus a wide soft
+// cast for ground presence.
 export const MOOD_CLOUD_SHADOWS = {
-  'Dream State':    'drop-shadow(0 8px 16px rgba(120,80,180,0.20))',
-  'Golden Hour':    'drop-shadow(0 8px 16px rgba(120,40,30,0.25))',
-  'Moonlight':      'drop-shadow(0 8px 18px rgba(8,12,28,0.55))',
-  'Blush Hour':     'drop-shadow(0 8px 18px rgba(180,72,122,0.28))',
-  'Coastal Morning':'drop-shadow(0 8px 14px rgba(40,70,110,0.35))',
-  'Greenhouse':     'drop-shadow(0 8px 14px rgba(120,160,90,0.30))',
-  'Neon Nights':    'drop-shadow(0 -4px 14px rgba(255,80,220,0.55)) drop-shadow(0 8px 18px rgba(80,160,255,0.40))',
-  'Vivid Sunset':   'drop-shadow(0 8px 16px rgba(20,28,80,0.45))',
-  'Bright Day':     'drop-shadow(0 8px 16px rgba(40,88,160,0.32))',
+  'Dream State':    'drop-shadow(0 6px 10px rgba(80,40,120,0.30)) drop-shadow(0 18px 36px rgba(120,80,180,0.35))',
+  'Golden Hour':    'drop-shadow(0 6px 10px rgba(90,30,20,0.35)) drop-shadow(0 18px 36px rgba(160,60,30,0.32))',
+  'Moonlight':      'drop-shadow(0 6px 10px rgba(0,0,12,0.55)) drop-shadow(0 18px 38px rgba(8,12,28,0.65))',
+  'Blush Hour':     'drop-shadow(0 6px 10px rgba(150,40,90,0.35)) drop-shadow(0 18px 38px rgba(180,72,122,0.36))',
+  'Coastal Morning':'drop-shadow(0 6px 10px rgba(20,40,80,0.40)) drop-shadow(0 18px 36px rgba(40,70,110,0.42))',
+  'Greenhouse':     'drop-shadow(0 6px 10px rgba(60,100,50,0.40)) drop-shadow(0 18px 38px rgba(120,160,90,0.42))',
+  'Neon Nights':    'drop-shadow(0 -6px 18px rgba(255,80,220,0.70)) drop-shadow(0 12px 28px rgba(80,160,255,0.55)) drop-shadow(0 0 60px rgba(180,40,220,0.40))',
+  'Vivid Sunset':   'drop-shadow(0 6px 12px rgba(0,0,30,0.55)) drop-shadow(0 18px 38px rgba(20,28,80,0.60))',
+  'Bright Day':     'drop-shadow(0 6px 10px rgba(20,60,140,0.40)) drop-shadow(0 18px 38px rgba(40,88,160,0.45))',
 }
 
 /** Returns { gradient, shadow } for a mood, or null if mood isn't themed

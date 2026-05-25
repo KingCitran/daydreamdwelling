@@ -90,10 +90,10 @@ export default function WispyMascot() {
   const isSleeping = pose === 'sleeping'
   const isTalking = pose === 'talking'
   const isPointing = pose === 'pointing-left' || pose === 'pointing-right'
-  // Bigger default so she actually catches the eye in the corner. v1
-  // rendered at 140; user feedback was "hardly visible." 200 reads as a
-  // proper companion without dominating the screen.
-  const wispyWidth = 200
+  // Bigger default so she actually catches the eye. v1 was 140 (lost),
+  // v2 bumped to 200 (still lost against open sky on light moods). 280
+  // reads as an actual companion sitting in the corner.
+  const wispyWidth = isMobile ? 200 : 280
 
   let poseEl
   if (isPointing) {
@@ -114,17 +114,18 @@ export default function WispyMascot() {
         animation: 'wispyIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
       }}
     >
-      {/* Soft attention halo — gentle pulsing glow behind Wispy that draws
-          the eye without being loud. Pauses when she's asleep so it
-          matches her vibe. */}
+      {/* Attention halo — visible pulsing glow that lifts Wispy off
+          backgrounds her cloud color would otherwise blend into. Wide
+          and noticeably colored; was too subtle before. Pauses on sleep. */}
       <div style={{
         position: 'absolute',
-        inset: '8% 8% 12% 8%',
+        inset: '-18% -18% -12% -18%',
         borderRadius: '50%',
-        background: 'radial-gradient(circle at center, rgba(180,140,230,0.32) 0%, rgba(180,140,230,0.12) 40%, transparent 70%)',
+        background: 'radial-gradient(circle at center, rgba(180,140,230,0.55) 0%, rgba(180,140,230,0.28) 35%, rgba(180,140,230,0.10) 60%, transparent 80%)',
         animation: isSleeping ? 'none' : 'wispyHalo 4s ease-in-out infinite',
         pointerEvents: 'none',
         zIndex: -1,
+        filter: 'blur(8px)',
       }} />
       <div style={{
         animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
