@@ -84,7 +84,7 @@ export const FACE_META = {
 export const SLOT_PRIMARY = {
   // Tier 1 — core expressions
   neutral:       'f025',
-  happy:         'f005',
+  happy:         'f001',  // two eyes open + smile (f005 was the wink variant)
   surprised:     'f013',
   blink:         'f008',
   'talking-1':   'f001',
