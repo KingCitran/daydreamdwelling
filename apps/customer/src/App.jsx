@@ -1009,7 +1009,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         <WaitingInventoryAlert items={waitingInventory.items}
           onClose={() => { setShowWaitingAlert(false); waitingInventory.markSeen() }}
           onAddAllToCart={() => {
-            waitingInventory.items.forEach(it => addToCart(it.typeKey, it.swatchIndex || 0, it.sizeIndex || 0))
+            waitingInventory.items.forEach(it => addToCart(it.typeKey, it.sizeIndex || 0, it.swatchIndex || 0))
             waitingInventory.clearAll(); setShowWaitingAlert(false)
           }}
           onAddAllToWishlist={() => {
