@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       .select(`
         id, seller_id, quantity, label_url, tracking_number,
         product_name, products(label),
-        orders(id, shipping_address, status, shippo_rate_id, shipping_cost_cents, guest_email, user_id)
+        orders(id, shipping_address, status, shippo_rate_id, shipping_cost_cents, shipping_carrier, shipping_service, guest_email, user_id)
       `)
       .eq('id', orderItemId)
       .single()
@@ -213,13 +213,45 @@ Deno.serve(async (req) => {
       return json({ error: 'No shipping rates returned. Check your ship-from address and the buyer address.' }, 500)
     }
 
-    // Pick cheapest USPS rate; fall back to absolute cheapest if USPS unavailable.
+    // Rate selection for the bundle/parcel-override path. Priority order:
+    //   1. Prefer the carrier+service the buyer actually paid for at
+    //      checkout (if still present in the rate set). This keeps the
+    //      label and the buyer's quote on the same service level so the
+    //      spread is just rate-freshness drift, not a service downgrade.
+    //   2. Otherwise pick cheapest USPS.
+    //   3. Otherwise pick absolute cheapest across all carriers.
+    // Spread between buyer-paid shipping and label cost is logged for
+    // ops visibility. The platform balance absorbs any positive diff
+    // (small, ~rate-freshness-sized) until we add a re-quote-at-checkout
+    // refresh.
     const numericAmount = (r: { amount: string }) => parseFloat(r.amount)
-    const uspsRates = rates.filter((r: { provider: string }) => r.provider === 'USPS')
-    const candidatePool = uspsRates.length ? uspsRates : rates
-    const chosen = candidatePool.reduce((a: { amount: string }, b: { amount: string }) =>
-      numericAmount(a) <= numericAmount(b) ? a : b
-    )
+    const buyerPaidCarrier = item.orders?.shipping_carrier ?? null
+    const buyerPaidService = item.orders?.shipping_service ?? null
+    type RateLike = { amount: string; provider: string; servicelevel?: { name?: string; token?: string } }
+    const matchesPaidService = (r: RateLike) =>
+      buyerPaidCarrier && buyerPaidService &&
+      r.provider === buyerPaidCarrier &&
+      (r.servicelevel?.name === buyerPaidService || r.servicelevel?.token === buyerPaidService)
+    const sameSvc = (rates as RateLike[]).find(matchesPaidService)
+    let chosen: RateLike
+    if (sameSvc) {
+      chosen = sameSvc
+    } else {
+      const uspsRates = (rates as RateLike[]).filter(r => r.provider === 'USPS')
+      const candidatePool = uspsRates.length ? uspsRates : (rates as RateLike[])
+      chosen = candidatePool.reduce((a, b) => numericAmount(a) <= numericAmount(b) ? a : b)
+      if (buyerPaidCarrier && buyerPaidService) {
+        console.warn('[create-shipping-label] buyer-paid service no longer available; falling back to cheapest. buyer:', `${buyerPaidCarrier}/${buyerPaidService}`, '→ chosen:', `${chosen.provider}/${chosen.servicelevel?.name ?? chosen.servicelevel?.token}`)
+      }
+    }
+    const buyerPaidCents = typeof item.orders?.shipping_cost_cents === 'number' ? item.orders.shipping_cost_cents : null
+    const labelCostCents = Math.round(numericAmount(chosen) * 100)
+    if (buyerPaidCents !== null) {
+      const diffCents = labelCostCents - buyerPaidCents
+      if (Math.abs(diffCents) >= 25) {
+        console.warn('[create-shipping-label] bundle rate spread (cents): buyer paid', buyerPaidCents, 'label cost', labelCostCents, 'platform absorbs', diffCents, 'order', item.orders?.id)
+      }
+    }
 
     // Step 2: purchase the label by creating a transaction
     const txRes = await fetch(`${SHIPPO_API}/transactions/`, {
