@@ -7,11 +7,11 @@ import { RevealAudioSettings } from './RevealAudioToggle'
 
 const TABS = ['Rooms', 'Orders', 'Messages', 'Wishlists', 'Rewards', 'Pets', 'Profile', 'Preferences']
 
-export default function AccountModal({ onClose, onLoadRoom }) {
+export default function AccountModal({ onClose, onLoadRoom, defaultTab = 'Rooms' }) {
   const t = useTheme()
   const st = makeStyles(t)
   const { user, signOut } = useAuth()
-  const [tab, setTab] = useState('Rooms')
+  const [tab, setTab] = useState(TABS.includes(defaultTab) ? defaultTab : 'Rooms')
 
   // ── Profile ───────────────────────────────────────────────────────
   const [displayName, setDisplayName] = useState('')

@@ -311,6 +311,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [bookmark,        setBookmark]        = useState(null)
   const [authModalOpen,    setAuthModalOpen]    = useState(false)
   const [accountModalOpen, setAccountModalOpen] = useState(false)
+  const [accountModalTab,  setAccountModalTab]  = useState('Rooms')
   const [communityOpen,    setCommunityOpen]    = useState(false)
   const [contestsOpen,     setContestsOpen]     = useState(false)
   const [saveModalOpen,   setSaveModalOpen]   = useState(false)
@@ -991,7 +992,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
 
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
-      {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} />}
+      {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} defaultTab={accountModalTab} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
       {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} cloudRoomId={cloudRoomId} />}
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} roomName={getRoomName(currentRoomId)} onClose={() => setCheckoutOpen(false)} />}
@@ -1248,13 +1249,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <SocialTabPanel
         onCommunity={() => setCommunityOpen(true)}
         onContests={() => setContestsOpen(true)}
-        onNotifications={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+        onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
       />
     </DockablePanel>
     <BottomTabCluster
       signedIn={!!user}
-      onAccount={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
-      onSettings={() => user ? setAccountModalOpen(true) : setAuthModalOpen(true)}
+      onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+      onSettings={() => user ? (setAccountModalTab('Preferences'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
     />
     </SideTabProvider>
   )
