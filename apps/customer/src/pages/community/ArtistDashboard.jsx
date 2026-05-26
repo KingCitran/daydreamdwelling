@@ -119,9 +119,68 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
 
   return (
     <div style={{ padding: '32px 0' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={s.pageTitle}>Hey, {name} ☁</h1>
-        <p style={s.pageSubtitle}>Here's how your tracks are doing.</p>
+      {/* Profile header — cover banner with avatar + name overlay. Doubles as
+          a visual nudge to set images if they're missing (the placeholder
+          gradient + "Add a cover" hint live in the edit page; here we just
+          show the current state). */}
+      <div style={{
+        position: 'relative', marginBottom: 32,
+        height: 200, borderRadius: 18, overflow: 'hidden',
+        background: artist?.cover_url
+          ? `center / cover no-repeat url(${artist.cover_url})`
+          : `linear-gradient(135deg, ${t.accent}30 0%, ${t.accent}08 100%)`,
+        border: `1px solid ${t.surfaceBorder}`,
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: artist?.cover_url
+            ? 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.55) 100%)'
+            : 'none',
+        }} />
+        <div style={{
+          position: 'absolute', left: 24, bottom: 18, right: 24,
+          display: 'flex', alignItems: 'flex-end', gap: 16,
+        }}>
+          <div style={{
+            width: 92, height: 92, borderRadius: '50%',
+            background: artist?.avatar_url
+              ? `center / cover no-repeat url(${artist.avatar_url})`
+              : `${t.accent}30`,
+            border: `3px solid ${artist?.cover_url ? '#fff' : t.surface}`,
+            boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 30, color: artist?.cover_url ? '#fff' : t.accent,
+            flexShrink: 0,
+          }}>{!artist?.avatar_url && '♪'}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{
+              margin: 0, fontSize: 28, fontWeight: 800,
+              color: artist?.cover_url ? '#fff' : t.text,
+              textShadow: artist?.cover_url ? '0 2px 8px rgba(0,0,0,0.4)' : 'none',
+            }}>{name}</h1>
+            {artist?.bio && (
+              <p style={{
+                margin: '4px 0 0', fontSize: 13,
+                color: artist?.cover_url ? 'rgba(255,255,255,0.9)' : t.textSoft,
+                textShadow: artist?.cover_url ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 480,
+              }}>{artist.bio}</p>
+            )}
+          </div>
+          <button onClick={() => onNavigate('/community/artists/profile')} style={{
+            padding: '8px 14px', borderRadius: 8, border: 'none',
+            background: artist?.cover_url ? 'rgba(255,255,255,0.92)' : t.accent,
+            color: artist?.cover_url ? '#1a1a2e' : t.accentText,
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            flexShrink: 0,
+          }}>Edit profile</button>
+        </div>
+        {!artist?.cover_url && (
+          <div style={{
+            position: 'absolute', top: 12, right: 14,
+            fontSize: 11, color: t.textSoft, fontStyle: 'italic',
+          }}>Add a cover image in Edit profile →</div>
+        )}
       </div>
 
       <ArtistSelfListenPlayer userId={user.id} />

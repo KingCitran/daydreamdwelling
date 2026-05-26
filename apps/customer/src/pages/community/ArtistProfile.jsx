@@ -22,6 +22,11 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
   const [bandcamp, setBandcamp] = useState('')
   const [website, setWebsite] = useState('')
   const [preferred, setPreferred] = useState('spotify')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [coverUrl, setCoverUrl] = useState('')
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [coverBusy, setCoverBusy] = useState(false)
+  const [imageErr, setImageErr] = useState('')
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -37,10 +42,42 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
           setBandcamp(links.bandcamp ?? '')
           setWebsite(links.website ?? '')
           setPreferred(data.preferred_destination ?? 'spotify')
+          setAvatarUrl(data.avatar_url ?? '')
+          setCoverUrl(data.cover_url ?? '')
         }
         setLoading(false)
       })
   }, [user])
+
+  async function uploadImage(file, kind /* 'avatar' | 'cover' */) {
+    if (!user || !file) return
+    const setter = kind === 'avatar' ? setAvatarUrl : setCoverUrl
+    const busy   = kind === 'avatar' ? setAvatarBusy : setCoverBusy
+    busy(true)
+    setImageErr('')
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+      const path = `${user.id}/${kind}-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('artist-images')
+        .upload(path, file, { upsert: false, contentType: file.type })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('artist-images').getPublicUrl(path)
+      const newUrl = pub.publicUrl
+      const col = kind === 'avatar' ? 'avatar_url' : 'cover_url'
+      const { error: updErr } = await supabase
+        .from('artist_profiles')
+        .update({ [col]: newUrl, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+      if (updErr) throw updErr
+      setter(newUrl)
+    } catch (err) {
+      console.error(`[artist ${kind} upload]`, err)
+      setImageErr(`${kind === 'avatar' ? 'Avatar' : 'Cover'} upload failed: ${err.message ?? 'unknown error'}`)
+    } finally {
+      busy(false)
+    }
+  }
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -134,6 +171,64 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
       <form onSubmit={onSubmit} className="ddd-artist-form" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         <section style={s.card}>
           <h2 style={s.sectionTitle}>Profile</h2>
+
+          {/* Cover banner — full-width image strip behind avatar */}
+          <div style={{
+            position: 'relative', marginBottom: 16,
+            height: 140, borderRadius: 12, overflow: 'hidden',
+            background: coverUrl ? `center / cover no-repeat url(${coverUrl})` : `${t.accent}18`,
+            border: `1px solid ${t.surfaceBorder}`,
+          }}>
+            {!coverUrl && (
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, color: t.textSoft, fontStyle: 'italic',
+              }}>Add a cover image (recommended 1600×400)</div>
+            )}
+            <label style={{
+              position: 'absolute', right: 10, bottom: 10,
+              padding: '6px 12px', borderRadius: 8,
+              background: 'rgba(0,0,0,0.55)', color: '#fff',
+              fontSize: 11, fontWeight: 600, cursor: coverBusy ? 'wait' : 'pointer',
+            }}>
+              {coverBusy ? 'Uploading…' : (coverUrl ? 'Change cover' : 'Upload cover')}
+              <input type="file" accept="image/*" style={{ display: 'none' }}
+                disabled={coverBusy}
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, 'cover') }} />
+            </label>
+          </div>
+
+          {/* Avatar circle + change link */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+            <div style={{
+              width: 84, height: 84, borderRadius: '50%',
+              background: avatarUrl ? `center / cover no-repeat url(${avatarUrl})` : `${t.accent}20`,
+              border: `2px solid ${t.surface}`, boxShadow: `0 0 0 1px ${t.surfaceBorder}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, color: t.accent, flexShrink: 0,
+            }}>{!avatarUrl && '♪'}</div>
+            <div>
+              <label style={{
+                display: 'inline-block',
+                padding: '8px 14px', borderRadius: 8,
+                background: t.accent, color: t.accentText,
+                fontSize: 12, fontWeight: 700, cursor: avatarBusy ? 'wait' : 'pointer',
+                opacity: avatarBusy ? 0.6 : 1,
+              }}>
+                {avatarBusy ? 'Uploading…' : (avatarUrl ? 'Change avatar' : 'Upload avatar')}
+                <input type="file" accept="image/*" style={{ display: 'none' }}
+                  disabled={avatarBusy}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadImage(f, 'avatar') }} />
+              </label>
+              <div style={{ fontSize: 10, color: t.textSoft, marginTop: 6 }}>Square images work best. Max 5MB.</div>
+            </div>
+          </div>
+
+          {imageErr && (
+            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#ff8a8a20', color: '#ff8a8a', fontSize: 12 }}>{imageErr}</div>
+          )}
+
           <Field label="Artist name *">
             <input style={s.input} value={artistName} onChange={e => setArtistName(e.target.value)} placeholder="Stage name or band name" required maxLength={120} />
           </Field>
