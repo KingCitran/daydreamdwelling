@@ -136,11 +136,21 @@ Deno.serve(async (req) => {
           typeKey,
         })
       } else {
-        // Static demo item — no DB row, no real seller, can't be price-
-        // spoofed against any seller's revenue. Trust the client price as
-        // a v0 fallback; flag so we can see in logs if real money ever
-        // moves through this branch.
-        console.warn('[create-checkout] demo item checkout (no seller revenue):', typeKey)
+        // Static demo item — no DB row, so we can't validate the price.
+        // Without an authoritative server-side price, the buyer-supplied
+        // unitPrice would be trusted, which means anyone could pay $0.01
+        // for any demo item or pay the platform $9999.99 for a typo. We
+        // reject by default. To allow demo checkouts for testing or while
+        // the real catalogue is incomplete, set ALLOW_DEMO_CHECKOUTS=true
+        // in Supabase Edge Function env vars (Project Settings → Edge Functions).
+        if ((Deno.env.get('ALLOW_DEMO_CHECKOUTS') ?? '').toLowerCase() !== 'true') {
+          return new Response(JSON.stringify({
+            error: `"${raw.label ?? typeKey}" is a preview item and can't be purchased yet — try a real listing from a seller. (If you're an admin testing, set ALLOW_DEMO_CHECKOUTS=true.)`,
+          }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        console.warn('[create-checkout] demo item checkout (no seller revenue, demo gate open):', typeKey)
         validated.push({
           productId: null,
           sellerId:  null,
