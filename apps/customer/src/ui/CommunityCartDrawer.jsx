@@ -90,11 +90,19 @@ export default function CommunityCartDrawer({ cart, onClose }) {
               <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>Total</span>
               <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>${total.toFixed(2)}</span>
             </div>
-            <button style={{
-              width: '100%', padding: '12px', borderRadius: 10,
-              background: t.accent, color: t.accentText, border: 'none',
-              fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 8,
-            }}>Checkout</button>
+            {/* Checkout wiring still TODO — community cart is separate from
+                the main cart's CheckoutModal flow. Disabled until the
+                handoff to the real checkout path lands. */}
+            <button
+              disabled
+              title="Community-cart checkout is coming soon — for now, place items in your own room and check out from there."
+              style={{
+                width: '100%', padding: '12px', borderRadius: 10,
+                background: t.accent, color: t.accentText, border: 'none',
+                fontSize: 14, fontWeight: 700, cursor: 'not-allowed', marginBottom: 8,
+                opacity: 0.5,
+              }}
+            >Checkout (coming soon)</button>
             <button onClick={clear} style={{
               width: '100%', padding: '8px', borderRadius: 8,
               background: 'transparent', color: t.textSoft,

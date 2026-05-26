@@ -77,11 +77,13 @@ export default function WaitingInventoryAlert({ items, onClose, onAddAllToCart, 
           background: t.accent, color: t.accentText, border: 'none',
           fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
         }}>🛒 Add all to cart</button>
-        <button onClick={onAddAllToWishlist} style={{
-          flex: 1, padding: '9px 12px', borderRadius: 8,
-          background: 'transparent', color: t.accent, border: `1px solid ${t.accent}40`,
-          fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-        }}>♡ Wishlist all</button>
+        {onAddAllToWishlist && (
+          <button onClick={onAddAllToWishlist} style={{
+            flex: 1, padding: '9px 12px', borderRadius: 8,
+            background: 'transparent', color: t.accent, border: `1px solid ${t.accent}40`,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>♡ Wishlist all</button>
+        )}
         <button onClick={onClear} title="Clear waiting inventory" style={{
           padding: '9px 10px', borderRadius: 8,
           background: 'transparent', color: t.textSoft, border: `1px solid ${t.surfaceBorder}`,

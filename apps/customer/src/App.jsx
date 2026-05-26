@@ -1012,10 +1012,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             waitingInventory.items.forEach(it => addToCart(it.typeKey, it.sizeIndex || 0, it.swatchIndex || 0))
             waitingInventory.clearAll(); setShowWaitingAlert(false)
           }}
-          onAddAllToWishlist={() => {
-            waitingInventory.items.forEach(it => toggleWishlist(it.typeKey))
-            waitingInventory.clearAll(); setShowWaitingAlert(false)
-          }}
+          // Wishlist-all not wired yet: the inline toggleWishlist works on
+          // in-room item ids, but waiting items aren't placed yet. Proper
+          // fix is to route through useWishlists (lists + items tables);
+          // until then we omit the handler so the button hides.
+          onAddAllToWishlist={null}
           onClear={() => { waitingInventory.clearAll(); setShowWaitingAlert(false) }}
         />
       )}
