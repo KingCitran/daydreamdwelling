@@ -3,6 +3,7 @@ import { useTheme } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import { useMusicPlayer } from '../../contexts/MusicPlayerContext'
+import { useMusicPlaylists } from '../../hooks/useMusicPlaylists'
 
 // Searchable catalog of approved tracks. Closes M7 of humming-velvet-tide.
 // Drives discovery for marketing outreach — when we point an artist's friends
@@ -27,6 +28,9 @@ export default function MusicCatalogPage({ onNavigate }) {
   const [station, setStation] = useState('All')
   const [droppedToday, setDroppedToday] = useState(() => new Set()) // track ids
   const [raindropMsg, setRaindropMsg] = useState('') // surfaced cap-hit or sign-in nudge
+  const [pickerForTrack, setPickerForTrack] = useState(null) // track id whose "+ playlist" picker is open
+  const [pickerMsg, setPickerMsg] = useState('')
+  const playlistsApi = useMusicPlaylists()
 
   useEffect(() => {
     let cancelled = false
@@ -103,11 +107,18 @@ export default function MusicCatalogPage({ onNavigate }) {
 
   return (
     <div style={{ padding: '32px 0 64px' }}>
-      <header style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: t.text, margin: '0 0 6px' }}>Music catalog</h1>
-        <p style={{ fontSize: 13, color: t.textSoft, margin: 0 }}>
-          Every track approved for rotation. Search by title or artist; tap a card to play.
-        </p>
+      <header style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: t.text, margin: '0 0 6px' }}>Music catalog</h1>
+          <p style={{ fontSize: 13, color: t.textSoft, margin: 0 }}>
+            Every track approved for rotation. Search by title or artist; tap a card to play.
+          </p>
+        </div>
+        <button onClick={() => onNavigate('/community/music/playlists')} style={{
+          padding: '9px 16px', borderRadius: 10,
+          background: 'transparent', border: `1px solid ${t.accent}50`,
+          color: t.accent, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+        }}>Your playlists →</button>
       </header>
 
       {/* Search + station filter */}
@@ -256,7 +267,46 @@ export default function MusicCatalogPage({ onNavigate }) {
                   <span style={{ fontSize: 10 }}>💧</span>
                   {(tr.raindrop_count ?? 0).toLocaleString()}
                 </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setPickerMsg(''); setPickerForTrack(pickerForTrack === tr.id ? null : tr.id) }}
+                  title="Add to a playlist"
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: '2px 7px', borderRadius: 10,
+                    background: pickerForTrack === tr.id ? `${t.accent}30` : 'transparent',
+                    border: `1px solid ${pickerForTrack === tr.id ? t.accent : t.surfaceBorder}`,
+                    color: pickerForTrack === tr.id ? t.accent : t.text,
+                    fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >+ playlist</button>
               </div>
+              {pickerForTrack === tr.id && (
+                <div onClick={e => e.stopPropagation()} style={{
+                  marginTop: 10, padding: 10, borderRadius: 10,
+                  background: t.bg, border: `1px solid ${t.surfaceBorder}`,
+                  display: 'flex', flexDirection: 'column', gap: 6,
+                }}>
+                  {!user && <div style={{ fontSize: 11, color: t.textSoft }}>Sign in to save tracks to a playlist.</div>}
+                  {user && playlistsApi.playlists.length === 0 && (
+                    <div style={{ fontSize: 11, color: t.textSoft }}>No playlists yet — create one from <span style={{ color: t.accent, fontWeight: 700, cursor: 'pointer' }} onClick={() => onNavigate('/community/music/playlists')}>Your playlists →</span></div>
+                  )}
+                  {user && playlistsApi.playlists.map(pl => (
+                    <button key={pl.id} onClick={async () => {
+                      const { error: err } = await playlistsApi.addTrack(pl.id, tr.id)
+                      if (err) setPickerMsg(err)
+                      else { setPickerMsg(`Added to "${pl.name}"`); setTimeout(() => setPickerForTrack(null), 700) }
+                    }} style={{
+                      textAlign: 'left',
+                      padding: '6px 10px', borderRadius: 6,
+                      background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
+                      color: t.text, fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    }}>
+                      {pl.name} <span style={{ color: t.textSoft, fontWeight: 400, marginLeft: 4 }}>({pl.music_playlist_tracks?.length ?? 0})</span>
+                    </button>
+                  ))}
+                  {pickerMsg && <div style={{ fontSize: 10, color: pickerMsg.startsWith('Added') ? t.accent : '#ff8a8a' }}>{pickerMsg}</div>}
+                </div>
+              )}
             </button>
           )
         })}
