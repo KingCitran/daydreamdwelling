@@ -85,6 +85,7 @@ export function MusicPlayerProvider({ children, appKey = 'customer' }) {
   const [volume, setVolume] = useState(stored?.volume ?? 0.4)
   const [widgetOpen, setWidgetOpen] = useState(stored?.widgetOpen ?? false)
   const [widgetVariant, setWidgetVariant] = useState('bar') // 'bar' | 'sidebar' | 'floating'
+  const [widgetMinimized, setWidgetMinimized] = useState(stored?.widgetMinimized ?? false)
   const [floatingPos, setFloatingPos] = useState(stored?.floatingPos ?? null)
   const [progress, setProgress] = useState(0) // 0..1, seek position
 
@@ -365,15 +366,18 @@ export function MusicPlayerProvider({ children, appKey = 'customer' }) {
     if (floatingPos) persist({ floatingPos })
   }, [floatingPos])
 
+  // Persist minimize state so the player feels coherent across reloads.
+  useEffect(() => { persist({ widgetMinimized }) }, [widgetMinimized])
+
   const value = {
     // state
     queueType, queueLabel, queue, currentTrack, currentIdx,
-    isPlaying, muted, volume, widgetOpen, widgetVariant, floatingPos, progress,
+    isPlaying, muted, volume, widgetOpen, widgetVariant, widgetMinimized, floatingPos, progress,
     visualMood, stationForMusic, stationFilter,
     hasTracks: queue.length > 0,
     loadState, // { status: 'idle'|'loading'|'ok'|'error', count, error }
     // setters
-    setMuted, setVolume, setWidgetVariant, setFloatingPos,
+    setMuted, setVolume, setWidgetVariant, setWidgetMinimized, setFloatingPos,
     // controls
     play, pause, toggle, next, prev, seekTo, adjustVolume,
     openWidget, closeWidget, triggerReload,
