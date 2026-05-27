@@ -154,7 +154,7 @@ function Gate() {
   const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId)
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
-  const { setMood }                = useMoodControl()
+  const { mood, setMood }          = useMoodControl()
   const { user }                   = useAuth()
 
   async function completeQuiz(mood) {
@@ -273,7 +273,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
   const [items,      setItems]      = useState(initSave?.items ?? [])
-  const { wispyMessage, dismissWispy, showWispy } = useWispy({ itemCount: items.length })
   const [selectedId, setSelectedId] = useState(null)
   const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
 
@@ -290,6 +289,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return true
   })
   const [drawerTab,        setDrawerTab]        = useState('shop')
+  const { wispyMessage, dismissWispy, showWispy, nudgeOnSave, nudgeOnFirstWishlist } =
+    useWispy({ itemCount: items.length, mood, drawerOpen })
   const [roomPanelOpen,    setRoomPanelOpen]    = useState(false)
   const [hubOpen,          setHubOpen]          = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
@@ -1034,7 +1035,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             const { error } = cloudRoomId
               ? await cloudSave.updateRoom(cloudRoomId, name)
               : await cloudSave.saveRoom(name)
-            if (!error) { setSaveModalOpen(false); cloudSave.fetchRooms() }
+            if (!error) {
+              setSaveModalOpen(false)
+              cloudSave.fetchRooms()
+              nudgeOnSave()
+            }
             return { error }
           }}
         />
