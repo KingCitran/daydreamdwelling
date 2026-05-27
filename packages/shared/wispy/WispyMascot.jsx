@@ -97,7 +97,12 @@ export default function WispyMascot() {
   return (
     <div style={{
       animation: isSleeping ? 'none' : 'wispyBob 3.5s ease-in-out infinite',
-      pointerEvents: 'auto',
+      // pointerEvents: 'none' so Wispy doesn't block clicks on UI underneath
+      // her as she drifts across the screen (shop tiles, Music tab, View
+      // controls, etc.). The bubble keeps pointer-events: auto for the ✕
+      // close button. Dismissed-state mini-cloud (the corner re-open
+      // button) sets pointer-events: auto explicitly on its <button>.
+      pointerEvents: 'none',
     }}>
       {poseEl}
     </div>
