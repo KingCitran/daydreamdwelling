@@ -65,21 +65,21 @@ export default function WispyBubble() {
 
   if (!ctx || !bubble || ctx.dismissed) return null
 
-  // Bubble lives BELOW Wispy inside the same drift container in
-  // WispyProvider, so it follows her like a banner trailing from a
-  // plane. Below (not above) so it never gets clipped at the top of
-  // the viewport — Wispy floats near top: 80, and a tall bubble above
-  // her would push off-screen.
+  // Airplane-banner style: bubble sits to the LEFT of Wispy (trailing
+  // behind her left-to-right drift direction), centered vertically on
+  // her body, attached by a short tether. Wide and short — banner-
+  // shaped, not balloon-shaped. The tutorial skip/next buttons live in
+  // a future orchestrator-only branch; ambient messages just get ✕.
   return (
     <div
       style={{
         position: 'absolute',
-        top: 'calc(100% + 14px)',      // sits below Wispy with a small gap
-        left: '50%',
-        transform: 'translateX(-50%)',
+        right: 'calc(100% + 14px)',    // sits LEFT of Wispy with a small gap
+        top: '50%',
+        transform: 'translateY(-50%)',
         zIndex: 1001,
-        maxWidth: 340,
-        minWidth: 180,
+        maxWidth: 320,
+        minWidth: 200,
         animation: 'wispyBubbleIn 0.3s ease-out forwards',
         fontFamily: 'system-ui, sans-serif',
         pointerEvents: 'auto',
@@ -89,80 +89,51 @@ export default function WispyBubble() {
         position: 'relative',
         background: 'rgba(255,255,255,0.97)',
         border: '1.5px solid #ddd4f5',
-        borderRadius: 18,
-        padding: '12px 36px 12px 18px',
-        boxShadow: '0 8px 28px rgba(120,100,200,0.22)',
-        fontSize: 13,
-        lineHeight: 1.5,
+        borderRadius: 14,
+        padding: '10px 30px 10px 14px',
+        boxShadow: '0 6px 20px rgba(120,100,200,0.22)',
+        fontSize: 12,
+        lineHeight: 1.45,
         color: '#251340',
         fontStyle: 'italic',
-        fontWeight: 300,
+        fontWeight: 400,
+        whiteSpace: 'normal',
       }}>
         <span>{typed}</span>
         <span style={{ opacity: typed.length < text.length ? 0.4 : 0 }}>▎</span>
 
         <button
-          onClick={() => ctx.hideBubble()}
+          onClick={() => {
+            if (typeof bubble.onDismiss === 'function') bubble.onDismiss()
+            ctx.hideBubble()
+          }}
           aria-label="Close"
           style={{
-            position: 'absolute', top: 6, right: 10,
+            position: 'absolute', top: 5, right: 8,
             background: 'none', border: 'none',
-            cursor: 'pointer', fontSize: 14,
+            cursor: 'pointer', fontSize: 12,
             color: '#a080e0', lineHeight: 1, padding: 2,
           }}
         >✕</button>
 
-        {bubble.advance !== 'click_target' && (
-          <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => {
-                ctx.emit('bubble_skipped', { bubbleId: bubble.id })
-                if (typeof bubble.onDismiss === 'function') bubble.onDismiss()
-                ctx.hideBubble()
-              }}
-              style={{
-                fontSize: 12, fontFamily: 'inherit',
-                background: 'transparent', border: 'none',
-                color: '#9080b8', cursor: 'pointer', padding: '4px 8px',
-              }}
-            >skip</button>
-            <button
-              onClick={() => {
-                ctx.emit('bubble_advanced', { bubbleId: bubble.id })
-                if (typeof bubble.onDismiss === 'function') bubble.onDismiss()
-                ctx.hideBubble()
-              }}
-              style={{
-                fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
-                background: '#b89adb', color: '#fff', border: 'none',
-                borderRadius: 14, cursor: 'pointer', padding: '6px 14px',
-                boxShadow: '0 2px 6px rgba(150,120,200,0.3)',
-              }}
-            >next</button>
-          </div>
-        )}
-
-        {/* Arrow pointing UP toward Wispy — centered since the bubble
-            sits directly below her in the drift container. */}
+        {/* Right-edge arrow pointing INTO Wispy (rightward). */}
         <div style={{
           position: 'absolute',
-          top: -10,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          right: -10, top: '50%',
+          transform: 'translateY(-50%)',
           width: 0, height: 0,
-          borderLeft: '10px solid transparent',
-          borderRight: '10px solid transparent',
-          borderBottom: '10px solid #ddd4f5',
+          borderTop:    '10px solid transparent',
+          borderBottom: '10px solid transparent',
+          borderLeft:   '10px solid #ddd4f5',
         }} />
         <div style={{
           position: 'absolute',
-          top: -8,
-          left: '50%',
-          transform: 'translateX(-50%)',
+          right: -8, top: '50%',
+          transform: 'translateY(-50%)',
           width: 0, height: 0,
-          borderLeft: '9px solid transparent',
-          borderRight: '9px solid transparent',
-          borderBottom: '9px solid rgba(255,255,255,0.97)',
+          borderTop:    '9px solid transparent',
+          borderBottom: '9px solid transparent',
+          borderLeft:   '9px solid rgba(255,255,255,0.97)',
         }} />
       </div>
     </div>
