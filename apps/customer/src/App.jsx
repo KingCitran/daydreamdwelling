@@ -1279,6 +1279,12 @@ function ShopGreeter({ greeting }) {
   const { say } = useSharedWispy()
   useEffect(() => {
     if (!greeting) return
+    // Only greet once per shop visit per browser session — avoids
+    // re-talking every nav, which reads as nagging. Different shops still
+    // get their own greeting because the key includes the greeting text.
+    const key = 'ddd_wispy_shop_greeted_' + btoa(greeting).slice(0, 24)
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
     say({ text: greeting })
   }, [greeting])
   return null

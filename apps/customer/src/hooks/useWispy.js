@@ -14,13 +14,17 @@ export default function useWispy({ itemCount }) {
   const prevCountRef   = useRef(itemCount)
   const emptyTimerRef  = useRef(null)
 
-  // Welcome (once ever) or empty-state hint (once per session)
+  // Welcome (once ever) — empty-state hint is now ALSO once-ever (was once
+  // per session). Wispy talking every visit reads as nagging; "occasionally"
+  // is the brief. Reset both with localStorage.removeItem('ddd_wispy_*') if
+  // we ever want them back.
   useEffect(() => {
     if (!localStorage.getItem('ddd_wispy_welcomed')) {
       localStorage.setItem('ddd_wispy_welcomed', '1')
       setMessage("Hi! I'm Wispy ✨ Ready to help you build your dream room!")
-    } else if (itemCount === 0) {
+    } else if (itemCount === 0 && !localStorage.getItem('ddd_wispy_empty_hint')) {
       emptyTimerRef.current = setTimeout(() => {
+        localStorage.setItem('ddd_wispy_empty_hint', '1')
         setMessage("Your room looks empty! 🛍 Browse the shop and start placing pieces.")
       }, 2500)
     }
