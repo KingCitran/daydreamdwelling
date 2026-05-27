@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
+import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import { useMusicPlayer } from '../../contexts/MusicPlayerContext'
 
@@ -16,6 +17,7 @@ const PAGE_SIZE = 60
 
 export default function MusicCatalogPage({ onNavigate }) {
   const t = useTheme()
+  const { user } = useAuth()
   const { setCustomQueue, playTrackAtIndex, currentTrack, isPlaying } = useMusicPlayer()
 
   const [tracks, setTracks] = useState([])
@@ -23,6 +25,8 @@ export default function MusicCatalogPage({ onNavigate }) {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [station, setStation] = useState('All')
+  const [droppedToday, setDroppedToday] = useState(() => new Set()) // track ids
+  const [raindropMsg, setRaindropMsg] = useState('') // surfaced cap-hit or sign-in nudge
 
   useEffect(() => {
     let cancelled = false
@@ -30,7 +34,7 @@ export default function MusicCatalogPage({ onNavigate }) {
     setError('')
     supabase
       .from('artist_tracks')
-      .select('id, title, audio_url, duration_seconds, station_tags, mood_tags, descriptive_tags, rotation_status, play_count, artist_id, artist_profiles(artist_name, avatar_url, external_links, preferred_destination, ppc_balance_cents, ppc_rate_cents)')
+      .select('id, title, audio_url, duration_seconds, station_tags, mood_tags, descriptive_tags, rotation_status, play_count, raindrop_count, artist_id, artist_profiles(artist_name, avatar_url, external_links, preferred_destination, ppc_balance_cents, ppc_rate_cents)')
       .eq('approval_status', 'approved')
       .eq('rotation_status', 'active')
       .order('play_count', { ascending: false })
@@ -43,6 +47,43 @@ export default function MusicCatalogPage({ onNavigate }) {
       })
     return () => { cancelled = true }
   }, [])
+
+  // Load which tracks the user has raindropped today so the button can
+  // reflect state. Anonymous viewers always see the "un-dropped" state.
+  useEffect(() => {
+    if (!user) { setDroppedToday(new Set()); return }
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    supabase
+      .from('artist_track_raindrops')
+      .select('track_id')
+      .eq('user_id', user.id)
+      .gte('dropped_at', startOfDay.toISOString())
+      .then(({ data }) => {
+        setDroppedToday(new Set((data ?? []).map(r => r.track_id)))
+      })
+  }, [user])
+
+  async function giveRaindrop(trackId) {
+    setRaindropMsg('')
+    if (!user) {
+      setRaindropMsg('Sign in to give raindrops.')
+      return
+    }
+    const { error: rpcErr } = await supabase.rpc('give_raindrop', { p_track_id: trackId })
+    if (rpcErr) {
+      setRaindropMsg(rpcErr.message)
+      return
+    }
+    setDroppedToday(prev => {
+      const next = new Set(prev)
+      next.add(trackId)
+      return next
+    })
+    setTracks(prev => prev.map(tr =>
+      tr.id === trackId ? { ...tr, raindrop_count: (tr.raindrop_count ?? 0) + 1 } : tr
+    ))
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -112,6 +153,20 @@ export default function MusicCatalogPage({ onNavigate }) {
       {loading && <div style={{ padding: 32, textAlign: 'center', color: t.textSoft, fontSize: 13 }}>Loading catalog…</div>}
       {error && <div style={{ padding: 16, background: '#ff8a8a20', color: '#ff8a8a', borderRadius: 10, fontSize: 13, marginBottom: 16 }}>Couldn't load tracks: {error}</div>}
 
+      {raindropMsg && (
+        <div style={{
+          padding: '10px 14px', marginBottom: 14, borderRadius: 10,
+          background: `${t.accent}15`, color: t.accent, fontSize: 12,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <span>{raindropMsg}</span>
+          <button onClick={() => setRaindropMsg('')} style={{
+            background: 'transparent', border: 'none', color: t.accent,
+            cursor: 'pointer', fontSize: 12, fontWeight: 700,
+          }}>✕</button>
+        </div>
+      )}
+
       {!loading && filtered.length === 0 && (
         <div style={{
           padding: '48px 24px', textAlign: 'center',
@@ -169,7 +224,7 @@ export default function MusicCatalogPage({ onNavigate }) {
                   fontSize: 11, flexShrink: 0,
                 }}>{isCurrent && isPlaying ? '❚❚' : '▶'}</div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                 {(tr.station_tags ?? []).slice(0, 3).map(s => (
                   <span key={s} style={{
                     fontSize: 9, padding: '2px 7px', borderRadius: 10,
@@ -183,6 +238,24 @@ export default function MusicCatalogPage({ onNavigate }) {
                     marginLeft: 'auto',
                   }}>{tr.play_count.toLocaleString()} plays</span>
                 )}
+                <button
+                  onClick={(e) => { e.stopPropagation(); giveRaindrop(tr.id) }}
+                  disabled={droppedToday.has(tr.id)}
+                  title={droppedToday.has(tr.id) ? 'You raindropped this today' : 'Give a raindrop (5/day)'}
+                  style={{
+                    marginLeft: typeof tr.play_count === 'number' && tr.play_count > 0 ? 4 : 'auto',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '2px 7px', borderRadius: 10,
+                    background: droppedToday.has(tr.id) ? `${t.accent}30` : 'transparent',
+                    border: `1px solid ${droppedToday.has(tr.id) ? t.accent : t.surfaceBorder}`,
+                    color: droppedToday.has(tr.id) ? t.accent : t.text,
+                    fontSize: 9, fontWeight: 700, cursor: droppedToday.has(tr.id) ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <span style={{ fontSize: 10 }}>💧</span>
+                  {(tr.raindrop_count ?? 0).toLocaleString()}
+                </button>
               </div>
             </button>
           )
