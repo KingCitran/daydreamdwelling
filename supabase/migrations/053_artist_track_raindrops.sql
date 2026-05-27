@@ -15,10 +15,12 @@ create table public.artist_track_raindrops (
   dropped_at  timestamptz not null default now()
 );
 
--- One raindrop per (user, track) per UTC day. Expression-based unique
--- index lets us pin the calendar-day uniqueness without a generated column.
+-- One raindrop per (user, track) per UTC day. AT TIME ZONE 'UTC' cast is
+-- immutable so Postgres accepts it in an index expression; the more
+-- obvious date_trunc('day', dropped_at) isn't immutable (depends on the
+-- session timezone) and fails with 42P17.
 create unique index artist_track_raindrops_daily_unique
-  on public.artist_track_raindrops (track_id, user_id, (date_trunc('day', dropped_at)));
+  on public.artist_track_raindrops (track_id, user_id, ((dropped_at AT TIME ZONE 'UTC')::date));
 
 create index artist_track_raindrops_track_idx
   on public.artist_track_raindrops (track_id, dropped_at desc);
@@ -94,8 +96,8 @@ begin
   from public.artist_track_raindrops
   where user_id = v_user_id
     and track_id = p_track_id
-    and dropped_at >= date_trunc('day', now())
-    and dropped_at <  date_trunc('day', now()) + interval '1 day';
+    and dropped_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+    and dropped_at <  (date_trunc('day', now() AT TIME ZONE 'UTC') + interval '1 day') AT TIME ZONE 'UTC';
   if v_existing_today > 0 then
     raise exception 'You already gave this track a raindrop today';
   end if;
@@ -104,8 +106,8 @@ begin
   select count(*) into v_daily_total
   from public.artist_track_raindrops
   where user_id = v_user_id
-    and dropped_at >= date_trunc('day', now())
-    and dropped_at <  date_trunc('day', now()) + interval '1 day';
+    and dropped_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'
+    and dropped_at <  (date_trunc('day', now() AT TIME ZONE 'UTC') + interval '1 day') AT TIME ZONE 'UTC';
   if v_daily_total >= 5 then
     raise exception 'Daily raindrop limit reached — 5 per day';
   end if;
