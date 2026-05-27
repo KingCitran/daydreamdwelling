@@ -15,6 +15,7 @@ import ArtistDashboard from './community/ArtistDashboard'
 import ArtistSubmit from './community/ArtistSubmit'
 import ArtistPrograms from './community/ArtistPrograms'
 import ArtistProfile from './community/ArtistProfile'
+import MusicCatalogPage from './community/MusicCatalogPage'
 import { useMusicPlayer } from '../contexts/MusicPlayerContext'
 import CommunityCartDrawer from '../ui/CommunityCartDrawer'
 import { useCommunityCart } from '../hooks/useCommunityCart'
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { label: 'Rooms', path: '/community' },
   { label: 'Contests', path: '/community/contests' },
   { label: 'Artists', path: '/community/artists' },
+  { label: 'Music', path: '/community/music' },
 ]
 
 export default function CommunityApp() {
@@ -72,6 +74,8 @@ export default function CommunityApp() {
     content = <ContestsPage onClose={() => navigate('/community')} standalone cart={cart} />
   } else if (currentSegs[1] === 'profile' && currentSegs[2]) {
     content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
+  } else if (currentSegs[1] === 'music') {
+    content = <MusicCatalogPage onNavigate={navigate} />
   } else if (currentSegs[1] === 'artists') {
     const openAuth = () => setAuthOpen(true)
     let inner
