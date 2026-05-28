@@ -74,15 +74,20 @@ export default function WispyBubble() {
     <div
       style={{
         position: 'absolute',
-        right: 'calc(100% + 14px)',    // sits LEFT of Wispy with a small gap
+        // Anchor by the bubble's OWN width: left:0 puts it at the wrapper's
+        // left edge, then translateX(-100%) shifts it left by its own width
+        // so its right edge lands just left of Wispy — independent of how
+        // wide the wrapper is. The extra -10px is the gap to her.
+        left: 0,
         top: '50%',
-        transform: 'translateY(-50%)',
+        transform: 'translate(calc(-100% - 10px), -50%)',
         zIndex: 1001,
-        maxWidth: 320,
-        minWidth: 200,
+        maxWidth: 300,
+        minWidth: 180,
         animation: 'wispyBubbleIn 0.3s ease-out forwards',
         fontFamily: 'system-ui, sans-serif',
         pointerEvents: 'auto',
+        lineHeight: 1.45,
       }}
     >
       <div style={{

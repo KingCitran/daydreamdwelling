@@ -175,7 +175,11 @@ export default function WispyProvider({ children, enabled = true, defaultPositio
                 pointerEvents: 'none',
               }}
             >
-              <div style={{ position: 'relative', display: 'inline-block' }}>
+              {/* width: fit-content forces this wrapper to shrink-wrap to the
+                  mascot instead of spanning full width from the fixed parent's
+                  left:0 — otherwise the bubble (anchored to this box) ends up
+                  way out at the screen's left edge instead of beside her. */}
+              <div style={{ position: 'relative', display: 'inline-block', width: 'fit-content', lineHeight: 0 }}>
                 <WispyBubble />
                 <WispyMascot />
               </div>
