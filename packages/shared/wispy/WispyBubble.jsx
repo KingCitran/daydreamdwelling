@@ -80,7 +80,7 @@ export default function WispyBubble() {
         // wide the wrapper is. The extra -10px is the gap to her.
         left: 0,
         top: '50%',
-        transform: 'translate(calc(-100% - 10px), -50%)',
+        transform: 'translate(calc(-100% + 6px), -50%)',
         zIndex: 1001,
         maxWidth: 300,
         minWidth: 180,
