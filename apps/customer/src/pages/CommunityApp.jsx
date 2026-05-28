@@ -43,6 +43,18 @@ export default function CommunityApp() {
   const [currentPath, setCurrentPath] = useState(() => parsePath().path)
   const [currentSegs, setCurrentSegs] = useState(() => parsePath().segs)
 
+  // Narrow-viewport detection so the nav can reflow on phones. The community
+  // surfaces are the marketing-facing, shareable pages — most inbound traffic
+  // lands here on a phone, so the nav must not overflow at ~375px.
+  const [isNarrow, setIsNarrow] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth < 640
+  )
+  useEffect(() => {
+    function onResize() { setIsNarrow(window.innerWidth < 640) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   const navigate = useCallback((to) => {
     window.history.pushState(null, '', to)
     const parsed = parsePath()
@@ -120,38 +132,41 @@ export default function CommunityApp() {
         position: 'sticky', top: 0, zIndex: 100,
         background: t.navBg, backdropFilter: 'blur(12px)',
         borderBottom: `1px solid ${t.navBorder}`,
-        padding: '0 24px',
+        padding: isNarrow ? '0 12px' : '0 24px',
       }}>
         <div style={{
           maxWidth: 1100, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          height: 56,
+          gap: 8, height: 56,
         }}>
-          {/* Logo + brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+          {/* Logo + brand (tagline hidden on narrow to save width) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
                onClick={() => navigate('/community')}>
             <Logo size={26} color={t.accent} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>DaydreamCommunity</div>
-              <div style={{ fontSize: 8, color: t.textSoft, letterSpacing: '0.5px' }}>Room designs you can buy</div>
+              {!isNarrow && <div style={{ fontSize: 8, color: t.textSoft, letterSpacing: '0.5px' }}>Room designs you can buy</div>}
             </div>
           </div>
 
-          {/* Center nav */}
-          <nav style={{ display: 'flex', gap: 6 }}>
-            {NAV_ITEMS.map(item => (
-              <button key={item.path} onClick={() => navigate(item.path)} style={{
-                padding: '6px 14px', borderRadius: 8, border: 'none',
-                background: currentPath === item.path ? `${t.accent}15` : 'transparent',
-                color: currentPath === item.path ? t.accent : t.textSoft,
-                fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}>{item.label}</button>
-            ))}
-          </nav>
+          {/* Center nav — only inline on wide screens; on narrow it moves to
+              its own scrollable row below so the top row doesn't overflow. */}
+          {!isNarrow && (
+            <nav style={{ display: 'flex', gap: 6 }}>
+              {NAV_ITEMS.map(item => (
+                <button key={item.path} onClick={() => navigate(item.path)} style={{
+                  padding: '6px 14px', borderRadius: 8, border: 'none',
+                  background: currentPath === item.path ? `${t.accent}15` : 'transparent',
+                  color: currentPath === item.path ? t.accent : t.textSoft,
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}>{item.label}</button>
+              ))}
+            </nav>
+          )}
 
           {/* Right actions */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: isNarrow ? 6 : 10, alignItems: 'center', flexShrink: 0 }}>
             <MoodPicker />
             <button onClick={() => setCartOpen(true)} style={{
               position: 'relative', padding: '6px 12px', borderRadius: 8,
@@ -171,26 +186,46 @@ export default function CommunityApp() {
                 width: 32, height: 32, borderRadius: '50%',
                 background: t.accent, border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700, color: t.accentText,
+                fontSize: 13, fontWeight: 700, color: t.accentText, flexShrink: 0,
               }}>{(user.email || '?')[0].toUpperCase()}</button>
             ) : (
               <button onClick={() => setAuthOpen(true)} style={{
-                padding: '6px 16px', borderRadius: 8,
+                padding: isNarrow ? '6px 12px' : '6px 16px', borderRadius: 8,
                 background: t.accent, color: t.accentText, border: 'none',
-                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
               }}>Sign in</button>
             )}
             <a href="/" style={{
               padding: '6px 14px', borderRadius: 8, textDecoration: 'none',
               background: `${t.accent}10`, border: `1px solid ${t.accent}30`,
-              color: t.accent, fontSize: 12, fontWeight: 600,
-            }}>Open Builder →</a>
+              color: t.accent, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+            }}>{isNarrow ? 'Builder' : 'Open Builder →'}</a>
           </div>
         </div>
+
+        {/* Narrow-screen section nav — horizontally scrollable strip below the
+            top row. Keeps all four destinations reachable without cramming. */}
+        {isNarrow && (
+          <nav style={{
+            display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8,
+            margin: '0 -12px', padding: '0 12px 8px',
+            WebkitOverflowScrolling: 'touch',
+          }}>
+            {NAV_ITEMS.map(item => (
+              <button key={item.path} onClick={() => navigate(item.path)} style={{
+                padding: '6px 14px', borderRadius: 8, border: 'none',
+                background: currentPath === item.path ? `${t.accent}15` : 'transparent',
+                color: currentPath === item.path ? t.accent : t.textSoft,
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                whiteSpace: 'nowrap',
+              }}>{item.label}</button>
+            ))}
+          </nav>
+        )}
       </header>
 
       {/* Content */}
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: isNarrow ? '0 14px' : '0 24px' }}>
         {content}
       </main>
 
