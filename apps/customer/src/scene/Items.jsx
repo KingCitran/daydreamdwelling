@@ -33,6 +33,20 @@ const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDe
   // Clone fresh every time dimensions change so we always measure unscaled geometry
   const model = useMemo(() => {
     const cloned = scene.clone(true)
+
+    // Brighten materials — Tripo models often come out too dark because
+    // they bake ambient occlusion into the texture. Boost exposure by
+    // lightening the material color and adding a touch of emissive.
+    cloned.traverse(child => {
+      if (child.isMesh && child.material) {
+        const mat = child.material
+        if (mat.color) mat.color.multiplyScalar(1.3)
+        if (mat.roughness != null) mat.roughness = Math.min(mat.roughness, 0.85)
+        mat.envMapIntensity = 1.5
+        mat.needsUpdate = true
+      }
+    })
+
     const box = new THREE.Box3().setFromObject(cloned)
     const size = box.getSize(new THREE.Vector3())
     const min = box.min.clone()

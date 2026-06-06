@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       ]
       tripoBody = {
         type: 'multiview_to_model',
-        model_version: 'v2.5-20250123',
+        model_version: 'v3.1-20260211',
         files,
         texture: true,
         pbr: true,
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
       // Single image (use the primary / first photo)
       tripoBody = {
         type: 'image_to_model',
-        model_version: 'v2.5-20250123',
+        model_version: 'v3.1-20260211',
         file: { type: imgType, url: photoUrls[0] },
         texture: true,
         pbr: true,
