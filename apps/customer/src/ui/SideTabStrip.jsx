@@ -46,20 +46,26 @@ function SideTabStripImpl() {
       <style>{`
         @media (max-width: 768px) {
           .ddd-side-tab-label { display: none !important; }
-          .ddd-side-strip { gap: 3px !important; top: 60px !important; left: 6px !important; }
-          .ddd-side-strip > div { height: 8px !important; }
+          .ddd-side-strip {
+            flex-direction: row !important;
+            top: 6px !important;
+            left: 6px !important;
+            right: auto !important;
+            gap: 4px !important;
+          }
+          .ddd-side-strip > div { width: 4px !important; height: auto !important; }
           .ddd-side-tab {
             padding: 0 !important;
             min-height: 0 !important;
-            width: 36px !important;
-            height: 36px !important;
+            width: 34px !important;
+            height: 34px !important;
             border-radius: 10px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
           }
-          .ddd-side-tab-icon { width: 22px !important; height: 22px !important; }
-          .ddd-side-tab-icon svg { width: 13px !important; height: 13px !important; }
+          .ddd-side-tab-icon { width: 20px !important; height: 20px !important; }
+          .ddd-side-tab-icon svg { width: 12px !important; height: 12px !important; }
         }
       `}</style>
       <aside className="ddd-side-strip" style={{

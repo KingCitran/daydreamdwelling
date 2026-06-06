@@ -158,7 +158,14 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
     const canvas = gl.domElement
     canvas.style.cursor = 'grabbing'
     const capturedId = item.id
-    const handleMove = (ev) => { const g = pointerToGrid(ev.clientX, ev.clientY); if (g) onMove(capturedId, g.col, g.row) }
+    let lastCol = -1, lastRow = -1
+    const handleMove = (ev) => {
+      const g = pointerToGrid(ev.clientX, ev.clientY)
+      if (g && (g.col !== lastCol || g.row !== lastRow)) {
+        lastCol = g.col; lastRow = g.row
+        onMove(capturedId, g.col, g.row)
+      }
+    }
     const handleUp   = () => {
       activeDragRef.current = null; canvas.style.cursor = ''; onDragEnd()
       window.removeEventListener('pointermove', handleMove)

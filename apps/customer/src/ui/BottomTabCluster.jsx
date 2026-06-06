@@ -19,22 +19,28 @@ function BottomTabClusterImpl({ onAccount, onSettings, signedIn }) {
           text-shadow: none !important;
         }
         @media (max-width: 768px) {
+          .ddd-bottom-cluster {
+            flex-direction: row !important;
+            bottom: 6px !important;
+            left: 6px !important;
+            gap: 4px !important;
+          }
           .ddd-bottom-tab {
             padding: 0 !important;
             min-height: 0 !important;
-            width: 36px !important;
-            height: 36px !important;
+            width: 34px !important;
+            height: 34px !important;
             border-radius: 10px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
           }
           .ddd-bottom-tab-label { display: none !important; }
-          .ddd-bottom-tab-icon { width: 22px !important; height: 22px !important; }
-          .ddd-bottom-tab-icon svg { width: 13px !important; height: 13px !important; }
+          .ddd-bottom-tab-icon { width: 20px !important; height: 20px !important; }
+          .ddd-bottom-tab-icon svg { width: 12px !important; height: 12px !important; }
         }
       `}</style>
-      <aside style={{
+      <aside className="ddd-bottom-cluster" style={{
         position: 'fixed', bottom: 16, left: 12, zIndex: 90,
         display: 'flex', flexDirection: 'column', gap: 6,
       }}>
