@@ -77,9 +77,7 @@ export default function Step7Preview({ form, update, onSave, saving, error, isEd
         {form.themeTags.length > 0 && <PreviewRow label="Theme tags" value={form.themeTags.join(', ')} t={t} />}
 
         {/* Shipping */}
-        <PreviewRow label="Shipping" value={form.shippingType === 'flat'
-          ? `Flat rate: $${form.flatRate || '0'}`
-          : 'Calculated (coming soon)'} t={t} />
+        <PreviewRow label="Shipping" value="Calculated at checkout" t={t} />
         {form.wattage && <PreviewRow label="Wattage" value={`${form.wattage}W`} t={t} />}
         {form.kelvin  && <PreviewRow label="Color temp" value={`${form.kelvin}K`} t={t} />}
       </Card>
