@@ -100,14 +100,24 @@ export default function NavBar({ page, onNavigate }) {
         )}
 
         {/* Bottom tab bar */}
-        <nav style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
+        <style>{`
+          .ddd-bottom-tab-bar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            -webkit-transform: translate3d(0,0,0);
+            transform: translate3d(0,0,0);
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+          }
+        `}</style>
+        <nav className="ddd-bottom-tab-bar" style={{
+          height: 56,
           background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`,
           display: 'flex', justifyContent: 'space-around', alignItems: 'center',
           zIndex: 997, backdropFilter: 'blur(16px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)',
-          willChange: 'transform',
         }}>
           {MOBILE_TABS.map(tab => {
             const isActive = page === tab.key

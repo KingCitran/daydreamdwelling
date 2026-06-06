@@ -258,13 +258,13 @@ export default function ProductsPage({ onNavigate }) {
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                           <span style={{ fontSize: 10, fontWeight: 600, color: ms.color }}>{ms.label}</span>
-                          {(p.model_3d_status === 'none' || p.model_3d_status === 'failed') && (
+                          {(p.model_3d_status === 'none' || p.model_3d_status === 'failed' || p.model_3d_status === 'approved' || p.model_3d_status === 'ready' || p.model_3d_status === 'rejected') && (
                             <button
                               style={{ fontSize: 10, padding: '2px 8px', background: `${t.accent}20`, border: `1px solid ${t.accent}40`, borderRadius: 6, color: t.accent, cursor: 'pointer', fontWeight: 600 }}
                               onClick={e => { e.stopPropagation(); triggerTripo(p.id) }}
                               disabled={tripoLoading === p.id}
                             >
-                              {tripoLoading === p.id ? '…' : p.model_3d_status === 'failed' ? 'Retry 3D' : 'Generate 3D'}
+                              {tripoLoading === p.id ? '…' : p.model_3d_status === 'none' ? 'Generate 3D' : 'Regenerate 3D'}
                             </button>
                           )}
                           {p.model_3d_status === 'generating' && (
