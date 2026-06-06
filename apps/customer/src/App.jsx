@@ -802,6 +802,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           lightsOff={lightsOff}
           catalogue={catalogue}
           cloudsOn={cloudsOn}
+          onRotate={delta => setTarget(r => r + delta)}
         />
       </Canvas>
 

@@ -183,14 +183,21 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
       onDoubleClick={e => { e.stopPropagation(); onDoubleClick(item.typeKey) }}
     >
       {modelUrl ? (
-        <Suspense fallback={
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[fw, fh, fd]} />
-            <meshStandardMaterial color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'} roughness={0.76} opacity={0.4} transparent />
+        <>
+          {/* Contact shadow — soft ellipse on the floor under the model */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.005, 0]}>
+            <circleGeometry args={[Math.max(fw, fd) * 0.55, 32]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.18} depthWrite={false} />
           </mesh>
-        }>
-          <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} />
-        </Suspense>
+          <Suspense fallback={
+            <mesh castShadow receiveShadow>
+              <boxGeometry args={[fw, fh, fd]} />
+              <meshStandardMaterial color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'} roughness={0.76} opacity={0.4} transparent />
+            </mesh>
+          }>
+            <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} />
+          </Suspense>
+        </>
       ) : (
         <mesh castShadow receiveShadow>
           <boxGeometry args={[fw, fh, fd]} />

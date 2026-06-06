@@ -38,6 +38,59 @@ const MOOD_LEGACY = {
   cozy:    MOOD_SCENE_PRESETS['Vivid Sunset'],
 }
 
+// Touch gesture controller — swipe to rotate, pinch to zoom.
+// Mounted inside the Canvas so it has access to the gl.domElement.
+function TouchController({ onRotate, zoomRef }) {
+  const { gl } = useThree()
+  const touchState = useRef({ startX: 0, startDist: 0, startZoom: 0, rotating: false })
+
+  useEffect(() => {
+    const el = gl.domElement
+    const onTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        touchState.current.startX = e.touches[0].clientX
+        touchState.current.rotating = true
+      } else if (e.touches.length === 2) {
+        touchState.current.rotating = false
+        const dx = e.touches[1].clientX - e.touches[0].clientX
+        const dy = e.touches[1].clientY - e.touches[0].clientY
+        touchState.current.startDist = Math.hypot(dx, dy)
+        touchState.current.startZoom = zoomRef.current
+      }
+    }
+    const onTouchMove = (e) => {
+      if (e.touches.length === 2) {
+        // Pinch to zoom
+        e.preventDefault()
+        const dx = e.touches[1].clientX - e.touches[0].clientX
+        const dy = e.touches[1].clientY - e.touches[0].clientY
+        const dist = Math.hypot(dx, dy)
+        const scale = dist / (touchState.current.startDist || 1)
+        zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.current.startZoom * scale))
+      }
+    }
+    const onTouchEnd = (e) => {
+      if (touchState.current.rotating && e.changedTouches.length === 1) {
+        const dx = e.changedTouches[0].clientX - touchState.current.startX
+        // Swipe threshold: 50px = 90° rotation
+        if (Math.abs(dx) > 50) {
+          onRotate(dx > 0 ? Math.PI / 2 : -Math.PI / 2)
+        }
+      }
+      touchState.current.rotating = false
+    }
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [gl, onRotate, zoomRef])
+  return null
+}
+
 function IsometricCamera({ target, zoomRef }) {
   const { camera } = useThree()
   useEffect(() => {
@@ -122,6 +175,7 @@ export default function RoomScene({
   lightsOff = false,
   catalogue,
   cloudsOn = true,
+  onRotate,
 }) {
   const { mood: sharedMood } = useMoodControl()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
@@ -146,6 +200,7 @@ export default function RoomScene({
       <IsometricCamera target={camTarget} zoomRef={zoomRef} />
       <CameraOrbitController ceilingView={ceilingView} lookAtY={lookAtY} />
       <ZoomController zoomRef={zoomRef} />
+      {onRotate && <TouchController onRotate={onRotate} zoomRef={zoomRef} />}
       <ScreenshotTrigger triggerRef={screenshotRef} />
 
       {/* Hemisphere: skyColor = ceiling/indirect bounce, groundColor = floor bounce */}

@@ -200,6 +200,68 @@ function PaintPalette({ value, onChange }) {
   )
 }
 
+// ── Texture presets ────────────────────────────────────────────
+const FLOOR_TEXTURES = [
+  { label: 'Light Oak',      color: '#d4b880', accent: '#c4a060', pattern: 'wood' },
+  { label: 'Dark Walnut',    color: '#5c4033', accent: '#4a3028', pattern: 'wood' },
+  { label: 'Honey Maple',    color: '#d4a76a', accent: '#c09050', pattern: 'wood' },
+  { label: 'Gray Wash',      color: '#b0a898', accent: '#9a9080', pattern: 'wood' },
+  { label: 'White Oak',      color: '#e0d4c0', accent: '#d0c4a8', pattern: 'wood' },
+  { label: 'Cream Carpet',   color: '#e8e0d0', accent: '#d8d0c0', pattern: 'carpet' },
+  { label: 'Gray Carpet',    color: '#a0a0a0', accent: '#909090', pattern: 'carpet' },
+  { label: 'Navy Carpet',    color: '#2a3a5a', accent: '#1a2a4a', pattern: 'carpet' },
+  { label: 'Sage Carpet',    color: '#8a9a78', accent: '#7a8a68', pattern: 'carpet' },
+  { label: 'White Tile',     color: '#f0f0f0', accent: '#e0e0e0', pattern: 'tile' },
+  { label: 'Marble',         color: '#e8e4e0', accent: '#d0c8c0', pattern: 'marble' },
+  { label: 'Slate',          color: '#606068', accent: '#505058', pattern: 'tile' },
+  { label: 'Terracotta Tile',color: '#c07858', accent: '#a86040', pattern: 'tile' },
+  { label: 'Concrete',       color: '#b0b0b0', accent: '#a0a0a0', pattern: 'concrete' },
+]
+
+const WALL_TEXTURES = [
+  { label: 'Smooth White',   color: '#f0ece6', accent: null, pattern: 'flat' },
+  { label: 'Warm Cream',     color: '#ede8df', accent: null, pattern: 'flat' },
+  { label: 'Soft Gray',      color: '#d8d8d8', accent: null, pattern: 'flat' },
+  { label: 'Sage',           color: '#c0c8b0', accent: null, pattern: 'flat' },
+  { label: 'Dusty Blue',     color: '#b0c0d0', accent: null, pattern: 'flat' },
+  { label: 'Blush',          color: '#e8ccc4', accent: null, pattern: 'flat' },
+  { label: 'White Brick',    color: '#f0ece6', accent: '#e0d8cc', pattern: 'brick' },
+  { label: 'Red Brick',      color: '#a04828', accent: '#883820', pattern: 'brick' },
+  { label: 'Gray Brick',     color: '#888888', accent: '#787878', pattern: 'brick' },
+  { label: 'Shiplap White',  color: '#f0ece6', accent: '#e0d8cc', pattern: 'shiplap' },
+  { label: 'Shiplap Gray',   color: '#c0beb8', accent: '#b0aea8', pattern: 'shiplap' },
+  { label: 'Beadboard',      color: '#ece8e0', accent: '#dcd4c8', pattern: 'beadboard' },
+]
+
+function TexturePresets({ presets, onSelect, selected }) {
+  const t = useTheme()
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <span style={{ fontSize: 9, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Presets</span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+        {presets.map(p => (
+          <button
+            key={p.label}
+            title={p.label}
+            onClick={() => onSelect(p.color)}
+            style={{
+              width: 28, height: 28, borderRadius: 4, cursor: 'pointer', padding: 0,
+              background: p.pattern === 'wood' ? `repeating-linear-gradient(90deg, ${p.color} 0px, ${p.accent} 3px, ${p.color} 6px)` :
+                         p.pattern === 'brick' ? `repeating-linear-gradient(0deg, ${p.color} 0px, ${p.color} 8px, ${p.accent} 8px, ${p.accent} 9px)` :
+                         p.pattern === 'carpet' ? `radial-gradient(circle at 50% 50%, ${p.accent} 0.5px, ${p.color} 0.5px)` :
+                         p.color,
+              backgroundSize: p.pattern === 'carpet' ? '3px 3px' : undefined,
+              border: selected === p.color ? `2px solid #fff` : `1px solid rgba(0,0,0,0.15)`,
+              outline: selected === p.color ? '2px solid rgba(128,128,128,0.6)' : 'none',
+              outlineOffset: 1,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── StylePanel ─────────────────────────────────────────────────
 export default function StylePanel({ floorColor, wallColor, onFloorColor, onWallColor }) {
   const s = useStyles()
@@ -220,6 +282,11 @@ export default function StylePanel({ floorColor, wallColor, onFloorColor, onWall
       </div>
 
       <div style={{ marginTop: 10 }}>
+        <TexturePresets
+          presets={target === 'floor' ? FLOOR_TEXTURES : WALL_TEXTURES}
+          onSelect={target === 'floor' ? onFloorColor : onWallColor}
+          selected={target === 'floor' ? floorColor : wallColor}
+        />
         {target === 'floor'
           ? <PaintPalette key="floor" value={floorColor} onChange={onFloorColor} />
           : <PaintPalette key="wall"  value={wallColor}  onChange={onWallColor}  />

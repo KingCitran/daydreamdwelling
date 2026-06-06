@@ -55,17 +55,25 @@ export default function Step7Preview({ form, update, onSave, saving, error, isEd
           </div>
         )}
 
-        {/* Swatches */}
-        {form.swatches.filter(sw => sw.name).length > 0 && (
+        {/* Color Options */}
+        {form.swatches.filter(sw => sw.colors?.length || sw.name).length > 0 && (
           <div>
-            <p style={s.label}>Colors</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {form.swatches.filter(sw => sw.name).map((sw, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: 50, background: sw.hex, border: `1px solid ${t.surfaceBorder}` }} />
-                  <span style={{ fontSize: 12, color: t.textSoft }}>{sw.name}</span>
-                </div>
-              ))}
+            <p style={s.label}>Color Options</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              {form.swatches.map((sw, i) => {
+                const colors = sw.colors || [{ hex: sw.hex || '#888', name: sw.name || '' }]
+                const label = sw.label || sw.name || `Option ${i + 1}`
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ display: 'flex', borderRadius: 50, overflow: 'hidden', border: `1px solid ${t.surfaceBorder}` }}>
+                      {colors.map((c, ci) => (
+                        <div key={ci} style={{ width: 18 / colors.length + 6, height: 18, background: c.hex || '#888' }} />
+                      ))}
+                    </div>
+                    <span style={{ fontSize: 12, color: t.textSoft }}>{label}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

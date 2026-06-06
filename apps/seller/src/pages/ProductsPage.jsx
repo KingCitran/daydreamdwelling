@@ -21,6 +21,7 @@ export default function ProductsPage({ onNavigate }) {
   const [loading,   setLoading]   = useState(true)
   const [deleting,  setDeleting]  = useState(null)
   const [tripoLoading, setTripoLoading] = useState(null)
+  const [sizePreview, setSizePreview] = useState(null) // product id
   const [search,    setSearch]    = useState('')
   const [sort,      setSort]      = useState('newest')
   const [selected,  setSelected]  = useState(new Set())
@@ -31,7 +32,7 @@ export default function ProductsPage({ onNavigate }) {
     setLoading(true)
     const { data: prods } = await supabase
       .from('products')
-      .select('id, label, brand, is_active, created_at, model_3d_status, model_3d_tripo_job_id, product_sizes(price), product_images(storage_path, is_primary, sort_order)')
+      .select('id, label, brand, is_active, created_at, model_3d_status, model_3d_tripo_job_id, product_sizes(label, price, footprint, height, sort_order), product_images(storage_path, is_primary, sort_order)')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
     const rows = (prods || []).map(p => {
@@ -281,6 +282,7 @@ export default function ProductsPage({ onNavigate }) {
                     })()}
                   </div>
                   <div style={s.cardActions}>
+                    <button style={s.actionBtn} onClick={e => { e.stopPropagation(); setSizePreview(sizePreview === p.id ? null : p.id) }}>📐</button>
                     <button style={s.actionBtn} onClick={() => onNavigate('add-product', { editProductId: p.id })}>Edit</button>
                     <button style={{ ...s.actionBtn, color: p.is_active ? '#e0944a' : '#5a9a6a' }} onClick={() => toggleActive(p)}>
                       {p.is_active ? 'Deactivate' : 'Activate'}
@@ -290,6 +292,57 @@ export default function ProductsPage({ onNavigate }) {
                       {deleting === p.id ? '…' : 'Del'}
                     </button>
                   </div>
+                  {sizePreview === p.id && (() => {
+                    const sizes = (p.product_sizes || []).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                    if (!sizes.length) return <div style={s.sizePanel}><p style={{ fontSize: 12, color: t.textSoft, margin: 0 }}>No sizes entered yet.</p></div>
+                    const PERSON_H = 5.6 // average person ~5'7" in feet
+                    const maxH = Math.max(...sizes.map(sz => sz.height || 0), PERSON_H)
+                    const scale = 100 / maxH // px per foot
+                    return (
+                      <div style={s.sizePanel}>
+                        <p style={{ fontSize: 10, fontWeight: 600, color: t.textSoft, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Size Check</p>
+                        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', overflowX: 'auto', paddingBottom: 4 }}>
+                          {/* Human reference */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                            <div style={{ width: 20, height: PERSON_H * scale, background: `${t.textSoft}30`, borderRadius: '10px 10px 0 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 4 }}>
+                              <span style={{ fontSize: 10, color: t.textSoft }}>🧍</span>
+                            </div>
+                            <span style={{ fontSize: 9, color: t.textSoft }}>5'7"</span>
+                          </div>
+                          {sizes.map((sz, i) => {
+                            const fp = sz.footprint || [0, 0]
+                            const w = fp[0] || 0
+                            const d = fp[1] || 0
+                            const h = sz.height || 0
+                            const fmtDim = v => v > 0 ? `${Math.floor(v)}'${Math.round((v % 1) * 12)}"` : '—'
+                            return (
+                              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                <div style={{
+                                  width: Math.max(24, (w || 1.5) * scale * 0.6),
+                                  height: Math.max(12, h * scale),
+                                  background: `${t.accent}30`,
+                                  border: `1px solid ${t.accent}60`,
+                                  borderRadius: 4,
+                                }} />
+                                <span style={{ fontSize: 10, fontWeight: 600, color: t.text }}>{sz.label}</span>
+                                <span style={{ fontSize: 9, color: t.textSoft }}>
+                                  {w > 0 || d > 0 ? `${fmtDim(w)} × ${fmtDim(d)}` : 'no dims'}
+                                </span>
+                                <span style={{ fontSize: 9, color: t.textSoft }}>
+                                  H: {h > 0 ? fmtDim(h) : '—'}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {sizes.some(sz => !sz.height || !sz.footprint?.[0]) && (
+                          <p style={{ fontSize: 10, color: '#e07a30', margin: '8px 0 0' }}>
+                            Some sizes are missing dimensions — they'll default to 2×2×2 ft in the room builder.
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}
@@ -330,5 +383,6 @@ function makeStyles(t) {
     cardPrice:    { fontSize: 13, fontWeight: 600, color: t.accent },
     cardActions:  { display: 'flex', borderTop: `1px solid ${t.surfaceBorder}` },
     actionBtn:    { flex: 1, padding: '9px 0', background: 'transparent', border: 'none', color: t.textSoft, fontSize: 12, borderRight: `1px solid ${t.surfaceBorder}`, cursor: 'pointer', fontWeight: 500 },
+    sizePanel:    { padding: '12px 14px', borderTop: `1px solid ${t.surfaceBorder}`, background: `${t.accent}06` },
   }
 }
