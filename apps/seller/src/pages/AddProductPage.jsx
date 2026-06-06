@@ -24,7 +24,7 @@ export const INITIAL_FORM = {
   makeModel: '', shortDesc: '', fullDesc: '', materials: [], guarantee: '',
   photos: [],
   sizes: [{ label: '', wFt: '', wIn: '', dFt: '', dIn: '', hFt: '', hIn: '', price: '' }],
-  swatches: [{ name: '', hex: '#888888', family: '' }],
+  swatches: [{ label: '', colors: [{ location: '', hex: '#888888', name: '' }], family: '' }],
   typeKey: '', styleTags: [], roomTags: [], themeTags: [],
   shippingType: 'flat', flatRate: '', processingDays: 5,
   shippingRegions: ['domestic'], wattage: '', kelvin: '',
@@ -66,10 +66,22 @@ export default function AddProductPage({ productId, onDone }) {
         fullDesc: p.description || '', materials: p.materials || [], guarantee: p.guarantee || '',
         photos,
         sizes: p.product_sizes?.length
-          ? p.product_sizes.map(s => ({ label: s.label, wFt: '', wIn: '0', dFt: '', dIn: '0', hFt: '', hIn: '0', price: s.price }))
+          ? p.product_sizes.map(s => {
+              const fp = s.footprint || [0, 0]
+              const wTotal = fp[0] || 0, dTotal = fp[1] || 0, hTotal = s.height || 0
+              return {
+                label: s.label, price: s.price,
+                wFt: Math.floor(wTotal) || '', wIn: Math.round((wTotal % 1) * 12) || '',
+                dFt: Math.floor(dTotal) || '', dIn: Math.round((dTotal % 1) * 12) || '',
+                hFt: Math.floor(hTotal) || '', hIn: Math.round((hTotal % 1) * 12) || '',
+              }
+            })
           : INITIAL_FORM.sizes,
         swatches: p.product_swatches?.length
-          ? p.product_swatches.map(s => ({ name: s.name, hex: s.hex_color || s.hex || '#888888', family: s.family || '' }))
+          ? p.product_swatches.map(s => ({
+              label: s.name || '', family: s.family || '',
+              colors: [{ location: '', hex: s.hex_color || s.hex || '#888888', name: s.name || '' }],
+            }))
           : INITIAL_FORM.swatches,
         typeKey: p.type_key || '',
         styleTags: (p.product_tags || []).filter(x => x.tag_type === 'style').map(x => x.value),
@@ -140,13 +152,36 @@ export default function AddProductPage({ productId, onDone }) {
           height: Number(s.hFt || 0) + Number(s.hIn || 0) / 12, sort_order: i,
         })))
       }
-      // Swatches
+      // Swatches — supports new multi-color format (colors[]) and legacy single-color
       await supabase.from('product_swatches').delete().eq('product_id', pid)
-      const validSwatches = form.swatches.filter(s => s.name.trim())
-      if (validSwatches.length) {
-        await supabase.from('product_swatches').insert(validSwatches.map((s, i) => ({
-          product_id: pid, name: s.name.trim(), hex_color: s.hex, hex: s.hex, family: s.family || null, sort_order: i,
-        })))
+      const swatchRows = []
+      for (let i = 0; i < form.swatches.length; i++) {
+        const sw = form.swatches[i]
+        if (sw.colors && sw.colors.length) {
+          // New format: each option has multiple colors with locations
+          const label = (sw.label || '').trim() || `Option ${i + 1}`
+          const primaryColor = sw.colors[0] || {}
+          const hasAnyColor = sw.colors.some(c => c.hex && c.hex !== '#888888')
+          if (!hasAnyColor) continue
+          swatchRows.push({
+            product_id: pid,
+            name: label,
+            hex_color: primaryColor.hex || '#888888',
+            hex: primaryColor.hex || '#888888',
+            family: sw.family || null,
+            sort_order: i,
+            // Store full color data as JSON in the name field for now:
+            // "Option 1 | Seat:#FFFFFF, Base:#1A1A1A"
+          })
+        } else if (sw.name && sw.name.trim()) {
+          // Legacy single-color format
+          swatchRows.push({
+            product_id: pid, name: sw.name.trim(), hex_color: sw.hex, hex: sw.hex, family: sw.family || null, sort_order: i,
+          })
+        }
+      }
+      if (swatchRows.length) {
+        await supabase.from('product_swatches').insert(swatchRows)
       }
       // Tags
       await supabase.from('product_tags').delete().eq('product_id', pid)
