@@ -18,6 +18,12 @@ function BottomTabClusterImpl({ onAccount, onSettings, signedIn }) {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
+        @media (max-width: 768px) {
+          .ddd-bottom-tab { padding: 6px !important; min-height: 36px !important; border-radius: 10px !important; }
+          .ddd-bottom-tab-label { display: none !important; }
+          .ddd-bottom-tab-icon { width: 24px !important; height: 24px !important; }
+          .ddd-bottom-tab-icon svg { width: 14px !important; height: 14px !important; }
+        }
       `}</style>
       <aside style={{
         position: 'fixed', bottom: 16, left: 12, zIndex: 90,
@@ -50,14 +56,14 @@ function BottomTab({ onClick, Icon, label, accent }) {
         backdropFilter: 'blur(10px)',
       }}
     >
-      <span style={{
+      <span className="ddd-bottom-tab-icon" style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
         background: accent, color: '#1a0f30',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {Icon && <Icon size={16} strokeWidth={2.2} />}
       </span>
-      <span>{label}</span>
+      <span className="ddd-bottom-tab-label">{label}</span>
     </button>
   )
 }

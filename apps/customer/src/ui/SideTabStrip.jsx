@@ -43,7 +43,16 @@ function SideTabStripImpl() {
           animation: ddd-tab-snap-pulse 0.9s ease-in-out infinite;
         }
       `}</style>
-      <aside style={{
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-side-tab-label { display: none !important; }
+          .ddd-side-strip { gap: 4px !important; }
+          .ddd-side-tab { padding: 6px !important; min-height: 36px !important; border-radius: 10px !important; }
+          .ddd-side-tab-icon { width: 24px !important; height: 24px !important; }
+          .ddd-side-tab-icon svg { width: 14px !important; height: 14px !important; }
+        }
+      `}</style>
+      <aside className="ddd-side-strip" style={{
         position: 'fixed', top: STRIP_TOP, left: 12, zIndex: 90,
         display: 'flex', flexDirection: 'column', gap: 6,
       }}>
@@ -79,14 +88,14 @@ function SideTabStripImpl() {
                 transition: 'opacity 0.18s ease, background 0.18s ease',
               }}
             >
-              <span style={{
+              <span className="ddd-side-tab-icon" style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 background: def.accent, color: '#1a0f30',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {Icon && <Icon size={16} strokeWidth={2.2} />}
               </span>
-              <span>{def.label}</span>
+              <span className="ddd-side-tab-label">{def.label}</span>
             </button>
           )
         })}

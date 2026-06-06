@@ -803,6 +803,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           catalogue={catalogue}
           cloudsOn={cloudsOn}
           onRotate={delta => setTarget(r => r + delta)}
+          onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
         />
       </Canvas>
 

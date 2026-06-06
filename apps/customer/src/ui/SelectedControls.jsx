@@ -81,9 +81,10 @@ export default function SelectedControls({
         {isMobile && (
           <button
             onClick={() => setMobileExpanded(!mobileExpanded)}
-            style={{ background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', display: 'flex', justifyContent: 'center' }}
+            style={{ background: 'none', border: 'none', padding: '6px 0 2px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: '100%' }}
           >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }} />
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{mobileExpanded ? 'Tap to collapse' : 'Tap for controls'}</span>
           </button>
         )}
         <HeaderSection

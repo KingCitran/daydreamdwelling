@@ -185,9 +185,9 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
       {modelUrl ? (
         <>
           {/* Contact shadow — subtle oval on the floor matching the footprint */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]} scale={[fw * 0.45, fd * 0.45, 1]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]} scale={[fw * 0.5, fd * 0.5, 1]}>
             <circleGeometry args={[1, 32]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.1} depthWrite={false} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.14} depthWrite={false} />
           </mesh>
           <Suspense fallback={
             <mesh castShadow receiveShadow>
