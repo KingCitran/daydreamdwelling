@@ -113,9 +113,10 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
   const size       = def.sizes[item.sizeIndex] ?? def.sizes[0]
-  if (!size?.footprint || size.footprint[0] === 0) return null  // incomplete dimension data
-  const [fw, fd]   = size.footprint
-  const fh         = size.height || 1
+  if (!size) return null
+  // Default to 2×2×2 ft if dimensions are missing — lets 3D models still render
+  const [fw, fd]   = (size.footprint && size.footprint[0] > 0) ? size.footprint : [2, 2]
+  const fh         = (size.height && size.height > 0) ? size.height : 2
   const rotated    = item.rotation === 90 || item.rotation === 270
   const effectiveW = rotated ? fd : fw
   const effectiveD = rotated ? fw : fd
