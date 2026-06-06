@@ -743,8 +743,10 @@ export default function Items({
   cartHighlight = null,
   lightsOff = false,
   catalogue = ITEM_CATALOGUE,
+  activeDragRef: externalDragRef,
 }) {
-  const activeDragRef = useRef(null)
+  const internalDragRef = useRef(null)
+  const activeDragRef = externalDragRef || internalDragRef
   const [visibleWalls, setVisibleWalls] = useState(VISIBLE_WALLS[0])
   const prevQ = useRef(0)
 

@@ -39,8 +39,8 @@ const MOOD_LEGACY = {
 }
 
 // Touch gesture controller — swipe to rotate, pinch to zoom.
-// Mounted inside the Canvas so it has access to the gl.domElement.
-function TouchController({ onRotate, onSwipeVertical, zoomRef }) {
+// Suppresses rotation while an item is being dragged (activeDragRef).
+function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) {
   const { gl } = useThree()
   const touchState = useRef({ startX: 0, startY: 0, startDist: 0, startZoom: 0, singleTouch: false })
 
@@ -70,15 +70,19 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef }) {
       }
     }
     const onTouchEnd = (e) => {
+      // Don't rotate/swipe if the user was dragging an item
+      if (activeDragRef?.current !== null) {
+        touchState.current.singleTouch = false
+        return
+      }
       if (touchState.current.singleTouch && e.changedTouches.length === 1) {
         const dx = e.changedTouches[0].clientX - touchState.current.startX
         const dy = e.changedTouches[0].clientY - touchState.current.startY
         const absDx = Math.abs(dx), absDy = Math.abs(dy)
-        if (absDx > absDy && absDx > 50) {
-          // Horizontal swipe → rotate
+        // Higher threshold (80px) to avoid accidental rotation
+        if (absDx > absDy && absDx > 80) {
           onRotate(dx > 0 ? Math.PI / 2 : -Math.PI / 2)
-        } else if (absDy > absDx && absDy > 60 && onSwipeVertical) {
-          // Vertical swipe → ceiling (up) / floor (down)
+        } else if (absDy > absDx && absDy > 80 && onSwipeVertical) {
           onSwipeVertical(dy < 0 ? 'up' : 'down')
         }
       }
@@ -92,7 +96,7 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef }) {
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
     }
-  }, [gl, onRotate, onSwipeVertical, zoomRef])
+  }, [gl, onRotate, onSwipeVertical, zoomRef, activeDragRef])
   return null
 }
 
@@ -187,6 +191,7 @@ export default function RoomScene({
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
   const groupRef = useRef()
   const currentRY = useRef(0)
+  const activeDragRef = useRef(null)
 
   const lookAtY = wallHeight / 2
   const camTarget = useMemo(
@@ -206,7 +211,7 @@ export default function RoomScene({
       <IsometricCamera target={camTarget} zoomRef={zoomRef} />
       <CameraOrbitController ceilingView={ceilingView} lookAtY={lookAtY} />
       <ZoomController zoomRef={zoomRef} />
-      {onRotate && <TouchController onRotate={onRotate} onSwipeVertical={onSwipeVertical} zoomRef={zoomRef} />}
+      {onRotate && <TouchController onRotate={onRotate} onSwipeVertical={onSwipeVertical} zoomRef={zoomRef} activeDragRef={activeDragRef} />}
       <ScreenshotTrigger triggerRef={screenshotRef} />
 
       {/* Hemisphere: skyColor = ceiling/indirect bounce, groundColor = floor bounce */}
@@ -274,6 +279,7 @@ export default function RoomScene({
           cartHighlight={cartHighlight}
           lightsOff={lightsOff}
           catalogue={catalogue}
+          activeDragRef={activeDragRef}
         />
         <Ceiling
           cells={cells}

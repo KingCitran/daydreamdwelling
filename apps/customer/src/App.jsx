@@ -784,7 +784,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           .ddd-builder-logo { display: none !important; }
         }
       `}</style>
-      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1 }} onPointerMissed={() => setSelectedId(null)}>
         <RoomScene
           targetRotation={targetRotation}
           cells={cells}

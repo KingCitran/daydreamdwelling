@@ -58,29 +58,30 @@ export default function SelectedControls({
   const isMobile = useIsMobile()
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
-  // Mobile: floating pill when collapsed, modal overlay when expanded.
-  // Nothing covers the room floor when collapsed.
+  // Mobile: floating pill with quick actions when collapsed
   if (isMobile && !mobileExpanded) {
+    const qBtn = { width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#f0eaff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0 }
     return (
-      <button
-        onClick={() => setMobileExpanded(true)}
-        style={{
-          position: 'absolute', bottom: 12, right: 12, zIndex: 40,
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '8px 14px',
-          background: 'rgba(20,15,38,0.88)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: 20,
-          color: '#f0eaff', fontSize: 12, fontWeight: 600,
-          cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-          fontFamily: "'Outfit', system-ui, sans-serif",
-          maxWidth: '60%',
-        }}
-      >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
-        <span style={{ fontSize: 10, opacity: 0.5, flexShrink: 0 }}>▴</span>
-      </button>
+      <div style={{
+        position: 'absolute', bottom: 12, right: 12, zIndex: 40,
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '6px 10px',
+        background: 'rgba(20,15,38,0.92)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: 14,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        fontFamily: "'Outfit', system-ui, sans-serif",
+      }}>
+        <button onClick={() => setMobileExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 120, overflow: 'hidden' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#f0eaff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
+          <span style={{ fontSize: 9, opacity: 0.4, flexShrink: 0 }}>▴</span>
+        </button>
+        <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
+        {!item.locked && <button style={qBtn} onClick={onRotate} title="Rotate">↻</button>}
+        <button style={qBtn} onClick={onShowDetails} title="Details">ℹ</button>
+        <button style={{ ...qBtn, color: '#ff9ab8' }} onClick={onToggleWishlist} title="Wishlist">♡</button>
+        {!item.locked && <button style={{ ...qBtn, color: '#f08080' }} onClick={onDelete} title="Delete">✕</button>}
+      </div>
     )
   }
 
