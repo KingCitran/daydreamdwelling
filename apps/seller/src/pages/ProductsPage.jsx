@@ -31,10 +31,19 @@ export default function ProductsPage({ onNavigate }) {
     setLoading(true)
     const { data: prods } = await supabase
       .from('products')
-      .select('id, label, brand, is_active, created_at, model_3d_status, model_3d_tripo_job_id, product_sizes(price)')
+      .select('id, label, brand, is_active, created_at, model_3d_status, model_3d_tripo_job_id, product_sizes(price), product_images(storage_path, is_primary, sort_order)')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
-    const rows = prods || []
+    const rows = (prods || []).map(p => {
+      const imgs = (p.product_images || []).sort((a, b) => a.sort_order - b.sort_order)
+      const primary = imgs.find(i => i.is_primary) || imgs[0]
+      return {
+        ...p,
+        thumbnailUrl: primary
+          ? supabase.storage.from('product-images').getPublicUrl(primary.storage_path).data?.publicUrl
+          : null,
+      }
+    })
     setProducts(rows)
 
     if (rows.length) {
@@ -211,7 +220,7 @@ export default function ProductsPage({ onNavigate }) {
               const isSelected = selected.has(p.id)
               return (
                 <div key={p.id} style={{ ...s.card, ...(isSelected ? { outline: `2px solid ${t.accent}` } : {}) }}>
-                  <div style={s.cardTop}>
+                  <div style={{ ...s.cardTop, ...(p.thumbnailUrl ? { backgroundImage: `url(${p.thumbnailUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }}>
                     <div style={{ ...s.statusPill, background: p.is_active ? '#88d8b0' : '#e0d8f0', color: p.is_active ? '#2a6a4a' : '#9a88bb' }}>
                       {p.is_active ? 'Active' : 'Inactive'}
                     </div>
@@ -298,7 +307,7 @@ function makeStyles(t) {
     emptyTitle:   { fontSize: 16, fontWeight: 600, color: t.text },
     grid:         { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 },
     card:         { background: t.surface, backdropFilter: 'blur(12px)', border: `1px solid ${t.surfaceBorder}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'outline 0.1s' },
-    cardTop:      { height: 80, background: `${t.accent}12`, position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: 10 },
+    cardTop:      { height: 140, background: `${t.accent}12`, position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: 10 },
     cardTopRight: { display: 'flex', alignItems: 'center', gap: 8 },
     statusPill:   { fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '3px 10px', letterSpacing: '0.3px' },
     soldBadge:    { fontSize: 10, fontWeight: 600, color: t.textSoft, background: `${t.textSoft}18`, borderRadius: 20, padding: '2px 8px' },
