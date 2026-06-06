@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
         pbr: true,
         texture_quality: 'standard',
         texture_alignment: 'original_image',
+        enable_image_autofix: true,
       }
     } else {
       // Single image (use the primary / first photo)
@@ -126,6 +127,7 @@ Deno.serve(async (req) => {
         pbr: true,
         texture_quality: 'standard',
         texture_alignment: 'original_image',
+        enable_image_autofix: true,
       }
     }
 

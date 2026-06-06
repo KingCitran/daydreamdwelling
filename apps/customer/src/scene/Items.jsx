@@ -26,24 +26,36 @@ const LIGHT_CONFIG = {
 
 // Renders a .glb model loaded from Supabase Storage. Falls back to nothing
 // if the load fails (caller wraps in Suspense with a box fallback).
+// Fresh clone on every size change so Box3 always measures the original geometry.
 const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0 }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => scene.clone(true), [scene])
 
-  // Auto-scale the model to fit the product's declared footprint
-  useMemo(() => {
+  // Clone fresh every time dimensions change so we always measure unscaled geometry
+  const model = useMemo(() => {
+    const cloned = scene.clone(true)
     const box = new THREE.Box3().setFromObject(cloned)
     const size = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
-    if (size.x === 0 || size.y === 0 || size.z === 0) return
+    const min = box.min.clone()
+    if (size.x === 0 || size.y === 0 || size.z === 0) return cloned
+    // Scale to fit inside the declared footprint box
     const fitScale = Math.min(fw / size.x, fh / size.y, fd / size.z) * scale
     cloned.scale.setScalar(fitScale)
-    cloned.position.set(-center.x * fitScale, -center.y * fitScale + fh / 2, -center.z * fitScale)
-  }, [cloned, fw, fh, fd, scale])
+    // Position so the model sits on the floor (y=0) and is centered on x/z.
+    // The parent group is already at wy = fh/2, so we offset down by -fh/2
+    // to put the model's bottom at y = -fh/2 (world y=0).
+    const cx = (box.min.x + box.max.x) / 2
+    const cz = (box.min.z + box.max.z) / 2
+    cloned.position.set(
+      -cx * fitScale,
+      -min.y * fitScale - fh / 2,
+      -cz * fitScale,
+    )
+    return cloned
+  }, [scene, fw, fh, fd, scale])
 
   return (
     <group rotation={[0, -(rotationDeg * Math.PI) / 180, 0]}>
-      <primitive object={cloned} />
+      <primitive object={model} />
     </group>
   )
 })
