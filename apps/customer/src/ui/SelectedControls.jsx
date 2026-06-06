@@ -58,61 +58,74 @@ export default function SelectedControls({
   const isMobile = useIsMobile()
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
+  // Mobile: floating pill when collapsed, modal overlay when expanded.
+  // Nothing covers the room floor when collapsed.
+  if (isMobile && !mobileExpanded) {
+    return (
+      <button
+        onClick={() => setMobileExpanded(true)}
+        style={{
+          position: 'absolute', bottom: 12, right: 12, zIndex: 40,
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '8px 14px',
+          background: 'rgba(20,15,38,0.88)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 20,
+          color: '#f0eaff', fontSize: 12, fontWeight: 600,
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          fontFamily: "'Outfit', system-ui, sans-serif",
+          maxWidth: '60%',
+        }}
+      >
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
+        <span style={{ fontSize: 10, opacity: 0.5, flexShrink: 0 }}>▴</span>
+      </button>
+    )
+  }
+
   return (
     <div style={isMobile ? {
-      position: 'absolute', bottom: 0, left: 0, right: 0,
-      pointerEvents: 'none', zIndex: 40,
+      position: 'absolute', inset: 0,
+      background: 'rgba(0,0,0,0.5)',
+      zIndex: 40, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
     } : {
       position: 'absolute', top: 318, right: 24, width: 360,
       maxHeight: 'calc(100vh - 342px)', overflow: 'auto',
       pointerEvents: 'none', zIndex: 40,
-    }}>
+    }}
+      onClick={isMobile ? () => setMobileExpanded(false) : undefined}
+    >
       <div style={{
-        background: 'rgba(20,15,38,0.94)',
+        background: 'rgba(20,15,38,0.96)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: isMobile ? '14px 14px 0 0' : 14,
-        padding: isMobile && !mobileExpanded ? '8px 12px' : 12,
+        borderRadius: isMobile ? '16px 16px 0 0' : 14,
+        padding: 12,
         boxShadow: '0 -4px 28px rgba(0,0,0,0.35)',
         pointerEvents: 'auto',
-        display: 'flex', flexDirection: 'column', gap: isMobile && !mobileExpanded ? 0 : 8,
+        display: 'flex', flexDirection: 'column', gap: 8,
         fontFamily: "'Outfit', system-ui, sans-serif",
-        maxHeight: isMobile && mobileExpanded ? '60vh' : undefined,
-        overflowY: isMobile && mobileExpanded ? 'auto' : undefined,
-      }}>
-        {isMobile && !mobileExpanded ? (
-          /* Collapsed: single-line bar — name + cart + expand */
+        maxHeight: isMobile ? '55vh' : undefined,
+        overflowY: isMobile ? 'auto' : undefined,
+      }}
+        onClick={isMobile ? e => e.stopPropagation() : undefined}
+      >
+        {isMobile && (
           <button
-            onClick={() => setMobileExpanded(true)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 0,
-            }}
+            onClick={() => setMobileExpanded(false)}
+            style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', display: 'flex', justifyContent: 'center', width: '100%' }}
           >
-            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#f0eaff', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {def.label}
-            </span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>tap to edit ▴</span>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
           </button>
-        ) : (
-          <>
-            {isMobile && (
-              <button
-                onClick={() => setMobileExpanded(false)}
-                style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', display: 'flex', justifyContent: 'center', width: '100%' }}
-              >
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
-              </button>
-            )}
-            <HeaderSection
-              label={def.label} brand={def.brand} rating={def.rating} reviewCount={def.reviewCount}
-              owned={item.owned} wishlisted={item.wishlisted} locked={item.locked}
-              onToggleWishlist={onToggleWishlist} onAddToCart={onAddToCart}
-            />
-          </>
         )}
+        <HeaderSection
+          label={def.label} brand={def.brand} rating={def.rating} reviewCount={def.reviewCount}
+          owned={item.owned} wishlisted={item.wishlisted} locked={item.locked}
+          onToggleWishlist={onToggleWishlist} onAddToCart={onAddToCart}
+        />
 
-        {/* On mobile, only show controls when expanded */}
-        {(!isMobile || mobileExpanded) && (
+        {/* All controls visible when open */}
+        {(
           <>
             {isWall && !item.locked && (
               <PositionWallSection
