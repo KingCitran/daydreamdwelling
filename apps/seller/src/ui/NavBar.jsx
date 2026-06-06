@@ -51,12 +51,12 @@ export default function NavBar({ page, onNavigate }) {
         {/* More drawer backdrop + panel */}
         {moreOpen && (
           <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 998 }}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 998 }}
             onClick={() => setMoreOpen(false)}
           >
             <div
               style={{
-                position: 'fixed', bottom: 56, left: 0, right: 0, maxHeight: '60vh',
+                position: 'absolute', bottom: 56, left: 0, right: 0, maxHeight: '60vh',
                 background: t.bg, borderTop: `1px solid ${t.surfaceBorder}`,
                 borderRadius: '16px 16px 0 0', overflowY: 'auto', padding: '16px 10px',
                 boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 999,
@@ -99,24 +99,12 @@ export default function NavBar({ page, onNavigate }) {
           </div>
         )}
 
-        {/* Bottom tab bar */}
-        <style>{`
-          .ddd-bottom-tab-bar {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            -webkit-transform: translate3d(0,0,0);
-            transform: translate3d(0,0,0);
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-          }
-        `}</style>
-        <nav className="ddd-bottom-tab-bar" style={{
-          height: 56,
+        {/* Bottom tab bar — not position:fixed, it's a flex child of the fixed shell */}
+        <nav style={{
+          height: 56, flexShrink: 0,
           background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`,
           display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-          zIndex: 997, backdropFilter: 'blur(16px)',
+          zIndex: 997,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
           {MOBILE_TABS.map(tab => {
