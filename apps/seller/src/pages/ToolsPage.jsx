@@ -32,6 +32,15 @@ const TOOLS = [
     page: 'reviews',
   },
   {
+    key: '3d-review',
+    icon: 'shop3d',
+    label: '3D Model Queue',
+    desc: 'Review, approve, or reject Tripo3D-generated product models.',
+    phase: null,
+    cta: 'Review',
+    page: 'model-review',
+  },
+  {
     key: 'bulk-editor',
     icon: 'products',
     label: 'Bulk Editor',

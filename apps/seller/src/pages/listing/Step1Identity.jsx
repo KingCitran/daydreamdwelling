@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 
 const CATEGORIES = ['seating','tables','storage','beds','lighting','surfaces','textiles','decor','electronics','outdoor','other']
@@ -11,12 +12,19 @@ export default function Step1Identity({ form, update }) {
   const t = useTheme()
   const s = styles(t)
 
-  function toggleMaterial(e) {
-    if (e.key !== 'Enter') return
-    const val = e.target.value.trim()
+  const matRef = useRef(null)
+
+  function addMaterial() {
+    const val = matRef.current?.value?.trim()
     if (!val) return
     if (!form.materials.includes(val)) update({ materials: [...form.materials, val] })
-    e.target.value = ''
+    matRef.current.value = ''
+  }
+
+  function toggleMaterial(e) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    addMaterial()
   }
 
   function removeMaterial(m) {
@@ -90,9 +98,12 @@ export default function Step1Identity({ form, update }) {
           placeholder="Materials, style, dimensions, what makes it special…" />
       </Field>
 
-      <Field t={t} label="Materials (press Enter to add)">
-        <input style={s.input} placeholder="e.g. Solid oak"
-          onKeyDown={toggleMaterial} />
+      <Field t={t} label="Materials">
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input ref={matRef} style={{ ...s.input, flex: 1 }} placeholder="e.g. Solid oak"
+            onKeyDown={toggleMaterial} />
+          <button type="button" onClick={addMaterial} style={s.addBtn}>+ Add</button>
+        </div>
         {form.materials.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
             {form.materials.map(m => (
@@ -130,7 +141,7 @@ export function Field({ label, children, t }) {
   )
 }
 export function Row({ children }) {
-  return <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>{children}</div>
+  return <div className="ddd-form-row" style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>{children}</div>
 }
 
 function styles(t) {
@@ -139,5 +150,6 @@ function styles(t) {
     input: { padding: '9px 11px', background: t.bg || '#f7faf4', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.text, fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box' },
     chip: { display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px', background: `${t.accent}18`, border: `1px solid ${t.accent}44`, borderRadius: 20, fontSize: 12, color: t.accent },
     chipX: { background: 'none', border: 'none', color: t.accent, cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 },
+    addBtn: { padding: '9px 14px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' },
   }
 }

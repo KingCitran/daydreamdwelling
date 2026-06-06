@@ -1,5 +1,6 @@
-import { useRef, useState, useMemo, memo } from 'react'
+import { useRef, useState, useMemo, memo, Suspense } from 'react'
 import { useThree, useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
 
@@ -22,6 +23,30 @@ const LIGHT_CONFIG = {
   deskLamp:     { color: '#ffcc88', intensity: 0.5, distance: 4  },
   wallSconce:   { color: '#ffcc88', intensity: 0.8, distance: 5  },
 }
+
+// Renders a .glb model loaded from Supabase Storage. Falls back to nothing
+// if the load fails (caller wraps in Suspense with a box fallback).
+const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0 }) {
+  const { scene } = useGLTF(url)
+  const cloned = useMemo(() => scene.clone(true), [scene])
+
+  // Auto-scale the model to fit the product's declared footprint
+  useMemo(() => {
+    const box = new THREE.Box3().setFromObject(cloned)
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    if (size.x === 0 || size.y === 0 || size.z === 0) return
+    const fitScale = Math.min(fw / size.x, fh / size.y, fd / size.z) * scale
+    cloned.scale.setScalar(fitScale)
+    cloned.position.set(-center.x * fitScale, -center.y * fitScale + fh / 2, -center.z * fitScale)
+  }, [cloned, fw, fh, fd, scale])
+
+  return (
+    <group rotation={[0, -(rotationDeg * Math.PI) / 180, 0]}>
+      <primitive object={cloned} />
+    </group>
+  )
+})
 
 export function isWallDef(def) {
   return def.category === 'Wall Decor' || def.subcategory === 'Wall Sconces' || def.category === 'Windows' || def.category === 'Doors'
@@ -118,22 +143,38 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
 
   const outlineColor = item.owned ? '#f0c060' : '#9a7aee'
 
+  const modelUrl = def.modelUrl || null
+  const modelScale = def.scaleMultiplier ?? 1
+  const modelRotation = def.orientationOffsetDeg ?? 0
+
   return (
-    <mesh
+    <group
       position={[wx, wy, wz]}
       rotation={[0, -(item.rotation * Math.PI) / 180, 0]}
-      castShadow receiveShadow
       onPointerDown={onPointerDown}
       onClick={e => e.stopPropagation()}
       onDoubleClick={e => { e.stopPropagation(); onDoubleClick(item.typeKey) }}
     >
-      <boxGeometry args={[fw, fh, fd]} />
-      <meshStandardMaterial
-        color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
-        roughness={0.76} metalness={0}
-        emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
-        emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
-      />
+      {modelUrl ? (
+        <Suspense fallback={
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[fw, fh, fd]} />
+            <meshStandardMaterial color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'} roughness={0.76} opacity={0.4} transparent />
+          </mesh>
+        }>
+          <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} />
+        </Suspense>
+      ) : (
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[fw, fh, fd]} />
+          <meshStandardMaterial
+            color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
+            roughness={0.76} metalness={0}
+            emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
+            emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
+          />
+        </mesh>
+      )}
       {lightCfg && !lightsOff && (
         <pointLight
           position={[0, lightY, 0]}
@@ -155,7 +196,7 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
           <meshBasicMaterial color={outlineColor} wireframe />
         </mesh>
       )}
-    </mesh>
+    </group>
   )
 })
 

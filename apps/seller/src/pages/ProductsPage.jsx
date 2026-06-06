@@ -3,6 +3,16 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 
+const MODEL_STATUS = {
+  none:       { label: 'No 3D',      color: '#888' },
+  pending:    { label: 'Queued',     color: '#e0944a' },
+  generating: { label: 'Generating', color: '#e0944a' },
+  ready:      { label: '3D Ready',   color: '#5a9abb' },
+  approved:   { label: '3D Live',    color: '#88d8b0' },
+  rejected:   { label: '3D Rejected',color: '#d06060' },
+  failed:     { label: '3D Failed',  color: '#d06060' },
+}
+
 export default function ProductsPage({ onNavigate }) {
   const { user } = useAuth()
   const t        = useTheme()
@@ -10,6 +20,7 @@ export default function ProductsPage({ onNavigate }) {
   const [unitsSold, setUnitsSold] = useState({}) // productId → qty
   const [loading,   setLoading]   = useState(true)
   const [deleting,  setDeleting]  = useState(null)
+  const [tripoLoading, setTripoLoading] = useState(null)
   const [search,    setSearch]    = useState('')
   const [sort,      setSort]      = useState('newest')
   const [selected,  setSelected]  = useState(new Set())
@@ -20,7 +31,7 @@ export default function ProductsPage({ onNavigate }) {
     setLoading(true)
     const { data: prods } = await supabase
       .from('products')
-      .select('id, label, brand, is_active, created_at, product_sizes(price)')
+      .select('id, label, brand, is_active, created_at, model_3d_status, model_3d_tripo_job_id, product_sizes(price)')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false })
     const rows = prods || []
@@ -77,6 +88,24 @@ export default function ProductsPage({ onNavigate }) {
       }))
       await supabase.from('product_sizes').insert(sizes)
     }
+    load()
+  }
+
+  async function triggerTripo(id) {
+    setTripoLoading(id)
+    const { error } = await supabase.functions.invoke('generate-3d-model', { body: { productId: id } })
+    if (error) alert('3D generation failed: ' + (error.message || 'Unknown error'))
+    setTripoLoading(null)
+    load()
+  }
+
+  async function pollTripo(id, taskId) {
+    setTripoLoading(id)
+    const { data, error } = await supabase.functions.invoke('tripo-webhook', { body: { taskId } })
+    setTripoLoading(null)
+    if (error) { alert('Poll failed: ' + (error.message || 'Unknown')); return }
+    if (data?.status === 'ready') alert('3D model is ready for review!')
+    else if (data?.progress != null) alert(`Still generating… ${data.progress}% complete`)
     load()
   }
 
@@ -201,6 +230,33 @@ export default function ProductsPage({ onNavigate }) {
                     <p style={s.cardLabel}>{p.label}</p>
                     {p.brand && <p style={s.cardBrand}>{p.brand}</p>}
                     {price != null && <p style={s.cardPrice}>from ${price.toLocaleString()}</p>}
+                    {/* 3D model status */}
+                    {(() => {
+                      const ms = MODEL_STATUS[p.model_3d_status] || MODEL_STATUS.none
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: ms.color }}>{ms.label}</span>
+                          {(p.model_3d_status === 'none' || p.model_3d_status === 'failed') && (
+                            <button
+                              style={{ fontSize: 10, padding: '2px 8px', background: `${t.accent}20`, border: `1px solid ${t.accent}40`, borderRadius: 6, color: t.accent, cursor: 'pointer', fontWeight: 600 }}
+                              onClick={e => { e.stopPropagation(); triggerTripo(p.id) }}
+                              disabled={tripoLoading === p.id}
+                            >
+                              {tripoLoading === p.id ? '…' : p.model_3d_status === 'failed' ? 'Retry 3D' : 'Generate 3D'}
+                            </button>
+                          )}
+                          {p.model_3d_status === 'generating' && (
+                            <button
+                              style={{ fontSize: 10, padding: '2px 8px', background: `${t.accent}20`, border: `1px solid ${t.accent}40`, borderRadius: 6, color: t.accent, cursor: 'pointer', fontWeight: 600 }}
+                              onClick={e => { e.stopPropagation(); pollTripo(p.id, p.model_3d_tripo_job_id) }}
+                              disabled={tripoLoading === p.id}
+                            >
+                              {tripoLoading === p.id ? '…' : 'Check status'}
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div style={s.cardActions}>
                     <button style={s.actionBtn} onClick={() => onNavigate('add-product', { editProductId: p.id })}>Edit</button>

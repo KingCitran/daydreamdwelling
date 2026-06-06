@@ -27,6 +27,12 @@ function mapLiveProduct(p) {
     electronics:'Specialty', outdoor:'Specialty', other:'Decor' }
   const category = CAT_MAP[p.category] ?? (p.category ? p.category.charAt(0).toUpperCase() + p.category.slice(1) : null)
 
+  // Build model URL if the product has an approved 3D model
+  let modelUrl = null
+  if (p.model_3d_status === 'approved' && p.model_3d_storage_path) {
+    modelUrl = supabase.storage.from('product-models').getPublicUrl(p.model_3d_storage_path).data.publicUrl
+  }
+
   return {
     label:        p.label,
     brand:        p.brand,
@@ -42,6 +48,9 @@ function mapLiveProduct(p) {
     gradient:     p.gradient,
     shop_url:     p.shop_url ?? null,
     primaryImageUrl,
+    modelUrl,
+    scaleMultiplier:     p.scale_multiplier ?? 1,
+    orientationOffsetDeg: p.orientation_offset_deg ?? 0,
     sizes:        sizes.length ? sizes : undefined,
     swatches:     swatches.length ? swatches : undefined,
     // _liveId / _sellerId let ProductModal open the seller storefront
@@ -56,7 +65,7 @@ export default function useShopProducts() {
   useEffect(() => {
     supabase
       .from('products')
-      .select('*, seller_id, product_sizes(*), product_swatches(*), product_images(storage_path,is_primary,sort_order)')
+      .select('*, seller_id, model_3d_status, model_3d_storage_path, scale_multiplier, orientation_offset_deg, product_sizes(*), product_swatches(*), product_images(storage_path,is_primary,sort_order)')
       .eq('is_active', true)
       .then(({ data }) => {
         if (!data) return

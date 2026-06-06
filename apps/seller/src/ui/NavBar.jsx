@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useAuth } from '@shared/auth/AuthContext'
 import { useTheme } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
@@ -19,10 +20,127 @@ const NAV_ITEMS = [
   { key: 'settings',      label: 'Settings',      icon: 'settings' },
 ]
 
+// Bottom tab bar on mobile: 5 key items + More drawer (like Amazon/Etsy)
+const MOBILE_TABS = [
+  { key: 'dashboard', label: 'Home',     icon: 'dashboard' },
+  { key: 'products',  label: 'Products', icon: 'products' },
+  { key: 'orders',    label: 'Orders',   icon: 'orders' },
+  { key: 'messages',  label: 'Messages', icon: 'messages' },
+]
+
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth <= breakpoint)
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth <= breakpoint)
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [breakpoint])
+  return mobile
+}
+
 export default function NavBar({ page, onNavigate }) {
   const { user, profile, signOut } = useAuth()
   const t = useTheme()
+  const isMobile = useIsMobile()
+  const [moreOpen, setMoreOpen] = useState(false)
 
+  if (isMobile) {
+    const isOnTab = MOBILE_TABS.some(tab => tab.key === page)
+    return (
+      <>
+        {/* More drawer backdrop + panel */}
+        {moreOpen && (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 998 }}
+            onClick={() => setMoreOpen(false)}
+          >
+            <div
+              style={{
+                position: 'fixed', bottom: 56, left: 0, right: 0, maxHeight: '60vh',
+                background: t.bg, borderTop: `1px solid ${t.surfaceBorder}`,
+                borderRadius: '16px 16px 0 0', overflowY: 'auto', padding: '16px 10px',
+                boxShadow: '0 -8px 30px rgba(0,0,0,0.15)', zIndex: 999,
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                {NAV_ITEMS.filter(it => !MOBILE_TABS.some(tab => tab.key === it.key)).map(item => {
+                  const isActive = page === item.key
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => { onNavigate(item.key); setMoreOpen(false) }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        padding: '12px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: isActive ? `${t.accent}18` : 'transparent',
+                        color: isActive ? t.accent : t.textSoft,
+                      }}
+                    >
+                      <Icon name={item.icon} size={20} />
+                      <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 500 }}>{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button
+                onClick={signOut}
+                style={{
+                  marginTop: 12, width: '100%', padding: '10px', background: 'transparent',
+                  border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft,
+                  fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: 8,
+                }}
+              >
+                <Icon name="signout" size={14} />
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom tab bar */}
+        <nav style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
+          background: t.surface, borderTop: `1px solid ${t.surfaceBorder}`,
+          display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+          zIndex: 997, backdropFilter: 'blur(16px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}>
+          {MOBILE_TABS.map(tab => {
+            const isActive = page === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => { onNavigate(tab.key); setMoreOpen(false) }}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                  padding: '6px 12px', border: 'none', background: 'transparent',
+                  color: isActive ? t.accent : t.textSoft, cursor: 'pointer',
+                }}
+              >
+                <Icon name={tab.icon} size={22} color={isActive ? t.accent : undefined} />
+                <span style={{ fontSize: 10, fontWeight: isActive ? 700 : 500 }}>{tab.label}</span>
+              </button>
+            )
+          })}
+          <button
+            onClick={() => setMoreOpen(!moreOpen)}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              padding: '6px 12px', border: 'none', background: 'transparent',
+              color: (!isOnTab || moreOpen) ? t.accent : t.textSoft, cursor: 'pointer',
+            }}
+          >
+            <Icon name="tools" size={22} color={(!isOnTab || moreOpen) ? t.accent : undefined} />
+            <span style={{ fontSize: 10, fontWeight: (!isOnTab || moreOpen) ? 700 : 500 }}>More</span>
+          </button>
+        </nav>
+      </>
+    )
+  }
+
+  // Desktop: full sidebar
   return (
     <nav style={{ width: 230, background: t.surface, backdropFilter: 'blur(16px)', borderRight: `1px solid ${t.surfaceBorder}`, display: 'flex', flexDirection: 'column', flexShrink: 0, minHeight: '100vh' }}>
 

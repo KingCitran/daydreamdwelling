@@ -1207,7 +1207,41 @@ export default function OrdersPage({ onNavigate }) {
   }
 
   return (
-    <div>
+    <div className="ddd-orders-page">
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-orders-page { padding: 0 !important; }
+          .ddd-orders-page h1 { font-size: 20px !important; }
+          .ddd-orders-head {
+            display: none !important;
+          }
+          .ddd-orders-row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            padding: 12px 14px !important;
+            align-items: flex-start !important;
+          }
+          .ddd-orders-row > span:nth-child(1) { order: 0; flex: 0 0 24px; }
+          .ddd-orders-row > span:nth-child(2) { order: 1; flex: 1 1 55%; min-width: 0; }
+          .ddd-orders-row > span:nth-child(3) { display: none !important; }
+          .ddd-orders-row > span:nth-child(4) { display: none !important; }
+          .ddd-orders-row > span:nth-child(5) { display: none !important; }
+          .ddd-orders-row > span:nth-child(6) { order: 2; flex: 0 0 auto; }
+          .ddd-orders-row > span:nth-child(7) { order: 3; flex: 0 0 auto; }
+          .ddd-orders-row > span:nth-child(8) { order: 4; flex: 1 0 100%; font-size: 10px !important; margin-top: 2px; }
+          .ddd-orders-detail { padding: 12px !important; }
+          .ddd-orders-detail-grid { grid-template-columns: 1fr !important; }
+          .ddd-orders-toolbar { flex-direction: column !important; align-items: stretch !important; }
+          .ddd-orders-toolbar-right { flex-direction: column !important; align-items: stretch !important; }
+          .ddd-orders-search { min-width: 0 !important; width: 100% !important; }
+          .ddd-orders-tabs { flex-wrap: wrap !important; }
+          .ddd-orders-tab { padding: 5px 10px !important; font-size: 11px !important; }
+          .ddd-orders-bulk { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; padding: 12px 14px !important; left: 8px !important; right: 8px !important; transform: none !important; width: auto !important; }
+          .ddd-orders-bulk-actions { flex-wrap: wrap !important; }
+          .ddd-orders-bulk-input { width: 100% !important; }
+        }
+      `}</style>
       <h1 style={s.pageTitle}>Orders</h1>
       <p style={s.pageSubtitle}>
         {rows.length} total order item{rows.length !== 1 ? 's' : ''}
@@ -1309,23 +1343,24 @@ export default function OrdersPage({ onNavigate }) {
         </div>
       )}
 
-      <div style={s.toolbar}>
-        <div style={s.tabs}>
+      <div className="ddd-orders-toolbar" style={s.toolbar}>
+        <div className="ddd-orders-tabs" style={s.tabs}>
           {['all', 'paid', 'pending', 'cancelled', 'refunded', 'escalated'].map(f => {
             const count = f === 'escalated'
               ? new Set(rows.filter(r => r.orders?.escalated_at).map(r => r.orders.id)).size
               : f !== 'all' ? rows.filter(r => r.orders?.status === f).length : 0
             const label = f === 'escalated' ? '🚩 Escalated' : f.charAt(0).toUpperCase() + f.slice(1)
             return (
-              <button key={f} style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
+              <button key={f} className="ddd-orders-tab" style={{ ...s.tab, ...(filter === f ? s.tabActive : {}) }} onClick={() => setFilter(f)}>
                 {label}
                 {f !== 'all' && <span style={s.tabCount}>{count}</span>}
               </button>
             )
           })}
         </div>
-        <div style={s.toolbarRight}>
+        <div className="ddd-orders-toolbar-right" style={s.toolbarRight}>
           <input
+            className="ddd-orders-search"
             style={s.search}
             placeholder="Search by product, customer, or order ID…"
             value={search}
@@ -1359,7 +1394,7 @@ export default function OrdersPage({ onNavigate }) {
         </div>
       ) : (
         <div style={s.tableWrap}>
-          <div style={s.tableHead}>
+          <div className="ddd-orders-head" style={s.tableHead}>
             <span>
               <input
                 type="checkbox"
@@ -1418,6 +1453,7 @@ export default function OrdersPage({ onNavigate }) {
             return (
               <div key={item.id}>
                 <div
+                  className="ddd-orders-row"
                   style={{
                     ...s.tableRow,
                     background: rowBg,
@@ -1473,8 +1509,8 @@ export default function OrdersPage({ onNavigate }) {
                 </div>
 
                 {expanded === item.id && (
-                  <div style={s.detail}>
-                    <div style={s.detailGrid}>
+                  <div className="ddd-orders-detail" style={s.detail}>
+                    <div className="ddd-orders-detail-grid" style={s.detailGrid}>
                       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                         <ProductThumb url={imgUrl} label={productLabel} size={88} />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1785,12 +1821,12 @@ export default function OrdersPage({ onNavigate }) {
       )}
 
       {selected.size > 0 && (
-        <div style={s.bulkBar} onClick={e => e.stopPropagation()}>
+        <div className="ddd-orders-bulk" style={s.bulkBar} onClick={e => e.stopPropagation()}>
           <div style={s.bulkInfo}>
             <strong>{selected.size}</strong> item{selected.size === 1 ? '' : 's'} selected
             <button style={s.bulkClear} onClick={clearSelection}>Clear</button>
           </div>
-          <div style={s.bulkActions}>
+          <div className="ddd-orders-bulk-actions" style={s.bulkActions}>
             <label
               style={s.bulkCombineLabel}
               title="When checked: buy ONE label for everything selected and apply the same tracking to every item. Use when packing everything into one box."

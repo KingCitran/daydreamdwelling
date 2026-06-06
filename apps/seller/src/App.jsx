@@ -16,6 +16,7 @@ import ToolsPage           from './pages/ToolsPage'
 import SellerShopPage      from './pages/SellerShopPage'
 import DiscountCodesPage   from './pages/DiscountCodesPage'
 import PromotedPage        from './pages/PromotedPage'
+import ModelReviewPage     from './pages/ModelReviewPage'
 import NavBar              from './ui/NavBar'
 
 export default function App() {
@@ -44,8 +45,13 @@ function Shell() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: theme.bg }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-seller-main { padding: 16px 12px 80px !important; }
+        }
+      `}</style>
       <NavBar page={page} onNavigate={navigate} />
-      <main style={{ flex: 1, padding: '36px 32px', overflowY: 'auto' }}>
+      <main className="ddd-seller-main" style={{ flex: 1, padding: '36px 32px', overflowY: 'auto' }}>
         {page === 'dashboard'       && <DashboardPage onNavigate={navigate} />}
         {page === 'products'        && <ProductsPage  onNavigate={navigate} />}
         {page === 'add-product'     && <AddProductPage productId={editProductId} onDone={() => navigate('products')} />}
@@ -60,6 +66,7 @@ function Shell() {
         {page === 'shop'            && <SellerShopPage />}
         {page === 'discounts'       && <DiscountCodesPage />}
         {page === 'promoted'        && <PromotedPage />}
+        {page === 'model-review'    && <ModelReviewPage />}
       </main>
     </div>
   )

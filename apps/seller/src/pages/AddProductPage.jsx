@@ -23,7 +23,7 @@ export const INITIAL_FORM = {
   label: '', brand: '', category: '', handmadeType: 'manufactured',
   makeModel: '', shortDesc: '', fullDesc: '', materials: [], guarantee: '',
   photos: [],
-  sizes: [{ label: '', wFt: '', wIn: '0', dFt: '', dIn: '0', hFt: '', hIn: '0', price: '' }],
+  sizes: [{ label: '', wFt: '', wIn: '', dFt: '', dIn: '', hFt: '', hIn: '', price: '' }],
   swatches: [{ name: '', hex: '#888888', family: '' }],
   typeKey: '', styleTags: [], roomTags: [], themeTags: [],
   shippingType: 'flat', flatRate: '', processingDays: 5,
@@ -156,6 +156,16 @@ export default function AddProductPage({ productId, onDone }) {
         ...form.themeTags.map(v => ({ product_id: pid, tag_type: 'theme', value: v })),
       ]
       if (allTags.length) await supabase.from('product_tags').insert(allTags)
+
+      // Auto-queue 3D model generation if enough photos
+      if (uploaded.length >= 1) {
+        supabase.functions.invoke('generate-3d-model', { body: { productId: pid } })
+          .then(({ error: tripoErr }) => {
+            if (tripoErr) console.warn('3D model generation queued failed:', tripoErr)
+            else console.log('3D model generation queued for', pid)
+          })
+      }
+
       onDone()
     } catch (err) {
       setError(err.message)
