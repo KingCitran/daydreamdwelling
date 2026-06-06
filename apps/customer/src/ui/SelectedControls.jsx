@@ -63,7 +63,7 @@ export default function SelectedControls({
     const qBtn = { width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#f0eaff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0 }
     return (
       <div style={{
-        position: 'absolute', bottom: 12, right: 12, zIndex: 40,
+        position: 'fixed', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 95,
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '6px 10px',
         background: 'rgba(20,15,38,0.92)',

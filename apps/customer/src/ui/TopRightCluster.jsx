@@ -23,8 +23,22 @@ function TopRightClusterImpl({
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
+        @media (max-width: 768px) {
+          .ddd-top-right-strip { top: 6px !important; right: 6px !important; gap: 3px !important; }
+          .ddd-top-right-label { display: none !important; }
+          .ddd-top-right-tab {
+            padding: 0 !important;
+            min-height: 0 !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+            gap: 0 !important;
+          }
+          .ddd-top-right-icon { width: 22px !important; height: 22px !important; }
+          .ddd-top-right-icon svg { width: 13px !important; height: 13px !important; }
+        }
       `}</style>
-      <aside style={{
+      <aside className="ddd-top-right-strip" style={{
         position: 'absolute', top: 76, right: 24, zIndex: 90,
         display: 'flex', flexDirection: 'column', gap: 6,
       }}>
@@ -60,14 +74,14 @@ function ClusterTab({ onClick, Icon, label, accent, active, badge, compact }) {
         transition: 'gap 0.2s ease, padding 0.2s ease',
       }}
     >
-      <span style={{
+      <span className="ddd-top-right-icon" style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
         background: accent, color: '#1a0f30',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {Icon && <Icon size={16} strokeWidth={2.2} />}
       </span>
-      {!compact && <span>{label}</span>}
+      {!compact && <span className="ddd-top-right-label">{label}</span>}
       {badge > 0 && (
         <span style={{
           position: 'absolute', top: -4, right: -4,
