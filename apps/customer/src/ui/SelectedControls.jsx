@@ -1,10 +1,16 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState, useEffect } from 'react'
 import { ITEM_CATALOGUE } from '../data/items'
 import { useBuilderStyles } from './styles/appStyles'
 import { DIAMOND_MAP, roomQuadrant } from '../utils/roomGeometry'
 import Stepper from './Stepper'
 import { Icon } from '@shared/ui/Icon'
 import { Heart } from 'lucide-react'
+
+function useIsMobile(bp = 768) {
+  const [m, setM] = useState(window.innerWidth <= bp)
+  useEffect(() => { const c = () => setM(window.innerWidth <= bp); window.addEventListener('resize', c); return () => window.removeEventListener('resize', c) }, [bp])
+  return m
+}
 
 // SelectedControls — item details panel that slides out below the
 // TopRightCluster. Layout uses the "stacked cards" pattern: each card is a
@@ -49,8 +55,14 @@ export default function SelectedControls({
   // dmap stable across renders unless roomRotation changes
   const dmap       = useMemo(() => DIAMOND_MAP[roomQuadrant(roomRotation ?? 0)], [roomRotation])
 
+  const isMobile = useIsMobile()
+  const [mobileExpanded, setMobileExpanded] = useState(false)
+
   return (
-    <div style={{
+    <div style={isMobile ? {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      pointerEvents: 'none', zIndex: 40,
+    } : {
       position: 'absolute', top: 318, right: 24, width: 360,
       maxHeight: 'calc(100vh - 342px)', overflow: 'auto',
       pointerEvents: 'none', zIndex: 40,
@@ -58,59 +70,74 @@ export default function SelectedControls({
       <div style={{
         background: 'rgba(20,15,38,0.94)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 14, padding: 12,
-        boxShadow: '0 8px 28px rgba(0,0,0,0.35)',
+        borderRadius: isMobile ? '14px 14px 0 0' : 14, padding: 12,
+        boxShadow: '0 -4px 28px rgba(0,0,0,0.35)',
         pointerEvents: 'auto',
         display: 'flex', flexDirection: 'column', gap: 8,
         fontFamily: "'Outfit', system-ui, sans-serif",
+        maxHeight: isMobile ? (mobileExpanded ? '60vh' : 'auto') : undefined,
+        overflowY: isMobile && mobileExpanded ? 'auto' : undefined,
       }}>
+        {isMobile && (
+          <button
+            onClick={() => setMobileExpanded(!mobileExpanded)}
+            style={{ background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', display: 'flex', justifyContent: 'center' }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }} />
+          </button>
+        )}
         <HeaderSection
           label={def.label} brand={def.brand} rating={def.rating} reviewCount={def.reviewCount}
           owned={item.owned} wishlisted={item.wishlisted} locked={item.locked}
           onToggleWishlist={onToggleWishlist} onAddToCart={onAddToCart}
         />
 
-        {isWall && !item.locked && (
-          <PositionWallSection
-            wallU={item.wallU} wallH={item.wallH} wall={item.wall}
-            parallelFaces={parallelFaces} isDoor={isDoor} dmap={dmap}
-            onMoveWall={onMoveWall} onChangeWall={onChangeWall} onSwapWallFace={onSwapWallFace}
-          />
-        )}
+        {/* On mobile, only show controls when expanded */}
+        {(!isMobile || mobileExpanded) && (
+          <>
+            {isWall && !item.locked && (
+              <PositionWallSection
+                wallU={item.wallU} wallH={item.wallH} wall={item.wall}
+                parallelFaces={parallelFaces} isDoor={isDoor} dmap={dmap}
+                onMoveWall={onMoveWall} onChangeWall={onChangeWall} onSwapWallFace={onSwapWallFace}
+              />
+            )}
 
-        {isCeiling && !item.locked && (
-          <DropSection
-            dropLength={item.dropLength} defaultDropLength={curSize.defaultDropLength}
-            wallHeight={wallHeight} onAdjustDropLength={onAdjustDropLength}
-          />
-        )}
+            {isCeiling && !item.locked && (
+              <DropSection
+                dropLength={item.dropLength} defaultDropLength={curSize.defaultDropLength}
+                wallHeight={wallHeight} onAdjustDropLength={onAdjustDropLength}
+              />
+            )}
 
-        {isWindow && (
-          <WindowSection
-            paneCols={item.paneCols ?? 1} paneRows={item.paneRows ?? 2}
-            customW={item.customW ?? curSize.footprint[0]} customH={item.customH ?? curSize.height}
-            onSetPaneConfig={onSetPaneConfig} onAdjustWindowSize={onAdjustWindowSize}
-          />
-        )}
+            {isWindow && (
+              <WindowSection
+                paneCols={item.paneCols ?? 1} paneRows={item.paneRows ?? 2}
+                customW={item.customW ?? curSize.footprint[0]} customH={item.customH ?? curSize.height}
+                onSetPaneConfig={onSetPaneConfig} onAdjustWindowSize={onAdjustWindowSize}
+              />
+            )}
 
-        {isDoor && isWall && <DoorSection onEnterRoom={onEnterRoom} />}
+            {isDoor && isWall && <DoorSection onEnterRoom={onEnterRoom} />}
 
-        {totalSizes > 1 && !item.locked && (
-          <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
-               title={item.owned ? "You own this — size is fixed" : undefined}>
-            <SizeSection
-              sizeIndex={item.sizeIndex} totalSizes={totalSizes}
-              label={curSize.label} price={curSize.price}
-              onResize={onResize}
-            />
-          </div>
-        )}
+            {totalSizes > 1 && !item.locked && (
+              <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+                   title={item.owned ? "You own this — size is fixed" : undefined}>
+                <SizeSection
+                  sizeIndex={item.sizeIndex} totalSizes={totalSizes}
+                  label={curSize.label} price={curSize.price}
+                  onResize={onResize}
+                />
+              </div>
+            )}
 
-        {(def.swatches?.length ?? 0) > 0 && (
-          <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
-               title={item.owned ? "You own this — color is fixed" : undefined}>
-            <ColorSection swatches={def.swatches} swatchIndex={item.swatchIndex} onRecolor={onRecolor} />
-          </div>
+            {(def.swatches?.length ?? 0) > 0 && (
+              <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+                   title={item.owned ? "You own this — color is fixed" : undefined}>
+                <ColorSection swatches={def.swatches} swatchIndex={item.swatchIndex} onRecolor={onRecolor} />
+              </div>
+            )}
+          </>
         )}
 
         <QtyRotateSection

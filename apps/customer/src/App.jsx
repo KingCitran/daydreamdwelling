@@ -648,9 +648,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       c => c.typeKey === selectedItem.typeKey && c.swatchIndex === selectedItem.swatchIndex
     )
     if (cartMatch && cartMatch.sizeIndex !== newSizeIndex) {
-      const def  = ITEM_CATALOGUE[selectedItem.typeKey]
-      const from = def.sizes[cartMatch.sizeIndex].label
-      const to   = def.sizes[newSizeIndex].label
+      const def  = catalogue[selectedItem.typeKey] ?? ITEM_CATALOGUE[selectedItem.typeKey]
+      const from = def?.sizes?.[cartMatch.sizeIndex]?.label ?? ''
+      const to   = def?.sizes?.[newSizeIndex]?.label ?? ''
       if (!window.confirm(`Changing from "${from}" to "${to}" will also update this item in your cart.\n\nAdditional charges may apply. Continue?`)) return
       setCart(prev => prev.map(c =>
         c.typeKey === selectedItem.typeKey && c.swatchIndex === selectedItem.swatchIndex
@@ -658,7 +658,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       ))
     }
     resizeItem(selectedItem.id, newSizeIndex)
-  }, [selectedItem, cart, setCart, resizeItem])
+  }, [selectedItem, cart, setCart, resizeItem, catalogue])
 
   const recolorSelectedItem = useCallback((newSwatchIndex) => {
     if (!selectedItem || newSwatchIndex === selectedItem.swatchIndex) return
@@ -666,7 +666,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       c => c.typeKey === selectedItem.typeKey && c.sizeIndex === selectedItem.sizeIndex
     )
     if (cartMatch && cartMatch.swatchIndex !== newSwatchIndex) {
-      const def  = ITEM_CATALOGUE[selectedItem.typeKey]
+      const def  = catalogue[selectedItem.typeKey] ?? ITEM_CATALOGUE[selectedItem.typeKey]
       const from = def.swatches[cartMatch.swatchIndex].name
       const to   = def.swatches[newSwatchIndex].name
       if (!window.confirm(`Changing color from "${from}" to "${to}" will also update this item in your cart.\n\nAdditional charges may apply. Continue?`)) return
