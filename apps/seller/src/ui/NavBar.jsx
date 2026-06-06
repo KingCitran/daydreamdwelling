@@ -47,7 +47,7 @@ export default function NavBar({ page, onNavigate }) {
   if (isMobile) {
     const isOnTab = MOBILE_TABS.some(tab => tab.key === page)
     return (
-      <>
+      <div className="ddd-seller-nav-mobile" style={{ flexShrink: 0, position: 'relative' }}>
         {/* More drawer backdrop + panel */}
         {moreOpen && (
           <div
@@ -136,7 +136,7 @@ export default function NavBar({ page, onNavigate }) {
             <span style={{ fontSize: 10, fontWeight: (!isOnTab || moreOpen) ? 700 : 500 }}>More</span>
           </button>
         </nav>
-      </>
+      </div>
     )
   }
 

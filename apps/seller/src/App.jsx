@@ -65,12 +65,16 @@ function Shell() {
             -webkit-overflow-scrolling: touch !important;
             padding: 16px 12px 16px !important;
             min-height: 0 !important;
+            order: 0 !important;
+          }
+          .ddd-seller-nav-mobile {
+            order: 1 !important;
           }
         }
       `}</style>
       <div className="ddd-seller-shell" style={{ display: 'flex', background: theme.bg }}>
         <NavBar page={page} onNavigate={navigate} />
-        <main className="ddd-seller-main" style={{ flex: 1, padding: '36px 32px', overflowY: 'auto' }}>
+        <main className="ddd-seller-main" style={{ flex: '1 1 0', padding: '36px 32px', overflowY: 'auto', minHeight: 0 }}>
           {page === 'dashboard'       && <DashboardPage onNavigate={navigate} />}
           {page === 'products'        && <ProductsPage  onNavigate={navigate} />}
           {page === 'add-product'     && <AddProductPage productId={editProductId} onDone={() => navigate('products')} />}
