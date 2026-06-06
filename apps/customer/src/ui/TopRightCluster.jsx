@@ -25,22 +25,22 @@ function TopRightClusterImpl({
         }
         @media (max-width: 768px) {
           .ddd-top-right-strip {
-            flex-direction: row !important;
             top: 6px !important;
             right: 6px !important;
+            flex-direction: row !important;
             gap: 4px !important;
           }
           .ddd-top-right-label { display: none !important; }
           .ddd-top-right-tab {
             padding: 0 !important;
             min-height: 0 !important;
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 10px !important;
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
             gap: 0 !important;
           }
-          .ddd-top-right-icon { width: 20px !important; height: 20px !important; }
-          .ddd-top-right-icon svg { width: 12px !important; height: 12px !important; }
+          .ddd-top-right-icon { width: 18px !important; height: 18px !important; }
+          .ddd-top-right-icon svg { width: 11px !important; height: 11px !important; }
         }
       `}</style>
       <aside className="ddd-top-right-strip" style={{

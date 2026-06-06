@@ -47,25 +47,37 @@ function SideTabStripImpl() {
         @media (max-width: 768px) {
           .ddd-side-tab-label { display: none !important; }
           .ddd-side-strip {
+            position: fixed !important;
+            top: auto !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
             flex-direction: row !important;
-            top: 6px !important;
-            left: 6px !important;
-            right: auto !important;
-            gap: 4px !important;
+            justify-content: space-around !important;
+            padding: 6px 4px env(safe-area-inset-bottom, 4px) !important;
+            background: rgba(15,12,30,0.92) !important;
+            backdrop-filter: blur(12px) !important;
+            border-top: 1px solid rgba(255,255,255,0.08) !important;
+            border-radius: 0 !important;
+            gap: 0 !important;
+            z-index: 95 !important;
           }
-          .ddd-side-strip > div { width: 4px !important; height: auto !important; }
+          .ddd-side-strip > div { display: none !important; }
           .ddd-side-tab {
-            padding: 0 !important;
+            padding: 4px 0 !important;
             min-height: 0 !important;
-            width: 34px !important;
-            height: 34px !important;
-            border-radius: 10px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            width: auto !important;
+            height: auto !important;
+            flex: 1 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            backdrop-filter: none !important;
+            flex-direction: column !important;
+            gap: 2px !important;
           }
-          .ddd-side-tab-icon { width: 20px !important; height: 20px !important; }
-          .ddd-side-tab-icon svg { width: 12px !important; height: 12px !important; }
+          .ddd-side-tab-icon { width: 22px !important; height: 22px !important; border-radius: 6px !important; }
+          .ddd-side-tab-icon svg { width: 14px !important; height: 14px !important; }
         }
       `}</style>
       <aside className="ddd-side-strip" style={{

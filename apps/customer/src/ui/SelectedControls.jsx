@@ -60,26 +60,25 @@ export default function SelectedControls({
 
   // Mobile: floating pill with quick actions when collapsed
   if (isMobile && !mobileExpanded) {
-    const qBtn = { width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: '#f0eaff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0 }
+    const qBtn = { width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.1)', color: '#f0eaff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, padding: 0 }
     return (
       <div style={{
-        position: 'fixed', bottom: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 95,
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '6px 10px',
-        background: 'rgba(20,15,38,0.92)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 14,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        position: 'fixed', bottom: 52, left: '50%', transform: 'translateX(-50%)', zIndex: 95,
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '4px 8px',
+        background: 'rgba(20,15,38,0.9)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        borderRadius: 10,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
         fontFamily: "'Outfit', system-ui, sans-serif",
       }}>
-        <button onClick={() => setMobileExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, maxWidth: 120, overflow: 'hidden' }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#f0eaff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
-          <span style={{ fontSize: 9, opacity: 0.4, flexShrink: 0 }}>▴</span>
+        <button onClick={() => setMobileExpanded(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', gap: 4, maxWidth: 90, overflow: 'hidden' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#f0eaff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
+          <span style={{ fontSize: 8, opacity: 0.4, flexShrink: 0 }}>▴</span>
         </button>
-        <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
+        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
         {!item.locked && <button style={qBtn} onClick={onRotate} title="Rotate">↻</button>}
-        <button style={qBtn} onClick={onShowDetails} title="Details">ℹ</button>
-        <button style={{ ...qBtn, color: '#ff9ab8' }} onClick={onToggleWishlist} title="Wishlist">♡</button>
+        <button style={qBtn} onClick={() => setMobileExpanded(true)} title="Edit">⚙</button>
         {!item.locked && <button style={{ ...qBtn, color: '#f08080' }} onClick={onDelete} title="Delete">✕</button>}
       </div>
     )
