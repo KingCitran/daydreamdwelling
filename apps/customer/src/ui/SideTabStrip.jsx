@@ -46,10 +46,20 @@ function SideTabStripImpl() {
       <style>{`
         @media (max-width: 768px) {
           .ddd-side-tab-label { display: none !important; }
-          .ddd-side-strip { gap: 4px !important; }
-          .ddd-side-tab { padding: 6px !important; min-height: 36px !important; border-radius: 10px !important; }
-          .ddd-side-tab-icon { width: 24px !important; height: 24px !important; }
-          .ddd-side-tab-icon svg { width: 14px !important; height: 14px !important; }
+          .ddd-side-strip { gap: 3px !important; top: 60px !important; left: 6px !important; }
+          .ddd-side-strip > div { height: 8px !important; }
+          .ddd-side-tab {
+            padding: 0 !important;
+            min-height: 0 !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          .ddd-side-tab-icon { width: 22px !important; height: 22px !important; }
+          .ddd-side-tab-icon svg { width: 13px !important; height: 13px !important; }
         }
       `}</style>
       <aside className="ddd-side-strip" style={{

@@ -757,6 +757,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     <SideTabProvider>
     <div className="ember-clear" style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {/* Hide toolbar during drag on mobile for more room */}
+      {isDragging && (
+        <style>{`
+          @media (max-width: 768px) {
+            .ddd-side-strip, .ddd-bottom-tab { opacity: 0.15 !important; pointer-events: none !important; transition: opacity 0.15s !important; }
+          }
+        `}</style>
+      )}
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
@@ -766,11 +774,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
 
 
-      {/* Brand logo — top left. Sized to anchor the page; music tab sits closely below */}
-      <div style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
+      {/* Brand logo — top left. Hidden on mobile to save space. */}
+      <div className="ddd-builder-logo" style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
         <Logo size={52} color={t.accent} />
         <span style={{ fontSize: 22, fontWeight: 700, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif", textShadow: 'none', WebkitTextStroke: 0 }}>DaydreamDwelling</span>
       </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-builder-logo { display: none !important; }
+        }
+      `}</style>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
         <RoomScene
           targetRotation={targetRotation}

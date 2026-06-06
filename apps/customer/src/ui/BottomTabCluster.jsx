@@ -19,10 +19,19 @@ function BottomTabClusterImpl({ onAccount, onSettings, signedIn }) {
           text-shadow: none !important;
         }
         @media (max-width: 768px) {
-          .ddd-bottom-tab { padding: 6px !important; min-height: 36px !important; border-radius: 10px !important; }
+          .ddd-bottom-tab {
+            padding: 0 !important;
+            min-height: 0 !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
           .ddd-bottom-tab-label { display: none !important; }
-          .ddd-bottom-tab-icon { width: 24px !important; height: 24px !important; }
-          .ddd-bottom-tab-icon svg { width: 14px !important; height: 14px !important; }
+          .ddd-bottom-tab-icon { width: 22px !important; height: 22px !important; }
+          .ddd-bottom-tab-icon svg { width: 13px !important; height: 13px !important; }
         }
       `}</style>
       <aside style={{

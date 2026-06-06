@@ -70,28 +70,46 @@ export default function SelectedControls({
       <div style={{
         background: 'rgba(20,15,38,0.94)',
         border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: isMobile ? '14px 14px 0 0' : 14, padding: 12,
+        borderRadius: isMobile ? '14px 14px 0 0' : 14,
+        padding: isMobile && !mobileExpanded ? '8px 12px' : 12,
         boxShadow: '0 -4px 28px rgba(0,0,0,0.35)',
         pointerEvents: 'auto',
-        display: 'flex', flexDirection: 'column', gap: 8,
+        display: 'flex', flexDirection: 'column', gap: isMobile && !mobileExpanded ? 0 : 8,
         fontFamily: "'Outfit', system-ui, sans-serif",
-        maxHeight: isMobile ? (mobileExpanded ? '60vh' : 'auto') : undefined,
+        maxHeight: isMobile && mobileExpanded ? '60vh' : undefined,
         overflowY: isMobile && mobileExpanded ? 'auto' : undefined,
       }}>
-        {isMobile && (
+        {isMobile && !mobileExpanded ? (
+          /* Collapsed: single-line bar — name + cart + expand */
           <button
-            onClick={() => setMobileExpanded(!mobileExpanded)}
-            style={{ background: 'none', border: 'none', padding: '6px 0 2px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: '100%' }}
+            onClick={() => setMobileExpanded(true)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: 0,
+            }}
           >
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{mobileExpanded ? 'Tap to collapse' : 'Tap for controls'}</span>
+            <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#f0eaff', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {def.label}
+            </span>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>tap to edit ▴</span>
           </button>
+        ) : (
+          <>
+            {isMobile && (
+              <button
+                onClick={() => setMobileExpanded(false)}
+                style={{ background: 'none', border: 'none', padding: '4px 0 0', cursor: 'pointer', display: 'flex', justifyContent: 'center', width: '100%' }}
+              >
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+              </button>
+            )}
+            <HeaderSection
+              label={def.label} brand={def.brand} rating={def.rating} reviewCount={def.reviewCount}
+              owned={item.owned} wishlisted={item.wishlisted} locked={item.locked}
+              onToggleWishlist={onToggleWishlist} onAddToCart={onAddToCart}
+            />
+          </>
         )}
-        <HeaderSection
-          label={def.label} brand={def.brand} rating={def.rating} reviewCount={def.reviewCount}
-          owned={item.owned} wishlisted={item.wishlisted} locked={item.locked}
-          onToggleWishlist={onToggleWishlist} onAddToCart={onAddToCart}
-        />
 
         {/* On mobile, only show controls when expanded */}
         {(!isMobile || mobileExpanded) && (
