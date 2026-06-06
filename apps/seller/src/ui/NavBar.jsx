@@ -106,6 +106,8 @@ export default function NavBar({ page, onNavigate }) {
           display: 'flex', justifyContent: 'space-around', alignItems: 'center',
           zIndex: 997, backdropFilter: 'blur(16px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          transform: 'translateZ(0)', WebkitTransform: 'translateZ(0)',
+          willChange: 'transform',
         }}>
           {MOBILE_TABS.map(tab => {
             const isActive = page === tab.key

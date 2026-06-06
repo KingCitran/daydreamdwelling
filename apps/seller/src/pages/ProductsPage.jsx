@@ -102,8 +102,21 @@ export default function ProductsPage({ onNavigate }) {
 
   async function triggerTripo(id) {
     setTripoLoading(id)
-    const { error } = await supabase.functions.invoke('generate-3d-model', { body: { productId: id } })
-    if (error) alert('3D generation failed: ' + (error.message || 'Unknown error'))
+    const { data, error } = await supabase.functions.invoke('generate-3d-model', { body: { productId: id } })
+    if (error) {
+      let msg = error.message || 'Unknown error'
+      try {
+        const ctx = error.context
+        if (ctx && typeof ctx.json === 'function') {
+          const body = await ctx.json()
+          if (body?.error) msg = body.error
+          if (body?.detail) msg += ' — ' + body.detail
+        }
+      } catch {}
+      alert('3D generation failed: ' + msg)
+    } else if (data?.ok) {
+      alert(`3D model queued! (${data.photoCount} photos, ${data.mode})`)
+    }
     setTripoLoading(null)
     load()
   }
