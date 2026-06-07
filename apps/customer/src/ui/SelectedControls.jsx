@@ -58,8 +58,11 @@ export default function SelectedControls({
   const isMobile = useIsMobile()
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
-  // Mobile: floating pill with quick actions when collapsed
-  if (isMobile && !mobileExpanded) {
+  // Mobile handled by MobileActionPill in MobileChrome.jsx
+  if (isMobile) return null
+
+  // Legacy mobile code (kept for reference, never runs)
+  if (false && isMobile && !mobileExpanded) {
     const qBtn = { width: 28, height: 28, borderRadius: 7, border: 'none', background: 'rgba(255,255,255,0.1)', color: '#f0eaff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, padding: 0 }
     return (
       <div style={{
