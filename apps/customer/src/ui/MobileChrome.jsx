@@ -36,7 +36,7 @@ function useIsMobile() { return useMode() === 'mobile' }
 
 // ── Geometry per breakpoint (from design README) ───────────────────
 const GEOM = {
-  mobile:  { topH: 84, dockH: 66, railW: 0 },
+  mobile:  { topH: 52, dockH: 58, railW: 0 },
   tablet:  { topH: 60, dockH: 0,  railW: 64 },
   desktop: { topH: 64, dockH: 0,  railW: 192 },
 }
@@ -184,7 +184,7 @@ export function BuilderTopBar({
     position: 'fixed', top: 0, left: 0, right: 0, height: geom.topH,
     zIndex: 80, display: 'flex', alignItems: 'center',
     gap: mode === 'mobile' ? 8 : 12,
-    padding: mode === 'mobile' ? 'max(env(safe-area-inset-top), 30px) 10px 0' : '0 16px',
+    padding: mode === 'mobile' ? 'env(safe-area-inset-top, 0px) 10px 0' : '0 16px',
     background: u.nav, borderBottom: `1px solid ${u.line}`,
     fontFamily: "'Outfit',system-ui,sans-serif", color: u.text,
   }
@@ -328,7 +328,9 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
   const u = ui(t)
   const mode = useMode()
   const geom = GEOM[mode]
-  const bottom = mode === 'mobile' ? geom.dockH + 14 : 18
+  // Mobile has swipe rotate + pinch zoom — no need for buttons
+  if (mode === 'mobile') return null
+  const bottom = 18
 
   const btn = (icon, label, onClick, extra) => (
     <button onClick={onClick} title={label} aria-label={label} style={{
@@ -426,7 +428,8 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
 
   const wrap = isBottom ? {
     position: 'fixed', left: 0, right: 0, bottom: geom.dockH, zIndex: 60,
-    maxHeight: height || '82%', borderRadius: '22px 22px 0 0',
+    maxHeight: `calc(100vh - ${geom.topH + geom.dockH + 12}px)`,
+    borderRadius: '22px 22px 0 0',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.28)',
   } : {
     position: 'fixed',

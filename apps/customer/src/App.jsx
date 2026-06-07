@@ -945,7 +945,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         cartCount={cartCount}
         onUndo={undo}
         onRedo={redo}
-        onCart={() => { if (activeTool === 'place' && drawerTab === 'cart') { setActiveTool(null); closeShop() } else { setActiveTool('place'); setDrawerTab('cart'); openShop() } }}
+        onCart={() => { if (shopOpen && drawerTab === 'cart') { closeShop() } else { setDrawerTab('cart'); openShop() } }}
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
