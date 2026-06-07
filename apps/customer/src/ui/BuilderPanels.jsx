@@ -6,12 +6,12 @@
 import { useState, useMemo } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { useMoodControl } from '@shared/ThemeProvider'
-import { ITEM_CATALOGUE } from '../data/items'
+import { ITEM_CATALOGUE, CATEGORIES } from '../data/items'
 import {
   Palette, Hammer, Home, Grid3x3, Layers, ClipboardList,
   Music, Users, User, Bookmark, Bell, Settings,
   Ruler, Camera, Share2, Undo2, ShoppingCart, Plus, Minus,
-  Trash2, Heart, Check, Info, Search, Star, Sparkles
+  Trash2, Heart, Check, Info, Search, Star, Sparkles, ChevronRight
 } from 'lucide-react'
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -342,6 +342,107 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ── Shop Content ───────────────────────────────────────────────────
+function ShopChip({ active, onClick, children, u }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: '7px 13px', borderRadius: 999, whiteSpace: 'nowrap', cursor: 'pointer',
+      border: `1px solid ${active ? u.accent : u.line}`,
+      background: active ? u.accent : 'transparent',
+      color: active ? u.accentText : u.soft,
+      fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
+      transition: 'all .15s', flexShrink: 0,
+    }}>{children}</button>
+  )
+}
+
+function ProductCardDesign({ typeKey, def, u, inRoom, owned, wished, onPlace, onDetail, onWish }) {
+  const price = def.sizes?.[0]?.price ?? def.price ?? 0
+  const img = def.primaryImageUrl
+  return (
+    <div style={{ background: u.card, border: `1px solid ${u.line}`, borderRadius: 16, padding: 9, display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ position: 'relative', cursor: 'pointer', height: 92, borderRadius: 12, overflow: 'hidden', background: u.cardHi }} onClick={() => onPlace(typeKey)}>
+        {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '54%', height: '54%', borderRadius: 10, background: def.swatches?.[0]?.hex || def.color || u.accent, boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }} />
+          </div>
+        )}
+        {(inRoom || owned) && <span style={{ position: 'absolute', top: 7, left: 7, fontSize: 9.5, fontWeight: 800, padding: '3px 7px', borderRadius: 999, background: owned ? '#3fb88a' : u.accent, color: '#fff' }}>{owned ? '✓ Owned' : 'In room'}</span>}
+        <button onClick={e => { e.stopPropagation(); onWish(typeKey) }} style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 9, border: 'none', cursor: 'pointer', background: 'rgba(0,0,0,0.32)', color: wished ? '#ff9ab8' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Heart size={15} fill={wished ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 2px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
+          <span style={{ fontSize: 13.5, fontWeight: 800, color: u.accent, flexShrink: 0 }}>{money(price)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, color: u.soft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.brand}</span>
+          {def.rating > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: '#f0b54a' }}><Star size={11} fill="#f0b54a" stroke="#f0b54a" /> {def.rating}</span>}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 1 }}>
+        <button onClick={() => onPlace(typeKey)} style={{ flex: 1, padding: '8px 12px', borderRadius: 12, border: `1px solid ${u.accent}`, background: u.accent, color: u.accentText, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <Plus size={14} /> Place
+        </button>
+        <button onClick={() => onDetail(typeKey)} style={{ width: 36, flexShrink: 0, borderRadius: 12, border: `1px solid ${u.line}`, background: 'transparent', color: u.soft, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Info size={16} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function DesignShopContent({ catalogue, placedKeys, ownedKeys, wishlist, onPlace, onDetail, onWish }) {
+  const t = useTheme()
+  const u = ui(t)
+  const [cat, setCat] = useState('All')
+  const [q, setQ] = useState('')
+  const [sort, setSort] = useState('featured')
+  const cols = typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : window.innerWidth <= 1199 ? 3 : 2
+  const cat_ = catalogue || ITEM_CATALOGUE
+
+  const cats = useMemo(() => ['All', ...new Set(Object.values(cat_).map(d => d.category).filter(Boolean))], [cat_])
+
+  const entries = useMemo(() => {
+    let keys = Object.keys(cat_).filter(k => {
+      const d = cat_[k]; if (!d?.sizes || d.isFloorFinish || d.isWallFinish) return false
+      if (cat !== 'All' && d.category !== cat) return false
+      if (q && !(d.label || '').toLowerCase().includes(q.toLowerCase()) && !(d.brand || '').toLowerCase().includes(q.toLowerCase())) return false
+      return true
+    })
+    if (sort === 'priceLow') keys.sort((a, b) => (cat_[a].price ?? 0) - (cat_[b].price ?? 0))
+    if (sort === 'priceHigh') keys.sort((a, b) => (cat_[b].price ?? 0) - (cat_[a].price ?? 0))
+    if (sort === 'rating') keys.sort((a, b) => (cat_[b].rating ?? 0) - (cat_[a].rating ?? 0))
+    return keys
+  }, [cat_, cat, q, sort])
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+      <div style={{ display: 'flex', gap: 8, position: 'sticky', top: 0, background: u.panel, paddingTop: 2, paddingBottom: 4, zIndex: 2 }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 12, background: u.card, border: `1px solid ${u.line}` }}>
+          <Search size={16} style={{ color: u.soft, flexShrink: 0 }} />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search furniture, sellers…" style={{ border: 'none', background: 'transparent', outline: 'none', color: u.text, fontSize: 13.5, fontFamily: 'inherit', width: '100%' }} />
+        </div>
+        <select value={sort} onChange={e => setSort(e.target.value)} style={{ borderRadius: 12, border: `1px solid ${u.line}`, background: u.card, color: u.text, fontSize: 12.5, fontWeight: 700, padding: '0 8px', fontFamily: 'inherit', cursor: 'pointer' }}>
+          <option value="featured">Featured</option>
+          <option value="priceLow">Price ↑</option>
+          <option value="priceHigh">Price ↓</option>
+          <option value="rating">Top rated</option>
+        </select>
+      </div>
+      <div className="ddd-chips" style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2, margin: '0 -16px', padding: '0 16px 2px' }}>
+        {cats.map(c => <ShopChip key={c} active={cat === c} onClick={() => setCat(c)} u={u}>{c}</ShopChip>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: 10 }}>
+        {entries.map(k => <ProductCardDesign key={k} typeKey={k} def={cat_[k]} u={u} inRoom={placedKeys?.has?.(k)} owned={ownedKeys?.has?.(k)} wished={wishlist?.has?.(k)} onPlace={onPlace} onDetail={onDetail} onWish={onWish} />)}
+      </div>
+      {entries.length === 0 && <div style={{ textAlign: 'center', color: u.soft, padding: '30px 0', fontSize: 13 }}>No matches — try another search.</div>}
     </div>
   )
 }

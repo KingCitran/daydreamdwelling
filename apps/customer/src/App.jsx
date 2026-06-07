@@ -46,7 +46,7 @@ import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
 import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode, TOOL_SETS } from './ui/MobileChrome'
-import { DesignStyleContent, DesignBuildContent, DesignPlanContent, DesignMoreContent } from './ui/BuilderPanels'
+import { DesignStyleContent, DesignBuildContent, DesignPlanContent, DesignMoreContent, DesignShopContent } from './ui/BuilderPanels'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -972,15 +972,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Tool panels in BuilderSheet — Claude Design layouts */}
       {activeTool === 'place' && (
         <BuilderSheet title="Shop & Place" accentDot="#e87fc8" onClose={() => setActiveTool(null)} height="84%">
-          <PlaceTabPanel
-            ownedKeys={ownedKeys}
-            roomItemKeys={roomItemKeys}
-            wishlistedItems={wishlistedItems}
+          <DesignShopContent
             catalogue={shopPanelCatalogue}
-            items={items}
-            onPlace={(tk, si, sw) => { placeItem(tk, si, sw); setActiveTool(null) }}
-            onOpenModal={openProductModal}
-            onSelectItem={setSelectedId}
+            placedKeys={roomItemKeys}
+            ownedKeys={ownedKeys}
+            wishlist={wishlistedItems}
+            onPlace={(tk) => { placeItem(tk); setActiveTool(null) }}
+            onDetail={openProductModal}
+            onWish={(tk) => toggleWishlist(tk)}
           />
         </BuilderSheet>
       )}
