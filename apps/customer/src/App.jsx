@@ -45,7 +45,8 @@ import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
-import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode } from './ui/MobileChrome'
+import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode, TOOL_SETS } from './ui/MobileChrome'
+import { DesignStyleContent, DesignBuildContent, DesignPlanContent, DesignMoreContent } from './ui/BuilderPanels'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -945,6 +946,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         cartCount={cartCount}
         onUndo={undo}
         onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onCart={() => { if (shopOpen && drawerTab === 'cart') { closeShop() } else { setDrawerTab('cart'); openShop() } }}
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
@@ -966,7 +969,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onReset={() => { zoomRef.current = 40; setTarget(0) }}
       />
 
-      {/* Tool panels in BuilderSheet */}
+      {/* Tool panels in BuilderSheet — Claude Design layouts */}
       {activeTool === 'place' && (
         <BuilderSheet title="Shop & Place" accentDot="#e87fc8" onClose={() => setActiveTool(null)} height="84%">
           <PlaceTabPanel
@@ -983,7 +986,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
       {activeTool === 'build' && (
         <BuilderSheet title="Build" accentDot="#3fb88a" onClose={() => setActiveTool(null)}>
-          <BuildTabPanel
+          <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
           />
@@ -991,38 +994,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
       {activeTool === 'style' && (
         <BuilderSheet title="Style" accentDot="#9b7ae0" onClose={() => setActiveTool(null)}>
-          <StylePanel floorColor={floorColor} wallColor={wallColor} onFloorColor={setFloorColor} onWallColor={setWallColor} />
-        </BuilderSheet>
-      )}
-      {activeTool === 'music' && (
-        <BuilderSheet title="Music" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
-          <MusicTabPanel />
-        </BuilderSheet>
-      )}
-      {activeTool === 'plan' && (
-        <BuilderSheet title="Plan" accentDot="#5bb0c8" onClose={() => setActiveTool(null)}>
-          <PlanTabPanel
-            panelOpen={panelOpen}
-            onTogglePanel={() => setPanelOpen(v => !v)}
-            canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo}
-            onCloudSave={() => user ? setSaveModalOpen(true) : setAuthModalOpen(true)}
-            onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
-            bookmark={bookmark} onSaveBookmark={saveBookmark} onRestoreBookmark={restoreBookmark}
-            floorColor={floorColor} wallColor={wallColor} onFloorColor={setFloorColor} onWallColor={setWallColor}
+          <DesignStyleContent
+            wallColor={wallColor} floorColor={floorColor}
+            onWallColor={setWallColor} onFloorColor={setFloorColor}
           />
         </BuilderSheet>
       )}
-      {activeTool === 'social' && (
-        <BuilderSheet title="Social" accentDot="#e87fa0" onClose={() => setActiveTool(null)}>
-          <SocialTabPanel
-            onCommunity={() => setCommunityOpen(true)}
-            onContests={() => setContestsOpen(true)}
-            onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
-          />
-        </BuilderSheet>
-      )}
-      {activeTool === 'more' && (
-        <BuilderSheet title="More" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+      {activeTool === 'view' && (
+        <BuilderSheet title="View" accentDot="#5ea8c8" onClose={() => setActiveTool(null)}>
           <ViewTabPanel
             onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
             onRotateRight={() => setTarget(r => r + Math.PI / 2)}
@@ -1039,6 +1018,44 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
             forceEasterEggs={forceEasterEggs}
             onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'music' && (
+        <BuilderSheet title="Music" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <MusicTabPanel />
+        </BuilderSheet>
+      )}
+      {activeTool === 'plan' && (
+        <BuilderSheet title="Plan · Budget" accentDot="#5bb0c8" onClose={() => setActiveTool(null)}>
+          <DesignPlanContent
+            items={items}
+            catalogue={catalogue}
+            onAddAll={() => { items.forEach(it => addToCart(it.typeKey, it.sizeIndex, it.swatchIndex)) }}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'social' && (
+        <BuilderSheet title="Social" accentDot="#e87fa0" onClose={() => setActiveTool(null)}>
+          <SocialTabPanel
+            onCommunity={() => setCommunityOpen(true)}
+            onContests={() => setContestsOpen(true)}
+            onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'more' && (
+        <BuilderSheet title="More" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <DesignMoreContent
+            railTools={TOOL_SETS[window.innerWidth <= 768 ? 'mobile' : window.innerWidth <= 1199 ? 'tablet' : 'desktop']}
+            onTool={(id) => { setActiveTool(id === 'account' ? null : id); if (id === 'account') { user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'saved') { user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'settings') { user ? (setAccountModalTab('Preferences'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'notifications') { user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true) } }}
+            showMeasurements={showMeasurements}
+            onMeasure={() => setShowMeasurements(v => !v)}
+            onScreenshot={() => screenshotRef.current?.()}
+            onShare={() => {}}
+            onReset={() => { /* TODO: reset room */ }}
           />
         </BuilderSheet>
       )}

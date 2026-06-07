@@ -75,14 +75,15 @@ function ui(t) {
 }
 
 // ── Icon Button (design: 38px default, 36px on mobile top bar) ─────
-function IconBtn({ icon: LucideIcon, onClick, label, badge, active, size = 38, u }) {
+function IconBtn({ icon: LucideIcon, onClick, label, badge, active, size = 38, u, disabled }) {
   return (
-    <button onClick={onClick} title={label} aria-label={label} style={{
+    <button onClick={disabled ? undefined : onClick} title={label} aria-label={label} disabled={disabled} style={{
       width: size, height: size, borderRadius: 12, flexShrink: 0, position: 'relative',
-      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      cursor: disabled ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
       border: `1px solid ${active ? u.accent : u.line}`,
       background: active ? u.accent + '1c' : u.card,
       color: active ? u.accent : u.text,
+      opacity: disabled ? 0.35 : 1,
     }}>
       <LucideIcon size={Math.round(size * 0.5)} />
       {badge > 0 && (
@@ -172,7 +173,7 @@ function BudgetChip({ total, count, onClick, compact, u }) {
 // ── Top Bar ────────────────────────────────────────────────────────
 export function BuilderTopBar({
   roomName, rooms, budget, itemCount, cartCount,
-  onUndo, onRedo, onCart, onScreenshot, onShare, onAccount,
+  onUndo, onRedo, canUndo, canRedo, onCart, onScreenshot, onShare, onAccount,
   onPickRoom, onNewRoom, onBudget,
 }) {
   const t = useTheme()
@@ -197,7 +198,7 @@ export function BuilderTopBar({
           <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} u={u} />
           <BudgetChip total={budget} count={itemCount} onClick={onBudget} compact u={u} />
         </div>
-        <IconBtn icon={Undo2} onClick={onUndo} label="Undo" size={36} u={u} />
+        <IconBtn icon={Undo2} onClick={onUndo} label="Undo" size={36} u={u} disabled={!canUndo} />
         <IconBtn icon={ShoppingCart} onClick={onCart} label="Cart" badge={cartCount || null} size={36} u={u} />
       </header>
     )
@@ -220,8 +221,8 @@ export function BuilderTopBar({
       </div>
       <div style={{ flex: 1 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-        <IconBtn icon={Undo2} onClick={onUndo} label="Undo" u={u} />
-        <IconBtn icon={Redo2} onClick={onRedo} label="Redo" u={u} />
+        <IconBtn icon={Undo2} onClick={onUndo} label="Undo" u={u} disabled={!canUndo} />
+        <IconBtn icon={Redo2} onClick={onRedo} label="Redo" u={u} disabled={!canRedo} />
         <div style={{ width: 1, height: 26, background: u.line, margin: '0 2px' }} />
         <IconBtn icon={Camera} onClick={onScreenshot} label="Screenshot" u={u} />
         <IconBtn icon={Share2} onClick={onShare} label="Share room" u={u} />
