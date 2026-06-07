@@ -1,32 +1,44 @@
-// MobileChrome — responsive builder chrome from Claude Design spec.
-// Replaces SideTabStrip + TopRightCluster + BottomTabCluster on mobile.
-// On desktop (>768px), these components don't render — the existing
-// desktop chrome stays. On mobile, they provide:
-//   TopBar (84px): logo + room name + budget + undo + cart
-//   ToolDock (66px): Place / Build / Style / More bottom bar
-//   ViewControls: floating rotate/zoom buttons
-//   ActionPill: item name + price + rotate/edit/save/delete
+// BuilderChrome — unified responsive builder chrome from Claude Design spec.
+// Replaces SideTabStrip + TopRightCluster + BottomTabCluster across all sizes.
+// Three breakpoints:
+//   Mobile  (≤768):  TopBar 48px + ToolDock 54px bottom bar (4 tabs)
+//   Tablet  (769-1199): TopBar 60px + left rail 64px (icon-only)
+//   Desktop (≥1200): TopBar 64px + left rail 192px (icons + labels)
 //
-// All components use the theme token system via useTheme().
+// All components use the theme token system via useTheme() + ui() mapping.
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
 import { Icon } from '@shared/ui/Icon'
-import { Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home, Undo2, Trash2, Heart, SlidersHorizontal, RotateCw } from 'lucide-react'
+import { Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home, Undo2, Redo2, Trash2, Heart, SlidersHorizontal, RotateCw, Camera, Share2, User, Music, Eye, ClipboardList, Users } from 'lucide-react'
+
+function useMode() {
+  const [w, setW] = useState(window.innerWidth)
+  useEffect(() => { const c = () => setW(window.innerWidth); window.addEventListener('resize', c); return () => window.removeEventListener('resize', c) }, [])
+  if (w <= 768) return 'mobile'
+  if (w <= 1199) return 'tablet'
+  return 'desktop'
+}
 
 function useIsMobile(bp = 768) {
-  const [m, setM] = useState(window.innerWidth <= bp)
-  useEffect(() => { const c = () => setM(window.innerWidth <= bp); window.addEventListener('resize', c); return () => window.removeEventListener('resize', c) }, [bp])
-  return m
+  const mode = useMode()
+  return mode === 'mobile'
 }
 
 const TOOLS = {
-  place: { label: 'Place', Icon: Package, tint: '#e87fc8' },
-  build: { label: 'Build', Icon: Hammer, tint: '#3fb88a' },
-  style: { label: 'Style', Icon: Palette, tint: '#9b7ae0' },
-  more:  { label: 'More',  Icon: MoreHorizontal, tint: '#8a78e0' },
+  place:  { label: 'Place',  Icon: Package,       tint: '#e87fc8' },
+  build:  { label: 'Build',  Icon: Hammer,        tint: '#3fb88a' },
+  style:  { label: 'Style',  Icon: Palette,       tint: '#9b7ae0' },
+  music:  { label: 'Music',  Icon: Music,         tint: '#8a78e0' },
+  plan:   { label: 'Plan',   Icon: ClipboardList, tint: '#5bb0c8' },
+  social: { label: 'Social', Icon: Users,         tint: '#e87fa0' },
+  more:   { label: 'More',   Icon: MoreHorizontal,tint: '#8a78e0' },
 }
+
+const MOBILE_TOOLS  = ['place', 'build', 'style', 'more']
+const TABLET_TOOLS  = ['place', 'build', 'style', 'music', 'more']
+const DESKTOP_TOOLS = ['place', 'build', 'style', 'music', 'plan', 'social', 'more']
 
 // Derive chrome tokens from theme (matches Claude Design's ui() function)
 function ui(t) {
@@ -42,87 +54,155 @@ function ui(t) {
 }
 
 // ── Top Bar ────────────────────────────────────────────────────────
-export function MobileTopBar({ roomName, budget, itemCount, cartCount, onUndo, onRedo, onCart, onAccount }) {
+export function BuilderTopBar({ roomName, budget, itemCount, cartCount, onUndo, onRedo, onCart, onScreenshot, onShare, onAccount }) {
   const t = useTheme()
   const u = ui(t)
-  const isMobile = useIsMobile()
-  if (!isMobile) return null
+  const mode = useMode()
+  const heights = { mobile: 48, tablet: 56, desktop: 60 }
+  const h = heights[mode]
 
   return (
     <header style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: 48,
-      zIndex: 80, display: 'flex', alignItems: 'center', gap: 8,
-      padding: 'max(env(safe-area-inset-top), 4px) 10px 0',
+      position: 'fixed', top: 0, left: 0, right: 0, height: h,
+      zIndex: 80, display: 'flex', alignItems: 'center', gap: mode === 'mobile' ? 8 : 12,
+      padding: mode === 'mobile' ? 'max(env(safe-area-inset-top), 4px) 10px 0' : '0 16px',
       background: u.nav, borderBottom: `1px solid ${u.line}`,
       fontFamily: "'Outfit',system-ui,sans-serif", color: u.text,
     }}>
-      <Logo size={28} color={u.accent} />
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <Logo size={mode === 'mobile' ? 26 : 32} color={u.accent} />
+        {mode === 'desktop' && (
+          <span style={{ fontFamily: "'EB Garamond',Georgia,serif", fontSize: 21, fontWeight: 500 }}>
+            Daydream<span style={{ color: u.accent, fontStyle: 'italic' }}>Dwelling</span>
+          </span>
+        )}
+      </div>
+
+      {/* Room + budget */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: mode === 'mobile' ? 6 : 9, flex: mode === 'mobile' ? 1 : undefined, justifyContent: mode === 'mobile' ? 'center' : undefined, minWidth: 0 }}>
         <button style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+          display: 'flex', alignItems: 'center', gap: 7, padding: mode === 'mobile' ? '5px 10px' : '8px 13px',
           borderRadius: 12, border: `1px solid ${u.line}`,
           background: u.card, color: u.text, cursor: 'pointer',
           fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
-          overflow: 'hidden', maxWidth: 140,
+          overflow: 'hidden', maxWidth: mode === 'mobile' ? 130 : 200,
         }}>
-          <Home size={14} style={{ flexShrink: 0, color: u.soft }} />
+          <Home size={15} style={{ flexShrink: 0, color: u.soft }} />
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roomName || 'My Room'}</span>
         </button>
-        {budget > 0 && (
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: 5, padding: '6px 9px',
-            borderRadius: 12, border: `1px solid ${u.line}`,
-            background: u.card, fontSize: 13, fontWeight: 800, color: u.text,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3fb88a', flexShrink: 0 }} />
-            ${budget.toLocaleString()}
-          </button>
-        )}
+        <button style={{
+          display: 'flex', alignItems: 'center', gap: mode === 'mobile' ? 5 : 7, padding: mode === 'mobile' ? '5px 9px' : '8px 12px',
+          borderRadius: 12, border: `1px solid ${u.line}`,
+          background: u.card, fontSize: mode === 'mobile' ? 13 : 14, fontWeight: 800, color: u.text,
+          cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3fb88a', flexShrink: 0 }} />
+          ${(budget || 0).toLocaleString()}
+          {mode !== 'mobile' && <span style={{ fontSize: 11.5, color: u.soft, fontWeight: 600 }}>· {itemCount || 0} item{itemCount === 1 ? '' : 's'}</span>}
+        </button>
       </div>
-      <IconButton icon={Undo2} onClick={onUndo} label="Undo" u={u} />
-      <IconButton icon={ShoppingCart} onClick={onCart} label="Cart" badge={cartCount} u={u} />
+
+      {mode !== 'mobile' && <div style={{ flex: 1 }} />}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+        <IconButton icon={Undo2} onClick={onUndo} label="Undo" u={u} />
+        {mode !== 'mobile' && <IconButton icon={Redo2} onClick={onRedo} label="Redo" u={u} />}
+        {mode !== 'mobile' && <div style={{ width: 1, height: 26, background: u.line, margin: '0 2px' }} />}
+        {mode !== 'mobile' && <IconButton icon={Camera} onClick={onScreenshot} label="Screenshot" u={u} />}
+        {mode !== 'mobile' && <IconButton icon={Share2} onClick={onShare} label="Share" u={u} />}
+        <IconButton icon={ShoppingCart} onClick={onCart} label="Cart" badge={cartCount} u={u} />
+        {mode !== 'mobile' && <IconButton icon={User} onClick={onAccount} label="Account" u={u} />}
+      </div>
     </header>
   )
 }
 
 // ── Tool Dock (bottom bar) ─────────────────────────────────────────
-export function MobileToolDock({ active, onPick }) {
+export function BuilderToolDock({ active, onPick }) {
   const t = useTheme()
   const u = ui(t)
-  const isMobile = useIsMobile()
-  if (!isMobile) return null
+  const mode = useMode()
+  const toolIds = mode === 'mobile' ? MOBILE_TOOLS : mode === 'tablet' ? TABLET_TOOLS : DESKTOP_TOOLS
+  const topH = { mobile: 48, tablet: 56, desktop: 60 }[mode]
+
+  // Mobile: bottom bar
+  if (mode === 'mobile') {
+    return (
+      <nav style={{
+        position: 'fixed', left: 0, right: 0, bottom: 0, height: 54,
+        zIndex: 70, display: 'flex', alignItems: 'stretch',
+        padding: '4px 8px', paddingBottom: 'max(4px, env(safe-area-inset-bottom))',
+        background: u.nav, borderTop: `1px solid ${u.line}`,
+        fontFamily: "'Outfit',sans-serif",
+      }}>
+        {toolIds.map(id => {
+          const tool = TOOLS[id]
+          const on = active === id
+          const ToolIcon = tool.Icon
+          return (
+            <button key={id} onClick={() => onPick(on ? null : id)} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: 2, border: 'none', background: 'transparent',
+              cursor: 'pointer', fontFamily: 'inherit', minWidth: 0, padding: 0,
+            }}>
+              <span style={{
+                width: 44, height: 30, borderRadius: 10,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: on ? tool.tint : 'transparent',
+                color: on ? '#fff' : u.soft,
+                transition: 'all .15s',
+              }}>
+                <ToolIcon size={20} strokeWidth={on ? 2.1 : 1.9} />
+              </span>
+              <span style={{ fontSize: 10, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
+                {tool.label}
+              </span>
+            </button>
+          )
+        })}
+      </nav>
+    )
+  }
+
+  // Tablet/Desktop: vertical left rail
+  const railW = mode === 'desktop' ? 192 : 64
+  const wide = mode === 'desktop'
 
   return (
     <nav style={{
-      position: 'fixed', left: 0, right: 0, bottom: 0, height: 54,
-      zIndex: 70, display: 'flex', alignItems: 'stretch',
-      padding: '6px 8px', paddingBottom: 'max(6px, env(safe-area-inset-bottom))',
-      background: u.nav, borderTop: `1px solid ${u.line}`,
-      fontFamily: "'Outfit',sans-serif",
+      position: 'fixed', top: topH + 12, bottom: 12, left: 12, width: railW,
+      zIndex: 70, display: 'flex', flexDirection: 'column', gap: 6, padding: 8,
+      background: u.nav, border: `1px solid ${u.border}`,
+      borderRadius: 20, fontFamily: "'Outfit',sans-serif",
+      boxShadow: '0 12px 36px rgba(0,0,0,0.18)',
     }}>
-      {['place', 'build', 'style', 'more'].map(id => {
+      {toolIds.map(id => {
         const tool = TOOLS[id]
         const on = active === id
         const ToolIcon = tool.Icon
         return (
-          <button key={id} onClick={() => onPick(on ? null : id)} style={{
-            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 3, border: 'none', background: 'transparent',
-            cursor: 'pointer', fontFamily: 'inherit', minWidth: 0, padding: 0,
+          <button key={id} onClick={() => onPick(on ? null : id)} title={tool.label} style={{
+            display: 'flex', alignItems: 'center', gap: 11,
+            padding: wide ? '10px 12px' : 0,
+            justifyContent: wide ? 'flex-start' : 'center',
+            height: wide ? 'auto' : 50,
+            borderRadius: 14,
+            border: `1px solid ${on ? tool.tint + '88' : 'transparent'}`,
+            background: on ? tool.tint + '1e' : 'transparent',
+            cursor: 'pointer', fontFamily: 'inherit', color: u.text,
           }}>
             <span style={{
-              width: 46, height: 32, borderRadius: 11,
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: on ? tool.tint : 'transparent',
+              background: on ? tool.tint : u.card,
               color: on ? '#fff' : u.soft,
               transition: 'all .15s',
             }}>
-              <ToolIcon size={21} strokeWidth={on ? 2.1 : 1.9} />
+              <ToolIcon size={20} />
             </span>
-            <span style={{ fontSize: 10.5, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
-              {tool.label}
-            </span>
+            {wide && <span style={{ fontSize: 14, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>{tool.label}</span>}
           </button>
         )
       })}
@@ -133,11 +213,12 @@ export function MobileToolDock({ active, onPick }) {
 // ViewControls removed — swipe rotate + pinch zoom handles everything on mobile
 
 // ── Action Pill (selected item) ────────────────────────────────────
-export function MobileActionPill({ item, catalogue, onRotate, onDetails, onDelete, onWishlist, isWishlisted }) {
+export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDelete, onWishlist, isWishlisted }) {
   const t = useTheme()
   const u = ui(t)
-  const isMobile = useIsMobile()
-  if (!isMobile || !item) return null
+  const mode = useMode()
+  if (!item) return null
+  const bottom = mode === 'mobile' ? 62 : 22
 
   const def = catalogue?.[item.typeKey]
   if (!def) return null
@@ -157,7 +238,7 @@ export function MobileActionPill({ item, catalogue, onRotate, onDetails, onDelet
 
   return (
     <div style={{
-      position: 'fixed', bottom: 62, left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', bottom, left: '50%', transform: 'translateX(-50%)',
       zIndex: 75, display: 'flex', alignItems: 'center', gap: 2, padding: 6,
       background: u.panel,
       border: `1px solid ${u.border}`, borderRadius: 18,
@@ -203,5 +284,4 @@ function IconButton({ icon: LucideIcon, onClick, label, badge, u }) {
   )
 }
 
-export function MobileViewControls() { return null } // stub — swipe handles it
-export { useIsMobile }
+export { useIsMobile, useMode }

@@ -45,7 +45,7 @@ import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
-import { MobileTopBar, MobileToolDock, MobileViewControls, MobileActionPill, useIsMobile } from './ui/MobileChrome'
+import { BuilderTopBar, BuilderToolDock, BuilderActionPill, useIsMobile, useMode } from './ui/MobileChrome'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -758,15 +758,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     <SideTabProvider>
     <div className="ember-clear" style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
-      {/* Hide desktop chrome on mobile — replaced by MobileChrome */}
+      {/* Hide old chrome at ALL breakpoints — replaced by BuilderChrome */}
       <style>{`
-        @media (max-width: 768px) {
-          .ddd-side-strip,
-          .ddd-top-right-strip,
-          .ddd-bottom-cluster,
-          .ddd-builder-logo,
-          .ddd-desktop-only { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; pointer-events: none !important; }
-        }
+        .ddd-side-strip,
+        .ddd-top-right-strip,
+        .ddd-bottom-cluster,
+        .ddd-builder-logo,
+        .ddd-desktop-only { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; pointer-events: none !important; }
       `}</style>
       {/* Hide toolbar during drag on mobile for more room */}
       {isDragging && (
@@ -934,8 +932,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         />
       )}
 
-      {/* ── Mobile Chrome (Claude Design) ── */}
-      <MobileTopBar
+      {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
+      <BuilderTopBar
         roomName={getRoomName(currentRoomId)}
         budget={items.reduce((s, it) => {
           const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
@@ -943,27 +941,26 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         }, 0)}
         itemCount={items.length}
         cartCount={cartCount}
-        onUndo={() => {/* undo() */}}
+        onUndo={undo}
+        onRedo={redo}
         onCart={() => { setDrawerTab('cart'); openShop() }}
+        onScreenshot={() => screenshotRef.current?.()}
+        onShare={() => {}}
+        onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
       />
-      <MobileToolDock
+      <BuilderToolDock
         active={null}
         onPick={(id) => {
           if (id === 'place') { setDrawerTab('shop'); toggleShop() }
           else if (id === 'build') dispatchTogglePanel('build')
           else if (id === 'style') dispatchTogglePanel('style')
-          else if (id === 'more') dispatchTogglePanel('music') // TODO: build More drawer with Music/Plan/Social/Account/Settings
+          else if (id === 'music') dispatchTogglePanel('music')
+          else if (id === 'plan') dispatchTogglePanel('plan')
+          else if (id === 'social') dispatchTogglePanel('social')
+          else if (id === 'more') dispatchTogglePanel('view')
         }}
       />
-      <MobileViewControls
-        zoom={zoomRef.current}
-        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
-        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
-        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15) }}
-        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15) }}
-        onReset={() => { zoomRef.current = 40; setTarget(0) }}
-      />
-      <MobileActionPill
+      <BuilderActionPill
         item={selectedItem}
         catalogue={catalogue}
         onRotate={() => selectedItem && rotateItem(selectedItem.id)}

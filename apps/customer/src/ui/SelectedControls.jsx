@@ -58,7 +58,8 @@ export default function SelectedControls({
   const isMobile = useIsMobile()
   const [mobileExpanded, setMobileExpanded] = useState(false)
 
-  // Mobile handled by MobileActionPill in MobileChrome.jsx
+  // Mobile: BuilderActionPill handles item actions. SelectedControls stays
+  // for tablet/desktop where there's room for the full detail panel.
   if (isMobile) return null
 
   // Legacy mobile code (kept for reference, never runs)
