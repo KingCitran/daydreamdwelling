@@ -284,4 +284,58 @@ function IconButton({ icon: LucideIcon, onClick, label, badge, u }) {
   )
 }
 
+// ── Sheet (panel window) ───────────────────────────────────────────
+// Bottom sheet on mobile, side panel on tablet/desktop.
+export function BuilderSheet({ title, accentDot, onClose, children, footer, height }) {
+  const t = useTheme()
+  const u = ui(t)
+  const mode = useMode()
+  const isBottom = mode === 'mobile'
+
+  const topH = { mobile: 48, tablet: 56, desktop: 60 }[mode]
+  const railW = mode === 'desktop' ? 192 : mode === 'tablet' ? 64 : 0
+
+  const wrap = isBottom ? {
+    position: 'fixed', left: 0, right: 0, bottom: 54, zIndex: 60,
+    maxHeight: height || '70%', borderRadius: '22px 22px 0 0',
+    boxShadow: '0 -10px 40px rgba(0,0,0,0.28)',
+  } : {
+    position: 'fixed', top: topH + 12, bottom: 12, left: 12 + railW + 12,
+    width: mode === 'desktop' ? 384 : 340, zIndex: 60, borderRadius: 20,
+    boxShadow: '0 16px 50px rgba(0,0,0,0.26)',
+  }
+
+  return (
+    <div style={{
+      ...wrap, background: u.panel,
+      border: `1px solid ${u.border}`,
+      display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      fontFamily: "'Outfit',system-ui,sans-serif", color: u.text,
+    }}>
+      {isBottom && (
+        <div onClick={onClose} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 2px', cursor: 'pointer', flexShrink: 0 }}>
+          <div style={{ width: 38, height: 4, borderRadius: 2, background: u.soft, opacity: 0.5 }} />
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: isBottom ? '6px 16px 10px' : '15px 16px 11px', flexShrink: 0 }}>
+        {accentDot && <span style={{ width: 9, height: 9, borderRadius: '50%', background: accentDot, flexShrink: 0 }} />}
+        <h3 style={{ margin: 0, fontSize: 16.5, fontWeight: 800, letterSpacing: '-0.01em', flex: 1 }}>{title}</h3>
+        <button onClick={onClose} style={{
+          width: 32, height: 32, borderRadius: 9, border: `1px solid ${u.line}`,
+          background: u.card, color: u.soft, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>✕</button>
+      </div>
+      <div style={{ overflowY: 'auto', overflowX: 'hidden', padding: '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+        {children}
+      </div>
+      {footer && (
+        <div style={{ padding: 14, borderTop: `1px solid ${u.line}`, flexShrink: 0, background: u.panel }}>
+          {footer}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export { useIsMobile, useMode }
