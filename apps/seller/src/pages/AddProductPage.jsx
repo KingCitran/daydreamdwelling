@@ -26,7 +26,7 @@ export const INITIAL_FORM = {
   sizes: [{ label: '', wFt: '', wIn: '', dFt: '', dIn: '', hFt: '', hIn: '', price: '' }],
   swatches: [{ label: '', colors: [{ location: '', hex: '#888888', name: '' }], family: '' }],
   typeKey: '', styleTags: [], roomTags: [], themeTags: [],
-  shippingType: 'flat', flatRate: '', processingDays: 5,
+  shippingType: 'flat', flatRate: '', processingDays: 5, weightLbs: '',
   shippingRegions: ['domestic'], wattage: '', kelvin: '',
   active: true,
 }
@@ -88,6 +88,7 @@ export default function AddProductPage({ productId, onDone }) {
         roomTags:  (p.product_tags || []).filter(x => x.tag_type === 'room').map(x => x.value),
         themeTags: (p.product_tags || []).filter(x => x.tag_type === 'theme').map(x => x.value),
         shippingType: p.shipping_type || 'flat', flatRate: p.flat_rate || '',
+        weightLbs: p.weight_oz ? (p.weight_oz / 16).toFixed(1) : '',
         processingDays: p.processing_days ?? 5,
         shippingRegions: p.shipping_regions || ['domestic'],
         wattage: p.wattage || '', kelvin: p.kelvin || '',
@@ -112,6 +113,7 @@ export default function AddProductPage({ productId, onDone }) {
         shipping_type: form.shippingType, flat_rate: form.flatRate ? Number(form.flatRate) : null,
         processing_days: form.processingDays || null, shipping_regions: form.shippingRegions,
         wattage: form.wattage ? Number(form.wattage) : null, kelvin: form.kelvin ? Number(form.kelvin) : null,
+        weight_oz: form.weightLbs ? Math.round(Number(form.weightLbs) * 16) : null,
         is_active: form.active, status: form.active ? 'active' : 'draft', seller_id: user.id,
       }
       let pid = productId

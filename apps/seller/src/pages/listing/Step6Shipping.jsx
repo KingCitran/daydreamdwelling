@@ -33,6 +33,14 @@ export default function Step6Shipping({ form, update }) {
         </p>
       </div>
 
+      <Field t={t} label="Package weight (lbs)">
+        <input style={s.input} type="number" min="0" step="0.1"
+          value={form.weightLbs ?? ''} onChange={e => update({ weightLbs: e.target.value })}
+          onFocus={e => e.target.select()}
+          placeholder="e.g. 12.5" />
+        <p style={s.note}>Weight of the product packaged and ready to ship. Used to calculate shipping cost at checkout.</p>
+      </Field>
+
       <Field t={t} label="Processing time">
         <select style={s.input} value={form.processingDays}
           onChange={e => update({ processingDays: Number(e.target.value) })}>

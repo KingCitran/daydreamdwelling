@@ -86,6 +86,7 @@ export default function Step7Preview({ form, update, onSave, saving, error, isEd
 
         {/* Shipping */}
         <PreviewRow label="Shipping" value="Calculated at checkout" t={t} />
+        {form.weightLbs && <PreviewRow label="Package weight" value={`${form.weightLbs} lbs`} t={t} />}
         {form.wattage && <PreviewRow label="Wattage" value={`${form.wattage}W`} t={t} />}
         {form.kelvin  && <PreviewRow label="Color temp" value={`${form.kelvin}K`} t={t} />}
       </Card>
