@@ -337,24 +337,22 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
             </span>
           </button>
         ))}
-      </div>
-      {/* Account + Alerts — side by side, each half width */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
-        {MORE_HALF_ITEMS.map(h => (
-          <button key={h.id} onClick={() => onTool(h.id)} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: 5, padding: '12px 8px',
-            borderRadius: 13, cursor: 'pointer',
-            border: `1px solid ${u.line}`, background: u.card, color: u.text,
-            fontFamily: 'inherit', fontSize: 12, fontWeight: 700, position: 'relative',
-          }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: u.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: u.accent }}>
-              <h.Icon size={16} />
-            </span>
-            {h.label}
-            {h.dot && <span style={{ position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
-          </button>
-        ))}
+        {/* Account + Alerts — two small buttons inside one grid cell */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {MORE_HALF_ITEMS.map(h => (
+            <button key={h.id} onClick={() => onTool(h.id)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', gap: 7, padding: '6px 8px',
+              borderRadius: 11, cursor: 'pointer',
+              border: `1px solid ${u.line}`, background: u.card, color: u.text,
+              fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, position: 'relative',
+              minWidth: 0,
+            }}>
+              <h.Icon size={14} style={{ color: u.accent, flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.label}</span>
+              {h.dot && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#e8736f', flexShrink: 0, marginLeft: 'auto' }} />}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div style={{ height: 1, background: u.line }} />
