@@ -438,6 +438,7 @@ export function DesignShopContent({ catalogue, placedKeys, ownedKeys, wishlist, 
   const [cat, setCat] = useState('All')
   const [q, setQ] = useState('')
   const [sort, setSort] = useState('featured')
+  const [searchOpen, setSearchOpen] = useState(false)
   const cols = typeof window !== 'undefined' && window.innerWidth <= 768 ? 2 : window.innerWidth <= 1199 ? 3 : 2
   const cat_ = catalogue || ITEM_CATALOGUE
 
@@ -458,12 +459,25 @@ export function DesignShopContent({ catalogue, placedKeys, ownedKeys, wishlist, 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-      <div style={{ display: 'flex', gap: 8, position: 'sticky', top: 0, background: u.panel, paddingTop: 2, paddingBottom: 4, zIndex: 2 }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', borderRadius: 12, background: u.card, border: `1px solid ${u.line}` }}>
-          <Search size={16} style={{ color: u.soft, flexShrink: 0 }} />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search furniture, sellers…" style={{ border: 'none', background: 'transparent', outline: 'none', color: u.text, fontSize: 13.5, fontFamily: 'inherit', width: '100%' }} />
-        </div>
-        <select value={sort} onChange={e => setSort(e.target.value)} style={{ borderRadius: 12, border: `1px solid ${u.line}`, background: u.card, color: u.text, fontSize: 12.5, fontWeight: 700, padding: '0 8px', fontFamily: 'inherit', cursor: 'pointer' }}>
+      <div style={{ display: 'flex', gap: 6, position: 'sticky', top: 0, background: u.panel, paddingTop: 2, paddingBottom: 4, zIndex: 2 }}>
+        {searchOpen ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: u.card, border: `1px solid ${u.accent}` }}>
+            <Search size={16} style={{ color: u.soft, flexShrink: 0 }} />
+            <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search furniture, sellers…"
+              onBlur={() => { if (!q) setSearchOpen(false) }}
+              style={{ border: 'none', background: 'transparent', outline: 'none', color: u.text, fontSize: 13.5, fontFamily: 'inherit', width: '100%' }} />
+            <button onClick={() => { setQ(''); setSearchOpen(false) }} style={{ background: 'none', border: 'none', color: u.soft, cursor: 'pointer', padding: 0, fontSize: 16 }}>✕</button>
+          </div>
+        ) : (
+          <button onClick={() => setSearchOpen(true)} style={{
+            width: 36, height: 36, borderRadius: 10, border: `1px solid ${u.line}`,
+            background: u.card, color: u.soft, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Search size={16} />
+          </button>
+        )}
+        <select value={sort} onChange={e => setSort(e.target.value)} style={{ borderRadius: 10, border: `1px solid ${u.line}`, background: u.card, color: u.text, fontSize: 12, fontWeight: 700, padding: '0 8px', fontFamily: 'inherit', cursor: 'pointer' }}>
           <option value="featured">Featured</option>
           <option value="priceLow">Price ↑</option>
           <option value="priceHigh">Price ↓</option>
