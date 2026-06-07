@@ -424,7 +424,7 @@ export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDele
 }
 
 // ── Sheet (panel container) ────────────────────────────────────────
-export function BuilderSheet({ title, accentDot, onClose, children, footer, height }) {
+export function BuilderSheet({ title, accentDot, onClose, children, footer, height, noPad }) {
   const t = useTheme()
   const u = ui(t)
   const mode = useMode()
@@ -465,7 +465,7 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>✕</button>
       </div>
-      <div className="ddd-sheet-body" style={{ overflowY: 'auto', overflowX: 'hidden', padding: '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+      <div className="ddd-sheet-body" style={{ overflow: noPad ? 'hidden' : 'auto', overflowX: 'hidden', padding: noPad ? 0 : '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch', display: noPad ? 'flex' : 'block', flexDirection: 'column', minHeight: 0 }}>
         {children}
       </div>
       {footer && (
