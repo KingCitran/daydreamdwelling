@@ -79,10 +79,10 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) 
         const dx = e.changedTouches[0].clientX - touchState.current.startX
         const dy = e.changedTouches[0].clientY - touchState.current.startY
         const absDx = Math.abs(dx), absDy = Math.abs(dy)
-        // Higher threshold (80px) to avoid accidental rotation
-        if (absDx > absDy && absDx > 80) {
+        // High threshold to avoid accidental rotation during item taps
+        if (absDx > absDy && absDx > 120) {
           onRotate(dx > 0 ? Math.PI / 2 : -Math.PI / 2)
-        } else if (absDy > absDx && absDy > 80 && onSwipeVertical) {
+        } else if (absDy > absDx && absDy > 120 && onSwipeVertical) {
           onSwipeVertical(dy < 0 ? 'up' : 'down')
         }
       }
