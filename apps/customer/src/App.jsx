@@ -45,7 +45,7 @@ import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
-import { BuilderTopBar, BuilderToolDock, BuilderActionPill, BuilderSheet, useIsMobile, useMode } from './ui/MobileChrome'
+import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode } from './ui/MobileChrome'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -936,6 +936,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
         roomName={getRoomName(currentRoomId)}
+        rooms={Object.keys(allRoomsData || {}).map(id => roomNames[id] || `Room ${id}`)}
         budget={items.reduce((s, it) => {
           const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
           return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
@@ -944,14 +945,25 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         cartCount={cartCount}
         onUndo={undo}
         onRedo={redo}
-        onCart={() => { setDrawerTab('cart'); openShop() }}
+        onCart={() => { if (activeTool === 'place' && drawerTab === 'cart') { setActiveTool(null); closeShop() } else { setActiveTool('place'); setDrawerTab('cart'); openShop() } }}
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+        onPickRoom={(name) => { const id = Object.entries(roomNames).find(([, n]) => n === name)?.[0]; if (id) jumpToRoom(id) }}
+        onNewRoom={() => {}}
+        onBudget={() => setActiveTool(activeTool === 'plan' ? null : 'plan')}
       />
       <BuilderToolDock
         active={activeTool}
-        onPick={(id) => setActiveTool(id)}
+        onPick={(id) => setActiveTool(activeTool === id ? null : id)}
+      />
+      <BuilderViewControls
+        zoom={zoomRef.current}
+        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
+        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
+        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15) }}
+        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15) }}
+        onReset={() => { zoomRef.current = 40; setTarget(0) }}
       />
 
       {/* Tool panels in BuilderSheet */}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>DaydreamDwelling — Studio Design Board</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=EB+Garamond:ital,wght@0,500;1,500&family=Spline+Sans+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body { font-family: 'Outfit', system-ui, sans-serif; background: #f4f5f7; }
+  #board { min-height: 100%; }
+</style>
+</head>
+<body>
+  <div id="board"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <!-- shared builder code (plain scripts → define window.DDD synchronously, no auto-render without #root) -->
+  <script src="theme.js"></script>
+  <script src="catalogue.js"></script>
+  <script src="icons.jsx"></script>
+  <script src="iso.jsx"></script>
+  <script src="ui.jsx"></script>
+  <script src="shop.jsx"></script>
+  <script src="panels.jsx"></script>
+  <script src="chrome.jsx"></script>
+  <script src="app.jsx"></script>
+  <script src="board.jsx"></script>
+</body>
+</html>
