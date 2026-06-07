@@ -951,24 +951,83 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
       <BuilderToolDock
         active={activeTool}
-        onPick={(id) => {
-          setActiveTool(id)
-          // Also wire into existing panel systems for content
-          if (id === 'place') { setDrawerTab('shop'); openShop() }
-          else if (id === null) { closeShop() }
-          else { closeShop() }
-          if (id === 'build') dispatchOpenPanel('build')
-          if (id === 'style') dispatchOpenPanel('style')
-          if (id === 'music') dispatchOpenPanel('music')
-          if (id === 'plan') dispatchOpenPanel('plan')
-          if (id === 'social') dispatchOpenPanel('social')
-        }}
+        onPick={(id) => setActiveTool(id)}
       />
 
       {/* Tool panels in BuilderSheet */}
+      {activeTool === 'place' && (
+        <BuilderSheet title="Shop & Place" accentDot="#e87fc8" onClose={() => setActiveTool(null)} height="84%">
+          <PlaceTabPanel
+            ownedKeys={ownedKeys}
+            roomItemKeys={roomItemKeys}
+            wishlistedItems={wishlistedItems}
+            catalogue={shopPanelCatalogue}
+            items={items}
+            onPlace={(tk, si, sw) => { placeItem(tk, si, sw); setActiveTool(null) }}
+            onOpenModal={openProductModal}
+            onSelectItem={setSelectedId}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'build' && (
+        <BuilderSheet title="Build" accentDot="#3fb88a" onClose={() => setActiveTool(null)}>
+          <BuildTabPanel
+            onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
+            onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
+          />
+        </BuilderSheet>
+      )}
       {activeTool === 'style' && (
         <BuilderSheet title="Style" accentDot="#9b7ae0" onClose={() => setActiveTool(null)}>
           <StylePanel floorColor={floorColor} wallColor={wallColor} onFloorColor={setFloorColor} onWallColor={setWallColor} />
+        </BuilderSheet>
+      )}
+      {activeTool === 'music' && (
+        <BuilderSheet title="Music" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <MusicTabPanel />
+        </BuilderSheet>
+      )}
+      {activeTool === 'plan' && (
+        <BuilderSheet title="Plan" accentDot="#5bb0c8" onClose={() => setActiveTool(null)}>
+          <PlanTabPanel
+            panelOpen={panelOpen}
+            onTogglePanel={() => setPanelOpen(v => !v)}
+            canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo}
+            onCloudSave={() => user ? setSaveModalOpen(true) : setAuthModalOpen(true)}
+            onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
+            bookmark={bookmark} onSaveBookmark={saveBookmark} onRestoreBookmark={restoreBookmark}
+            floorColor={floorColor} wallColor={wallColor} onFloorColor={setFloorColor} onWallColor={setWallColor}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'social' && (
+        <BuilderSheet title="Social" accentDot="#e87fa0" onClose={() => setActiveTool(null)}>
+          <SocialTabPanel
+            onCommunity={() => setCommunityOpen(true)}
+            onContests={() => setContestsOpen(true)}
+            onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'more' && (
+        <BuilderSheet title="More" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <ViewTabPanel
+            onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
+            onRotateRight={() => setTarget(r => r + Math.PI / 2)}
+            ceilingView={ceilingView}
+            onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+            onSummonWispy={showWispy}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
+            showGrid={showGrid}
+            onToggleGrid={() => setShowGrid(v => !v)}
+            cloudsOn={cloudsOn}
+            onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+            cloudVariant={cloudVariant}
+            onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
+            forceEasterEggs={forceEasterEggs}
+            onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
+          />
         </BuilderSheet>
       )}
       <BuilderActionPill
