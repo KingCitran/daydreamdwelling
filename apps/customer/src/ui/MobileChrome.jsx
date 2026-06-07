@@ -50,7 +50,7 @@ export function MobileTopBar({ roomName, budget, itemCount, cartCount, onUndo, o
 
   return (
     <header style={{
-      position: 'fixed', top: 0, left: 0, right: 0, height: 56,
+      position: 'fixed', top: 0, left: 0, right: 0, height: 48,
       zIndex: 80, display: 'flex', alignItems: 'center', gap: 8,
       padding: 'max(env(safe-area-inset-top), 4px) 10px 0',
       background: u.nav, borderBottom: `1px solid ${u.line}`,
@@ -95,7 +95,7 @@ export function MobileToolDock({ active, onPick }) {
 
   return (
     <nav style={{
-      position: 'fixed', left: 0, right: 0, bottom: 0, height: 66,
+      position: 'fixed', left: 0, right: 0, bottom: 0, height: 54,
       zIndex: 70, display: 'flex', alignItems: 'stretch',
       padding: '6px 8px', paddingBottom: 'max(6px, env(safe-area-inset-bottom))',
       background: u.nav, borderTop: `1px solid ${u.line}`,
@@ -157,7 +157,7 @@ export function MobileActionPill({ item, catalogue, onRotate, onDetails, onDelet
 
   return (
     <div style={{
-      position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+      position: 'fixed', bottom: 62, left: '50%', transform: 'translateX(-50%)',
       zIndex: 75, display: 'flex', alignItems: 'center', gap: 2, padding: 6,
       background: u.panel,
       border: `1px solid ${u.border}`, borderRadius: 18,

@@ -56,7 +56,12 @@ export default function FeedbackButton() {
   return (
     <>
       {/* Floating button — bottom right */}
-      <button onClick={() => setOpen(true)} title="Send feedback" style={{
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-feedback-btn { bottom: 76px !important; right: 10px !important; width: 38px !important; height: 38px !important; font-size: 15px !important; }
+        }
+      `}</style>
+      <button className="ddd-feedback-btn" onClick={() => setOpen(true)} title="Send feedback" style={{
         position: 'fixed', bottom: 20, right: 20, zIndex: 200,
         width: 44, height: 44, borderRadius: '50%',
         background: t.accent, color: t.accentText, border: 'none',
