@@ -114,6 +114,8 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
     : null
   const gridCols = subPanelOpen ? 1 : 2
 
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
+
   return (
     <>
     <style>{`
@@ -123,17 +125,60 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
         100% { opacity: 1; transform: translate(-100%, -50%) scale(1); }
       }
       .ddd-shop-tooltip { animation: ddd-shop-tip-pop 0.16s cubic-bezier(0.34, 1.56, 0.64, 1); }
+      .ddd-mode-scroll::-webkit-scrollbar { display: none; }
     `}</style>
-    <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
-      {/* ── Grid column (LEFT — fills remaining space) ── */}
-      <div style={st.gridCol}>
+    {isMobile ? (
+      /* ══ MOBILE: horizontal filters at top, grid below ══ */
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        {/* Search */}
         <div style={s.searchBar}>
           <input type="text"
-            placeholder={activeSub ? `Search in ${activeSub}…` : activeMode ? 'Search…' : 'Search all items…'}
+            placeholder={activeSub ? `Search in ${activeSub}…` : 'Search all items…'}
             value={search} onChange={e => setSearch(e.target.value)} style={s.searchInput} />
           {search && <button style={s.searchClear} onClick={() => setSearch('')}>✕</button>}
         </div>
+
+        {/* Mode chips — horizontal scroll */}
+        <div className="ddd-mode-scroll" style={{ display: 'flex', gap: 6, overflowX: 'auto', padding: '4px 8px', flexShrink: 0, scrollbarWidth: 'none' }}>
+          {SHOP_MODES.map(mode => (
+            <button key={mode.key} onClick={() => selectMode(mode.key)} style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px',
+              borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0, cursor: 'pointer',
+              border: `1px solid ${activeMode === mode.key ? '#9a7aee' : 'rgba(180,158,220,0.25)'}`,
+              background: activeMode === mode.key ? 'rgba(154,122,238,0.2)' : 'transparent',
+              color: activeMode === mode.key ? '#e0d9ff' : '#b0a8d0',
+              fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+            }}>
+              {mode.emoji} {mode.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sub-option chips — horizontal scroll (when mode selected) */}
+        {subPanelOpen && (
+          <div className="ddd-mode-scroll" style={{ display: 'flex', gap: 5, overflowX: 'auto', padding: '3px 8px', flexShrink: 0, scrollbarWidth: 'none' }}>
+            {subOptions.map(opt => {
+              const count = filterByMode(allItems, activeMode, opt.key).length
+              return (
+                <button key={opt.key} onClick={() => count > 0 && selectSub(opt.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px',
+                  borderRadius: 999, whiteSpace: 'nowrap', flexShrink: 0, cursor: count ? 'pointer' : 'default',
+                  border: `1px solid ${activeSub === opt.key ? '#9a7aee' : 'rgba(180,158,220,0.2)'}`,
+                  background: activeSub === opt.key ? 'rgba(154,122,238,0.18)' : 'transparent',
+                  color: activeSub === opt.key ? '#e0d9ff' : '#8a80b0',
+                  fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+                  opacity: count ? 1 : 0.35,
+                }}>
+                  {opt.preview
+                    ? <span style={{ width: 14, height: 14, borderRadius: '50%', background: opt.preview, display: 'inline-block' }} />
+                    : null}
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {colorSubTags.length > 0 && (
           <div style={st.subTagRow}>
@@ -147,6 +192,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           </div>
         )}
 
+        {/* Sort row */}
         <div style={{ ...s.sortRow, flexShrink: 0 }}>
           {[['featured','Featured'],['price_asc','$ ↑'],['price_desc','$ ↓'],['rating','★']].map(([val, lbl]) => (
             <button key={val} style={{ ...s.sortBtn, ...(sort === val ? s.sortBtnActive : {}) }} onClick={() => setSort(val)}>{lbl}</button>
@@ -156,29 +202,12 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           </span>
         </div>
 
-        {!activeMode && !searchTerm && recentKeys.length > 0 && (
-          <div style={s.recentRow}>
-            <span style={s.recentLabel}>Recently viewed</span>
-            <div style={s.recentScroll}>
-              {recentKeys.map(key => {
-                const def = ITEM_CATALOGUE[key]
-                if (!def) return null
-                return (
-                  <div key={key} style={s.recentCard} onClick={() => trackAndOpen(key)}>
-                    <div style={{ ...s.recentThumb, background: def.gradient }} />
-                    <span style={s.recentCardLabel}>{def.label}</span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px 16px' }}>
+        {/* Product grid */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 16px' }}>
           {visibleItems.length === 0
             ? <p style={s.emptyMsg}>No items{activeSub ? ` in ${activeSub}` : ''}{searchTerm ? ` matching "${search}"` : ''}.</p>
             : (
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7 }}>
                 {visibleItems.map(([key, def]) => (
                   <ProductCard key={key} typeKey={key} def={def}
                     onPlace={onPlace} onOpenModal={trackAndOpen}
@@ -194,47 +223,115 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           }
         </div>
       </div>
+    ) : (
+      /* ══ DESKTOP/TABLET: original vertical strips ══ */
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <div style={st.gridCol}>
+          <div style={s.searchBar}>
+            <input type="text"
+              placeholder={activeSub ? `Search in ${activeSub}…` : activeMode ? 'Search…' : 'Search all items…'}
+              value={search} onChange={e => setSearch(e.target.value)} style={s.searchInput} />
+            {search && <button style={s.searchClear} onClick={() => setSearch('')}>✕</button>}
+          </div>
 
-      {/* ── Sub-option strip (MIDDLE-RIGHT, slides in) ── */}
-      <div style={{ ...st.subStrip, width: subPanelOpen ? 52 : 0 }}>
-        {subPanelOpen && subOptions.map(opt => {
-          const count = filterByMode(allItems, activeMode, opt.key).length
-          return (
-            <StripBtn key={opt.key}
-              label={opt.label}
-              active={activeSub === opt.key}
-              disabled={count === 0}
-              onClick={() => count > 0 && selectSub(opt.key)}
+          {colorSubTags.length > 0 && (
+            <div style={st.subTagRow}>
+              {colorSubTags.map(tag => (
+                <button key={tag}
+                  style={{ ...st.subTagChip, ...(colorSubTag === tag ? st.subTagActive : {}) }}
+                  onClick={() => setColorSubTag(prev => prev === tag ? null : tag)}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{ ...s.sortRow, flexShrink: 0 }}>
+            {[['featured','Featured'],['price_asc','$ ↑'],['price_desc','$ ↓'],['rating','★']].map(([val, lbl]) => (
+              <button key={val} style={{ ...s.sortBtn, ...(sort === val ? s.sortBtnActive : {}) }} onClick={() => setSort(val)}>{lbl}</button>
+            ))}
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: '#8a78a8', alignSelf: 'center', paddingRight: 4 }}>
+              {visibleItems.length}
+            </span>
+          </div>
+
+          {!activeMode && !searchTerm && recentKeys.length > 0 && (
+            <div style={s.recentRow}>
+              <span style={s.recentLabel}>Recently viewed</span>
+              <div style={s.recentScroll}>
+                {recentKeys.map(key => {
+                  const def = ITEM_CATALOGUE[key]
+                  if (!def) return null
+                  return (
+                    <div key={key} style={s.recentCard} onClick={() => trackAndOpen(key)}>
+                      <div style={{ ...s.recentThumb, background: def.gradient }} />
+                      <span style={s.recentCardLabel}>{def.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px 16px' }}>
+            {visibleItems.length === 0
+              ? <p style={s.emptyMsg}>No items{activeSub ? ` in ${activeSub}` : ''}{searchTerm ? ` matching "${search}"` : ''}.</p>
+              : (
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${gridCols}, 1fr)`, gap: 8 }}>
+                  {visibleItems.map(([key, def]) => (
+                    <ProductCard key={key} typeKey={key} def={def}
+                      onPlace={onPlace} onOpenModal={trackAndOpen}
+                      gridW={gridW} gridD={gridD}
+                      colorFamilies={activeFamilies}
+                      roomItemKeys={roomItemKeys}
+                      ownedKeys={ownedKeys}
+                      canPlace={!!STATIC_CATALOGUE[key]}
+                    />
+                  ))}
+                </div>
+              )
+            }
+          </div>
+        </div>
+
+        <div style={{ ...st.subStrip, width: subPanelOpen ? 52 : 0 }}>
+          {subPanelOpen && subOptions.map(opt => {
+            const count = filterByMode(allItems, activeMode, opt.key).length
+            return (
+              <StripBtn key={opt.key}
+                label={opt.label}
+                active={activeSub === opt.key}
+                disabled={count === 0}
+                onClick={() => count > 0 && selectSub(opt.key)}
+              >
+                {opt.preview
+                  ? <div style={{ width: 26, height: 26, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
+                  : opt.icon
+                    ? <ShopIcon name={opt.icon} size={26} />
+                    : <span style={st.stripEmoji}>{opt.emoji}</span>
+                }
+              </StripBtn>
+            )
+          })}
+        </div>
+
+        <div style={st.modeStrip}>
+          {SHOP_MODES.map(mode => (
+            <StripBtn key={mode.key}
+              label={mode.label}
+              active={activeMode === mode.key}
+              onClick={() => selectMode(mode.key)}
+              activeBar
             >
-              {opt.preview
-                ? <div style={{ width: 26, height: 26, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
-                : opt.icon
-                  ? <ShopIcon name={opt.icon} size={26} />
-                  : <span style={st.stripEmoji}>{opt.emoji}</span>
+              {mode.icon
+                ? <ShopIcon name={mode.icon} size={26} />
+                : <span style={st.stripEmoji}>{mode.emoji}</span>
               }
             </StripBtn>
-          )
-        })}
+          ))}
+        </div>
       </div>
-
-      {/* ── Mode strip (RIGHT EDGE) ── */}
-      <div style={st.modeStrip}>
-        {SHOP_MODES.map(mode => (
-          <StripBtn key={mode.key}
-            label={mode.label}
-            active={activeMode === mode.key}
-            onClick={() => selectMode(mode.key)}
-            activeBar
-          >
-            {mode.icon
-              ? <ShopIcon name={mode.icon} size={26} />
-              : <span style={st.stripEmoji}>{mode.emoji}</span>
-            }
-          </StripBtn>
-        ))}
-      </div>
-
-    </div>
+    )}
     </>
   )
 }

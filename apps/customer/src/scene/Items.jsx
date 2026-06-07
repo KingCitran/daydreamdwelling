@@ -186,7 +186,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     window.addEventListener('pointerup',   handleUp)
   }
 
-  const outlineColor = item.owned ? '#f0c060' : '#9a7aee'
+  const outlineColor = item.locked ? '#f0c060' : item.owned ? '#f0c060' : '#9a7aee'
 
   const modelUrl = def.modelUrl || null
   const modelScale = def.scaleMultiplier ?? 1
@@ -461,7 +461,7 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
     window.addEventListener('pointerup',   handleUp)
   }
 
-  const outlineColor = item.owned ? '#f0c060' : '#9a7aee'
+  const outlineColor = item.locked ? '#f0c060' : item.owned ? '#f0c060' : '#9a7aee'
 
   const handleDoubleClick = (e) => {
     e.stopPropagation()
