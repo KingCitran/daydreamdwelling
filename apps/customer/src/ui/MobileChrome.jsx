@@ -64,7 +64,7 @@ const TOOL_SETS = {
 function ui(t) {
   const dark = !!t.isDark
   return {
-    panel: dark ? 'rgba(20,23,42,0.97)' : 'rgba(255,255,255,0.97)',
+    panel: dark ? 'rgba(16,18,32,0.98)' : 'rgba(255,255,255,0.98)',
     card: dark ? 'rgba(255,255,255,0.05)' : 'rgba(120,100,170,0.06)',
     cardHi: dark ? 'rgba(255,255,255,0.09)' : 'rgba(120,100,170,0.11)',
     border: t.surfaceBorder,

@@ -18,7 +18,7 @@ import {
 function ui(t) {
   const dark = !!t.isDark
   return {
-    panel: dark ? 'rgba(20,23,42,0.97)' : 'rgba(255,255,255,0.97)',
+    panel: dark ? 'rgba(16,18,32,0.98)' : 'rgba(255,255,255,0.98)',
     card: dark ? 'rgba(255,255,255,0.05)' : 'rgba(120,100,170,0.06)',
     cardHi: dark ? 'rgba(255,255,255,0.09)' : 'rgba(120,100,170,0.11)',
     border: t.surfaceBorder, line: dark ? 'rgba(255,255,255,0.08)' : 'rgba(60,40,90,0.10)',
@@ -77,9 +77,18 @@ const FLOOR_PRESETS = [
 ]
 
 const MOOD_LIST = [
-  { key: 'Dream State', label: 'Dream State', desc: 'Soft pastel lavender', sky: 'linear-gradient(180deg, #ddd2ff 0%, #f3e6ff 55%, #fde6f2 100%)' },
-  { key: 'Golden Hour', label: 'Golden Hour', desc: 'Warm amber sunset', sky: 'linear-gradient(180deg, #ffe6b8 0%, #ffeccb 50%, #ffe0d0 100%)' },
-  { key: 'Moonlight', label: 'Moonlight', desc: 'Cool blue-silver night', sky: 'linear-gradient(180deg, #0a0e1c 0%, #131a32 60%, #1d2440 100%)' },
+  { key: 'Golden Hour',      label: 'Golden Hour',      desc: 'Warm amber sunset',           sky: 'linear-gradient(180deg, #5a2540, #e88a3e, #ffe39a)' },
+  { key: 'Bright Day',       label: 'Bright Day',       desc: 'Crisp natural light',         sky: 'linear-gradient(180deg, #e0ecf8, #f0f6fc, #fff)' },
+  { key: 'Vivid Sunset',     label: 'Vivid Sunset',     desc: 'Magenta sky, gold horizon',   sky: 'linear-gradient(180deg, #1a2a5a, #a8b8d0, #e8a040)' },
+  { key: "Ember's Sunrise",  label: "Ember's Sunrise",  desc: 'Bonfire to pastel dawn',      sky: 'linear-gradient(180deg, #130d07, #8a4020, #ffc880)' },
+  { key: 'Moonlight',        label: 'Moonlight',        desc: 'Cool blue-silver night',      sky: 'linear-gradient(180deg, #050918, #16203f, #2a3868)' },
+  { key: 'Northern Lights',  label: 'Northern Lights',  desc: 'Aurora midnight sky',         sky: 'linear-gradient(180deg, #040814, #0a3040, #01c8ae)' },
+  { key: 'Blush Hour',       label: 'Blush Hour',       desc: 'Warm pink morning',           sky: 'linear-gradient(180deg, #ffe2cf, #f4b0c0, #c8b8dc)' },
+  { key: 'Coastal Morning',  label: 'Coastal Morning',  desc: 'Cool breezy blue-white',      sky: 'linear-gradient(180deg, #2a5a8c, #a8c4d8, #ffd896)' },
+  { key: 'Dream State',      label: 'Dream State',      desc: 'Soft pastel lavender',        sky: 'linear-gradient(180deg, #ffe8d0, #e8c8e0, #a890d4)' },
+  { key: 'Neon Nights',      label: 'Neon Nights',      desc: 'Electric neon nightlife',     sky: 'linear-gradient(180deg, #060318, #160e3a, #2a1862)' },
+  { key: 'Greenhouse',       label: 'Greenhouse',       desc: 'Sunlight through leaves',     sky: 'linear-gradient(180deg, #6cb87a, #e0e8b0, #fff5d0)' },
+  { key: 'Studio',           label: 'Studio',           desc: 'Neutral flat light',          sky: 'linear-gradient(180deg, #e4e7ec, #eef0f3, #f4f5f7)' },
 ]
 
 // ── Style Panel ────────────────────────────────────────────────────
@@ -141,19 +150,28 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
           <Sparkles size={15} style={{ color: u.accent }} />
           <Label u={u}>Lighting mood</Label>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
           {MOOD_LIST.map(m => {
             const active = m.key === mood
             return (
               <button key={m.key} onClick={() => setMood(m.key)} style={{
-                display: 'flex', flexDirection: 'column', gap: 6, padding: 8,
-                borderRadius: 13, cursor: 'pointer', textAlign: 'left',
-                border: `1px solid ${active ? u.accent : u.line}`,
+                display: 'flex', flexDirection: 'column', gap: 5, padding: 6,
+                borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                border: `2px solid ${active ? u.accent : u.line}`,
                 background: active ? u.accent + '12' : 'transparent', fontFamily: 'inherit',
               }}>
-                <div style={{ height: 34, borderRadius: 8, background: m.sky, border: `1px solid ${u.line}` }} />
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: u.text }}>{m.label}</span>
-                <span style={{ fontSize: 10, color: u.soft, lineHeight: 1.2 }}>{m.desc}</span>
+                <div style={{
+                  height: 32, borderRadius: 8, background: m.sky,
+                  border: `1px solid ${u.line}`, position: 'relative', overflow: 'hidden',
+                }}>
+                  {/* Cloud silhouette */}
+                  <div style={{
+                    position: 'absolute', bottom: -2, left: '15%', width: '70%', height: 14,
+                    borderRadius: '14px 14px 0 0', background: 'rgba(255,255,255,0.3)',
+                    filter: 'blur(3px)',
+                  }} />
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 800, color: u.text, lineHeight: 1.1 }}>{m.label}</span>
               </button>
             )
           })}
@@ -190,17 +208,18 @@ export function DesignBuildContent({ onWindow, onDoor }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
         {BUILD_ITEMS.map(b => (
           <button key={b.id} onClick={() => handlePick(b.id)} style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-            padding: '16px 8px', borderRadius: 15, cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            padding: '20px 8px', borderRadius: 15, cursor: 'pointer',
             border: `1px solid ${u.line}`, background: u.card, color: u.text, fontFamily: 'inherit',
+            minHeight: 90,
           }}>
             <span style={{
-              width: 42, height: 42, borderRadius: 12, background: u.cardHi,
+              width: 48, height: 48, borderRadius: 14, background: u.cardHi,
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: u.accent,
             }}>
-              <b.Icon size={21} />
+              <b.Icon size={24} />
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 700 }}>{b.label}</span>
+            <span style={{ fontSize: 13.5, fontWeight: 700 }}>{b.label}</span>
           </button>
         ))}
       </div>
@@ -280,10 +299,13 @@ const MORE_TOOL_ITEMS = [
   { id: 'social', label: 'Social', Icon: Users, desc: 'Community & contests' },
 ]
 const MORE_SYSTEM_ITEMS = [
-  { id: 'account', label: 'Account', Icon: User, desc: 'Profile & orders' },
   { id: 'saved', label: 'Saved rooms', Icon: Bookmark, desc: 'Your designs' },
-  { id: 'notifications', label: 'Alerts', Icon: Bell, desc: 'New updates' },
   { id: 'settings', label: 'Settings', Icon: Settings, desc: 'Preferences' },
+]
+// Account + Alerts share a row (half-width each)
+const MORE_HALF_ITEMS = [
+  { id: 'account', label: 'Account', Icon: User },
+  { id: 'notifications', label: 'Alerts', Icon: Bell, dot: true },
 ]
 
 export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasure, onReset, onShare, onScreenshot }) {
@@ -312,9 +334,21 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
               <span style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tile.label}</span>
               <span style={{ fontSize: 10.5, color: u.soft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tile.desc}</span>
             </span>
-            {tile.id === 'notifications' && (
-              <span style={{ position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: '50%', background: '#e8736f' }} />
-            )}
+          </button>
+        ))}
+      </div>
+      {/* Account + Alerts — half-width row */}
+      <div style={{ display: 'flex', gap: 9 }}>
+        {MORE_HALF_ITEMS.map(h => (
+          <button key={h.id} onClick={() => onTool(h.id)} style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '10px 8px', borderRadius: 13, cursor: 'pointer',
+            border: `1px solid ${u.line}`, background: u.card, color: u.text,
+            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, position: 'relative',
+          }}>
+            <h.Icon size={17} style={{ color: u.accent }} />
+            {h.label}
+            {h.dot && <span style={{ position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
           </button>
         ))}
       </div>
@@ -364,8 +398,8 @@ function ProductCardDesign({ typeKey, def, u, inRoom, owned, wished, onPlace, on
   const price = def.sizes?.[0]?.price ?? def.price ?? 0
   const img = def.primaryImageUrl
   return (
-    <div style={{ background: u.card, border: `1px solid ${u.line}`, borderRadius: 16, padding: 9, display: 'flex', flexDirection: 'column', gap: 7 }}>
-      <div style={{ position: 'relative', cursor: 'pointer', height: 92, borderRadius: 12, overflow: 'hidden', background: u.cardHi }} onClick={() => onPlace(typeKey)}>
+    <div style={{ background: u.card, border: `1px solid ${u.line}`, borderRadius: 14, padding: 7, display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ position: 'relative', cursor: 'pointer', height: 78, borderRadius: 10, overflow: 'hidden', background: u.cardHi }} onClick={() => onPlace(typeKey)}>
         {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '54%', height: '54%', borderRadius: 10, background: def.swatches?.[0]?.hex || def.color || u.accent, boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }} />
@@ -386,12 +420,12 @@ function ProductCardDesign({ typeKey, def, u, inRoom, owned, wished, onPlace, on
           {def.rating > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: '#f0b54a' }}><Star size={11} fill="#f0b54a" stroke="#f0b54a" /> {def.rating}</span>}
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 6, marginTop: 1 }}>
-        <button onClick={() => onPlace(typeKey)} style={{ flex: 1, padding: '8px 12px', borderRadius: 12, border: `1px solid ${u.accent}`, background: u.accent, color: u.accentText, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-          <Plus size={14} /> Place
+      <div style={{ display: 'flex', gap: 5, marginTop: 1 }}>
+        <button onClick={() => onPlace(typeKey)} style={{ flex: 1, padding: '7px 10px', borderRadius: 10, border: `1px solid ${u.accent}`, background: u.accent, color: u.accentText, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+          <Plus size={13} /> Place
         </button>
-        <button onClick={() => onDetail(typeKey)} style={{ width: 36, flexShrink: 0, borderRadius: 12, border: `1px solid ${u.line}`, background: 'transparent', color: u.soft, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Info size={16} />
+        <button onClick={() => onDetail(typeKey)} style={{ width: 32, flexShrink: 0, borderRadius: 10, border: `1px solid ${u.line}`, background: 'transparent', color: u.soft, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Info size={14} />
         </button>
       </div>
     </div>
