@@ -45,6 +45,7 @@ import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
+import { MobileTopBar, MobileToolDock, MobileViewControls, MobileActionPill, useIsMobile } from './ui/MobileChrome'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -757,6 +758,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     <SideTabProvider>
     <div className="ember-clear" style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
       <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {/* Hide desktop chrome on mobile — replaced by MobileChrome */}
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-side-strip, .ddd-top-right-strip, .ddd-bottom-cluster,
+          .ddd-builder-logo, .ddd-desktop-only { display: none !important; }
+          .ddd-builder-main { padding-top: 56px !important; padding-bottom: 66px !important; }
+        }
+      `}</style>
       {/* Hide toolbar during drag on mobile for more room */}
       {isDragging && (
         <style>{`
@@ -820,15 +829,17 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         />
       </Canvas>
 
-      <RoomBanner
-        currentRoomId={currentRoomId}
-        roomName={getRoomName(currentRoomId)}
-        allRoomsData={allRoomsData}
-        roomNames={roomNames}
-        onOpenOverview={() => setOverviewOpen(true)}
-        onNavigate={jumpToRoom}
-        onRename={setRoomName}
-      />
+      <div className="ddd-desktop-only">
+        <RoomBanner
+          currentRoomId={currentRoomId}
+          roomName={getRoomName(currentRoomId)}
+          allRoomsData={allRoomsData}
+          roomNames={roomNames}
+          onOpenOverview={() => setOverviewOpen(true)}
+          onNavigate={jumpToRoom}
+          onRename={setRoomName}
+        />
+      </div>
       {/* Lights — centered beneath the RoomBanner. Acts as the room's
           lightswitch; disabled until a lamp is placed. */}
       <button
@@ -920,6 +931,45 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onOpenModal={openProductModal}
         />
       )}
+
+      {/* ── Mobile Chrome (Claude Design) ── */}
+      <MobileTopBar
+        roomName={getRoomName(currentRoomId)}
+        budget={items.reduce((s, it) => {
+          const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
+          return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
+        }, 0)}
+        itemCount={items.length}
+        cartCount={cartCount}
+        onUndo={() => {/* undo() */}}
+        onCart={() => { setDrawerTab('cart'); openShop() }}
+      />
+      <MobileToolDock
+        active={null}
+        onPick={(id) => {
+          if (id === 'place') { setDrawerTab('shop'); toggleShop() }
+          else if (id === 'build') dispatchTogglePanel('build')
+          else if (id === 'style') dispatchTogglePanel('style')
+          else if (id === 'more') dispatchTogglePanel('view')
+        }}
+      />
+      <MobileViewControls
+        zoom={zoomRef.current}
+        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
+        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
+        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15) }}
+        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15) }}
+        onReset={() => { zoomRef.current = 40; setTarget(0) }}
+      />
+      <MobileActionPill
+        item={selectedItem}
+        catalogue={catalogue}
+        onRotate={() => selectedItem && rotateItem(selectedItem.id)}
+        onDetails={() => selectedItem && openProductModal(selectedItem.typeKey)}
+        onDelete={() => selectedItem && deleteItem(selectedItem.id)}
+        onWishlist={() => selectedItem && toggleWishlist(selectedItem.id)}
+        isWishlisted={selectedItem?.wishlisted}
+      />
 
       {selectedItem && (
         <SelectedControls
