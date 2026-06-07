@@ -6,11 +6,12 @@ import Step1Identity from './listing/Step1Identity'
 import Step2Photos   from './listing/Step2Photos'
 import Step3Sizes    from './listing/Step3Sizes'
 import Step4Swatches from './listing/Step4Swatches'
-import Step5Tags     from './listing/Step5Tags'
-import Step6Shipping from './listing/Step6Shipping'
-import Step7Preview  from './listing/Step7Preview'
+import Step5Tags          from './listing/Step5Tags'
+import StepCustomization from './listing/StepCustomization'
+import Step6Shipping     from './listing/Step6Shipping'
+import Step7Preview      from './listing/Step7Preview'
 
-const STEPS = ['Identity', 'Photos', 'Sizes', 'Swatches', 'Tags', 'Shipping', 'Preview']
+const STEPS = ['Identity', 'Photos', 'Sizes', 'Swatches', 'Tags', 'Customize', 'Shipping', 'Preview']
 const PROCESSING_OPTIONS = [
   { label: '1 day',     value: 1  },
   { label: '2–3 days',  value: 3  },
@@ -26,6 +27,8 @@ export const INITIAL_FORM = {
   sizes: [{ label: '', wFt: '', wIn: '', dFt: '', dIn: '', hFt: '', hIn: '', price: '' }],
   swatches: [{ label: '', colors: [{ location: '', hex: '#888888', name: '' }], family: '' }],
   typeKey: '', styleTags: [], roomTags: [], themeTags: [],
+  isCustomizable: false, customizationType: 'customized', fulfillmentMethod: 'ships_finished',
+  customizationOptions: [],
   shippingType: 'flat', flatRate: '', processingDays: 5, weightLbs: '',
   shippingRegions: ['domestic'], wattage: '', kelvin: '',
   active: true,
@@ -49,7 +52,7 @@ export default function AddProductPage({ productId, onDone }) {
     async function load() {
       const { data: p, error: loadErr } = await supabase
         .from('products')
-        .select('*, product_sizes(*), product_swatches(*), product_tags(value,tag_type), product_images(*)')
+        .select('*, product_sizes(*), product_swatches(*), product_tags(value,tag_type), product_images(*), product_customization_options(*)')
         .eq('id', productId).single()
       if (loadErr) { setError(`Load error: ${loadErr.message}`); return }
       if (!p) { setError('Product not found'); return }
@@ -87,6 +90,12 @@ export default function AddProductPage({ productId, onDone }) {
         styleTags: (p.product_tags || []).filter(x => x.tag_type === 'style').map(x => x.value),
         roomTags:  (p.product_tags || []).filter(x => x.tag_type === 'room').map(x => x.value),
         themeTags: (p.product_tags || []).filter(x => x.tag_type === 'theme').map(x => x.value),
+        isCustomizable: p.is_customizable ?? false,
+        customizationType: p.customization_type || 'customized',
+        fulfillmentMethod: p.fulfillment_method || 'ships_finished',
+        customizationOptions: (p.product_customization_options || [])
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map(o => ({ option_type: o.option_type, label: o.label, input_type: o.input_type, config: o.config || {}, required: o.required ?? true })),
         shippingType: p.shipping_type || 'flat', flatRate: p.flat_rate || '',
         weightLbs: p.weight_oz ? (p.weight_oz / 16).toFixed(1) : '',
         processingDays: p.processing_days ?? 5,
@@ -114,6 +123,9 @@ export default function AddProductPage({ productId, onDone }) {
         processing_days: form.processingDays || null, shipping_regions: form.shippingRegions,
         wattage: form.wattage ? Number(form.wattage) : null, kelvin: form.kelvin ? Number(form.kelvin) : null,
         weight_oz: form.weightLbs ? Math.round(Number(form.weightLbs) * 16) : null,
+        is_customizable: form.isCustomizable || false,
+        customization_type: form.isCustomizable ? (form.customizationType || 'customized') : null,
+        fulfillment_method: form.isCustomizable ? (form.fulfillmentMethod || 'ships_finished') : null,
         is_active: form.active, status: form.active ? 'active' : 'draft', seller_id: user.id,
       }
       let pid = productId
@@ -194,6 +206,23 @@ export default function AddProductPage({ productId, onDone }) {
       ]
       if (allTags.length) await supabase.from('product_tags').insert(allTags)
 
+      // Customization options
+      await supabase.from('product_customization_options').delete().eq('product_id', pid)
+      if (form.isCustomizable && form.customizationOptions?.length) {
+        const optRows = form.customizationOptions
+          .filter(opt => opt.label.trim())
+          .map((opt, i) => ({
+            product_id: pid,
+            option_type: opt.option_type,
+            label: opt.label.trim(),
+            input_type: opt.input_type,
+            config: opt.config || {},
+            sort_order: i,
+            required: opt.required ?? true,
+          }))
+        if (optRows.length) await supabase.from('product_customization_options').insert(optRows)
+      }
+
       // Auto-queue 3D model generation if enough photos
       if (uploaded.length >= 1) {
         supabase.functions.invoke('generate-3d-model', { body: { productId: pid } })
@@ -211,7 +240,7 @@ export default function AddProductPage({ productId, onDone }) {
     }
   }
 
-  const steps = [null, Step1Identity, Step2Photos, Step3Sizes, Step4Swatches, Step5Tags, Step6Shipping, Step7Preview]
+  const steps = [null, Step1Identity, Step2Photos, Step3Sizes, Step4Swatches, Step5Tags, StepCustomization, Step6Shipping, Step7Preview]
   const StepComp = steps[step]
 
   return (
@@ -221,7 +250,7 @@ export default function AddProductPage({ productId, onDone }) {
           <h1 style={{ fontSize: 24, fontWeight: 700, color: t.text, marginBottom: 3 }}>
             {isEdit ? 'Edit Listing' : 'New Listing'}
           </h1>
-          <p style={{ fontSize: 12, color: t.textSoft }}>Step {step} of 7 — {STEPS[step - 1]}</p>
+          <p style={{ fontSize: 12, color: t.textSoft }}>Step {step} of {STEPS.length} — {STEPS[step - 1]}</p>
         </div>
         <button style={{ padding: '8px 14px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, borderRadius: 8, color: t.textSoft, fontSize: 12, cursor: 'pointer' }} onClick={onDone}>
           Cancel
@@ -241,7 +270,7 @@ export default function AddProductPage({ productId, onDone }) {
         {step > 1
           ? <button style={navBtn(t, false)} onClick={() => setStep(s => s - 1)}>← Back</button>
           : <span />}
-        {step < 7 && (
+        {step < STEPS.length && (
           <button style={navBtn(t, true)} onClick={() => setStep(s => s + 1)}>
             Next →
           </button>
