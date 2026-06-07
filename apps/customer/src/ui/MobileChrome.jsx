@@ -16,7 +16,7 @@ import {
   Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home,
   Undo2, Redo2, Trash2, Heart, SlidersHorizontal, RotateCw, RotateCcw,
   Camera, Share2, User, Music, Eye, ClipboardList, Users,
-  ChevronDown, Check, Plus, Minus, Search
+  ChevronDown, Check, Plus, Minus, Search, Lock, Unlock
 } from 'lucide-react'
 
 // ── Mode detection ─────────────────────────────────────────────────
@@ -366,7 +366,7 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
 }
 
 // ── Action Pill (selected item) ────────────────────────────────────
-export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDelete, onWishlist, isWishlisted }) {
+export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDelete, onWishlist, isWishlisted, onLock }) {
   const t = useTheme()
   const u = ui(t)
   const mode = useMode()
@@ -407,14 +407,18 @@ export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDele
         </span>
       </div>
       <div style={{ width: 1, height: 34, background: u.line, flexShrink: 0 }} />
-      {aBtn(<RotateCw size={20} />, 'Rotate', onRotate)}
+      {!item.locked && aBtn(<RotateCw size={20} />, 'Rotate', onRotate)}
       {aBtn(<SlidersHorizontal size={20} />, 'Edit', onDetails)}
+      {aBtn(
+        item.locked ? <Unlock size={20} /> : <Lock size={20} />,
+        item.locked ? 'Unlock' : 'Lock', onLock
+      )}
       {aBtn(
         <Heart size={20} fill={isWishlisted ? 'currentColor' : 'none'} />,
         isWishlisted ? 'Saved' : 'Save', onWishlist,
         isWishlisted ? '#ff9ab8' : u.text
       )}
-      {aBtn(<Trash2 size={20} />, 'Delete', onDelete, '#e8736f')}
+      {!item.locked && aBtn(<Trash2 size={20} />, 'Delete', onDelete, '#e8736f')}
     </div>
   )
 }
@@ -429,7 +433,7 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
 
   const wrap = isBottom ? {
     position: 'fixed', left: 0, right: 0, bottom: geom.dockH, zIndex: 60,
-    maxHeight: `calc(100vh - ${geom.topH + geom.dockH + 12}px)`,
+    top: geom.topH + 4,
     borderRadius: '22px 22px 0 0',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.28)',
   } : {

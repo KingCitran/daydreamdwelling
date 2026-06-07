@@ -161,15 +161,14 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
                 background: active ? u.accent + '12' : 'transparent', fontFamily: 'inherit',
               }}>
                 <div style={{
-                  height: 32, borderRadius: 8, background: m.sky,
+                  height: 36, borderRadius: 8, background: m.sky,
                   border: `1px solid ${u.line}`, position: 'relative', overflow: 'hidden',
                 }}>
-                  {/* Cloud silhouette */}
-                  <div style={{
-                    position: 'absolute', bottom: -2, left: '15%', width: '70%', height: 14,
-                    borderRadius: '14px 14px 0 0', background: 'rgba(255,255,255,0.3)',
-                    filter: 'blur(3px)',
-                  }} />
+                  {/* Cloud using one of the real cloud PNGs */}
+                  <img src="/clouds/kngvn/cloud-01.webp" alt=""
+                    style={{ position: 'absolute', bottom: -4, left: '10%', width: '80%', height: 22, objectFit: 'contain', opacity: 0.5, filter: 'brightness(1.3)' }}
+                    onError={e => { e.target.style.display = 'none' }}
+                  />
                 </div>
                 <span style={{ fontSize: 10, fontWeight: 800, color: u.text, lineHeight: 1.1 }}>{m.label}</span>
               </button>
@@ -337,18 +336,20 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
           </button>
         ))}
       </div>
-      {/* Account + Alerts — half-width row */}
-      <div style={{ display: 'flex', gap: 9 }}>
+      {/* Account + Alerts — stacked vertically in one tile space */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {MORE_HALF_ITEMS.map(h => (
           <button key={h.id} onClick={() => onTool(h.id)} style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '10px 8px', borderRadius: 13, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+            borderRadius: 12, cursor: 'pointer',
             border: `1px solid ${u.line}`, background: u.card, color: u.text,
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, position: 'relative',
           }}>
-            <h.Icon size={17} style={{ color: u.accent }} />
+            <span style={{ width: 30, height: 30, borderRadius: 9, background: u.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: u.accent, flexShrink: 0 }}>
+              <h.Icon size={15} />
+            </span>
             {h.label}
-            {h.dot && <span style={{ position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
+            {h.dot && <span style={{ position: 'absolute', top: 6, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
           </button>
         ))}
       </div>
@@ -398,8 +399,8 @@ function ProductCardDesign({ typeKey, def, u, inRoom, owned, wished, onPlace, on
   const price = def.sizes?.[0]?.price ?? def.price ?? 0
   const img = def.primaryImageUrl
   return (
-    <div style={{ background: u.card, border: `1px solid ${u.line}`, borderRadius: 14, padding: 7, display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div style={{ position: 'relative', cursor: 'pointer', height: 78, borderRadius: 10, overflow: 'hidden', background: u.cardHi }} onClick={() => onPlace(typeKey)}>
+    <div style={{ background: u.card, border: `1px solid ${u.line}`, borderRadius: 12, padding: 5, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ position: 'relative', cursor: 'pointer', height: 64, borderRadius: 8, overflow: 'hidden', background: u.cardHi }} onClick={() => onPlace(typeKey)}>
         {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ width: '54%', height: '54%', borderRadius: 10, background: def.swatches?.[0]?.hex || def.color || u.accent, boxShadow: '0 6px 14px rgba(0,0,0,0.18)' }} />
@@ -410,14 +411,14 @@ function ProductCardDesign({ typeKey, def, u, inRoom, owned, wished, onPlace, on
           <Heart size={15} fill={wished ? 'currentColor' : 'none'} />
         </button>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 2px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
-          <span style={{ fontSize: 13.5, fontWeight: 800, color: u.accent, flexShrink: 0 }}>{money(price)}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, padding: '0 2px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 4 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
+          <span style={{ fontSize: 11.5, fontWeight: 800, color: u.accent, flexShrink: 0 }}>{money(price)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 11, color: u.soft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.brand}</span>
-          {def.rating > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, fontWeight: 700, color: '#f0b54a' }}><Star size={11} fill="#f0b54a" stroke="#f0b54a" /> {def.rating}</span>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10, color: u.soft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.brand}</span>
+          {def.rating > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 9.5, fontWeight: 700, color: '#f0b54a' }}><Star size={9} fill="#f0b54a" stroke="#f0b54a" /> {def.rating}</span>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 5, marginTop: 1 }}>
