@@ -112,11 +112,9 @@ export default function useItemActions({
       const cat = catalogueRef.current
       const updated = { ...item, col, row }
 
-      // Check if this item is small enough to sit on a surface
+      // Check if this item can sit on a surface (must fit within surface bounds)
       const def = resolveDef(item.typeKey)
-      const size = def?.sizes?.[item.sizeIndex] ?? def?.sizes?.[0]
-      const itemH = size?.height ?? 1
-      const isSurfaceCandidate = itemH <= 1.5 && !isSurfaceItem(def) && !item.wall && !item.ceiling
+      const isSurfaceCandidate = !isSurfaceItem(def) && !item.wall && !item.ceiling
 
       if (isSurfaceCandidate) {
         const surface = findSurfaceAt(prev, updated, cat)

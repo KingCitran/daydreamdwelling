@@ -78,13 +78,15 @@ export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) 
   return false
 }
 
-// Check if testItem is positioned over a surface item and return the parent
+// Check if testItem is positioned over a surface item and fits on it.
+// Returns the parent surface item or null.
 export function findSurfaceAt(items, testItem, catalogue = ITEM_CATALOGUE) {
   const def = catalogue[testItem.typeKey] ?? ITEM_CATALOGUE[testItem.typeKey]
   const size = def?.sizes?.[testItem.sizeIndex] ?? def?.sizes?.[0]
   const [tw, td] = size?.footprint ?? [1, 1]
-  const tcx = testItem.col + tw / 2
-  const tcz = testItem.row + td / 2
+  const tRotated = testItem.rotation === 90 || testItem.rotation === 270
+  const tew = tRotated ? td : tw
+  const ted = tRotated ? tw : td
 
   for (const other of items) {
     if (other.id === testItem.id) continue
@@ -93,12 +95,25 @@ export function findSurfaceAt(items, testItem, catalogue = ITEM_CATALOGUE) {
     if (!isSurfaceItem(oDef)) continue
     const oSize = oDef?.sizes?.[other.sizeIndex] ?? oDef?.sizes?.[0]
     const [ow, od] = oSize?.footprint ?? [1, 1]
-    const rotated = other.rotation === 90 || other.rotation === 270
-    const ew = rotated ? od : ow
-    const ed = rotated ? ow : od
-    // Check if the test item's center is within the surface item's bounds
-    if (tcx >= other.col && tcx <= other.col + ew &&
-        tcz >= other.row && tcz <= other.row + ed) {
+    const oRotated = other.rotation === 90 || other.rotation === 270
+    const oew = oRotated ? od : ow
+    const oed = oRotated ? ow : od
+
+    // Check if the item fits within the surface bounds
+    const itemLeft = testItem.col
+    const itemRight = testItem.col + tew
+    const itemTop = testItem.row
+    const itemBottom = testItem.row + ted
+    const surfLeft = other.col
+    const surfRight = other.col + oew
+    const surfTop = other.row
+    const surfBottom = other.row + oed
+
+    // Item must overlap the surface and its center must be on it
+    const tcx = testItem.col + tew / 2
+    const tcz = testItem.row + ted / 2
+    if (tcx >= surfLeft && tcx <= surfRight &&
+        tcz >= surfTop && tcz <= surfBottom) {
       return other
     }
   }
