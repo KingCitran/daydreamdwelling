@@ -45,7 +45,7 @@ import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
-import { BuilderTopBar, BuilderToolDock, BuilderActionPill, useIsMobile, useMode } from './ui/MobileChrome'
+import { BuilderTopBar, BuilderToolDock, BuilderActionPill, BuilderSheet, useIsMobile, useMode } from './ui/MobileChrome'
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -299,6 +299,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [roomPanelOpen,    setRoomPanelOpen]    = useState(false)
   const [hubOpen,          setHubOpen]          = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
+  const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -949,17 +950,27 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
       />
       <BuilderToolDock
-        active={null}
+        active={activeTool}
         onPick={(id) => {
-          if (id === 'place') { setDrawerTab('shop'); toggleShop() }
-          else if (id === 'build') dispatchTogglePanel('build')
-          else if (id === 'style') dispatchTogglePanel('style')
-          else if (id === 'music') dispatchTogglePanel('music')
-          else if (id === 'plan') dispatchTogglePanel('plan')
-          else if (id === 'social') dispatchTogglePanel('social')
-          else if (id === 'more') dispatchTogglePanel('view')
+          setActiveTool(id)
+          // Also wire into existing panel systems for content
+          if (id === 'place') { setDrawerTab('shop'); openShop() }
+          else if (id === null) { closeShop() }
+          else { closeShop() }
+          if (id === 'build') dispatchOpenPanel('build')
+          if (id === 'style') dispatchOpenPanel('style')
+          if (id === 'music') dispatchOpenPanel('music')
+          if (id === 'plan') dispatchOpenPanel('plan')
+          if (id === 'social') dispatchOpenPanel('social')
         }}
       />
+
+      {/* Tool panels in BuilderSheet */}
+      {activeTool === 'style' && (
+        <BuilderSheet title="Style" accentDot="#9b7ae0" onClose={() => setActiveTool(null)}>
+          <StylePanel floorColor={floorColor} wallColor={wallColor} onFloorColor={setFloorColor} onWallColor={setWallColor} />
+        </BuilderSheet>
+      )}
       <BuilderActionPill
         item={selectedItem}
         catalogue={catalogue}
