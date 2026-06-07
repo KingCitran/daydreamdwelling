@@ -10,8 +10,8 @@ const _ray        = new THREE.Raycaster()
 const _ptr        = new THREE.Vector2()
 const _hit        = new THREE.Vector3()
 
-const snapF = v => Math.round(v * 2) / 2   // 0.5 ft grid (floor)
-const snapW = v => Math.round(v * 4) / 4   // 0.25 ft grid (wall — finer)
+const snapF = v => Math.round(v * 4) / 4   // 0.25 ft grid (floor — finer for better placement)
+const snapW = v => Math.round(v * 4) / 4   // 0.25 ft grid (wall)
 
 // Point-light config per lighting typeKey — color, intensity, distance (in ft)
 // Note: ceiling items (chandelier, pendant, recessedLight, ceilingFan) are rendered
@@ -108,7 +108,7 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
 }
 
 // ── Floor item ─────────────────────────────────────────────────────
-const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
+const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
                     onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
@@ -122,7 +122,18 @@ const ItemMesh = memo(function ItemMesh({ item, isSelected, isCartHighlighted, g
   const effectiveD = rotated ? fw : fd
   const wx = (item.col + effectiveW / 2) - gridW / 2
   const wz = (item.row + effectiveD / 2) - gridD / 2
-  const wy = fh / 2
+
+  // Surface stacking: if item is on a parent surface, raise it by parent's height
+  let surfaceY = 0
+  if (item.parentId != null) {
+    const parent = allItems?.find(it => it.id === item.parentId)
+    if (parent) {
+      const pDef = catalogue[parent.typeKey] ?? ITEM_CATALOGUE[parent.typeKey]
+      const pSize = pDef?.sizes?.[parent.sizeIndex] ?? pDef?.sizes?.[0]
+      surfaceY = (pSize?.height && pSize.height > 0) ? pSize.height : 2
+    }
+  }
+  const wy = fh / 2 + surfaceY
 
   const lightCfg = LIGHT_CONFIG[item.typeKey] ?? null
   // Chandelier represents ceiling mount — push the point light up near the ceiling
@@ -791,6 +802,7 @@ export default function Items({
           item.swatchIndex === cartHighlight.swatchIndex)
         const shared = {
           item,
+          allItems: items,
           isSelected: selectedId === item.id,
           isCartHighlighted,
           gridW, gridD, wallHeight,

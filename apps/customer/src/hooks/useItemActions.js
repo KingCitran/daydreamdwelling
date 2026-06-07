@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { ITEM_CATALOGUE } from '../data/items'
 import {
-  isWallItem, isCeilingItem, hasOverlap, hasWallOverlap,
-  findFreePosition, getParallelWallFaces,
+  isWallItem, isCeilingItem, isSurfaceItem, hasOverlap, hasWallOverlap,
+  findFreePosition, findSurfaceAt, getSurfaceHeight, getParallelWallFaces,
 } from '../utils/roomGeometry'
 
 export default function useItemActions({
@@ -104,13 +104,41 @@ export default function useItemActions({
     setCeilingPicker(null)
   }, [ceilingPicker, nextItemIdRef, setItems, setSelectedId, setCeilingPicker])
 
-  const moveItem = useCallback((id, col, row) => {
+  const moveItem = useCallback((id, col, row, forceOverlap = false) => {
     setItems(prev => {
       const item = prev.find(it => it.id === id)
       if (!item || item.locked) return prev
       if (item.col === col && item.row === row) return prev
-      if (hasOverlap(prev, id, { ...item, col, row })) return prev
-      return prev.map(it => it.id === id ? { ...it, col, row } : it)
+      const cat = catalogueRef.current
+      const updated = { ...item, col, row }
+
+      // Check if this item is small enough to sit on a surface
+      const def = resolveDef(item.typeKey)
+      const size = def?.sizes?.[item.sizeIndex] ?? def?.sizes?.[0]
+      const itemH = size?.height ?? 1
+      const isSurfaceCandidate = itemH <= 1.5 && !isSurfaceItem(def) && !item.wall && !item.ceiling
+
+      if (isSurfaceCandidate) {
+        const surface = findSurfaceAt(prev, updated, cat)
+        if (surface) {
+          // Place on surface — skip floor collision, attach to parent
+          updated.parentId = surface.id
+          return prev.map(it => it.id === id ? updated : it)
+        }
+      }
+
+      // Regular floor placement — clear parentId
+      updated.parentId = null
+      if (!forceOverlap && hasOverlap(prev, id, updated, cat)) return prev
+
+      // Move children with parent (items sitting on this surface)
+      const dx = col - item.col
+      const dy = row - item.row
+      return prev.map(it => {
+        if (it.id === id) return updated
+        if (it.parentId === id) return { ...it, col: it.col + dx, row: it.row + dy }
+        return it
+      })
     })
   }, [setItems])
 

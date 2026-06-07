@@ -38,6 +38,22 @@ export function getItemCells(item, catalogue = ITEM_CATALOGUE) {
   return cells
 }
 
+// Items that have a flat top surface where other items can sit
+const SURFACE_CATEGORIES = new Set(['Tables', 'Storage'])
+const SURFACE_SUBCATEGORIES = new Set([
+  'Desks', 'Dining Tables', 'Coffee Tables', 'Side Tables', 'Console Tables',
+  'Dressers', 'Nightstands', 'Bookshelves', 'Shelving', 'Credenzas',
+  'Sideboards', 'Cabinets', 'Counters', 'Benches',
+])
+
+export function isSurfaceItem(def) {
+  if (def?.surface === true) return true
+  if (def?.surface === false) return false
+  if (SURFACE_CATEGORIES.has(def?.category)) return true
+  if (SURFACE_SUBCATEGORIES.has(def?.subcategory)) return true
+  return false
+}
+
 export function isWallItem(def) {
   return def.category === 'Wall Decor' || def.subcategory === 'Wall Sconces' || def.category === 'Windows' || def.category === 'Doors'
 }
@@ -51,10 +67,49 @@ export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) 
   for (const other of items) {
     if (other.id === testId) continue
     if (other.wall) continue  // wall items don't occupy floor space
+    if (other.ceiling) continue
+    // Surface items don't collide with their parent
+    if (testItem.parentId === other.id || other.parentId === testId) continue
+    // Surface items only collide with items at the same level
+    if ((testItem.parentId != null) !== (other.parentId != null)) continue
     for (const cell of getItemCells(other, catalogue))
       if (testCells.has(cell)) return true
   }
   return false
+}
+
+// Check if testItem is positioned over a surface item and return the parent
+export function findSurfaceAt(items, testItem, catalogue = ITEM_CATALOGUE) {
+  const def = catalogue[testItem.typeKey] ?? ITEM_CATALOGUE[testItem.typeKey]
+  const size = def?.sizes?.[testItem.sizeIndex] ?? def?.sizes?.[0]
+  const [tw, td] = size?.footprint ?? [1, 1]
+  const tcx = testItem.col + tw / 2
+  const tcz = testItem.row + td / 2
+
+  for (const other of items) {
+    if (other.id === testItem.id) continue
+    if (other.wall || other.ceiling || other.parentId != null) continue
+    const oDef = catalogue[other.typeKey] ?? ITEM_CATALOGUE[other.typeKey]
+    if (!isSurfaceItem(oDef)) continue
+    const oSize = oDef?.sizes?.[other.sizeIndex] ?? oDef?.sizes?.[0]
+    const [ow, od] = oSize?.footprint ?? [1, 1]
+    const rotated = other.rotation === 90 || other.rotation === 270
+    const ew = rotated ? od : ow
+    const ed = rotated ? ow : od
+    // Check if the test item's center is within the surface item's bounds
+    if (tcx >= other.col && tcx <= other.col + ew &&
+        tcz >= other.row && tcz <= other.row + ed) {
+      return other
+    }
+  }
+  return null
+}
+
+// Get the surface height (top of the parent item) in feet
+export function getSurfaceHeight(parentItem, catalogue = ITEM_CATALOGUE) {
+  const def = catalogue[parentItem.typeKey] ?? ITEM_CATALOGUE[parentItem.typeKey]
+  const size = def?.sizes?.[parentItem.sizeIndex] ?? def?.sizes?.[0]
+  return size?.height ?? 1
 }
 
 export function hasWallOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) {
