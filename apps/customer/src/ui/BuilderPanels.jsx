@@ -95,8 +95,10 @@ const MOOD_LIST = [
 export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloorColor }) {
   const t = useTheme()
   const u = ui(t)
-  const { mood, setMood } = useMoodControl()
+  const { mood, setMood, moods: moodList } = useMoodControl()
   const [tab, setTab] = useState('wall')
+  // Use real mood list from context, fall back to MOOD_LIST for sky gradients
+  const skyLookup = Object.fromEntries(MOOD_LIST.map(m => [m.key, m.sky]))
   const presets = tab === 'wall' ? WALL_PRESETS : FLOOR_PRESETS
   const current = tab === 'wall' ? wallColor : floorColor
   const setColor = tab === 'wall' ? onWallColor : onFloorColor
@@ -150,27 +152,27 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
           <Sparkles size={15} style={{ color: u.accent }} />
           <Label u={u}>Lighting mood</Label>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-          {MOOD_LIST.map(m => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+          {(moodList || MOOD_LIST).map(m => {
             const active = m.key === mood
+            const sky = skyLookup[m.key] || 'linear-gradient(180deg, #ddd 0%, #eee 100%)'
             return (
               <button key={m.key} onClick={() => setMood(m.key)} style={{
-                display: 'flex', flexDirection: 'column', gap: 5, padding: 6,
-                borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                display: 'flex', flexDirection: 'column', gap: 4, padding: 4,
+                borderRadius: 10, cursor: 'pointer', textAlign: 'center',
                 border: `2px solid ${active ? u.accent : u.line}`,
                 background: active ? u.accent + '12' : 'transparent', fontFamily: 'inherit',
               }}>
                 <div style={{
-                  height: 36, borderRadius: 8, background: m.sky,
+                  height: 30, borderRadius: 7, background: sky,
                   border: `1px solid ${u.line}`, position: 'relative', overflow: 'hidden',
                 }}>
-                  {/* Cloud using one of the real cloud PNGs */}
                   <img src="/clouds/kngvn/cloud-01.webp" alt=""
-                    style={{ position: 'absolute', bottom: -4, left: '10%', width: '80%', height: 22, objectFit: 'contain', opacity: 0.5, filter: 'brightness(1.3)' }}
+                    style={{ position: 'absolute', bottom: -3, left: '10%', width: '80%', height: 18, objectFit: 'contain', opacity: 0.4, filter: 'brightness(1.4)' }}
                     onError={e => { e.target.style.display = 'none' }}
                   />
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 800, color: u.text, lineHeight: 1.1 }}>{m.label}</span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: active ? u.accent : u.text, lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
               </button>
             )
           })}
@@ -336,20 +338,21 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
           </button>
         ))}
       </div>
-      {/* Account + Alerts — stacked vertically in one tile space */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      {/* Account + Alerts — side by side, each half width */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 9 }}>
         {MORE_HALF_ITEMS.map(h => (
           <button key={h.id} onClick={() => onTool(h.id)} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-            borderRadius: 12, cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 5, padding: '12px 8px',
+            borderRadius: 13, cursor: 'pointer',
             border: `1px solid ${u.line}`, background: u.card, color: u.text,
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, position: 'relative',
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 700, position: 'relative',
           }}>
-            <span style={{ width: 30, height: 30, borderRadius: 9, background: u.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: u.accent, flexShrink: 0 }}>
-              <h.Icon size={15} />
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: u.cardHi, display: 'flex', alignItems: 'center', justifyContent: 'center', color: u.accent }}>
+              <h.Icon size={16} />
             </span>
             {h.label}
-            {h.dot && <span style={{ position: 'absolute', top: 6, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
+            {h.dot && <span style={{ position: 'absolute', top: 8, right: 8, width: 7, height: 7, borderRadius: '50%', background: '#e8736f' }} />}
           </button>
         ))}
       </div>
@@ -488,7 +491,7 @@ export function DesignShopContent({ catalogue, placedKeys, ownedKeys, wishlist, 
       <div className="ddd-chips" style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2, margin: '0 -16px', padding: '0 16px 2px' }}>
         {cats.map(c => <ShopChip key={c} active={cat === c} onClick={() => setCat(c)} u={u}>{c}</ShopChip>)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols},1fr)`, gap: 7 }}>
         {entries.map(k => <ProductCardDesign key={k} typeKey={k} def={cat_[k]} u={u} inRoom={placedKeys?.has?.(k)} owned={ownedKeys?.has?.(k)} wished={wishlist?.has?.(k)} onPlace={onPlace} onDetail={onDetail} onWish={onWish} />)}
       </div>
       {entries.length === 0 && <div style={{ textAlign: 'center', color: u.soft, padding: '30px 0', fontSize: 13 }}>No matches — try another search.</div>}

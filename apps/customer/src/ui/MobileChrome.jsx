@@ -391,34 +391,34 @@ export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDele
   )
 
   return (
-    <div style={{
+    <div onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} style={{
       position: 'fixed', bottom, left: '50%', transform: 'translateX(-50%)',
       zIndex: 75, display: 'flex', alignItems: 'center', gap: 2, padding: 6,
       background: u.panel, border: `1px solid ${u.border}`, borderRadius: 18,
       boxShadow: '0 12px 34px rgba(0,0,0,0.30)',
       fontFamily: "'Outfit',sans-serif", maxWidth: 'calc(100% - 24px)',
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', padding: '4px 12px 4px 10px', minWidth: 0 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', padding: '4px 10px 4px 8px', minWidth: 0 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {def.label}
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: u.accent }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: u.accent }}>
           ${price.toLocaleString()}
         </span>
       </div>
       <div style={{ width: 1, height: 34, background: u.line, flexShrink: 0 }} />
-      {!item.locked && aBtn(<RotateCw size={20} />, 'Rotate', onRotate)}
-      {aBtn(<SlidersHorizontal size={20} />, 'Edit', onDetails)}
+      {!item.locked && aBtn(<RotateCw size={18} />, 'Rotate', onRotate)}
+      {aBtn(<SlidersHorizontal size={18} />, 'Edit', onDetails)}
       {aBtn(
-        item.locked ? <Unlock size={20} /> : <Lock size={20} />,
+        item.locked ? <Unlock size={18} /> : <Lock size={18} />,
         item.locked ? 'Unlock' : 'Lock', onLock
       )}
       {aBtn(
-        <Heart size={20} fill={isWishlisted ? 'currentColor' : 'none'} />,
+        <Heart size={18} fill={isWishlisted ? 'currentColor' : 'none'} />,
         isWishlisted ? 'Saved' : 'Save', onWishlist,
         isWishlisted ? '#ff9ab8' : u.text
       )}
-      {!item.locked && aBtn(<Trash2 size={20} />, 'Delete', onDelete, '#e8736f')}
+      {!item.locked && aBtn(<Trash2 size={18} />, 'Delete', onDelete, '#e8736f')}
     </div>
   )
 }
