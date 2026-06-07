@@ -18,9 +18,7 @@ function BottomTabClusterImpl({ onAccount, onSettings, signedIn }) {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
-        @media (max-width: 768px) {
-          .ddd-bottom-cluster { display: none !important; }
-        }
+        /* Mobile handled by MobileChrome — BottomTabCluster hidden via App.jsx */
       `}</style>
       <aside className="ddd-bottom-cluster" style={{
         position: 'fixed', bottom: 16, left: 12, zIndex: 90,

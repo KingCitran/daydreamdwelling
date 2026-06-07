@@ -761,9 +761,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Hide desktop chrome on mobile — replaced by MobileChrome */}
       <style>{`
         @media (max-width: 768px) {
-          .ddd-side-strip, .ddd-top-right-strip, .ddd-bottom-cluster,
-          .ddd-builder-logo, .ddd-desktop-only { display: none !important; }
-          .ddd-builder-main { padding-top: 56px !important; padding-bottom: 66px !important; }
+          .ddd-side-strip,
+          .ddd-top-right-strip,
+          .ddd-bottom-cluster,
+          .ddd-builder-logo,
+          .ddd-desktop-only { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; pointer-events: none !important; }
         }
       `}</style>
       {/* Hide toolbar during drag on mobile for more room */}
@@ -950,7 +952,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           if (id === 'place') { setDrawerTab('shop'); toggleShop() }
           else if (id === 'build') dispatchTogglePanel('build')
           else if (id === 'style') dispatchTogglePanel('style')
-          else if (id === 'more') dispatchTogglePanel('view')
+          else if (id === 'more') dispatchTogglePanel('music') // TODO: build More drawer with Music/Plan/Social/Account/Settings
         }}
       />
       <MobileViewControls

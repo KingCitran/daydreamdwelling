@@ -23,25 +23,7 @@ function TopRightClusterImpl({
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
-        @media (max-width: 768px) {
-          .ddd-top-right-strip {
-            top: 6px !important;
-            right: 6px !important;
-            flex-direction: row !important;
-            gap: 4px !important;
-          }
-          .ddd-top-right-label { display: none !important; }
-          .ddd-top-right-tab {
-            padding: 0 !important;
-            min-height: 0 !important;
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 8px !important;
-            gap: 0 !important;
-          }
-          .ddd-top-right-icon { width: 18px !important; height: 18px !important; }
-          .ddd-top-right-icon svg { width: 11px !important; height: 11px !important; }
-        }
+        /* Mobile handled by MobileChrome — TopRightCluster hidden via App.jsx */
       `}</style>
       <aside className="ddd-top-right-strip" style={{
         position: 'absolute', top: 76, right: 24, zIndex: 90,

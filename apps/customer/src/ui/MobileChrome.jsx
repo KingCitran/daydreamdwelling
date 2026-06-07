@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
 import { Icon } from '@shared/ui/Icon'
-import { Package, Hammer, Palette, MoreHorizontal, RotateCcw, ShoppingCart, User, ZoomIn, ZoomOut, Home, ChevronDown, Undo2, Redo2, Trash2, Heart, SlidersHorizontal, RotateCw, Camera } from 'lucide-react'
+import { Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home, Undo2, Trash2, Heart, SlidersHorizontal, RotateCw } from 'lucide-react'
 
 function useIsMobile(bp = 768) {
   const [m, setM] = useState(window.innerWidth <= bp)
@@ -116,44 +116,7 @@ export function MobileToolDock({ active, onPick }) {
   )
 }
 
-// ── View Controls (rotate + zoom) ──────────────────────────────────
-export function MobileViewControls({ zoom, onRotateLeft, onRotateRight, onZoomIn, onZoomOut, onReset }) {
-  const t = useTheme()
-  const isMobile = useIsMobile()
-  if (!isMobile) return null
-
-  const btn = (icon, label, onClick) => (
-    <button onClick={onClick} title={label} style={{
-      width: 38, height: 38, border: 'none', background: 'transparent',
-      cursor: 'pointer', color: t.text, display: 'flex',
-      alignItems: 'center', justifyContent: 'center', borderRadius: 11,
-    }}>
-      {icon}
-    </button>
-  )
-  const divider = <div style={{ height: 1, alignSelf: 'stretch', background: t.surfaceBorder, margin: '2px 7px' }} />
-
-  return (
-    <div style={{
-      position: 'fixed', right: 10, bottom: 80, zIndex: 72,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 4,
-      background: `${t.navBg}ee`,
-      border: `1px solid ${t.surfaceBorder}`, borderRadius: 16,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.20)',
-    }}>
-      {btn(<RotateCcw size={18} />, 'Rotate left', onRotateLeft)}
-      {btn(<RotateCw size={18} />, 'Rotate right', onRotateRight)}
-      {divider}
-      {btn(<ZoomIn size={18} />, 'Zoom in', onZoomIn)}
-      <span style={{ fontSize: 9, fontWeight: 800, color: t.textSoft, padding: '1px 0' }}>
-        {Math.round((zoom || 1) * 100)}%
-      </span>
-      {btn(<ZoomOut size={18} />, 'Zoom out', onZoomOut)}
-      {divider}
-      {btn(<Home size={18} />, 'Reset view', onReset)}
-    </div>
-  )
-}
+// ViewControls removed — swipe rotate + pinch zoom handles everything on mobile
 
 // ── Action Pill (selected item) ────────────────────────────────────
 export function MobileActionPill({ item, catalogue, onRotate, onDetails, onDelete, onWishlist, isWishlisted }) {
@@ -225,4 +188,5 @@ function IconButton({ icon: LucideIcon, onClick, label, badge, t }) {
   )
 }
 
+export function MobileViewControls() { return null } // stub — swipe handles it
 export { useIsMobile }
