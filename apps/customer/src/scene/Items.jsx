@@ -665,47 +665,54 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
   }
 
   return (
-    <group visible={wallVisible !== false}>
-      <mesh
-        position={[wx, wy, wz]}
-        rotation={[0, rotY, 0]}
-        castShadow receiveShadow
-        onPointerDown={onPointerDown}
-        onClick={e => e.stopPropagation()}
-        onDoubleClick={e => { e.stopPropagation(); onDoubleClick(item.typeKey) }}
-      >
-        <boxGeometry args={[fw, fh, fd]} />
-        <meshStandardMaterial
-          color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
-          roughness={0.76} metalness={0}
-          emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
-          emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
-        />
-        {lightCfg && !lightsOff && (
-          // Offset light forward (into room) by half the item's depth so it
-          // glows outward from the wall rather than being buried inside it.
-          <pointLight
-            position={[0, fh * 0.3, -fd * 0.6]}
-            color={lightCfg.color}
-            intensity={lightCfg.intensity}
-            distance={lightCfg.distance}
-            decay={2}
+    <>
+      {/* Door floor marker — gold strip on floor when wall is hidden */}
+      {def.door && wallVisible === false && (
+        <mesh position={[wx, 0.02, wz]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[fw * 0.9, 0.4]} />
+          <meshBasicMaterial color="#f0c060" transparent opacity={0.4} />
+        </mesh>
+      )}
+      <group visible={wallVisible !== false}>
+        <mesh
+          position={[wx, wy, wz]}
+          rotation={[0, rotY, 0]}
+          castShadow receiveShadow
+          onPointerDown={onPointerDown}
+          onClick={e => e.stopPropagation()}
+          onDoubleClick={e => { e.stopPropagation(); onDoubleClick(item.typeKey) }}
+        >
+          <boxGeometry args={[fw, fh, fd]} />
+          <meshStandardMaterial
+            color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
+            roughness={0.76} metalness={0}
+            emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
+            emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
           />
-        )}
-        {isCartHighlighted && !isSelected && (
-          <mesh>
-            <boxGeometry args={[fw + 0.16, fh + 0.16, fd + 0.16]} />
-            <meshBasicMaterial color="#ffd700" wireframe />
-          </mesh>
-        )}
-        {isSelected && (
-          <mesh>
-            <boxGeometry args={[fw + 0.08, fh + 0.08, fd + 0.08]} />
-            <meshBasicMaterial color={outlineColor} wireframe />
-          </mesh>
-        )}
-      </mesh>
-    </group>
+          {lightCfg && !lightsOff && (
+            <pointLight
+              position={[0, fh * 0.3, -fd * 0.6]}
+              color={lightCfg.color}
+              intensity={lightCfg.intensity}
+              distance={lightCfg.distance}
+              decay={2}
+            />
+          )}
+          {isCartHighlighted && !isSelected && (
+            <mesh>
+              <boxGeometry args={[fw + 0.16, fh + 0.16, fd + 0.16]} />
+              <meshBasicMaterial color="#ffd700" wireframe />
+            </mesh>
+          )}
+          {isSelected && (
+            <mesh>
+              <boxGeometry args={[fw + 0.08, fh + 0.08, fd + 0.08]} />
+              <meshBasicMaterial color={outlineColor} wireframe />
+            </mesh>
+          )}
+        </mesh>
+      </group>
+    </>
   )
 })
 
