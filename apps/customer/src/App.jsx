@@ -955,11 +955,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
         onPickRoom={(name) => { const id = Object.entries(roomNames).find(([, n]) => n === name)?.[0]; if (id) jumpToRoom(id) }}
         onNewRoom={() => {}}
-        onBudget={() => setActiveTool(activeTool === 'plan' ? null : 'plan')}
+        onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
       <BuilderToolDock
         active={activeTool}
-        onPick={(id) => setActiveTool(activeTool === id ? null : id)}
+        onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null) }}
       />
       <BuilderViewControls
         zoom={zoomRef.current}

@@ -388,7 +388,7 @@ export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDele
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
       padding: '6px 12px', borderRadius: 12, border: 'none',
       background: 'transparent', cursor: 'pointer',
-      color: tint || u.text, fontFamily: 'inherit', minWidth: 52,
+      color: tint || (u.dark ? '#d0cce0' : '#2a1848'), fontFamily: 'inherit', minWidth: 52,
     }}>
       {icon}
       <span style={{ fontSize: 10.5, fontWeight: 700 }}>{label}</span>
@@ -399,12 +399,13 @@ export function BuilderActionPill({ item, catalogue, onRotate, onDetails, onDele
     <div onPointerDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()} style={{
       position: 'fixed', bottom, left: '50%', transform: 'translateX(-50%)',
       zIndex: 75, display: 'flex', alignItems: 'center', gap: 2, padding: 6,
-      background: u.panel, border: `1px solid ${u.border}`, borderRadius: 18,
+      background: u.dark ? 'rgba(16,18,32,0.96)' : 'rgba(255,255,255,0.96)',
+      border: `1px solid ${u.border}`, borderRadius: 18,
       boxShadow: '0 12px 34px rgba(0,0,0,0.30)',
       fontFamily: "'Outfit',sans-serif", maxWidth: 'calc(100% - 24px)',
     }}>
       <div style={{ display: 'flex', flexDirection: 'column', padding: '4px 10px 4px 8px', minWidth: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: u.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: u.dark ? '#e8e4f0' : '#1a1028', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {def.label}
         </span>
         <span style={{ fontSize: 11, fontWeight: 700, color: u.accent }}>
