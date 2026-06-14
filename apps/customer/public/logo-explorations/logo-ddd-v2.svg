@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <!-- Background -->
+  <rect width="800" height="800" rx="80" fill="#1a2a48"/>
+
+  <!-- Concept: 3 D's as room walls viewed from corner
+       The straight backs form an open room corner (two walls + floor)
+       The curves face outward, giving it a soft architectural feel -->
+
+  <defs>
+    <linearGradient id="wallL" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a8c8e4"/>
+      <stop offset="100%" stop-color="#6a98d4"/>
+    </linearGradient>
+    <linearGradient id="wallR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6a98d4"/>
+      <stop offset="100%" stop-color="#3a6fb8"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff9b5c"/>
+      <stop offset="100%" stop-color="#ffb87a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Isometric room made of D letterforms
+       Center point is where all three walls meet -->
+
+  <!-- Left wall: D with straight edge on the right (facing center), curve going left -->
+  <path d="M 400,400 L 400,200 C 300,200 240,260 240,300 C 240,340 300,400 400,400 Z"
+        fill="url(#wallL)" opacity="0.9"/>
+
+  <!-- Right wall: D mirrored, straight edge on left (facing center), curve going right -->
+  <path d="M 400,400 L 400,200 C 500,200 560,260 560,300 C 560,340 500,400 400,400 Z"
+        fill="url(#wallR)" opacity="0.9"/>
+
+  <!-- Floor: D laid flat, straight edge at top (the room corner line), curve going down -->
+  <path d="M 400,400 L 260,400 C 260,480 310,540 330,540 C 350,540 400,480 400,400 Z"
+        fill="url(#floor)" opacity="0.85"
+        transform="rotate(-15, 400, 400)"/>
+
+  <path d="M 400,400 L 540,400 C 540,480 490,540 470,540 C 450,540 400,480 400,400 Z"
+        fill="url(#floor)" opacity="0.75"
+        transform="rotate(15, 400, 400)"/>
+
+  <!-- Subtle inner glow at the corner point -->
+  <circle cx="400" cy="395" r="8" fill="#fff" opacity="0.6"/>
+</svg>

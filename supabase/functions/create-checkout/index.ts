@@ -277,6 +277,7 @@ Deno.serve(async (req) => {
       shipping_cost_cents: shipping?.amount ? Math.round(parseFloat(shipping.amount) * 100) : null,
       shipping_carrier:    shipping?.carrier ?? null,
       shipping_service:    shipping?.service ?? null,
+      estimated_delivery_days: shipping?.estimatedDays ?? null,
     })
     if (pendingErr) {
       console.error('[create-checkout] pending_checkouts insert failed:', pendingErr, 'session:', session.id)

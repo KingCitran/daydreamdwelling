@@ -111,14 +111,24 @@ export function wispyLayout(args: {
 </html>`
 }
 
+/** Format dollars consistently: always two decimal places. */
+function fmtUsd(dollars: number): string {
+  return dollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 /** Items table used by order confirmation + shipping notification. */
-export function itemsTableHtml(items: EmailItem[], totalCents: number): string {
+export function itemsTableHtml(items: EmailItem[], totalCents: number, shippingCents?: number | null): string {
   const rows = items.map(it => `
     <tr>
       <td style="padding:10px 16px;border-bottom:1px solid #2a2a3a;color:#e0d9ff;font-size:14px;">${escapeHtml(it.label)}${it.sizeLabel ? ` <span style="color:#7878aa;font-size:12px;">· ${escapeHtml(it.sizeLabel)}</span>` : ''}</td>
       <td style="padding:10px 16px;border-bottom:1px solid #2a2a3a;color:#a090c8;font-size:14px;text-align:center;">×${it.qty}</td>
-      <td style="padding:10px 16px;border-bottom:1px solid #2a2a3a;color:#c0b8ff;font-size:14px;text-align:right;font-weight:600;">$${(it.unitPrice * it.qty).toLocaleString()}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #2a2a3a;color:#c0b8ff;font-size:14px;text-align:right;font-weight:600;">$${fmtUsd(it.unitPrice * it.qty)}</td>
     </tr>`).join('')
+  const shippingRow = shippingCents != null && shippingCents > 0 ? `
+      <tr>
+        <td colspan="2" style="padding:10px 16px;border-bottom:1px solid #2a2a3a;font-size:13px;color:#9080b8;">Shipping</td>
+        <td style="padding:10px 16px;border-bottom:1px solid #2a2a3a;color:#c0b8ff;font-size:14px;text-align:right;">$${fmtUsd(shippingCents / 100)}</td>
+      </tr>` : ''
   return `
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #2a2a3a;border-radius:10px;overflow:hidden;margin:16px 0 4px;">
       <tr style="background:#12102a;">
@@ -127,19 +137,20 @@ export function itemsTableHtml(items: EmailItem[], totalCents: number): string {
         <th style="padding:10px 16px;text-align:right;font-size:10px;color:#7878aa;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Total</th>
       </tr>
       ${rows}
+      ${shippingRow}
       <tr style="background:#12102a;">
         <td colspan="2" style="padding:12px 16px;font-size:12px;font-weight:700;color:#7878aa;text-transform:uppercase;letter-spacing:1px;">Total</td>
-        <td style="padding:12px 16px;font-size:18px;font-weight:700;color:#e0d9ff;text-align:right;">$${(totalCents / 100).toLocaleString()}</td>
+        <td style="padding:12px 16px;font-size:18px;font-weight:700;color:#e0d9ff;text-align:right;">$${fmtUsd(totalCents / 100)}</td>
       </tr>
     </table>`
 }
 
 /** Customer order confirmation — fires from stripe-webhook on payment success. */
-export function orderConfirmationEmail(items: EmailItem[], totalCents: number): { subject: string; html: string } {
+export function orderConfirmationEmail(items: EmailItem[], totalCents: number, shippingCents?: number | null): { subject: string; html: string } {
   const subject = "Your order's all set."
   const body = `
     <p style="margin:0 0 16px;">Hi. Your order made it through — everything below is being readied for shipping. I'll write again the moment it leaves the shop.</p>
-    ${itemsTableHtml(items, totalCents)}
+    ${itemsTableHtml(items, totalCents, shippingCents)}
     <p style="margin:18px 0 0;font-size:13px;color:#9080b8;line-height:1.7;">If something doesn't look right, just reply to this — I'll make sure it gets seen.</p>`
   return { subject, html: wispyLayout({ headline: "Your order's confirmed.", body, preheader: 'Everything below is being readied for shipping.' }) }
 }

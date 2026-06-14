@@ -365,7 +365,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
               throw pillow does tie the room together.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {['✦ available at launch', '✧ no extra cost'].map(l => (
+              {['✦ lives in the builder', '✧ free, always'].map(l => (
                 <span key={l} style={{
                   padding: '8px 16px', background: 'rgba(255,255,255,0.6)',
                   borderRadius: 999, fontSize: 13, color: sky.ink,

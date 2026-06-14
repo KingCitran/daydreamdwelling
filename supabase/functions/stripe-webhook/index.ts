@@ -25,7 +25,7 @@ function sellerEmailHtml(items: { label: string; sizeLabel: string; qty: number;
     <tr>
       <td style="padding:8px 14px;border-bottom:1px solid #eee;font-size:14px;">${it.label}${it.sizeLabel ? ` · ${it.sizeLabel}` : ''}</td>
       <td style="padding:8px 14px;border-bottom:1px solid #eee;font-size:14px;text-align:center;">×${it.qty}</td>
-      <td style="padding:8px 14px;border-bottom:1px solid #eee;font-size:14px;text-align:right;font-weight:600;">$${(it.unitPrice * it.qty).toLocaleString()}</td>
+      <td style="padding:8px 14px;border-bottom:1px solid #eee;font-size:14px;text-align:right;font-weight:600;">$${(it.unitPrice * it.qty).toFixed(2)}</td>
     </tr>`).join('')
 
   return `<!DOCTYPE html>
@@ -47,7 +47,7 @@ function sellerEmailHtml(items: { label: string; sizeLabel: string; qty: number;
         ${rows}
         <tr style="background:#f9f9f9;">
           <td colspan="2" style="padding:10px 14px;font-weight:700;font-size:13px;color:#666;">Total</td>
-          <td style="padding:10px 14px;font-weight:800;font-size:16px;text-align:right;">$${(totalCents / 100).toLocaleString()}</td>
+          <td style="padding:10px 14px;font-weight:800;font-size:16px;text-align:right;">$${(totalCents / 100).toFixed(2)}</td>
         </tr>
       </table>
       <p style="margin:0;font-size:13px;color:#666;">Log in to your seller dashboard to mark this order as packed and enter a tracking number.</p>
@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     }
     const { data: pending } = await supabase
       .from('pending_checkouts')
-      .select('items, buyer_user_id, buyer_email, buyer_mood, buyer_room_name, buyer_address, shippo_rate_id, shipping_cost_cents, shipping_carrier, shipping_service')
+      .select('items, buyer_user_id, buyer_email, buyer_mood, buyer_room_name, buyer_address, shippo_rate_id, shipping_cost_cents, shipping_carrier, shipping_service, estimated_delivery_days')
       .eq('stripe_session_id', session.id)
       .maybeSingle()
 
@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
         shipping_carrier:    shippingCarrier,
         shipping_service:    shippingService,
         shippo_rate_id:      shippoRateId,
+        estimated_delivery_days: pending?.estimated_delivery_days ?? null,
       })
       .select('id')
       .single()
@@ -243,7 +244,7 @@ Deno.serve(async (req) => {
     // Send customer confirmation email (Wispy-voiced, from _shared/emails.ts)
     const totalCents = session.amount_total ?? 0
     if (customerEmail) {
-      const { subject, html } = orderConfirmationEmail(emailItems, totalCents)
+      const { subject, html } = orderConfirmationEmail(emailItems, totalCents, shippingCostCents)
       await sendEmail({ to: customerEmail, subject, html })
     }
 

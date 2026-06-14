@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <!-- Background -->
+  <rect width="800" height="800" rx="80" fill="#1a2a48"/>
+
+  <!-- Three D's forming an isometric room corner
+       - Left wall: D rotated, straight edge is the wall
+       - Right wall: D mirrored, straight edge is the wall
+       - Floor: D laid flat, straight edge is the back wall line
+       Each D uses the brand sky-blue to warm orange gradient -->
+
+  <!-- Left wall D (rotated -30deg for isometric) -->
+  <g transform="translate(400, 420)">
+    <!-- Left wall D -->
+    <g transform="rotate(-30) translate(-180, -120)">
+      <path d="M 0,0 L 0,200 C 80,200 130,160 130,100 C 130,40 80,0 0,0 Z"
+            fill="none" stroke="#a8c8e4" stroke-width="18" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Right wall D (mirrored) -->
+    <g transform="rotate(30) translate(50, -120)">
+      <path d="M 0,0 L 0,200 C 80,200 130,160 130,100 C 130,40 80,0 0,0 Z"
+            fill="none" stroke="#6a98d4" stroke-width="18" stroke-linejoin="round"/>
+    </g>
+
+    <!-- Floor D (laid on its back) -->
+    <g transform="rotate(90) translate(-20, -40)">
+      <path d="M 0,0 L 0,160 C 65,160 105,128 105,80 C 105,32 65,0 0,0 Z"
+            fill="none" stroke="#ff9b5c" stroke-width="18" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

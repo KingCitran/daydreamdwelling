@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import RoomScene from './scene/RoomScene'
-import CloudConveyorPuffs from './scene/CloudConveyorPuffs'
+// CloudConveyorPuffs archived — drift-across is the only cloud variant now
 import CloudConveyorDrift from './scene/CloudConveyorDrift'
 import Panel from './ui/Panel'
 import StylePanel from './ui/StylePanel'
@@ -10,7 +10,7 @@ import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
 import RoomOverview from './overview/RoomOverview'
 import { useBuilderStyles } from './ui/styles/appStyles'
-import MusicPanel from './ui/MusicPanel'
+// MusicPanel removed — replaced by MusicTabPanel in BuilderSheet + DockablePanel
 import WallPicker from './ui/WallPicker'
 import WindowSizePicker from './ui/WindowSizePicker'
 import DoorLinkPicker from './ui/DoorLinkPicker'
@@ -76,6 +76,9 @@ import ProfilePage from './pages/ProfilePage'
 import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import SkyBackdrop from './scene/SkyBackdrop'
+import LightningOverlay from './scene/LightningOverlay'
+import MoonOverlay from './scene/MoonOverlay'
+import GreenhouseOverlay from './scene/GreenhouseOverlay'
 import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
@@ -228,7 +231,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
   const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
-  const [cloudVariant, setCloudVariant] = useState(() => localStorage.getItem('ddd_cloud_variant') || 'bands')
+  // cloudVariant archived — drift-across is the only cloud style now
   // Dev: cycle every cloud through the Easter-egg shape pool so the user can
   // audit + tune cloudShapes.js manifest. Off by default.
   const [forceEasterEggs, setForceEasterEggs] = useState(false)
@@ -248,17 +251,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return () => clearTimeout(t)
   }, [])
 
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-        const next = cloudVariant === 'drift' ? 'puffs' : 'drift'
-        setCloudVariant(next)
-        localStorage.setItem('ddd_cloud_variant', next)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [cloudVariant])
+  // Shift+C cloud toggle removed — drift-only now
 
   const nextItemIdRef = useRef(null)
   if (nextItemIdRef.current === null) {
@@ -279,6 +272,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [wallColor,  setWallColor]  = useState(initSave?.wallColor  ?? '#d8d0c6')
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
+  const [moonId,     setMoonId]     = useState(initSave?.moonId ?? null)
   const [items,      setItems]      = useState(initSave?.items ?? [])
   const [selectedId, setSelectedId] = useState(null)
   const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
@@ -305,7 +299,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
-  const [musicOpen,        setMusicOpen]        = useState(false)
   const [wallPicker,       setWallPicker]       = useState(null)
   const [windowPickerOpen, setWindowPickerOpen] = useState(false)
   const [doorPickerOpen,   setDoorPickerOpen]   = useState(false)
@@ -372,7 +365,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     useCartWishlist({ initSave, items, setItems })
 
   const { importRef, exportRoom, importRoom } = usePersistence({
-    gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+    gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, moonId, roomNames,
     allRooms, currentRoomId,
     nextItemIdRef,
     setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setWallColor, setSelectedId,
@@ -402,7 +395,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   const cloudSave = useCloudSave({
     user, gridW, gridD, wallHeight, cells, items, cart,
-    floorColor, wallColor, bgColor, musicStation, lightMood, roomNames,
+    floorColor, wallColor, bgColor, musicStation, lightMood, moonId, roomNames,
     allRooms, currentRoomId,
   })
 
@@ -460,6 +453,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     if (data.bgColor)    setBgColor(data.bgColor)
     if (data.musicStation !== undefined) setMusicStation(data.musicStation)
     if (data.lightMood)  setLightMood(data.lightMood)
+    if (data.moonId !== undefined) setMoonId(data.moonId)
     if (data.roomNames)  setRoomNamesState(data.roomNames)
     if (data.allRooms) {
       const restored = Object.fromEntries(
@@ -780,9 +774,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* Sky backdrop — behind the transparent canvas */}
       <SkyBackdrop />
 
-      {cloudsOn && cloudsReady && (cloudVariant === 'drift'
-        ? <CloudConveyorDrift key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
-        : <CloudConveyorPuffs key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
+      {cloudsOn && cloudsReady && (
+        <CloudConveyorDrift key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
       )}
 
 
@@ -831,6 +824,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
         />
       </Canvas>
+
+      {/* FX overlays render AFTER canvas so they layer on top */}
+      <MoonOverlay moonId={moonId} />
+      <LightningOverlay />
+      <GreenhouseOverlay />
 
       <div className="ddd-desktop-only">
         <RoomBanner
@@ -920,6 +918,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           wallColor={wallColor}
           onFloorColor={setFloorColor}
           onWallColor={setWallColor}
+          moonId={moonId}
+          onMoonId={setMoonId}
         />
       )}
 
@@ -997,6 +997,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignStyleContent
             wallColor={wallColor} floorColor={floorColor}
             onWallColor={setWallColor} onFloorColor={setFloorColor}
+            moonId={moonId} onMoonId={setMoonId}
           />
         </BuilderSheet>
       )}
@@ -1014,8 +1015,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onToggleGrid={() => setShowGrid(v => !v)}
             cloudsOn={cloudsOn}
             onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
-            cloudVariant={cloudVariant}
-            onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
             forceEasterEggs={forceEasterEggs}
             onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
           />
@@ -1224,15 +1223,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         />
       )}
 
-      {musicOpen && (
-        <MusicPanel
-          station={musicStation}
-          onStation={setMusicStation}
-          onClose={() => setMusicOpen(false)}
-          drawerOpen={drawerOpen}
-        />
-      )}
-
       <div style={s.leftColumn}>
         {roomPanelOpen && (
           <RoomPanel
@@ -1412,8 +1402,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onToggleGrid={() => setShowGrid(v => !v)}
         cloudsOn={cloudsOn}
         onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
-        cloudVariant={cloudVariant}
-        onChangeCloudVariant={(v) => { setCloudVariant(v); localStorage.setItem('ddd_cloud_variant', v) }}
         forceEasterEggs={forceEasterEggs}
         onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
       />

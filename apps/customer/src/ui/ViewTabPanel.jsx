@@ -19,7 +19,6 @@ export default function ViewTabPanel({
   showMeasurements, onToggleMeasurements,
   showGrid, onToggleGrid,
   cloudsOn, onToggleClouds,
-  cloudVariant, onChangeCloudVariant,
   forceEasterEggs, onToggleEasterEggs,
 }) {
   const t = useTheme()
@@ -82,16 +81,6 @@ export default function ViewTabPanel({
           <button onClick={onToggleClouds} style={btn(cloudsOn)}>
             {cloudsOn ? '⛅ Clouds On' : '◯ Clouds Off'}
           </button>
-          {cloudsOn && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => onChangeCloudVariant('puffs')} style={{ ...btn(cloudVariant === 'puffs'), flex: 1 }}>
-                ↑ Toward you
-              </button>
-              <button onClick={() => onChangeCloudVariant('drift')} style={{ ...btn(cloudVariant === 'drift'), flex: 1 }}>
-                → Drifting
-              </button>
-            </div>
-          )}
           {cloudsOn && onToggleEasterEggs && (
             <button onClick={onToggleEasterEggs} style={btn(forceEasterEggs)} title="Dev: forces every cloud to be an Easter-egg shape so you can audit them. Edit cloudShapes.js to tune the manifest.">
               {forceEasterEggs ? '✨ Cycling shapes ✓' : '✨ Cycle Easter Eggs (dev)'}

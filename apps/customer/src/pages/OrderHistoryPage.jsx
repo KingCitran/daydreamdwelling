@@ -80,6 +80,7 @@ export default function OrderHistoryPage({ onBack }) {
         .from('orders')
         .select(`
           id, status, total_cents, shipping_address, created_at,
+          estimated_delivery_days,
           refunded_at, refund_amount_cents, refund_reason,
           order_items(
             id, quantity, unit_price, size_label, swatch_name, product_name,
@@ -291,6 +292,9 @@ function ItemRow({ item, order, t, s }) {
           <div style={s.trackBlock}>
             <span style={s.trackLabel}>Tracking ({trackInfo.carrier}):</span>
             <a href={trackInfo.url} target="_blank" rel="noopener noreferrer" style={s.trackLink}>{tracking} ↗</a>
+            {order.estimated_delivery_days && item.fulfillment_status !== 'delivered' && (
+              <span style={{ fontSize: 11, color: t.textSoft, marginLeft: 8 }}>· est. {order.estimated_delivery_days} day{order.estimated_delivery_days === 1 ? '' : 's'}</span>
+            )}
           </div>
         )}
 

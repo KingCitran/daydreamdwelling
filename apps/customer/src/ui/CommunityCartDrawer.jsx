@@ -1,7 +1,7 @@
 import { useTheme } from '@shared/ThemeProvider'
 import { ITEM_CATALOGUE } from '../data/items'
 
-export default function CommunityCartDrawer({ cart, onClose }) {
+export default function CommunityCartDrawer({ cart, onClose, onCheckout }) {
   const t = useTheme()
   const { items, updateQty, removeItem, clear } = cart
 
@@ -90,19 +90,14 @@ export default function CommunityCartDrawer({ cart, onClose }) {
               <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>Total</span>
               <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>${total.toFixed(2)}</span>
             </div>
-            {/* Checkout wiring still TODO — community cart is separate from
-                the main cart's CheckoutModal flow. Disabled until the
-                handoff to the real checkout path lands. */}
             <button
-              disabled
-              title="Community-cart checkout is coming soon — for now, place items in your own room and check out from there."
+              onClick={onCheckout}
               style={{
                 width: '100%', padding: '12px', borderRadius: 10,
                 background: t.accent, color: t.accentText, border: 'none',
-                fontSize: 14, fontWeight: 700, cursor: 'not-allowed', marginBottom: 8,
-                opacity: 0.5,
+                fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 8,
               }}
-            >Checkout (coming soon)</button>
+            >Checkout</button>
             <button onClick={clear} style={{
               width: '100%', padding: '8px', borderRadius: 8,
               background: 'transparent', color: t.textSoft,

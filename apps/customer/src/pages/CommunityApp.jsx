@@ -19,6 +19,7 @@ import MusicCatalogPage from './community/MusicCatalogPage'
 import MusicPlaylistsPage from './community/MusicPlaylistsPage'
 import { useMusicPlayer } from '../contexts/MusicPlayerContext'
 import CommunityCartDrawer from '../ui/CommunityCartDrawer'
+import CheckoutModal from '../ui/CheckoutModal'
 import { useCommunityCart } from '../hooks/useCommunityCart'
 
 function parsePath() {
@@ -39,6 +40,7 @@ export default function CommunityApp() {
   const { user } = useAuth()
   const [authOpen, setAuthOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
   const cart = useCommunityCart()
   const [currentPath, setCurrentPath] = useState(() => parsePath().path)
   const [currentSegs, setCurrentSegs] = useState(() => parsePath().segs)
@@ -245,7 +247,8 @@ export default function CommunityApp() {
 
       {/* Overlays */}
       {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
-      {cartOpen && <CommunityCartDrawer cart={cart} onClose={() => setCartOpen(false)} />}
+      {cartOpen && <CommunityCartDrawer cart={cart} onClose={() => setCartOpen(false)} onCheckout={() => { setCartOpen(false); setCheckoutOpen(true) }} />}
+      {checkoutOpen && <CheckoutModal cart={cart.items} onClose={() => setCheckoutOpen(false)} roomName="Community" />}
       <FeedbackButton />
     </div>
   )

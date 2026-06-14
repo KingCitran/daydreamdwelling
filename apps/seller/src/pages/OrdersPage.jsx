@@ -4,6 +4,9 @@ import { useTheme } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 import useMessageThread from '@shared/useMessageThread'
 import useSignedOrderPhoto from '@shared/useSignedOrderPhoto'
+import { detectCarrier } from '../utils/carrierDetect'
+import OrderActivityLog from '../components/OrderActivityLog'
+import QuickReplyTemplates from '../components/QuickReplyTemplates'
 
 const PAYMENT_COLORS = { paid: ['#88d8b0', '#eeffF6'], pending: ['#ffc87a', '#fff8ee'], cancelled: ['#f09090', '#fff0f0'] }
 const FULFILLMENT_STEPS = ['packed', 'shipped', 'delivered']
@@ -232,7 +235,7 @@ export default function OrdersPage({ onNavigate }) {
           label_url, shipping_carrier, shipping_service, shipping_cost_cents, label_purchased_at, label_session_id,
           products(label, weight_oz, length_in, width_in, height_in, product_images(storage_path, is_primary)),
           orders(id, status, total_cents, created_at, shipping_address, guest_email, user_id,
-                 buyer_mood, buyer_room_name,
+                 buyer_mood, buyer_room_name, estimated_delivery_days,
                  escalated_at, escalation_note, cancelled_at, cancellation_reason,
                  refunded_at, refund_amount_cents, stripe_refund_id, refund_reason,
                  customer:profiles!orders_user_id_fkey(display_name))
@@ -887,6 +890,54 @@ export default function OrdersPage({ onNavigate }) {
   // button in the expanded detail view).
   function printPackingSlip(orderId) {
     printPackingSlips([orderId])
+  }
+
+  // ── Combined slip + label print ──────────────────────────────────────
+  // Opens one window with the packing slip on letter paper, then the
+  // shipping label on 4×6. The browser print dialog handles page breaks.
+  function printSlipAndLabel(orderId, labelUrl) {
+    if (!orderId || !labelUrl) { showToast('error', 'Need both a packing slip and a label'); return }
+    const slipBody = renderSlipBody(orderId)
+    if (!slipBody) { showToast('error', 'Could not render packing slip'); return }
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Slip + Label</title>
+      <style>
+        body { font-family: system-ui, sans-serif; color: #1a1a2e; padding: 32px 40px; max-width: 720px; margin: 0 auto; }
+        h1 { font-size: 24px; margin: 0 0 4px; }
+        .brand { font-size: 12px; color: #7a6ca6; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
+        .row { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 20px; }
+        .col { flex: 1; }
+        .label { font-size: 10px; color: #9a8fb0; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px; }
+        .value { font-size: 13px; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; }
+        th, td { padding: 8px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #e8e4f0; }
+        th { font-size: 10px; color: #7a6ca6; text-transform: uppercase; letter-spacing: 0.6px; }
+        .num { text-align: right; }
+        .dim { color: #9a8fb0; font-size: 11px; }
+        .total-row td { border-top: 2px solid #c8b8ee; font-weight: 700; }
+        .footer { margin-top: 18px; font-size: 11px; color: #7a6ca6; line-height: 1.6; }
+        .slip { margin-bottom: 24px; }
+        .label-section { page-break-before: always; text-align: center; padding: 16px 0; }
+        .label-section iframe { width: 4in; height: 6in; border: 1px solid #ccc; }
+        .printer-hint { position: sticky; top: 0; background: #ece4ff; border-bottom: 1px solid #b4a0e0; padding: 10px 16px; font-size: 13px; color: #4a3a7a; }
+        .printer-hint strong { color: #2a1a5a; }
+        @media print { .printer-hint { display: none; } @page { margin: 0.5in; } .label-section { page-break-before: always; } .label-section iframe { width: 4in; height: 6in; } }
+      </style></head><body>
+      <div class="printer-hint">📋 Page 1: Packing Slip (letter paper) · Page 2: Shipping Label (4×6). Print both, then pack.</div>
+      ${slipBody}
+      <div class="label-section">
+        <p style="font-size:12px;color:#7a6ca6;margin:0 0 8px;">Shipping Label — print on 4×6 label paper</p>
+        <iframe src="${escapeHtml(labelUrl)}"></iframe>
+      </div>
+      <script>
+        const frame = document.querySelector('.label-section iframe')
+        frame.addEventListener('load', () => setTimeout(() => window.print(), 600))
+      </script>
+      </body></html>`
+    const w = window.open('', '_blank', 'width=820,height=900')
+    if (!w) { showToast('error', 'Popup blocked — allow popups for this site'); return }
+    w.document.write(html)
+    w.document.close()
+    showToast('success', 'Opened slip + label for printing')
   }
 
   // Render a packing slip body from a list of order_item rows (instead of by
@@ -1570,7 +1621,18 @@ export default function OrdersPage({ onNavigate }) {
                       </div>
                       <div>
                         <p style={s.detailLabel}>Tracking Number</p>
-                        <p style={s.detailValue}>{item.tracking_number || 'Not entered yet'}</p>
+                        {item.tracking_number ? (() => {
+                          const cd = detectCarrier(item.tracking_number, item.shipping_carrier)
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {cd?.carrier && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6, background: `${t.accent}20`, color: t.accent }}>{cd.carrier}</span>}
+                              <a href={cd?.url} target="_blank" rel="noopener noreferrer" style={{ ...s.detailValue, color: t.accent, textDecoration: 'underline', fontFamily: 'monospace', fontSize: 12 }}>{item.tracking_number}</a>
+                            </div>
+                          )
+                        })() : <p style={s.detailValue}>Not entered yet</p>}
+                        {order?.estimated_delivery_days && item.fulfillment_status !== 'delivered' && (
+                          <p style={{ margin: '4px 0 0', fontSize: 11, color: t.textSoft }}>Est. delivery: {order.estimated_delivery_days} day{order.estimated_delivery_days === 1 ? '' : 's'}</p>
+                        )}
                       </div>
                       <div onClick={e => e.stopPropagation()}>
                         <p style={s.detailLabel}>
@@ -1620,6 +1682,13 @@ export default function OrdersPage({ onNavigate }) {
                               <a href={item.label_url} target="_blank" rel="noopener noreferrer" style={s.labelDownloadBtn}>
                                 ⬇ Download Label PDF
                               </a>
+                              <button
+                                style={{ ...s.labelDownloadBtn, background: `${t.accent}15`, cursor: 'pointer', border: `1px solid ${t.accent}40` }}
+                                onClick={e => { e.stopPropagation(); printSlipAndLabel(order?.id, item.label_url) }}
+                                title="Print packing slip + label in one window"
+                              >
+                                📋 Print Slip + Label
+                              </button>
                               <span style={s.dimMicro}>
                                 {item.shipping_carrier} {item.shipping_service}
                                 {typeof item.shipping_cost_cents === 'number' && ` · $${(item.shipping_cost_cents / 100).toFixed(2)}`}
@@ -1692,6 +1761,8 @@ export default function OrdersPage({ onNavigate }) {
                         Reach them via <a href={`mailto:${order.guest_email}`} style={s.contactLink}>{order.guest_email}</a>.
                       </div>
                     )}
+
+                    {order?.id && <OrderActivityLog orderId={order.id} t={t} />}
 
                     {/* Order-level seller actions: escalate, cancel, refund.
                         All gate on order_items.seller_id = auth.uid(). */}
@@ -1895,6 +1966,7 @@ function SellerMessageBlock({ orderId, partnerId, partnerName, t, s, user }) {
               )
             })}
           </div>
+          <QuickReplyTemplates onInsert={text => setDraft(text)} t={t} />
           <div style={s.msgInputRow}>
             <input
               style={s.msgInput}
