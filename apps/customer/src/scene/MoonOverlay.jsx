@@ -1,44 +1,44 @@
+import { useMemo } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
-import { MOON_MOODS, MOOD_DEFAULT_MOON, moonUrl } from '../data/moonPhases'
+import { MOON_MOODS, MOON_COUNT, moonUrl } from '../data/moonPhases'
 
 // ── Moon overlay ───────────────────────────────────────────────────
-// Renders a single moon PNG in the upper-right portion of the sky.
-// Only visible on dark moods (Moonlight, Northern Lights, etc.).
-// The moonId prop comes from room state — defaults to a mood-specific
-// pick if the user hasn't chosen one yet.
-//
-// Position is fixed upper-right with a subtle CSS glow halo so the
-// moon feels like it's casting light. Pointer-events off so it never
-// blocks builder interaction.
+// Renders a small photorealistic moon in the upper-right sky on dark
+// moods. Picks a random moon each time the mood activates so it feels
+// fresh on every visit. No user picker — this is ambient decoration.
 
-export default function MoonOverlay({ moonId }) {
+export default function MoonOverlay() {
   const { mood } = useMoodControl()
 
-  if (!MOON_MOODS.has(mood)) return null
+  // Pick a random moon when the mood changes — stable for the session
+  const moonId = useMemo(() => {
+    if (!MOON_MOODS.has(mood)) return null
+    return 1 + Math.floor(Math.random() * MOON_COUNT)
+  }, [mood])
 
-  const id = moonId ?? MOOD_DEFAULT_MOON[mood] ?? 5
-  const src = moonUrl(id)
+  if (!moonId) return null
 
-  // Mood-specific tint glow behind the moon
+  const src = moonUrl(moonId)
+
   const glowColor = mood === 'Neon Nights'
     ? 'rgba(180,80,220,0.25)'
     : mood === 'Northern Lights'
     ? 'rgba(80,200,180,0.2)'
-    : 'rgba(200,210,240,0.2)'
+    : 'rgba(200,210,240,0.18)'
 
   return (
     <div
       style={{
         position: 'absolute',
-        top: '3%',
-        right: '8%',
-        width: 'clamp(120px, 15vw, 280px)',
+        top: '2%',
+        right: '6%',
+        width: 'clamp(60px, 8vw, 140px)',
         aspectRatio: '3 / 4',
         pointerEvents: 'none',
         zIndex: 2,
-        filter: `drop-shadow(0 0 40px ${glowColor}) drop-shadow(0 0 80px ${glowColor})`,
+        filter: `drop-shadow(0 0 20px ${glowColor}) drop-shadow(0 0 50px ${glowColor})`,
         transition: 'filter 1.5s ease, opacity 1.5s ease',
-        opacity: 0.92,
+        opacity: 0.85,
       }}
     >
       <img

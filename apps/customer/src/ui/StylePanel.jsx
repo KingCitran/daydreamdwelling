@@ -1,8 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
-import { useTheme, useMoodControl } from '@shared/ThemeProvider'
+import { useTheme } from '@shared/ThemeProvider'
 import { Icon } from '@shared/ui/Icon'
-import MoonPicker from './MoonPicker'
-import { MOON_MOODS } from '../data/moonPhases'
 
 function useStyles() {
   const t = useTheme()
@@ -265,9 +263,8 @@ function TexturePresets({ presets, onSelect, selected }) {
 }
 
 // ── StylePanel ─────────────────────────────────────────────────
-export default function StylePanel({ floorColor, wallColor, onFloorColor, onWallColor, moonId, onMoonId }) {
+export default function StylePanel({ floorColor, wallColor, onFloorColor, onWallColor }) {
   const s = useStyles()
-  const { mood } = useMoodControl()
   const [target, setTarget] = useState('floor')
 
   return (
@@ -296,7 +293,6 @@ export default function StylePanel({ floorColor, wallColor, onFloorColor, onWall
         }
       </div>
 
-      {MOON_MOODS.has(mood) && onMoonId && <MoonPicker value={moonId} onChange={onMoonId} />}
     </div>
   )
 }

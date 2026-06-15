@@ -76,9 +76,8 @@ import ProfilePage from './pages/ProfilePage'
 import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import SkyBackdrop from './scene/SkyBackdrop'
-import LightningOverlay from './scene/LightningOverlay'
 import MoonOverlay from './scene/MoonOverlay'
-import GreenhouseOverlay from './scene/GreenhouseOverlay'
+import GreenhouseIslands from './scene/GreenhouseIslands'
 import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
@@ -826,9 +825,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       </Canvas>
 
       {/* FX overlays render AFTER canvas so they layer on top */}
-      <MoonOverlay moonId={moonId} />
-      <LightningOverlay />
-      <GreenhouseOverlay />
+      <MoonOverlay />
+      <GreenhouseIslands />
 
       <div className="ddd-desktop-only">
         <RoomBanner
@@ -918,8 +916,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           wallColor={wallColor}
           onFloorColor={setFloorColor}
           onWallColor={setWallColor}
-          moonId={moonId}
-          onMoonId={setMoonId}
         />
       )}
 
@@ -997,7 +993,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignStyleContent
             wallColor={wallColor} floorColor={floorColor}
             onWallColor={setWallColor} onFloorColor={setFloorColor}
-            moonId={moonId} onMoonId={setMoonId}
           />
         </BuilderSheet>
       )}

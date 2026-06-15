@@ -7,8 +7,7 @@ import { useState, useMemo } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { ITEM_CATALOGUE, CATEGORIES } from '../data/items'
-import MoonPicker from './MoonPicker'
-import { MOON_MOODS } from '../data/moonPhases'
+// MoonPicker removed — moon randomizes per visit, no user control
 import {
   Palette, Hammer, Home, Grid3x3, Layers, ClipboardList,
   Music, Users, User, Bookmark, Bell, Settings,
@@ -97,7 +96,7 @@ const MOOD_LIST = [
 ]
 
 // ── Style Panel ────────────────────────────────────────────────────
-export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloorColor, moonId, onMoonId }) {
+export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloorColor }) {
   const t = useTheme()
   const u = ui(t)
   const { mood, setMood, moods: moodList } = useMoodControl()
@@ -184,12 +183,6 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
         </div>
       </div>
 
-      {MOON_MOODS.has(mood) && (
-        <>
-          <div style={{ height: 1, background: u.line }} />
-          <MoonPicker value={moonId} onChange={onMoonId} />
-        </>
-      )}
     </div>
   )
 }

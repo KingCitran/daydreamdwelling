@@ -51,7 +51,6 @@ export const MOON_MOODS = new Set([
   'Moonlight',
   'Northern Lights',
   'Neon Nights',
-  'Dark Academia',
   'Candlelit Cozy Evening',
 ])
 
