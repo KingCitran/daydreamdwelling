@@ -77,7 +77,7 @@ import MarketplacePage from './pages/MarketplacePage'
 import BuilderMoodPicker from './ui/BuilderMoodPicker'
 import SkyBackdrop from './scene/SkyBackdrop'
 import MoonOverlay from './scene/MoonOverlay'
-import GreenhouseIslands from './scene/GreenhouseIslands'
+// GreenhouseIslands archived — needs background-removed PNGs first
 import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
@@ -826,7 +826,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
       {/* FX overlays render AFTER canvas so they layer on top */}
       <MoonOverlay />
-      <GreenhouseIslands />
 
       <div className="ddd-desktop-only">
         <RoomBanner

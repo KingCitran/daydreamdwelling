@@ -13,18 +13,29 @@ export const MOODS = [
   { key: 'Vivid Sunset',           label: 'Vivid Sunset',           desc: 'Magenta sky, gold horizon, still water', icon: '🌇' },
   { key: "Ember's Sunrise",        label: "Ember's Sunrise",        desc: 'Bonfire fades into a slow pastel dawn (5 min)', icon: '🔥' },
   { key: 'Moonlight',              label: 'Moonlight',              desc: 'Cool blue-silver, peaceful night',      icon: '🌙' },
-  { key: 'Northern Lights',        label: 'Northern Lights',        desc: 'Aurora over a midnight sky',            icon: '🌌' },
+  // Northern Lights archived — revisiting later
   { key: 'Blush Hour',             label: 'Blush Hour',             desc: 'Warm pink morning light',               icon: '🌸' },
   { key: 'Coastal Morning',        label: 'Coastal Morning',        desc: 'Cool bright blue-white, breezy',        icon: '🌊' },
   { key: 'Dream State',            label: 'Dream State',            desc: 'Soft pastel lavender-blush, dreamy',    icon: '☁️' },
   { key: 'Neon Nights',            label: 'Neon Nights',            desc: 'Tokyo neon nightlife, electric',        icon: '🌈' },
-  { key: 'Greenhouse',             label: 'Greenhouse',             desc: 'Sunlight through leaves, scattered flowers', icon: '🌿' },
+  // Greenhouse archived — revisiting later
   { key: 'Studio',                 label: 'Studio',                 desc: 'Neutral flat light — tap again to toggle dark/light', icon: '🔲' },
 ]
 
 // Archived moods are still recognized as valid mood keys (their themes apply
 // if a profile already has one saved) but won't be surfaced or recommended.
-export const ARCHIVED_MOODS = new Set(['Candlelit Cozy Evening', 'Dark Academia'])
+// Admin users see them in the picker so they can still test/develop them.
+export const ARCHIVED_MOODS = new Set(['Candlelit Cozy Evening', 'Dark Academia', 'Northern Lights', 'Greenhouse'])
+
+const ARCHIVED_MOOD_ENTRIES = [
+  { key: 'Candlelit Cozy Evening', label: 'Candlelit Cozy Evening', desc: 'Warm candle glow (archived)',  icon: '🕯️' },
+  { key: 'Dark Academia',          label: 'Dark Academia',          desc: 'Moody scholarly warmth (archived)', icon: '📚' },
+  { key: 'Northern Lights',        label: 'Northern Lights',        desc: 'Aurora over midnight sky (archived)', icon: '🌌' },
+  { key: 'Greenhouse',             label: 'Greenhouse',             desc: 'Sunlight through leaves (archived)',  icon: '🌿' },
+]
+
+// Admin email check — admin sees archived moods in the picker
+const ADMIN_EMAILS = new Set(['hayley@daydreamdwelling.com'])
 
 // Studio + Studio Dark are merged into one picker button. The Studio entry
 // dynamically picks the dark variant when active mood is 'Studio Dark'.
@@ -81,5 +92,8 @@ export function useMood(appKey = 'customer') {
       .eq('id', user.id)
   }, [user])
 
-  return { mood, setMood, moods: MOODS, isLocked: false }
+  const isAdmin = user?.email && ADMIN_EMAILS.has(user.email)
+  const moods = isAdmin ? [...MOODS, ...ARCHIVED_MOOD_ENTRIES] : MOODS
+
+  return { mood, setMood, moods, isLocked: false }
 }

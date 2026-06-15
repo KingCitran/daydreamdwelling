@@ -49,7 +49,6 @@ export const MOONS = [
 // Moods where the moon overlay renders in the sky
 export const MOON_MOODS = new Set([
   'Moonlight',
-  'Northern Lights',
   'Neon Nights',
   'Candlelit Cozy Evening',
 ])
