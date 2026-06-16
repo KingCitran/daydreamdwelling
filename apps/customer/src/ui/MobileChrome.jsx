@@ -61,8 +61,16 @@ const TOOL_SETS = {
 }
 
 // ── Theme token derivation (matches design's ui() function) ────────
+// Derive dark mode from the background hex — if the R channel is < 0x40
+// the mood is "dark" and panels should use dark glass, not white glass.
+function isDarkBg(bg) {
+  if (!bg || bg[0] !== '#') return false
+  const r = parseInt(bg.slice(1, 3), 16)
+  return r < 0x40
+}
+
 function ui(t) {
-  const dark = !!t.isDark
+  const dark = isDarkBg(t.bg)
   // Some themes (Northern Lights) have dark accentText on bright accent —
   // fine for buttons but unreadable on dark panels. Force white if too dark.
   const aText = t.accentText
@@ -73,7 +81,9 @@ function ui(t) {
     cardHi: dark ? 'rgba(255,255,255,0.09)' : 'rgba(120,100,170,0.11)',
     border: t.surfaceBorder,
     line: dark ? 'rgba(255,255,255,0.08)' : 'rgba(60,40,90,0.10)',
-    text: t.text, soft: t.textSoft, accent: t.accent,
+    text: dark ? '#e0d8f0' : t.text,
+    soft: dark ? '#a098c0' : t.textSoft,
+    accent: t.accent,
     accentText: needsLightText ? '#fff' : t.accentText,
     nav: t.navBg, glow: t.glow, dark,
   }
