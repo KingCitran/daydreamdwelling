@@ -350,7 +350,7 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
 
   return (
     <div style={{
-      position: 'fixed', right: 14, bottom, zIndex: 72,
+      position: 'fixed', right: 14, bottom: 74, zIndex: 72,
       display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 4,
       background: u.panel, border: `1px solid ${u.border}`, borderRadius: 16,
       boxShadow: '0 8px 24px rgba(0,0,0,0.20)',

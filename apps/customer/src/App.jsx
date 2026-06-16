@@ -998,8 +998,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {activeTool === 'view' && (
         <BuilderSheet title="View" accentDot="#5ea8c8" onClose={() => setActiveTool(null)}>
           <ViewTabPanel
-            onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
-            onRotateRight={() => setTarget(r => r + Math.PI / 2)}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
             onSummonWispy={showWispy}
@@ -1385,8 +1383,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     </DockablePanel>
     <DockablePanel tabId="view">
       <ViewTabPanel
-        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
-        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
         ceilingView={ceilingView}
         onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
         onSummonWispy={showWispy}
