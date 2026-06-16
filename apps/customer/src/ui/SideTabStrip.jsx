@@ -49,11 +49,12 @@ function SideTabStripImpl() {
       <aside className="ddd-side-strip" style={{
         position: 'fixed', top: STRIP_TOP, right: 368, zIndex: 90,
         display: 'flex', flexDirection: 'column', gap: 4,
-        background: t.panelBg ?? 'rgba(15,12,30,0.92)',
-        border: `1px solid ${t.panelBorder ?? t.surfaceBorder}`,
+        background: 'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(12px)',
+        border: `1px solid rgba(255,255,255,0.12)`,
         borderRadius: 14,
         padding: 5,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
       }}>
         {tabOrder.map((id, i) => {
           if (id === '__gap__') return <div key={`gap-${i}`} style={{ height: 6 }} />
@@ -76,7 +77,6 @@ function SideTabStripImpl() {
                 borderRadius: 11,
                 border: `2px solid ${isOpen ? def.accent : 'transparent'}`,
                 background: isOpen ? `${def.accent}30` : 'transparent',
-                color: isOpen ? '#fff' : (t.panelTextSoft ?? '#a098c0'),
                 cursor: 'pointer',
                 opacity: isFloating ? 0.5 : 1,
                 transition: 'all 0.15s ease',
@@ -84,12 +84,13 @@ function SideTabStripImpl() {
             >
               <span className="ddd-side-tab-icon" style={{
                 width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                background: isOpen ? def.accent : `${def.accent}35`,
-                color: isOpen ? '#fff' : (t.panelText ?? '#e0d8f0'),
+                background: isOpen ? def.accent : 'rgba(0,0,0,0.35)',
+                color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'background 0.15s ease',
+                boxShadow: isOpen ? `0 0 8px ${def.accent}60` : 'none',
               }}>
-                {Icon && <Icon size={17} strokeWidth={2.2} />}
+                {Icon && <Icon size={17} strokeWidth={2.4} />}
               </span>
             </button>
           )
