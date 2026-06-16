@@ -53,7 +53,11 @@ export const MOON_MOODS = new Set([
   'Candlelit Cozy Evening',
 ])
 
-export const MOON_COUNT = MOONS.length
+// Excluded by admin curation in asset picker
+const EXCLUDED_MOONS = new Set([24, 27, 28, 29, 30, 32, 33, 34, 35])
+
+export const ACTIVE_MOONS = MOONS.filter(m => !EXCLUDED_MOONS.has(m.id))
+export const MOON_COUNT = ACTIVE_MOONS.length
 
 export function moonUrl(id) {
   return `/fx-moons/moon-${id}.png`
