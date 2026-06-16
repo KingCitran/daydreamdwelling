@@ -47,11 +47,16 @@ function SideTabStripImpl() {
         /* Mobile handled by MobileChrome — SideTabStrip hidden via App.jsx */
       `}</style>
       <aside className="ddd-side-strip" style={{
-        position: 'fixed', top: STRIP_TOP, left: 12, zIndex: 90,
-        display: 'flex', flexDirection: 'column', gap: 6,
+        position: 'fixed', top: STRIP_TOP, left: 14, zIndex: 90,
+        display: 'flex', flexDirection: 'column', gap: 5,
+        background: t.panelBg ?? 'rgba(15,12,30,0.92)',
+        border: `1px solid ${t.panelBorder ?? t.surfaceBorder}`,
+        borderRadius: 16,
+        padding: 6,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
       }}>
         {tabOrder.map((id, i) => {
-          if (id === '__gap__') return <div key={`gap-${i}`} style={{ height: GAP_HEIGHT }} />
+          if (id === '__gap__') return <div key={`gap-${i}`} style={{ height: 6 }} />
           const def = tabDefs[id]
           if (!def) return null
           const state = panelStates[id]
@@ -67,25 +72,26 @@ function SideTabStripImpl() {
               title={def.label}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 16px 10px 12px',
-                minHeight: TAB_SIZE,
-                borderRadius: 14,
-                border: `1px solid ${isOpen ? def.accent : `${def.accent}33`}`,
-                background: isOpen ? `${def.accent}28` : 'rgba(15,12,30,0.45)',
-                color: isFloating ? `${def.accent}80` : '#f0eaff',
+                padding: '8px 14px 8px 10px',
+                minHeight: 44,
+                borderRadius: 12,
+                border: `2px solid ${isOpen ? def.accent : 'transparent'}`,
+                background: isOpen ? `${def.accent}30` : 'transparent',
+                color: isOpen ? (t.panelText ?? '#f0eaff') : (t.panelTextSoft ?? '#a098c0'),
                 cursor: 'pointer',
-                fontSize: 14, fontWeight: 700,
+                fontSize: 13, fontWeight: 700,
                 fontFamily: "'Outfit', system-ui, sans-serif",
-                letterSpacing: '0.3px',
-                backdropFilter: 'blur(10px)',
-                opacity: isFloating ? 0.55 : 1,
-                transition: 'opacity 0.18s ease, background 0.18s ease',
+                letterSpacing: '0.2px',
+                opacity: isFloating ? 0.5 : 1,
+                transition: 'all 0.15s ease',
               }}
             >
               <span className="ddd-side-tab-icon" style={{
-                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: def.accent, color: '#1a0f30',
+                width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+                background: isOpen ? def.accent : `${def.accent}40`,
+                color: isOpen ? '#fff' : (t.panelText ?? '#f0eaff'),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'background 0.15s ease',
               }}>
                 {Icon && <Icon size={16} strokeWidth={2.2} />}
               </span>
