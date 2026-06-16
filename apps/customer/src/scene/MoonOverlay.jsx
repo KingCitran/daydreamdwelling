@@ -1,19 +1,22 @@
 import { useMemo } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
-import { MOON_MOODS, MOON_COUNT, moonUrl } from '../data/moonPhases'
+import { MOONS, MOON_MOODS, moonUrl } from '../data/moonPhases'
+
+// Silver/white moons only — no dark or warm-toned ones
+const SILVER_MOONS = MOONS.filter(m => m.tone === 'light')
 
 // ── Moon overlay ───────────────────────────────────────────────────
 // Renders a small photorealistic moon in the upper-right sky on dark
-// moods. Picks a random moon each time the mood activates so it feels
-// fresh on every visit. No user picker — this is ambient decoration.
+// moods. Picks a random silver moon each time the mood activates so
+// it feels fresh on every visit. No user picker — ambient decoration.
 
 export default function MoonOverlay() {
   const { mood } = useMoodControl()
 
-  // Pick a random moon when the mood changes — stable for the session
   const moonId = useMemo(() => {
     if (!MOON_MOODS.has(mood)) return null
-    return 1 + Math.floor(Math.random() * MOON_COUNT)
+    const pick = SILVER_MOONS[Math.floor(Math.random() * SILVER_MOONS.length)]
+    return pick.id
   }, [mood])
 
   if (!moonId) return null

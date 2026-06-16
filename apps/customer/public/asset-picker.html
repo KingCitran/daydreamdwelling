@@ -154,9 +154,12 @@
   }
   .anchor-chip .flat { background: #ff7aa8; color: #1a0015; padding: 1px 4px; border-radius: 3px; margin-top: 1px; }
   .tile.excluded .anchor-chip, .tile.excluded .tile-anchor-dot { display: none; }
-  .tile.shapes  { background: linear-gradient(180deg, #060318 0%, #160e3a 70%, #2a1862 100%); }
-  .tile.vines   { background: linear-gradient(180deg, #6cb87a 0%, #a8d896 60%, #e0e8b0 100%); }
-  .tile.florals { background: linear-gradient(180deg, #ffe8d0 0%, #ffd8d0 60%, #c0a8dc 100%); }
+  .tile.shapes      { background: linear-gradient(180deg, #060318 0%, #160e3a 70%, #2a1862 100%); }
+  .tile.vines       { background: linear-gradient(180deg, #6cb87a 0%, #a8d896 60%, #e0e8b0 100%); }
+  .tile.florals     { background: linear-gradient(180deg, #ffe8d0 0%, #ffd8d0 60%, #c0a8dc 100%); }
+  .tile.moons       { background: linear-gradient(180deg, #050918 0%, #16203f 70%, #2a3868 100%); }
+  .tile.lightning   { background: linear-gradient(180deg, #0a0818 0%, #1a1040 70%, #2a1862 100%); }
+  .tile.greenhouses { background: #f8f6f0; }
   .tile img {
     flex: 1; min-height: 0;
     width: 100%; height: 100%;
@@ -256,6 +259,13 @@ const SHAPE_MANIFEST = [
 
 const FLORAL_MANIFEST = Array.from({length: 30}, (_, i) => `Floral_${i+1}.png`)
 
+const MOON_MANIFEST = Array.from({length: 35}, (_, i) => `moon-${i+1}.png`)
+const LIGHTNING_MANIFEST = Array.from({length: 12}, (_, i) => `bolt-${i+1}.png`)
+const GREENHOUSE_MANIFEST = [
+  ...Array.from({length: 18}, (_, i) => `greenhouse-${i+1}.jpg`),
+  ...Array.from({length: 23}, (_, i) => `arbor-${i+1}.jpg`),
+]
+
 const VINE_MANIFEST = (() => {
   const out = []
   for (let n = 1; n <= 60; n++) out.push(`AV_V024_${String(n).padStart(2,'0')}.png`)
@@ -265,10 +275,13 @@ const VINE_MANIFEST = (() => {
 })()
 
 const TABS = [
-  { id: 'shapes',  label: 'Shape Clouds', folder: 'clouds-shapes', manifest: SHAPE_MANIFEST,  storageKey: 'shapeExclude' },
-  { id: 'vines',   label: 'Vines',        folder: 'vines',         manifest: VINE_MANIFEST,   storageKey: 'vineExclude' },
-  { id: 'florals', label: 'Florals',      folder: 'florals',       manifest: FLORAL_MANIFEST, storageKey: 'floralExclude' },
-  { id: 'eeconf',  label: 'EE Cloud Config', folder: 'clouds-shapes', manifest: SHAPE_MANIFEST, storageKey: null, mode: 'config' },
+  { id: 'shapes',      label: 'Shape Clouds', folder: 'clouds-shapes',  manifest: SHAPE_MANIFEST,      storageKey: 'shapeExclude' },
+  { id: 'vines',       label: 'Vines',        folder: 'vines',          manifest: VINE_MANIFEST,       storageKey: 'vineExclude' },
+  { id: 'florals',     label: 'Florals',      folder: 'florals',        manifest: FLORAL_MANIFEST,     storageKey: 'floralExclude' },
+  { id: 'moons',       label: 'Moons',        folder: 'fx-moons',       manifest: MOON_MANIFEST,       storageKey: 'moonExclude' },
+  { id: 'lightning',   label: 'Lightning',    folder: 'fx-lightning',    manifest: LIGHTNING_MANIFEST,   storageKey: 'lightningExclude' },
+  { id: 'greenhouses', label: 'Greenhouses',  folder: 'fx-greenhouse',  manifest: GREENHOUSE_MANIFEST,  storageKey: 'greenhouseExclude' },
+  { id: 'eeconf',      label: 'EE Cloud Config', folder: 'clouds-shapes', manifest: SHAPE_MANIFEST, storageKey: null, mode: 'config' },
 ]
 
 // Default clearance — should match cloudShapes.js DEFAULT_CLEARANCE_VW.
