@@ -16,23 +16,16 @@ import {
 } from 'lucide-react'
 
 // ── Helpers ────────────────────────────────────────────────────────
-function isDarkBg(bg) {
-  if (!bg || bg[0] !== '#') return false
-  return parseInt(bg.slice(1, 3), 16) < 0x40
-}
-
 function ui(t) {
-  const dark = isDarkBg(t.bg)
-  const aText = t.accentText
-  const needsLightText = dark && aText && aText.match(/^#[0-3]/)
   return {
-    panel: dark ? 'rgba(16,18,32,0.98)' : 'rgba(255,255,255,0.98)',
-    card: dark ? 'rgba(255,255,255,0.05)' : 'rgba(120,100,170,0.06)',
-    cardHi: dark ? 'rgba(255,255,255,0.09)' : 'rgba(120,100,170,0.11)',
-    border: t.surfaceBorder, line: dark ? 'rgba(255,255,255,0.08)' : 'rgba(60,40,90,0.10)',
-    text: dark ? '#e0d8f0' : t.text, soft: dark ? '#a098c0' : t.textSoft, accent: t.accent,
-    accentText: needsLightText ? '#fff' : t.accentText,
-    nav: t.navBg, dark,
+    panel: t.panelBg,
+    card: t.panelSurface,
+    cardHi: t.panelSurface,
+    border: t.panelBorder ?? t.surfaceBorder,
+    line: t.panelBorder ?? t.surfaceBorder,
+    text: t.panelText ?? t.text, soft: t.panelTextSoft ?? t.textSoft, accent: t.accent,
+    accentText: t.accentText,
+    nav: t.navBg,
   }
 }
 
