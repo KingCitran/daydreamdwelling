@@ -1313,10 +1313,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <div style={{
         width: shopOpen ? drawerWidth : 0,
         flexShrink: 0, height: '100%',
-        overflow: 'hidden',
+        overflow: shopOpen ? 'visible' : 'hidden',
         transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
       }}>
-        <div style={{ width: drawerWidth, height: '100%' }}>
+        <div style={{ width: drawerWidth, height: '100%', transition: 'width 0.22s ease' }}>
           <ShopDrawer
             open={shopOpen}
             activeTab={drawerTab}

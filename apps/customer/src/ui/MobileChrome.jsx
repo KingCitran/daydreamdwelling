@@ -38,7 +38,7 @@ function useIsMobile() { return useMode() === 'mobile' }
 const GEOM = {
   mobile:  { topH: 52, dockH: 58, railW: 0 },
   tablet:  { topH: 60, dockH: 0,  railW: 64 },
-  desktop: { topH: 64, dockH: 0,  railW: 56 },
+  desktop: { topH: 64, dockH: 0,  railW: 120 },
 }
 
 // ── Tool definitions ───────────────────────────────────────────────
@@ -281,8 +281,8 @@ export function BuilderToolDock({ active, onPick }) {
     )
   }
 
-  // Tablet/Desktop: vertical left rail (icon-only, no labels)
-  const wide = false
+  // Tablet/Desktop: vertical left rail with labels
+  const wide = mode === 'desktop'
   return (
     <nav style={{
       position: 'fixed', top: geom.topH + 12, bottom: 12, left: 12, width: geom.railW,
@@ -296,25 +296,25 @@ export function BuilderToolDock({ active, onPick }) {
         const ToolIcon = meta.Icon
         return (
           <button key={id} onClick={() => onPick(on ? null : id)} title={meta.label} style={{
-            display: 'flex', alignItems: 'center', gap: 11,
-            padding: wide ? '10px 12px' : 0,
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: wide ? '7px 8px' : 0,
             justifyContent: wide ? 'flex-start' : 'center',
             height: wide ? 'auto' : 50,
-            borderRadius: 14,
+            borderRadius: 10,
             border: `1px solid ${on ? meta.tint + '88' : 'transparent'}`,
             background: on ? meta.tint + '1e' : 'transparent',
             cursor: 'pointer', fontFamily: 'inherit', color: u.text,
           }}>
             <span style={{
-              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: on ? meta.tint : u.card,
               color: on ? '#fff' : u.soft, transition: 'all .15s',
             }}>
-              <ToolIcon size={20} />
+              <ToolIcon size={15} />
             </span>
             {wide && (
-              <span style={{ fontSize: 14, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
+              <span style={{ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
                 {meta.label}
               </span>
             )}
