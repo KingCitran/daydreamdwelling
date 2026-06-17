@@ -115,7 +115,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
   const activeFamilies = activeMode === 'color' && activeSub
     ? COLOR_BUCKETS.find(b => b.key === activeSub)?.families ?? null
     : null
-  const gridCols = 2
+  const gridCols = 3
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
@@ -297,7 +297,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           </div>
         </div>
 
-        <div style={{ ...st.subStrip, width: subPanelOpen ? 52 : 0 }}>
+        <div style={{ ...st.subStrip, width: subPanelOpen ? 40 : 0 }}>
           {subPanelOpen && subOptions.map(opt => {
             const count = filterByMode(allItems, activeMode, opt.key).length
             return (
@@ -308,9 +308,9 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
                 onClick={() => count > 0 && selectSub(opt.key)}
               >
                 {opt.preview
-                  ? <div style={{ width: 26, height: 26, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
+                  ? <div style={{ width: 20, height: 20, borderRadius: '50%', background: opt.preview, border: '2px solid rgba(255,255,255,0.2)' }} />
                   : opt.icon
-                    ? <ShopIcon name={opt.icon} size={26} />
+                    ? <ShopIcon name={opt.icon} size={20} />
                     : <span style={st.stripEmoji}>{opt.emoji}</span>
                 }
               </StripBtn>
@@ -327,7 +327,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
               activeBar
             >
               {mode.icon
-                ? <ShopIcon name={mode.icon} size={26} />
+                ? <ShopIcon name={mode.icon} size={20} />
                 : <span style={st.stripEmoji}>{mode.emoji}</span>
               }
             </StripBtn>
@@ -418,7 +418,7 @@ const st = {
   subBtnActive: { opacity: 1, background: 'rgba(154,122,238,0.15)' },
 
   modeStrip: {
-    width: 52, flexShrink: 0, display: 'flex', flexDirection: 'column',
+    width: 40, flexShrink: 0, display: 'flex', flexDirection: 'column',
     borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto', overflowX: 'visible',
     background: 'rgba(0,0,0,0.18)',
   },
@@ -429,7 +429,7 @@ const st = {
   },
   modeBtnActive: { opacity: 1, background: 'rgba(154,122,238,0.14)' },
   modeActiveBar: { position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 2, borderRadius: 2, background: '#9a7aee' },
-  stripEmoji:    { fontSize: 26, lineHeight: 1 },
+  stripEmoji:    { fontSize: 20, lineHeight: 1 },
 
   subTagRow:    { display: 'flex', flexWrap: 'wrap', gap: 4, padding: '6px 8px 2px', flexShrink: 0, borderBottom: '1px solid rgba(180,158,220,0.15)' },
   subTagChip:   { padding: '3px 8px', background: 'transparent', border: '1px solid rgba(180,158,220,0.3)', borderRadius: 12, cursor: 'pointer', fontSize: 10, color: '#c0b8e8' },
