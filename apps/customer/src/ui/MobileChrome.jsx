@@ -38,7 +38,7 @@ function useIsMobile() { return useMode() === 'mobile' }
 const GEOM = {
   mobile:  { topH: 52, dockH: 58, railW: 0 },
   tablet:  { topH: 60, dockH: 0,  railW: 64 },
-  desktop: { topH: 64, dockH: 0,  railW: 192 },
+  desktop: { topH: 64, dockH: 0,  railW: 56 },
 }
 
 // ── Tool definitions ───────────────────────────────────────────────
@@ -57,7 +57,7 @@ const TOOL_META = {
 const TOOL_SETS = {
   mobile:  ['place', 'build', 'style', 'more'],
   tablet:  ['place', 'build', 'style', 'view', 'music', 'more'],
-  desktop: ['place', 'build', 'style', 'view', 'music', 'plan', 'social', 'more'],
+  desktop: ['music', 'place', 'build', 'style', 'view', 'plan', 'social', 'more'],
 }
 
 // ── Theme token derivation (matches design's ui() function) ────────
@@ -281,8 +281,8 @@ export function BuilderToolDock({ active, onPick }) {
     )
   }
 
-  // Tablet/Desktop: vertical left rail
-  const wide = mode === 'desktop'
+  // Tablet/Desktop: vertical left rail (icon-only, no labels)
+  const wide = false
   return (
     <nav style={{
       position: 'fixed', top: geom.topH + 12, bottom: 12, left: 12, width: geom.railW,
