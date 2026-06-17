@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { ITEM_CATALOGUE as STATIC_CATALOGUE } from '../../data/items'
 import {
   SHOP_MODES, OBJECT_BUCKETS, ROOM_BUCKETS, VIBE_BUCKETS, COLOR_BUCKETS, FUNCTION_BUCKETS,
@@ -44,7 +44,7 @@ function applySort(items, sort) {
   return items
 }
 
-export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, gridD, roomItemKeys, ownedKeys }) {
+export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, gridD, roomItemKeys, ownedKeys, onFilterChange }) {
   const ITEM_CATALOGUE = catalogue ?? STATIC_CATALOGUE
   const s = useShopStyles()
 
@@ -109,10 +109,13 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
 
   const subOptions     = activeMode ? getSubOptions(activeMode) : []
   const subPanelOpen   = activeMode !== null
+
+  // Signal parent to widen the shop panel when filters are active
+  useEffect(() => { onFilterChange?.(subPanelOpen) }, [subPanelOpen, onFilterChange])
   const activeFamilies = activeMode === 'color' && activeSub
     ? COLOR_BUCKETS.find(b => b.key === activeSub)?.families ?? null
     : null
-  const gridCols = subPanelOpen ? 1 : 2
+  const gridCols = 2
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768
 
