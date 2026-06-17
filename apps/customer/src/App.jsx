@@ -156,7 +156,9 @@ function Gate() {
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
-  const [inBuilder, setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId)
+  const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasVisited)
+  const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
   const { mood, setMood }          = useMoodControl()

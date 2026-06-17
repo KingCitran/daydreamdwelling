@@ -353,8 +353,8 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
       boxShadow: '0 8px 24px rgba(0,0,0,0.20)',
       fontFamily: "'Outfit',sans-serif",
     }}>
-      {btn(<RotateCcw size={19} />, 'Rotate left', onRotateLeft)}
-      {btn(<RotateCw size={19} />, 'Rotate right', onRotateRight)}
+      {btn(<RotateCcw size={19} />, 'Rotate left', onRotateRight)}
+      {btn(<RotateCw size={19} />, 'Rotate right', onRotateLeft)}
       {onToggleCeiling && btn(
         <span style={{ fontSize: 17, lineHeight: 1 }}>{ceilingView ? '▾' : '▴'}</span>,
         ceilingView ? 'Floor view' : 'Ceiling view',
