@@ -355,6 +355,12 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
     }}>
       {btn(<RotateCcw size={19} />, 'Rotate left', onRotateLeft)}
       {btn(<RotateCw size={19} />, 'Rotate right', onRotateRight)}
+      {onToggleCeiling && btn(
+        <span style={{ fontSize: 17, lineHeight: 1 }}>{ceilingView ? '▾' : '▴'}</span>,
+        ceilingView ? 'Floor view' : 'Ceiling view',
+        onToggleCeiling,
+        ceilingView ? { background: `${u.accent}25`, color: u.accent } : {}
+      )}
       {divider}
       {btn(<Plus size={19} />, 'Zoom in', onZoomIn)}
       <span style={{ fontSize: 9.5, fontWeight: 800, color: u.soft, padding: '1px 0' }}>
@@ -363,23 +369,12 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
       {btn(<Minus size={19} />, 'Zoom out', onZoomOut)}
       {divider}
       {btn(<Home size={19} />, 'Reset view', onReset)}
-      {onToggleCeiling && <>
-        {divider}
-        {btn(
-          <Eye size={19} />,
-          ceilingView ? 'Floor view' : 'Ceiling view',
-          onToggleCeiling,
-          ceilingView ? { background: `${u.accent}25`, color: u.accent } : {}
-        )}
-      </>}
-      {onToggleGrid && <>
-        {btn(
-          <span style={{ fontSize: 16, lineHeight: 1 }}>▦</span>,
-          showGrid ? 'Hide grid' : 'Show grid',
-          onToggleGrid,
-          showGrid ? { background: `${u.accent}25`, color: u.accent } : {}
-        )}
-      </>}
+      {onToggleGrid && btn(
+        <span style={{ fontSize: 16, lineHeight: 1 }}>▦</span>,
+        showGrid ? 'Hide grid' : 'Show grid',
+        onToggleGrid,
+        showGrid ? { background: `${u.accent}25`, color: u.accent } : {}
+      )}
     </div>
   )
 }

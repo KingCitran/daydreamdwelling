@@ -935,7 +935,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
         roomName={getRoomName(currentRoomId)}
-        rooms={Object.keys(allRoomsData || {}).map(id => roomNames[id] || `Room ${id}`)}
+        rooms={Object.keys(allRoomsData || {}).map(id => getRoomName(id))}
         budget={items.reduce((s, it) => {
           const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
           return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
@@ -950,7 +950,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
-        onPickRoom={(name) => { const id = Object.entries(roomNames).find(([, n]) => n === name)?.[0]; if (id) jumpToRoom(id) }}
+        onPickRoom={(name) => {
+          const allIds = Object.keys(allRoomsData || {})
+          const id = allIds.find(id => getRoomName(id) === name)
+          if (id != null) jumpToRoom(id)
+        }}
         onNewRoom={() => {}}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
