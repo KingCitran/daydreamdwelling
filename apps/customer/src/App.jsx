@@ -351,9 +351,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return () => window.removeEventListener('resize', h)
   }, [])
   const compact     = vw < 700
-  const [shopFilterActive, setShopFilterActive] = useState(false)
-  const drawerBase  = compact ? Math.min(vw - 100, 320) : 360
-  const drawerWidth = shopFilterActive && !compact ? drawerBase + 60 : drawerBase
+  const drawerWidth = compact ? Math.min(vw - 100, 320) : 360
 
   // ── Hooks ────────────────────────────────────────────────────────
   const { undo, redo, onDragStart, onDragEnd, canUndo, canRedo } = useHistoryUndo({
@@ -1339,7 +1337,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             roomItemKeys={roomItemKeys}
             ownedKeys={ownedKeys}
             onClose={closeShop}
-            onFilterChange={setShopFilterActive}
           />
         </div>
       </div>
