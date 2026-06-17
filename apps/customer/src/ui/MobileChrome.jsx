@@ -38,7 +38,7 @@ function useIsMobile() { return useMode() === 'mobile' }
 const GEOM = {
   mobile:  { topH: 52, dockH: 58, railW: 0 },
   tablet:  { topH: 60, dockH: 0,  railW: 64 },
-  desktop: { topH: 64, dockH: 0,  railW: 120 },
+  desktop: { topH: 64, dockH: 0,  railW: 140 },
 }
 
 // ── Tool definitions ───────────────────────────────────────────────
@@ -286,8 +286,8 @@ export function BuilderToolDock({ active, onPick }) {
   return (
     <nav style={{
       position: 'fixed', top: geom.topH + 12, bottom: 12, left: 12, width: geom.railW,
-      zIndex: 70, display: 'flex', flexDirection: 'column', gap: 6, padding: 8,
-      background: u.nav, border: `1px solid ${u.border}`, borderRadius: 20,
+      zIndex: 70, display: 'flex', flexDirection: 'column', gap: 4, padding: 6,
+      background: u.nav, border: `1px solid ${u.border}`, borderRadius: 16,
       fontFamily: "'Outfit',sans-serif", boxShadow: '0 12px 36px rgba(0,0,0,0.18)',
     }}>
       {tools.map(id => {
@@ -297,24 +297,24 @@ export function BuilderToolDock({ active, onPick }) {
         return (
           <button key={id} onClick={() => onPick(on ? null : id)} title={meta.label} style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            padding: wide ? '7px 8px' : 0,
+            padding: wide ? '8px 6px' : 0,
             justifyContent: wide ? 'flex-start' : 'center',
             height: wide ? 'auto' : 50,
-            borderRadius: 10,
+            borderRadius: 14,
             border: `1px solid ${on ? meta.tint + '88' : 'transparent'}`,
             background: on ? meta.tint + '1e' : 'transparent',
             cursor: 'pointer', fontFamily: 'inherit', color: u.text,
           }}>
             <span style={{
-              width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+              width: 36, height: 36, borderRadius: 11, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: on ? meta.tint : u.card,
               color: on ? '#fff' : u.soft, transition: 'all .15s',
             }}>
-              <ToolIcon size={15} />
+              <ToolIcon size={20} />
             </span>
             {wide && (
-              <span style={{ fontSize: 11, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
+              <span style={{ fontSize: 14, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
                 {meta.label}
               </span>
             )}
