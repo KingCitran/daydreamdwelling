@@ -48,16 +48,16 @@ function SideTabStripImpl() {
       `}</style>
       <aside className="ddd-side-strip" style={{
         position: 'fixed', top: STRIP_TOP, right: 368, zIndex: 90,
-        display: 'flex', flexDirection: 'column', gap: 4,
-        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', flexDirection: 'column', gap: 2,
+        background: 'rgba(0,0,0,0.5)',
         backdropFilter: 'blur(12px)',
-        border: `1px solid rgba(255,255,255,0.12)`,
-        borderRadius: 14,
-        padding: 5,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        border: `1px solid rgba(255,255,255,0.10)`,
+        borderRadius: 10,
+        padding: 3,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
       }}>
         {tabOrder.map((id, i) => {
-          if (id === '__gap__') return <div key={`gap-${i}`} style={{ height: 6 }} />
+          if (id === '__gap__') return <div key={`gap-${i}`} style={{ height: 3 }} />
           const def = tabDefs[id]
           if (!def) return null
           const state = panelStates[id]
@@ -73,24 +73,20 @@ function SideTabStripImpl() {
               title={def.label}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 42, height: 42,
-                borderRadius: 11,
-                border: `2px solid ${isOpen ? def.accent : 'transparent'}`,
+                width: 30, height: 30,
+                borderRadius: 7,
+                border: isOpen ? `1.5px solid ${def.accent}` : '1.5px solid transparent',
                 background: isOpen ? `${def.accent}30` : 'transparent',
                 cursor: 'pointer',
-                opacity: isFloating ? 0.5 : 1,
+                opacity: isFloating ? 0.45 : 1,
                 transition: 'all 0.15s ease',
               }}
             >
               <span className="ddd-side-tab-icon" style={{
-                width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                background: isOpen ? def.accent : 'rgba(0,0,0,0.35)',
-                color: '#fff',
+                color: isOpen ? '#fff' : 'rgba(255,255,255,0.7)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'background 0.15s ease',
-                boxShadow: isOpen ? `0 0 8px ${def.accent}60` : 'none',
               }}>
-                {Icon && <Icon size={17} strokeWidth={2.4} />}
+                {Icon && <Icon size={14} strokeWidth={2.2} />}
               </span>
             </button>
           )

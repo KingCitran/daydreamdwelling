@@ -353,7 +353,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const compact     = vw < 700
   const [shopFilterActive, setShopFilterActive] = useState(false)
   const drawerBase  = compact ? Math.min(vw - 100, 320) : 360
-  const drawerWidth = shopFilterActive && !compact ? drawerBase + 40 : drawerBase
+  const drawerWidth = shopFilterActive && !compact ? drawerBase + 52 : drawerBase
 
   // ── Hooks ────────────────────────────────────────────────────────
   const { undo, redo, onDragStart, onDragEnd, canUndo, canRedo } = useHistoryUndo({
