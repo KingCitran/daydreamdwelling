@@ -228,7 +228,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
       </div>
     ) : (
       /* ══ DESKTOP/TABLET: original vertical strips ══ */
-      <div style={{ display: 'flex', flex: 1, overflow: 'visible', minHeight: 0, position: 'relative' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={st.gridCol}>
           <div style={s.searchBar}>
             <input type="text"
@@ -297,11 +297,7 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           </div>
         </div>
 
-        <div style={{
-          ...st.subStrip,
-          position: 'absolute', left: subPanelOpen ? -52 : 0, top: 0, bottom: 0,
-          width: 52, opacity: subPanelOpen ? 1 : 0, pointerEvents: subPanelOpen ? 'auto' : 'none',
-        }}>
+        <div style={{ ...st.subStrip, width: subPanelOpen ? 52 : 0 }}>
           {subPanelOpen && subOptions.map(opt => {
             const count = filterByMode(allItems, activeMode, opt.key).length
             return (
@@ -409,14 +405,9 @@ const st = {
   gridCol:  { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' },
 
   subStrip: {
-    display: 'flex', flexDirection: 'column',
-    borderRight: '1px solid rgba(180,158,220,0.18)',
-    borderRadius: '12px 0 0 12px',
-    overflowY: 'auto', overflowX: 'visible',
-    background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(12px)',
-    boxShadow: '-4px 0 16px rgba(0,0,0,0.25)',
-    transition: 'left 0.22s ease, opacity 0.22s ease',
-    zIndex: 5,
+    flexShrink: 0, display: 'flex', flexDirection: 'column',
+    borderLeft: '1px solid rgba(180,158,220,0.18)', overflowY: 'auto', overflowX: 'visible',
+    background: 'rgba(0,0,0,0.10)', transition: 'width 0.22s ease',
   },
   subBtn: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
