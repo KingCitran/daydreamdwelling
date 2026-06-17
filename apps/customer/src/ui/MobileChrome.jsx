@@ -56,8 +56,8 @@ const TOOL_META = {
 // Tool sets per breakpoint (from design README — no tool duplicated)
 const TOOL_SETS = {
   mobile:  ['place', 'build', 'style', 'more'],
-  tablet:  ['place', 'build', 'style', 'view', 'music', 'more'],
-  desktop: ['music', 'place', 'build', 'style', 'view', 'plan', 'social', 'more'],
+  tablet:  ['place', 'build', 'style', 'music', 'more'],
+  desktop: ['music', 'place', 'build', 'style', 'plan', 'social', 'more'],
 }
 
 // ── Theme token derivation (matches design's ui() function) ────────
@@ -326,7 +326,7 @@ export function BuilderToolDock({ active, onPick }) {
 }
 
 // ── View Controls (on-canvas, all breakpoints) ─────────────────────
-export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomIn, onZoomOut, onReset }) {
+export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomIn, onZoomOut, onReset, ceilingView, onToggleCeiling, showGrid, onToggleGrid }) {
   const t = useTheme()
   const u = ui(t)
   const mode = useMode()
@@ -363,6 +363,23 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
       {btn(<Minus size={19} />, 'Zoom out', onZoomOut)}
       {divider}
       {btn(<Home size={19} />, 'Reset view', onReset)}
+      {onToggleCeiling && <>
+        {divider}
+        {btn(
+          <Eye size={19} />,
+          ceilingView ? 'Floor view' : 'Ceiling view',
+          onToggleCeiling,
+          ceilingView ? { background: `${u.accent}25`, color: u.accent } : {}
+        )}
+      </>}
+      {onToggleGrid && <>
+        {btn(
+          <span style={{ fontSize: 16, lineHeight: 1 }}>▦</span>,
+          showGrid ? 'Hide grid' : 'Show grid',
+          onToggleGrid,
+          showGrid ? { background: `${u.accent}25`, color: u.accent } : {}
+        )}
+      </>}
     </div>
   )
 }

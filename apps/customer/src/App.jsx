@@ -965,6 +965,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15) }}
         onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15) }}
         onReset={() => { zoomRef.current = 40; setTarget(0) }}
+        ceilingView={ceilingView}
+        onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+        showGrid={showGrid}
+        onToggleGrid={() => setShowGrid(v => !v)}
       />
 
       {/* Tool panels in BuilderSheet — Claude Design layouts */}
@@ -986,6 +990,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
+            ceilingView={ceilingView}
+            onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+            showGrid={showGrid}
+            onToggleGrid={() => setShowGrid(v => !v)}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
           />
         </BuilderSheet>
       )}
@@ -1049,6 +1059,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onScreenshot={() => screenshotRef.current?.()}
             onShare={() => {}}
             onReset={() => { /* TODO: reset room */ }}
+            cloudsOn={cloudsOn}
+            onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+            onSummonWispy={showWispy}
           />
         </BuilderSheet>
       )}

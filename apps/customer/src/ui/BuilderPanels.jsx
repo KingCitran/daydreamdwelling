@@ -195,7 +195,7 @@ const BUILD_ITEMS = [
   { id: 'closet', label: 'Closet', Icon: Home },
 ]
 
-export function DesignBuildContent({ onWindow, onDoor }) {
+export function DesignBuildContent({ onWindow, onDoor, ceilingView, onToggleCeiling, showGrid, onToggleGrid, showMeasurements, onToggleMeasurements }) {
   const t = useTheme()
   const u = ui(t)
 
@@ -226,6 +226,34 @@ export function DesignBuildContent({ onWindow, onDoor }) {
             <span style={{ fontSize: 13.5, fontWeight: 700 }}>{b.label}</span>
           </button>
         ))}
+      </div>
+
+      <div style={{ height: 1, background: u.line }} />
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {onToggleCeiling && (
+          <button onClick={onToggleCeiling} style={{
+            flex: 1, padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${ceilingView ? u.accent : u.line}`,
+            background: ceilingView ? `${u.accent}18` : u.card,
+            color: u.text, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+          }}>{ceilingView ? '▾ Floor' : '▴ Ceiling'}</button>
+        )}
+        {onToggleGrid && (
+          <button onClick={onToggleGrid} style={{
+            flex: 1, padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${showGrid ? u.accent : u.line}`,
+            background: showGrid ? `${u.accent}18` : u.card,
+            color: u.text, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+          }}>▦ Grid {showGrid ? '✓' : ''}</button>
+        )}
+        {onToggleMeasurements && (
+          <button onClick={onToggleMeasurements} style={{
+            flex: 1, padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${showMeasurements ? u.accent : u.line}`,
+            background: showMeasurements ? `${u.accent}18` : u.card,
+            color: u.text, fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+          }}>📏 Measure {showMeasurements ? '✓' : ''}</button>
+        )}
       </div>
     </div>
   )
@@ -312,7 +340,7 @@ const MORE_HALF_ITEMS = [
   { id: 'notifications', label: 'Alerts', Icon: Bell, dot: true },
 ]
 
-export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasure, onReset, onShare, onScreenshot }) {
+export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasure, onReset, onShare, onScreenshot, cloudsOn, onToggleClouds, onSummonWispy }) {
   const t = useTheme()
   const u = ui(t)
   const rail = railTools || []
@@ -361,12 +389,13 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
       <div style={{ height: 1, background: u.line }} />
       <Label u={u}>Quick actions</Label>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
         {[
-          { Icon: Ruler, label: 'Measure', onClick: onMeasure, active: showMeasurements },
           { Icon: Camera, label: 'Capture', onClick: onScreenshot },
           { Icon: Share2, label: 'Share', onClick: onShare },
           { Icon: Undo2, label: 'Reset', onClick: onReset },
+          ...(onToggleClouds ? [{ emoji: cloudsOn ? '⛅' : '◯', label: cloudsOn ? 'Clouds' : 'Clouds', onClick: onToggleClouds, active: cloudsOn }] : []),
+          ...(onSummonWispy ? [{ emoji: '☁', label: 'Wispy', onClick: onSummonWispy }] : []),
         ].map(q => (
           <button key={q.label} onClick={q.onClick} style={{
             minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
@@ -376,7 +405,7 @@ export function DesignMoreContent({ railTools, onTool, showMeasurements, onMeasu
             color: q.active ? u.accent : u.text,
             fontFamily: 'inherit', fontSize: 11, fontWeight: 700,
           }}>
-            <q.Icon size={18} />
+            {q.Icon ? <q.Icon size={18} /> : <span style={{ fontSize: 18 }}>{q.emoji}</span>}
             {q.label}
           </button>
         ))}
