@@ -131,7 +131,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
             {[
               { label: 'community', href: '/community' },
               { label: 'blossoms',  href: BLOSSOMS_URL },
-              // 'about' link returns once /about page exists — see deferred work
+              { label: 'about',     href: '/?about=1' },
             ].map(l => (
               <a key={l.label} href={l.href} style={{
                 padding: '10px 16px', cursor: 'pointer', borderRadius: 999,

@@ -67,6 +67,7 @@ import useWaitingInventory from './hooks/useWaitingInventory'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
+import AboutPage from './pages/AboutPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import MessagesPage from './pages/MessagesPage'
@@ -184,7 +185,8 @@ function Gate() {
 
   let page
   let isLanding = false
-  if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
+  if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
