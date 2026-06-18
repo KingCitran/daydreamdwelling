@@ -38,11 +38,11 @@ const MOOD_LEGACY = {
   cozy:    MOOD_SCENE_PRESETS['Vivid Sunset'],
 }
 
-// Touch gesture controller — swipe to rotate, pinch to zoom.
+// Touch gesture controller — swipe to rotate, 2-finger pinch to zoom + pan.
 // Suppresses rotation while an item is being dragged (activeDragRef).
-function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) {
+function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDragRef }) {
   const { gl } = useThree()
-  const touchState = useRef({ startX: 0, startY: 0, startDist: 0, startZoom: 0, singleTouch: false })
+  const touchState = useRef({ startX: 0, startY: 0, startDist: 0, startZoom: 0, startMidX: 0, startMidY: 0, startPanX: 0, startPanZ: 0, singleTouch: false })
 
   useEffect(() => {
     const el = gl.domElement
@@ -57,6 +57,11 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) 
         const dy = e.touches[1].clientY - e.touches[0].clientY
         touchState.current.startDist = Math.hypot(dx, dy)
         touchState.current.startZoom = zoomRef.current
+        // Track midpoint for pan
+        touchState.current.startMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        touchState.current.startMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        touchState.current.startPanX = panRef.current.x
+        touchState.current.startPanZ = panRef.current.z
       }
     }
     const onTouchMove = (e) => {
@@ -65,8 +70,15 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) 
         const dx = e.touches[1].clientX - e.touches[0].clientX
         const dy = e.touches[1].clientY - e.touches[0].clientY
         const dist = Math.hypot(dx, dy)
+        // Pinch zoom
         const scale = dist / (touchState.current.startDist || 1)
         zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.current.startZoom * scale))
+        // 2-finger pan — move the midpoint
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
+        const panScale = 0.15 / (zoomRef.current / 40) // less movement when zoomed in
+        panRef.current.x = touchState.current.startPanX - (midX - touchState.current.startMidX) * panScale
+        panRef.current.z = touchState.current.startPanZ - (midY - touchState.current.startMidY) * panScale
       }
     }
     const onTouchEnd = (e) => {
@@ -79,7 +91,6 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) 
         const dx = e.changedTouches[0].clientX - touchState.current.startX
         const dy = e.changedTouches[0].clientY - touchState.current.startY
         const absDx = Math.abs(dx), absDy = Math.abs(dy)
-        // High threshold to avoid accidental rotation during item taps
         if (absDx > absDy && absDx > 120) {
           onRotate(dx > 0 ? Math.PI / 2 : -Math.PI / 2)
         } else if (absDy > absDx && absDy > 120 && onSwipeVertical) {
@@ -96,18 +107,18 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, activeDragRef }) 
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
     }
-  }, [gl, onRotate, onSwipeVertical, zoomRef, activeDragRef])
+  }, [gl, onRotate, onSwipeVertical, zoomRef, panRef, activeDragRef])
   return null
 }
 
-function IsometricCamera({ target, zoomRef }) {
+function IsometricCamera({ target, zoomRef, panRef }) {
   const { camera } = useThree()
   useEffect(() => {
-    camera.position.set(CAM_OFFSET, CAM_OFFSET, CAM_OFFSET)
-    camera.lookAt(target)
+    camera.position.set(CAM_OFFSET + panRef.current.x, CAM_OFFSET, CAM_OFFSET + panRef.current.z)
+    camera.lookAt(target.x + panRef.current.x, target.y, target.z + panRef.current.z)
     camera.zoom = zoomRef.current
     camera.updateProjectionMatrix()
-  }, [camera, target, zoomRef])
+  }, [camera, target, zoomRef, panRef])
   return null
 }
 
@@ -115,16 +126,17 @@ function IsometricCamera({ target, zoomRef }) {
 // X and Z stay fixed so the front-of-room orientation never changes.
 // The camera always looks at the room's vertical midpoint, so the transition
 // feels like the room tilting back — no rotation of room geometry at all.
-function CameraOrbitController({ ceilingView, lookAtY }) {
+function CameraOrbitController({ ceilingView, lookAtY, panRef }) {
   const { camera } = useThree()
   const camY = useRef(CAM_OFFSET)
 
   useFrame((_, delta) => {
     const targetY = ceilingView ? -CAM_OFFSET : CAM_OFFSET
-    const t = 1 - Math.pow(0.004, delta)   // slightly slower arc than Y-spin
+    const t = 1 - Math.pow(0.004, delta)
     camY.current = THREE.MathUtils.lerp(camY.current, targetY, t)
-    camera.position.y = camY.current
-    camera.lookAt(0, lookAtY, 0)
+    const px = panRef.current.x, pz = panRef.current.z
+    camera.position.set(CAM_OFFSET + px, camY.current, CAM_OFFSET + pz)
+    camera.lookAt(px, lookAtY, pz)
   })
   return null
 }
@@ -145,17 +157,41 @@ function ScreenshotTrigger({ triggerRef }) {
   return null
 }
 
-function ZoomController({ zoomRef }) {
+function ZoomController({ zoomRef, panRef }) {
   const { camera, gl } = useThree()
+  const dragState = useRef({ active: false, startX: 0, startY: 0, startPanX: 0, startPanZ: 0 })
+
   useEffect(() => {
     const el = gl.domElement
     const onWheel = (e) => {
       e.preventDefault()
       zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current - e.deltaY * 0.05))
     }
+    // Desktop pan: middle-click drag or shift+left-click drag
+    const onMouseDown = (e) => {
+      if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+        e.preventDefault()
+        dragState.current = { active: true, startX: e.clientX, startY: e.clientY, startPanX: panRef.current.x, startPanZ: panRef.current.z }
+      }
+    }
+    const onMouseMove = (e) => {
+      if (!dragState.current.active) return
+      const panScale = 0.12 / (zoomRef.current / 40)
+      panRef.current.x = dragState.current.startPanX - (e.clientX - dragState.current.startX) * panScale
+      panRef.current.z = dragState.current.startPanZ - (e.clientY - dragState.current.startY) * panScale
+    }
+    const onMouseUp = () => { dragState.current.active = false }
     el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [gl, zoomRef])
+    el.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [gl, zoomRef, panRef])
 
   useFrame((_, delta) => {
     const t = 1 - Math.pow(0.003, delta)
@@ -192,6 +228,7 @@ export default function RoomScene({
   const groupRef = useRef()
   const currentRY = useRef(0)
   const activeDragRef = useRef(null)
+  const panRef = useRef({ x: 0, z: 0 })
 
   const lookAtY = wallHeight / 2
   const camTarget = useMemo(
@@ -208,10 +245,10 @@ export default function RoomScene({
 
   return (
     <>
-      <IsometricCamera target={camTarget} zoomRef={zoomRef} />
-      <CameraOrbitController ceilingView={ceilingView} lookAtY={lookAtY} />
-      <ZoomController zoomRef={zoomRef} />
-      {onRotate && <TouchController onRotate={onRotate} onSwipeVertical={onSwipeVertical} zoomRef={zoomRef} activeDragRef={activeDragRef} />}
+      <IsometricCamera target={camTarget} zoomRef={zoomRef} panRef={panRef} />
+      <CameraOrbitController ceilingView={ceilingView} lookAtY={lookAtY} panRef={panRef} />
+      <ZoomController zoomRef={zoomRef} panRef={panRef} />
+      {onRotate && <TouchController onRotate={onRotate} onSwipeVertical={onSwipeVertical} zoomRef={zoomRef} panRef={panRef} activeDragRef={activeDragRef} />}
       <ScreenshotTrigger triggerRef={screenshotRef} />
 
       {/* Hemisphere: skyColor = ceiling/indirect bounce, groundColor = floor bounce */}

@@ -23,9 +23,20 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
   const audioRef   = useRef(null)
   const goldenRain = useRef([])
   const bolts      = useRef([])
+  const boltImages = useRef([])
   const flashRef   = useRef(0)
   const animRef    = useRef(null)
   const tickRef    = useRef(0)
+
+  // Preload PNG bolt assets
+  useEffect(() => {
+    const count = 12
+    boltImages.current = Array.from({ length: count }, (_, i) => {
+      const img = new Image()
+      img.src = `/fx-lightning/bolt-${i + 1}.png`
+      return img
+    })
+  }, [])
 
   const playThunder = useCallback(() => {
     if (prefsRef.current.soundMode !== 'all') return
@@ -61,66 +72,25 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
     a.play().catch(() => {})
   }
 
-  // Build a jagged bolt path — each bend accumulates deviation like real lightning
-  function buildBoltPath(sx, sy, ex, ey) {
-    const points = [{ x: sx, y: sy }]
-    const segments = 14 + Math.floor(Math.random() * 10)
-    const dx = ex - sx, dy = ey - sy
-    let x = sx, y = sy, drift = 0
-    for (let s = 1; s <= segments; s++) {
-      const t = s / segments
-      // Each segment adds a sharp random bend that accumulates
-      const jitterAmt = 18 + Math.random() * 22
-      drift += (Math.random() - 0.5) * jitterAmt
-      // Gently pull back toward the target line so it doesn't wander too far
-      drift *= 0.88
-      x = sx + dx * t + drift
-      y = sy + dy * t + (Math.random() - 0.5) * 8
-      points.push({ x, y })
-    }
-    // Snap the last point to the target
-    points[points.length - 1] = { x: ex, y: ey }
-    return points
-  }
-
   // cards: which card indices to strike, vol: crack volume, boltsEach: bolts per card
   function spawnLightning(targetY, cards, vol = 0.3, boltsEach = 1) {
     playCrack(vol)
     flashRef.current = Math.min(1, vol * 2)
     const indices = cards || [0, 1, 2]
+    const imgs = boltImages.current
     indices.forEach(i => {
       const el = cardRefs.current[i]
       if (!el || !top[i]) return
       const rect = el.getBoundingClientRect()
-      const numBolts = boltsEach
-      for (let b = 0; b < numBolts; b++) {
-        const sx = rect.left + rect.width * (0.2 + Math.random() * 0.6)
-        const sy = rect.bottom + 5
-        const ex = rect.left + rect.width * 0.5 + (Math.random() - 0.5) * 40
-        const ey = targetY
-        const main = buildBoltPath(sx, sy, ex, ey)
-
-        // Fork branches off the main bolt — 2-4 branches
-        const branches = []
-        const numBranches = 2 + Math.floor(Math.random() * 3)
-        for (let br = 0; br < numBranches; br++) {
-          const forkIdx = 2 + Math.floor(Math.random() * (main.length - 3))
-          const forkPt = main[forkIdx]
-          if (!forkPt) continue
-          const brLen = 30 + Math.random() * 80
-          const brAngle = (Math.random() - 0.5) * 1.2
-          const brSegs = 3 + Math.floor(Math.random() * 3)
-          const brPts = [{ x: forkPt.x, y: forkPt.y }]
-          let bx = forkPt.x, by = forkPt.y
-          for (let s = 1; s <= brSegs; s++) {
-            bx += Math.sin(brAngle) * (brLen / brSegs) + (Math.random() - 0.5) * 15
-            by += Math.cos(brAngle) * (brLen / brSegs) * 0.8
-            brPts.push({ x: bx, y: by })
-          }
-          branches.push(brPts)
-        }
-
-        bolts.current.push({ main, branches, life: 1, width: 2 + Math.random() * 1.5, delay: b * 6 + i * 4 })
+      for (let b = 0; b < boltsEach; b++) {
+        const img = imgs[Math.floor(Math.random() * imgs.length)]
+        const cx = rect.left + rect.width * (0.3 + Math.random() * 0.4)
+        const boltH = targetY - rect.bottom + 40
+        bolts.current.push({
+          img, cx, y: rect.bottom - 20, w: boltH * 0.6, h: boltH,
+          flip: Math.random() > 0.5,
+          life: 1, delay: b * 6 + i * 4,
+        })
       }
     })
   }
@@ -233,53 +203,14 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
     })
 
     function drawBolt(bolt, ctx) {
+      if (!bolt.img || !bolt.img.complete) return
       const a = bolt.life
-      // Pass 1: thick faint glow
       ctx.save()
-      ctx.strokeStyle = `rgba(180,170,255,${a * 0.15})`
-      ctx.lineWidth = bolt.width * a * 6
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-      ctx.beginPath()
-      bolt.main.forEach((p, j) => j === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-      ctx.stroke()
+      ctx.globalAlpha = a
+      ctx.translate(bolt.cx, bolt.y)
+      if (bolt.flip) ctx.scale(-1, 1)
+      ctx.drawImage(bolt.img, -bolt.w / 2, 0, bolt.w, bolt.h)
       ctx.restore()
-      // Pass 2: medium bright core
-      ctx.save()
-      ctx.strokeStyle = `rgba(210,200,255,${a * 0.6})`
-      ctx.lineWidth = bolt.width * a * 2.5
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-      ctx.beginPath()
-      bolt.main.forEach((p, j) => j === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-      ctx.stroke()
-      ctx.restore()
-      // Pass 3: thin white-hot center
-      ctx.save()
-      ctx.strokeStyle = `rgba(240,240,255,${a * 0.9})`
-      ctx.lineWidth = bolt.width * a * 0.8
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-      ctx.beginPath()
-      bolt.main.forEach((p, j) => j === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-      ctx.stroke()
-      ctx.restore()
-      // Branches — thinner, 2-pass
-      for (const br of bolt.branches) {
-        ctx.save()
-        ctx.strokeStyle = `rgba(180,170,255,${a * 0.12})`
-        ctx.lineWidth = bolt.width * a * 3
-        ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-        ctx.beginPath()
-        br.forEach((p, j) => j === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-        ctx.stroke()
-        ctx.restore()
-        ctx.save()
-        ctx.strokeStyle = `rgba(220,215,255,${a * 0.5})`
-        ctx.lineWidth = bolt.width * a * 0.6
-        ctx.lineCap = 'round'
-        ctx.beginPath()
-        br.forEach((p, j) => j === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y))
-        ctx.stroke()
-        ctx.restore()
-      }
     }
 
     function draw() {
