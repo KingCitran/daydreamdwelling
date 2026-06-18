@@ -73,12 +73,14 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         // Pinch zoom
         const scale = dist / (touchState.current.startDist || 1)
         zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.current.startZoom * scale))
-        // 2-finger pan — move the midpoint
+        // 2-finger pan — move the midpoint, isometric-mapped
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
-        const panScale = 0.15 / (zoomRef.current / 40) // less movement when zoomed in
-        panRef.current.x = touchState.current.startPanX - (midX - touchState.current.startMidX) * panScale
-        panRef.current.z = touchState.current.startPanZ - (midY - touchState.current.startMidY) * panScale
+        const panScale = 0.05 / (zoomRef.current / 40)
+        const dx = (midX - touchState.current.startMidX) * panScale
+        const dy = (midY - touchState.current.startMidY) * panScale
+        panRef.current.x = touchState.current.startPanX + dx + dy
+        panRef.current.z = touchState.current.startPanZ - dx + dy
       }
     }
     const onTouchEnd = (e) => {
@@ -168,6 +170,8 @@ function ZoomController({ zoomRef, panRef }) {
       zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current - e.deltaY * 0.05))
     }
     // Desktop pan: middle-click drag or shift+left-click drag
+    // Direction inverted so room follows cursor ("grab and drag" feel).
+    // Isometric projection: screen X maps to both world X and Z.
     const onMouseDown = (e) => {
       if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
         e.preventDefault()
@@ -176,9 +180,12 @@ function ZoomController({ zoomRef, panRef }) {
     }
     const onMouseMove = (e) => {
       if (!dragState.current.active) return
-      const panScale = 0.12 / (zoomRef.current / 40)
-      panRef.current.x = dragState.current.startPanX - (e.clientX - dragState.current.startX) * panScale
-      panRef.current.z = dragState.current.startPanZ - (e.clientY - dragState.current.startY) * panScale
+      const panScale = 0.04 / (zoomRef.current / 40)
+      const dx = (e.clientX - dragState.current.startX) * panScale
+      const dy = (e.clientY - dragState.current.startY) * panScale
+      // Map screen movement to isometric world axes
+      panRef.current.x = dragState.current.startPanX + dx + dy
+      panRef.current.z = dragState.current.startPanZ - dx + dy
     }
     const onMouseUp = () => { dragState.current.active = false }
     el.addEventListener('wheel', onWheel, { passive: false })
