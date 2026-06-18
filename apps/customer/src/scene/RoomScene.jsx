@@ -236,13 +236,15 @@ export default function RoomScene({
   cloudsOn = true,
   onRotate,
   onSwipeVertical,
+  panRef: externalPanRef,
 }) {
   const { mood: sharedMood } = useMoodControl()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
   const groupRef = useRef()
   const currentRY = useRef(0)
   const activeDragRef = useRef(null)
-  const panRef = useRef({ x: 0, z: 0 })
+  const internalPanRef = useRef({ x: 0, z: 0 })
+  const panRef = externalPanRef || internalPanRef
 
   const lookAtY = wallHeight / 2
   const camTarget = useMemo(
