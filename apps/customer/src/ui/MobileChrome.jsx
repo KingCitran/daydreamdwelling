@@ -176,7 +176,7 @@ function BudgetChip({ total, count, onClick, compact, u }) {
 export function BuilderTopBar({
   roomName, rooms, budget, itemCount, cartCount,
   onUndo, onRedo, canUndo, canRedo, onCart, onScreenshot, onShare, onAccount,
-  onPickRoom, onNewRoom, onBudget,
+  onPickRoom, onNewRoom, onBudget, onBrandClick,
 }) {
   const t = useTheme()
   const u = ui(t)
@@ -195,7 +195,7 @@ export function BuilderTopBar({
   if (mode === 'mobile') {
     return (
       <header style={barStyle}>
-        <Logo size={30} color={u.accent} />
+        <div onClick={onBrandClick} style={{ cursor: 'pointer', flexShrink: 0 }}><Logo size={30} color={u.accent} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
           <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} u={u} />
           <BudgetChip total={budget} count={itemCount} onClick={onBudget} compact u={u} />
@@ -209,7 +209,7 @@ export function BuilderTopBar({
   // Tablet / Desktop
   return (
     <header style={barStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      <div onClick={onBrandClick} style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, cursor: 'pointer' }} title="DaydreamDwelling Hub">
         <Logo size={32} color={u.accent} />
         {mode === 'desktop' && (
           <span style={{ fontFamily: "'EB Garamond',Georgia,serif", fontSize: 21, fontWeight: 500, letterSpacing: '-0.01em' }}>

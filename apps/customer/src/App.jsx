@@ -68,6 +68,7 @@ import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
+import BrandHub from './ui/BrandHub'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import MessagesPage from './pages/MessagesPage'
@@ -185,7 +186,8 @@ function Gate() {
 
   let page
   let isLanding = false
-  if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
+  if (params.get('landing') === '1') { page = <LandingPage onEnter={() => { window.location.search = '' }} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
+  else if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
@@ -299,6 +301,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [hubOpen,          setHubOpen]          = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
   const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
+  const [hubOpen,          setHubOpen]          = useState(false)
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -941,6 +944,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
+        onBrandClick={() => setHubOpen(true)}
         roomName={getRoomName(currentRoomId)}
         rooms={Object.keys(allRoomsData || {}).map(id => getRoomName(id))}
         budget={items.reduce((s, it) => {
@@ -1177,6 +1181,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         </div>
       )}
 
+      {hubOpen          && <BrandHub     onClose={() => setHubOpen(false)} />}
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} defaultTab={accountModalTab} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
