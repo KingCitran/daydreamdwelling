@@ -71,7 +71,7 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         // Pinch zoom
         const scale = dist / (touchState.current.startDist || 1)
         zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.current.startZoom * scale))
-        // 2-finger pan — delta from last midpoint, camera-matrix mapped
+        // 2-finger pan — delta from last midpoint
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
         const tdx = midX - touchState.current.lastMidX
@@ -79,15 +79,9 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         touchState.current.lastMidX = midX
         touchState.current.lastMidY = midY
 
-        const vw = gl.domElement.clientWidth, vh = gl.domElement.clientHeight
-        const aspect = vw / vh
-        const cam = gl.domElement.__r3f?.store?.getState()?.camera
-        const zoom = cam?.zoom ?? zoomRef.current
-        const wppX = (2 * aspect) / (zoom * vw)
-        const wppY = 2 / (zoom * vh)
-        // Approximate isometric right/up on XZ: right ≈ (0.707, 0, -0.707), up ≈ (0.408, 0, 0.408)
-        panRef.current.x -= tdx * wppX * 0.707 + tdy * wppY * 0.408
-        panRef.current.z -= tdx * wppX * -0.707 + tdy * wppY * 0.408
+        const s = 20 / (zoomRef.current * Math.min(gl.domElement.clientWidth, gl.domElement.clientHeight))
+        panRef.current.x -= (tdx * 0.707 + tdy * 0.408) * s
+        panRef.current.z -= (tdx * -0.707 + tdy * 0.408) * s
       }
     }
     const onTouchEnd = (e) => {
@@ -193,22 +187,12 @@ function ZoomController({ zoomRef, panRef }) {
       dragState.current.lastX = e.clientX
       dragState.current.lastY = e.clientY
 
-      // Orthographic: screen pixels → world units.
-      // The camera frustum is [-aspect, +aspect] x [-1, +1] at zoom=1,
-      // so world-units-per-pixel = 2*aspect / (zoom * viewportWidth) on X,
-      // and 2 / (zoom * viewportHeight) on Y.
-      const vw = el.clientWidth, vh = el.clientHeight
-      const aspect = vw / vh
-      const scaleX = (2 * aspect) / (camera.zoom * vw)
-      const scaleY = 2 / (camera.zoom * vh)
-
-      // Isometric camera right vector projected to XZ: (0.707, 0, -0.707)
-      // Isometric camera up vector projected to XZ: (0.408, 0, 0.408)
-      const RX = 0.707, RZ = -0.707
-      const UX = 0.408, UZ = 0.408
-
-      panRef.current.x -= dx * scaleX * RX + dy * scaleY * UX
-      panRef.current.z -= dx * scaleX * RZ + dy * scaleY * UZ
+      // Simple proportional pan: 20 world units / (zoom * viewport)
+      // gives ~1:1 feel across zoom levels. The 20 matches our room
+      // scale (~20ft rooms). Isometric vectors map screen axes to XZ.
+      const s = 20 / (camera.zoom * Math.min(el.clientWidth, el.clientHeight))
+      panRef.current.x -= (dx * 0.707 + dy * 0.408) * s
+      panRef.current.z -= (dx * -0.707 + dy * 0.408) * s
     }
     const onMouseUp = () => { dragState.current.active = false }
     el.addEventListener('wheel', onWheel, { passive: false })
