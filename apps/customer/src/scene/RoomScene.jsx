@@ -79,7 +79,7 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         touchState.current.lastMidX = midX
         touchState.current.lastMidY = midY
 
-        const s = 20 / (zoomRef.current * Math.min(gl.domElement.clientWidth, gl.domElement.clientHeight))
+        const s = 0.5 / zoomRef.current
         panRef.current.x -= (tdx * 0.707 + tdy * 0.408) * s
         panRef.current.z -= (tdx * -0.707 + tdy * 0.408) * s
       }
@@ -190,7 +190,7 @@ function ZoomController({ zoomRef, panRef }) {
       // Simple proportional pan: 20 world units / (zoom * viewport)
       // gives ~1:1 feel across zoom levels. The 20 matches our room
       // scale (~20ft rooms). Isometric vectors map screen axes to XZ.
-      const s = 20 / (camera.zoom * Math.min(el.clientWidth, el.clientHeight))
+      const s = 0.5 / camera.zoom
       panRef.current.x -= (dx * 0.707 + dy * 0.408) * s
       panRef.current.z -= (dx * -0.707 + dy * 0.408) * s
     }
