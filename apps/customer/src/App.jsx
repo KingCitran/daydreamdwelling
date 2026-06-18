@@ -307,7 +307,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [ceilingView,      setCeilingView]      = useState(false)
   const [ceilingPicker,    setCeilingPicker]    = useState(null)
   const [showMeasurements, setShowMeasurements] = useState(false)
-  const [showGrid,         setShowGrid]         = useState(true)
+  const [showGrid,         _setShowGrid]        = useState(() => localStorage.getItem('ddd_grid') !== '0')
+  const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
   const [overviewOpen,        setOverviewOpen]        = useState(false)
   const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
   const [layoutOverrides,     setLayoutOverrides]     = useState({})
