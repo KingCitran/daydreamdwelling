@@ -57,11 +57,9 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         const dy = e.touches[1].clientY - e.touches[0].clientY
         touchState.current.startDist = Math.hypot(dx, dy)
         touchState.current.startZoom = zoomRef.current
-        // Track midpoint for pan
-        touchState.current.startMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2
-        touchState.current.startMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2
-        touchState.current.startPanX = panRef.current.x
-        touchState.current.startPanZ = panRef.current.z
+        // Track midpoint for pan (delta-based)
+        touchState.current.lastMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2
+        touchState.current.lastMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2
       }
     }
     const onTouchMove = (e) => {
@@ -73,14 +71,23 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         // Pinch zoom
         const scale = dist / (touchState.current.startDist || 1)
         zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, touchState.current.startZoom * scale))
-        // 2-finger pan — move the midpoint, isometric-mapped
+        // 2-finger pan — delta from last midpoint, camera-matrix mapped
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
-        const panScale = 1.5 / zoomRef.current
-        const dx = (midX - touchState.current.startMidX) * panScale
-        const dy = (midY - touchState.current.startMidY) * panScale
-        panRef.current.x = touchState.current.startPanX + dx + dy
-        panRef.current.z = touchState.current.startPanZ - dx + dy
+        const tdx = midX - touchState.current.lastMidX
+        const tdy = midY - touchState.current.lastMidY
+        touchState.current.lastMidX = midX
+        touchState.current.lastMidY = midY
+
+        const vw = gl.domElement.clientWidth, vh = gl.domElement.clientHeight
+        const aspect = vw / vh
+        const cam = gl.domElement.__r3f?.store?.getState()?.camera
+        const zoom = cam?.zoom ?? zoomRef.current
+        const wppX = (2 * aspect) / (zoom * vw)
+        const wppY = 2 / (zoom * vh)
+        // Approximate isometric right/up on XZ: right ≈ (0.707, 0, -0.707), up ≈ (0.408, 0, 0.408)
+        panRef.current.x -= tdx * wppX * 0.707 + tdy * wppY * 0.408
+        panRef.current.z -= tdx * wppX * -0.707 + tdy * wppY * 0.408
       }
     }
     const onTouchEnd = (e) => {
@@ -169,23 +176,40 @@ function ZoomController({ zoomRef, panRef }) {
       e.preventDefault()
       zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current - e.deltaY * 0.05))
     }
-    // Desktop pan: middle-click drag or shift+left-click drag
-    // Direction inverted so room follows cursor ("grab and drag" feel).
-    // Isometric projection: screen X maps to both world X and Z.
+    // Desktop pan: middle-click drag or shift+left-click drag.
+    // Uses the camera's orthographic frustum to convert screen pixels
+    // to world units 1:1 — feels like grabbing the floor and sliding
+    // it. Camera right/up vectors handle the isometric angle naturally.
     const onMouseDown = (e) => {
       if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
         e.preventDefault()
-        dragState.current = { active: true, startX: e.clientX, startY: e.clientY, startPanX: panRef.current.x, startPanZ: panRef.current.z }
+        dragState.current = { active: true, lastX: e.clientX, lastY: e.clientY }
       }
     }
     const onMouseMove = (e) => {
       if (!dragState.current.active) return
-      const panScale = 1.5 / zoomRef.current
-      const dx = (e.clientX - dragState.current.startX) * panScale
-      const dy = (e.clientY - dragState.current.startY) * panScale
-      // Map screen movement to isometric world axes
-      panRef.current.x = dragState.current.startPanX + dx + dy
-      panRef.current.z = dragState.current.startPanZ - dx + dy
+      const dx = e.clientX - dragState.current.lastX
+      const dy = e.clientY - dragState.current.lastY
+      dragState.current.lastX = e.clientX
+      dragState.current.lastY = e.clientY
+
+      // Orthographic: world units per pixel = frustum size / (zoom * viewport)
+      const vw = el.clientWidth, vh = el.clientHeight
+      const aspect = vw / vh
+      const wppX = (2 * aspect) / (camera.zoom * vw)
+      const wppY = 2 / (camera.zoom * vh)
+
+      // Move along camera's right and up vectors (handles isometric angle)
+      const right = new THREE.Vector3()
+      const up = new THREE.Vector3()
+      right.setFromMatrixColumn(camera.matrixWorld, 0)
+      up.setFromMatrixColumn(camera.matrixWorld, 1)
+      // Project onto XZ plane (we don't want vertical camera shift)
+      right.y = 0; right.normalize()
+      up.y = 0; up.normalize()
+
+      panRef.current.x -= dx * wppX * right.x + dy * wppY * up.x
+      panRef.current.z -= dx * wppX * right.z + dy * wppY * up.z
     }
     const onMouseUp = () => { dragState.current.active = false }
     el.addEventListener('wheel', onWheel, { passive: false })
