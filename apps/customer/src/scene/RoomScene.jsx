@@ -193,23 +193,22 @@ function ZoomController({ zoomRef, panRef }) {
       dragState.current.lastX = e.clientX
       dragState.current.lastY = e.clientY
 
-      // Orthographic: world units per pixel = frustum size / (zoom * viewport)
+      // Orthographic: screen pixels → world units.
+      // The camera frustum is [-aspect, +aspect] x [-1, +1] at zoom=1,
+      // so world-units-per-pixel = 2*aspect / (zoom * viewportWidth) on X,
+      // and 2 / (zoom * viewportHeight) on Y.
       const vw = el.clientWidth, vh = el.clientHeight
       const aspect = vw / vh
-      const wppX = (2 * aspect) / (camera.zoom * vw)
-      const wppY = 2 / (camera.zoom * vh)
+      const scaleX = (2 * aspect) / (camera.zoom * vw)
+      const scaleY = 2 / (camera.zoom * vh)
 
-      // Move along camera's right and up vectors (handles isometric angle)
-      const right = new THREE.Vector3()
-      const up = new THREE.Vector3()
-      right.setFromMatrixColumn(camera.matrixWorld, 0)
-      up.setFromMatrixColumn(camera.matrixWorld, 1)
-      // Project onto XZ plane (we don't want vertical camera shift)
-      right.y = 0; right.normalize()
-      up.y = 0; up.normalize()
+      // Isometric camera right vector projected to XZ: (0.707, 0, -0.707)
+      // Isometric camera up vector projected to XZ: (0.408, 0, 0.408)
+      const RX = 0.707, RZ = -0.707
+      const UX = 0.408, UZ = 0.408
 
-      panRef.current.x -= dx * wppX * right.x + dy * wppY * up.x
-      panRef.current.z -= dx * wppX * right.z + dy * wppY * up.z
+      panRef.current.x -= dx * scaleX * RX + dy * scaleY * UX
+      panRef.current.z -= dx * scaleX * RZ + dy * scaleY * UZ
     }
     const onMouseUp = () => { dragState.current.active = false }
     el.addEventListener('wheel', onWheel, { passive: false })
