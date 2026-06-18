@@ -76,7 +76,7 @@ function TouchController({ onRotate, onSwipeVertical, zoomRef, panRef, activeDra
         // 2-finger pan — move the midpoint, isometric-mapped
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2
         const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2
-        const panScale = 0.05 / (zoomRef.current / 40)
+        const panScale = 1.5 / zoomRef.current
         const dx = (midX - touchState.current.startMidX) * panScale
         const dy = (midY - touchState.current.startMidY) * panScale
         panRef.current.x = touchState.current.startPanX + dx + dy
@@ -180,7 +180,7 @@ function ZoomController({ zoomRef, panRef }) {
     }
     const onMouseMove = (e) => {
       if (!dragState.current.active) return
-      const panScale = 0.04 / (zoomRef.current / 40)
+      const panScale = 1.5 / zoomRef.current
       const dx = (e.clientX - dragState.current.startX) * panScale
       const dy = (e.clientY - dragState.current.startY) * panScale
       // Map screen movement to isometric world axes
