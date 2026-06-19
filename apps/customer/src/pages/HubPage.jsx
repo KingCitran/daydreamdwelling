@@ -232,10 +232,10 @@ export default function HubPage({ onBack }) {
               eyebrow="Where would you like to go?"
               title={<>Six doors, one <span style={{ fontStyle: 'italic', color: t.accent }}>dwelling</span>.</>}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridAutoRows: mobile ? 'auto' : 'minmax(200px, auto)', gap: mobile ? 10 : 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridTemplateRows: mobile ? 'auto' : '1fr 1fr 1fr', gap: mobile ? 10 : 12 }}>
               {DESTINATIONS.map(d => {
                 const feat = d.id === 'builder'
-                const span = feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : 'span 2' } : (mobile && d.id === 'blossoms') ? { gridColumn: 'span 2' } : {}
+                const span = feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : '1 / 3' } : (mobile && d.id === 'blossoms') ? { gridColumn: 'span 2' } : {}
                 return <div key={d.id} style={span}><DestCard t={t} d={d} surf={surf} mobile={mobile} featured={feat} /></div>
               })}
             </div>
