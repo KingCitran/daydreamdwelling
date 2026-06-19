@@ -4,6 +4,7 @@ import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import Logo from '@shared/Logo'
 import WispyArt from '@shared/wispy/art'
+import CloudField from './landing/CloudField'
 import FeedbackButton from '../ui/FeedbackButton'
 
 // ── Hub: the Welcome Home page ─────────────────────────────────────
@@ -140,10 +141,10 @@ export default function HubPage({ onBack }) {
     boxShadow: lift ? '0 20px 50px rgba(0,0,0,0.12)' : '0 14px 38px rgba(0,0,0,0.08)',
   })
 
-  const pad = mobile ? 18 : 28
-  const maxW = 960
+  const pad = mobile ? 14 : 20
+  const maxW = 1200
   const Shell = ({ children, wide }) => (
-    <div style={{ maxWidth: wide ? maxW + 80 : maxW, margin: '0 auto', padding: `0 ${pad}px` }}>{children}</div>
+    <div style={{ maxWidth: wide ? maxW + 60 : maxW, margin: '0 auto', padding: `0 ${pad}px` }}>{children}</div>
   )
 
   return (
@@ -156,9 +157,12 @@ export default function HubPage({ onBack }) {
         @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
       `}</style>
 
-      {/* Sky background */}
+      {/* Sky background + clouds */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: skyGradient(mood), transition: 'background 1.1s ease' }} />
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: `radial-gradient(ellipse 1100px 620px at 64% 16%, ${t.accent}26 0%, transparent 68%)` }} />
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+        <CloudField />
+      </div>
 
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2, paddingBottom: 64 }}>
@@ -169,7 +173,7 @@ export default function HubPage({ onBack }) {
           background: t.navBg, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
           borderBottom: `1px solid ${t.navBorder}`,
         }}>
-          <div style={{ maxWidth: maxW + 80, margin: '0 auto', padding: `0 ${pad}px`, height: mobile ? 56 : 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ maxWidth: maxW + 60, margin: '0 auto', padding: `0 ${pad}px`, height: mobile ? 56 : 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <Logo size={mobile ? 26 : 30} color={t.accent} />
               <div>
@@ -228,7 +232,7 @@ export default function HubPage({ onBack }) {
               eyebrow="Where would you like to go?"
               title={<>Six doors, one <span style={{ fontStyle: 'italic', color: t.accent }}>dwelling</span>.</>}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridAutoRows: mobile ? 'auto' : 'minmax(150px, 1fr)', gap: mobile ? 12 : 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridAutoRows: mobile ? 'auto' : 'minmax(160px, 1fr)', gap: mobile ? 10 : 12 }}>
               {DESTINATIONS.map(d => {
                 const feat = d.id === 'builder'
                 const span = feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : 'span 2' } : (mobile && d.id === 'blossoms') ? { gridColumn: 'span 2' } : {}
