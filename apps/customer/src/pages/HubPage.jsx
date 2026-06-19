@@ -3,6 +3,7 @@ import { useTheme, useMoodControl } from '@shared/ThemeProvider'
 import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
 import Logo from '@shared/Logo'
+import MoodPicker from '@shared/MoodPicker'
 import WispyArt from '@shared/wispy/art'
 import CloudField from './landing/CloudField'
 import FeedbackButton from '../ui/FeedbackButton'
@@ -182,6 +183,7 @@ export default function HubPage({ onBack }) {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: mobile ? 8 : 10 }}>
+              <MoodPicker />
               {displayName && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: mobile ? '4px 4px 4px 12px' : '4px 5px 4px 13px', borderRadius: 999, border: `1px solid ${t.surfaceBorder}`, background: t.surface, backdropFilter: 'blur(10px)' }}>
                   {!mobile && <span style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 600, color: t.text }}>{displayName}</span>}
