@@ -232,7 +232,7 @@ export default function HubPage({ onBack }) {
               eyebrow="Where would you like to go?"
               title={<>Six doors, one <span style={{ fontStyle: 'italic', color: t.accent }}>dwelling</span>.</>}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridAutoRows: mobile ? 'auto' : 'minmax(160px, 1fr)', gap: mobile ? 10 : 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridAutoRows: mobile ? 'auto' : 'minmax(200px, auto)', gap: mobile ? 10 : 12 }}>
               {DESTINATIONS.map(d => {
                 const feat = d.id === 'builder'
                 const span = feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : 'span 2' } : (mobile && d.id === 'blossoms') ? { gridColumn: 'span 2' } : {}
@@ -357,7 +357,7 @@ function DestCard({ t, d, surf, mobile, featured }) {
         ...surf(hover), borderRadius: 22, padding: featured ? (mobile ? 22 : 30) : (mobile ? 16 : 20),
         textDecoration: 'none', height: '100%', display: 'flex', flexDirection: 'column',
         position: 'relative', overflow: 'hidden', color: t.text,
-        minHeight: featured ? (mobile ? 188 : 'auto') : (mobile ? 124 : 150),
+        minHeight: featured ? (mobile ? 188 : 'auto') : (mobile ? 124 : 200),
         transform: hover ? 'translateY(-5px)' : 'translateY(0)',
         transition: 'transform 0.3s cubic-bezier(0.3,0,0.2,1), box-shadow 0.3s',
       }}
