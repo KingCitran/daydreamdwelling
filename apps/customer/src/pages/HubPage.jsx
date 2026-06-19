@@ -6,17 +6,42 @@ import Logo from '@shared/Logo'
 import WispyArt from '@shared/wispy/art'
 import FeedbackButton from '../ui/FeedbackButton'
 
-// ── Hub Page ───────────────────────────────────────────────────────
-// The center of DaydreamDwelling. Where every path starts. Stats,
-// best sellers, links for customers, sellers, artists, builders.
-// Aesthetic, dreamy, empowering.
+// Sky gradients per mood — lightweight CSS, no canvas/WebGL
+const SKY = {
+  'Golden Hour':      'linear-gradient(180deg, #5a2540 0%, #e88a3e 50%, #ffe39a 100%)',
+  'Bright Day':       'linear-gradient(180deg, #1040a0 0%, #3878d0 50%, #88c0f0 100%)',
+  'Vivid Sunset':     'linear-gradient(180deg, #1a2a5a 0%, #a8b8d0 50%, #e8a040 100%)',
+  'Moonlight':        'linear-gradient(180deg, #050918 0%, #16203f 50%, #2a3868 100%)',
+  'Blush Hour':       'linear-gradient(180deg, #ffe2cf 0%, #f4b0c0 50%, #c8b8dc 100%)',
+  'Coastal Morning':  'linear-gradient(180deg, #2a5a8c 0%, #a8c4d8 50%, #ffd896 100%)',
+  'Dream State':      'linear-gradient(180deg, #ffe8d0 0%, #e8c8e0 50%, #a890d4 100%)',
+  'Neon Nights':      'linear-gradient(180deg, #060318 0%, #160e3a 50%, #2a1862 100%)',
+  'Greenhouse':       'linear-gradient(180deg, #6cb87a 0%, #e0e8b0 50%, #fff5d0 100%)',
+  'Studio':           'linear-gradient(180deg, #303840 0%, #586068 50%, #909898 100%)',
+  'Studio Dark':      'linear-gradient(180deg, #0c0e14 0%, #202228 50%, #404448 100%)',
+  "Ember's Sunrise":  'linear-gradient(180deg, #1a1438 0%, #c87858 50%, #ffe0a0 100%)',
+  'Northern Lights':  'linear-gradient(180deg, #040814 0%, #0a3040 50%, #01c8ae 100%)',
+  'Candlelit Cozy Evening': 'linear-gradient(180deg, #040100 0%, #200800 50%, #5a2808 100%)',
+  'Dark Academia':    'linear-gradient(180deg, #060404 0%, #1a0c08 50%, #4a3020 100%)',
+}
 
 export default function HubPage({ onBack }) {
   const t = useTheme()
   const { mood } = useMoodControl()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const [stats, setStats] = useState(null)
   const [topProducts, setTopProducts] = useState([])
+
+  const sky = SKY[mood] ?? SKY['Dream State']
+  const card = t.panelBg ?? '#fff'
+  const cardBorder = t.panelBorder ?? t.surfaceBorder
+  const cardText = t.panelText ?? t.text
+  const cardSoft = t.panelTextSoft ?? t.textSoft
+
+  const displayName = profile?.display_name
+    || user?.user_metadata?.full_name
+    || user?.email?.split('@')[0]
+    || null
 
   useEffect(() => {
     async function load() {
@@ -36,7 +61,6 @@ export default function HubPage({ onBack }) {
         products: products.count ?? 0,
         sellers: sellers.count ?? 0,
       })
-      // Top products by recent orders
       const { data: top } = await supabase
         .from('products')
         .select('id, label, product_images(storage_path, is_primary)')
@@ -48,295 +72,181 @@ export default function HubPage({ onBack }) {
     load()
   }, [])
 
-  const s = makeStyles(t)
+  const C = { background: card, border: `1px solid ${cardBorder}`, borderRadius: 18, color: cardText }
 
   return (
-    <div style={s.page}>
-      {/* Header */}
-      <header style={s.header}>
-        <div style={s.headerInner}>
-          <div onClick={onBack} style={s.logoGroup}>
+    <div style={{
+      minHeight: '100vh', background: sky,
+      fontFamily: "'Outfit', system-ui, sans-serif",
+      position: 'relative',
+    }}>
+      {/* Fixed header — solid card bar */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        ...C, borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderTop: 'none',
+        backdropFilter: 'blur(12px)',
+      }}>
+        <div style={{
+          maxWidth: 960, margin: '0 auto', padding: '0 24px', height: 56,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Logo size={28} color={t.accent} />
-            <span style={s.brandName}>Daydream<span style={{ color: t.accent, fontStyle: 'italic' }}>Dwelling</span></span>
+            <span style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 18, fontWeight: 500, color: cardText }}>
+              Daydream<span style={{ color: t.accent, fontStyle: 'italic' }}>Dwelling</span>
+            </span>
           </div>
-          <button onClick={onBack} style={s.backBtn}>← Back to Builder</button>
+          <button onClick={onBack} style={{
+            padding: '7px 16px', borderRadius: 10,
+            background: t.accent, color: t.accentText, border: 'none',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>← Builder</button>
         </div>
       </header>
 
-      <main style={s.main}>
-        {/* Hero */}
-        <section style={s.hero}>
-          <div style={{ width: 100, margin: '0 auto 16px' }}>
-            <WispyArt slot="happy" mood={mood} width={100} />
-          </div>
-          <h1 style={s.heroTitle}>Welcome home.</h1>
-          <p style={s.heroSub}>Everything DaydreamDwelling, all in one place.</p>
-        </section>
+      <main style={{ maxWidth: 960, margin: '0 auto', padding: '32px 24px 80px' }}>
 
-        {/* Stats ribbon */}
+        {/* Hero card */}
+        <div style={{ ...C, padding: '36px 32px', textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ width: 90, margin: '0 auto 14px' }}>
+            <WispyArt slot="happy" mood={mood} width={90} />
+          </div>
+          <h1 style={{
+            fontFamily: "'EB Garamond', Georgia, serif",
+            fontSize: 32, fontWeight: 400, margin: '0 0 6px', color: cardText,
+          }}>
+            Welcome home{displayName ? `, ${displayName}` : ''}.
+          </h1>
+          <p style={{ fontSize: 14, color: cardSoft, margin: 0 }}>
+            Everything DaydreamDwelling, all in one place.
+          </p>
+        </div>
+
+        {/* Stats */}
         {stats && (
-          <section style={s.statsRibbon}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 20 }}>
             {[
               { n: stats.waitlist, label: 'On the Waitlist', emoji: '✦' },
               { n: stats.rooms, label: 'Rooms Designed', emoji: '🏠' },
-              { n: stats.products, label: 'Products Listed', emoji: '🛋️' },
+              { n: stats.products, label: 'Products', emoji: '🛋️' },
               { n: stats.sellers, label: 'Sellers', emoji: '🎨' },
-              { n: stats.tracks, label: 'Music Tracks', emoji: '🎵' },
-              { n: stats.community, label: 'Shared Designs', emoji: '💫' },
+              { n: stats.tracks, label: 'Tracks', emoji: '🎵' },
+              { n: stats.community, label: 'Shared', emoji: '💫' },
             ].map(s => (
-              <div key={s.label} style={makeStatCard(t)}>
-                <span style={{ fontSize: 20 }}>{s.emoji}</span>
-                <span style={{ fontSize: 24, fontWeight: 700, color: t.accent }}>{s.n.toLocaleString()}</span>
-                <span style={{ fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
+              <div key={s.label} style={{ ...C, padding: '16px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 18 }}>{s.emoji}</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: t.accent }}>{s.n.toLocaleString()}</span>
+                <span style={{ fontSize: 9, color: cardSoft, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
               </div>
             ))}
-          </section>
+          </div>
         )}
 
-        {/* Paths — where do you want to go? */}
-        <section style={s.section}>
-          <h2 style={s.sectionTitle}>Where would you like to go?</h2>
-          <div style={s.pathGrid}>
-            <PathCard t={t}
-              emoji="🏠" title="Room Builder"
-              desc="Design your space in 3D with real furniture"
-              href="/"
-              accent="#9a7aee"
-            />
-            <PathCard t={t}
-              emoji="🛍️" title="Marketplace"
-              desc="Browse and buy from independent sellers"
-              href="/?shop=1"
-              accent="#e8a060"
-            />
-            <PathCard t={t}
-              emoji="🎨" title="Community"
-              desc="Share rooms, enter contests, discover designs"
-              href="/community"
-              accent="#e87fa0"
-            />
-            <PathCard t={t}
-              emoji="🎵" title="Music"
-              desc="Listen to curated stations while you design"
-              href="/community/music"
-              accent="#7ac8e0"
-            />
-            <PathCard t={t}
-              emoji="📋" title="About"
-              desc="The story behind DaydreamDwelling"
-              href="/?about=1"
-              accent="#88d8b0"
-            />
-            <PathCard t={t}
-              emoji="🌿" title="Blossoms"
-              desc="Outdoor & garden at DaydreamBlossoms"
-              href="https://daydreamblossoms.com"
-              accent="#6cb87a"
-              external
-            />
+        {/* Destinations */}
+        <div style={{ ...C, padding: '24px', marginBottom: 20 }}>
+          <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 20, fontWeight: 400, margin: '0 0 16px', color: cardText }}>
+            Where would you like to go?
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+            {[
+              { emoji: '🏠', title: 'Room Builder', desc: 'Design your space in 3D with real furniture', href: '/' },
+              { emoji: '🛍️', title: 'Marketplace', desc: 'Browse and buy from independent sellers', href: '/?shop=1' },
+              { emoji: '🎨', title: 'Community', desc: 'Share rooms, enter contests, discover designs', href: '/community' },
+              { emoji: '🎵', title: 'Music', desc: 'Listen to curated stations while you design', href: '/community/music' },
+              { emoji: '☁', title: 'About', desc: 'The story behind DaydreamDwelling', href: '/?about=1' },
+              { emoji: '🌿', title: 'Blossoms', desc: 'Outdoor & garden shop', href: 'https://daydreamblossoms.com', external: true },
+            ].map(d => (
+              <a key={d.title} href={d.href} target={d.external ? '_blank' : undefined} rel={d.external ? 'noopener noreferrer' : undefined} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', borderRadius: 12,
+                background: `${t.accent}08`, border: `1px solid ${cardBorder}`,
+                textDecoration: 'none', color: cardText,
+                transition: 'background 0.12s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = `${t.accent}18`}
+                onMouseLeave={e => e.currentTarget.style.background = `${t.accent}08`}
+              >
+                <span style={{ fontSize: 24, flexShrink: 0 }}>{d.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{d.title}</div>
+                  <div style={{ fontSize: 11, color: cardSoft, marginTop: 2 }}>{d.desc}</div>
+                </div>
+              </a>
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/* For Sellers & Artists */}
-        <section style={s.section}>
-          <h2 style={s.sectionTitle}>For creators</h2>
-          <div style={s.creatorGrid}>
-            <CreatorCard t={t}
-              emoji="🏪" title="Sell on Daydream"
-              desc="List your handmade furniture and decor. Real prices, real shipping, no gimmicks."
-              href="https://daydreamsellers.com"
-              cta="Open Seller Dashboard"
-              external
-            />
-            <CreatorCard t={t}
-              emoji="🎶" title="Submit Music"
-              desc="Share your tracks with room designers. Get plays, earn from click-throughs."
-              href="/community/artists"
-              cta="Artist Portal"
-            />
-          </div>
-        </section>
+        {/* For creators */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10, marginBottom: 20 }}>
+          {[
+            { emoji: '🏪', title: 'Sell on Daydream', desc: 'List your handmade furniture and decor. Real prices, real shipping, no gimmicks.', href: 'https://daydreamsellers.com', cta: 'Seller Dashboard', external: true },
+            { emoji: '🎶', title: 'Submit Music', desc: 'Share your tracks with room designers. Get plays, earn from click-throughs.', href: '/community/artists', cta: 'Artist Portal' },
+          ].map(c => (
+            <a key={c.title} href={c.href} target={c.external ? '_blank' : undefined} rel={c.external ? 'noopener noreferrer' : undefined} style={{
+              ...C, padding: '20px 24px',
+              display: 'flex', gap: 14, alignItems: 'flex-start',
+              textDecoration: 'none', color: cardText,
+            }}>
+              <span style={{ fontSize: 32, flexShrink: 0, lineHeight: 1 }}>{c.emoji}</span>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{c.title}</div>
+                <div style={{ fontSize: 12, color: cardSoft, lineHeight: 1.6, marginBottom: 10 }}>{c.desc}</div>
+                <span style={{
+                  display: 'inline-block', padding: '7px 14px', borderRadius: 8,
+                  background: t.accent, color: t.accentText,
+                  fontSize: 11, fontWeight: 700,
+                }}>{c.cta} →</span>
+              </div>
+            </a>
+          ))}
+        </div>
 
-        {/* Recent products */}
+        {/* Products */}
         {topProducts.length > 0 && (
-          <section style={s.section}>
-            <h2 style={s.sectionTitle}>Fresh on the shelf</h2>
-            <div style={s.productScroll}>
+          <div style={{ ...C, padding: '20px 24px', marginBottom: 20 }}>
+            <h2 style={{ fontFamily: "'EB Garamond', Georgia, serif", fontSize: 20, fontWeight: 400, margin: '0 0 14px', color: cardText }}>
+              Fresh on the shelf
+            </h2>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
               {topProducts.map(p => {
                 const img = p.product_images?.find(i => i.is_primary) ?? p.product_images?.[0]
                 const url = img ? supabase.storage.from('product-images').getPublicUrl(img.storage_path).data.publicUrl : null
                 return (
-                  <div key={p.id} style={s.productThumb}>
-                    {url ? <img src={url} alt="" style={s.productImg} /> : <div style={{ ...s.productImg, background: t.surface }} />}
-                    <span style={s.productLabel}>{p.label}</span>
+                  <div key={p.id} style={{ flexShrink: 0, width: 120 }}>
+                    {url ? <img src={url} alt="" style={{ width: '100%', height: 120, borderRadius: 10, objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: 120, borderRadius: 10, background: `${t.accent}10` }} />}
+                    <div style={{ fontSize: 11, fontWeight: 600, marginTop: 4, color: cardText, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.label}</div>
                   </div>
                 )
               })}
             </div>
-          </section>
+          </div>
         )}
 
-        {/* Wispy footer */}
-        <section style={{ ...s.section, textAlign: 'center', paddingBottom: 40 }}>
-          <div style={{ width: 60, margin: '0 auto 12px' }}>
-            <WispyArt slot="resting" mood={mood} width={60} />
+        {/* Wispy close */}
+        <div style={{ ...C, padding: '24px', textAlign: 'center' }}>
+          <div style={{ width: 50, margin: '0 auto 10px' }}>
+            <WispyArt slot="resting" mood={mood} width={50} />
           </div>
-          <p style={{ fontSize: 13, color: t.textSoft, fontStyle: 'italic', margin: 0 }}>
+          <p style={{ fontSize: 13, color: cardSoft, fontStyle: 'italic', margin: 0 }}>
             Go make something beautiful.
           </p>
-        </section>
+        </div>
+
       </main>
 
       {/* Footer */}
-      <footer style={s.footer}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12, flexWrap: 'wrap' }}>
-          <a href="/" style={s.footLink}>Room Builder</a>
-          <a href="/community" style={s.footLink}>Community</a>
-          <a href="/?about=1" style={s.footLink}>About</a>
-          <a href="https://daydreamsellers.com" style={s.footLink}>Sellers</a>
-          <a href="https://daydreamblossoms.com" style={s.footLink}>Blossoms</a>
+      <footer style={{ ...C, borderRadius: 0, borderBottom: 'none', borderLeft: 'none', borderRight: 'none', padding: '24px', textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 10, flexWrap: 'wrap' }}>
+          {['Room Builder:/', 'Community:/community', 'About:/?about=1', 'Sellers:https://daydreamsellers.com', 'Blossoms:https://daydreamblossoms.com'].map(l => {
+            const [label, href] = l.split(':')
+            return <a key={label} href={href} style={{ color: cardSoft, textDecoration: 'none', fontSize: 12 }}>{label}</a>
+          })}
         </div>
-        {user && <p style={{ margin: '0 0 8px', fontSize: 11, color: t.textSoft }}>Signed in as {user.email}</p>}
-        <p style={{ margin: 0, fontSize: 11, color: t.textSoft }}>© {new Date().getFullYear()} DaydreamDwelling</p>
+        <p style={{ margin: 0, fontSize: 11, color: cardSoft }}>© {new Date().getFullYear()} DaydreamDwelling</p>
       </footer>
 
       <FeedbackButton />
     </div>
   )
-}
-
-// ── Path Card ──────────────────────────────────────────────────────
-function PathCard({ t, emoji, title, desc, href, accent, external }) {
-  return (
-    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
-      style={{
-        display: 'flex', flexDirection: 'column', gap: 10,
-        padding: 20, borderRadius: 18,
-        background: t.surface, border: `1px solid ${t.surfaceBorder}`,
-        textDecoration: 'none', color: t.text,
-        transition: 'transform 0.15s, box-shadow 0.15s',
-        fontFamily: "'Outfit', system-ui, sans-serif",
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${accent}22` }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-    >
-      <span style={{ fontSize: 28 }}>{emoji}</span>
-      <span style={{ fontSize: 16, fontWeight: 700 }}>{title}</span>
-      <span style={{ fontSize: 12, color: t.textSoft, lineHeight: 1.5 }}>{desc}</span>
-      {external && <span style={{ fontSize: 10, color: t.textSoft }}>↗ External site</span>}
-    </a>
-  )
-}
-
-// ── Creator Card ───────────────────────────────────────────────────
-function CreatorCard({ t, emoji, title, desc, href, cta, external }) {
-  return (
-    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
-      style={{
-        display: 'flex', gap: 16, padding: 24, borderRadius: 18,
-        background: t.surface, border: `1px solid ${t.surfaceBorder}`,
-        textDecoration: 'none', color: t.text,
-        fontFamily: "'Outfit', system-ui, sans-serif",
-        alignItems: 'flex-start',
-      }}
-    >
-      <span style={{ fontSize: 36, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span style={{ fontSize: 18, fontWeight: 700 }}>{title}</span>
-        <span style={{ fontSize: 13, color: t.textSoft, lineHeight: 1.6 }}>{desc}</span>
-        <span style={{
-          display: 'inline-flex', alignSelf: 'flex-start',
-          padding: '8px 16px', borderRadius: 10, marginTop: 4,
-          background: t.accent, color: t.accentText,
-          fontSize: 12, fontWeight: 700,
-        }}>{cta} →</span>
-      </div>
-    </a>
-  )
-}
-
-// ── Styles ─────────────────────────────────────────────────────────
-function makeStyles(t) {
-  return {
-    page: {
-      minHeight: '100vh', background: t.bg,
-      fontFamily: "'Outfit', system-ui, sans-serif", color: t.text,
-    },
-    header: {
-      position: 'sticky', top: 0, zIndex: 10,
-      background: t.navBg, backdropFilter: 'blur(12px)',
-      borderBottom: `1px solid ${t.navBorder}`,
-    },
-    headerInner: {
-      maxWidth: 900, margin: '0 auto', padding: '0 24px', height: 56,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    },
-    logoGroup: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' },
-    brandName: {
-      fontFamily: "'EB Garamond', Georgia, serif",
-      fontSize: 18, fontWeight: 500, letterSpacing: '-0.01em',
-    },
-    backBtn: {
-      padding: '6px 14px', borderRadius: 8,
-      background: `${t.accent}10`, border: `1px solid ${t.accent}30`,
-      color: t.accent, fontSize: 12, fontWeight: 600,
-      cursor: 'pointer', fontFamily: 'inherit',
-    },
-    main: { maxWidth: 900, margin: '0 auto', padding: '0 24px' },
-    hero: {
-      textAlign: 'center', padding: '48px 0 32px',
-    },
-    heroTitle: {
-      fontFamily: "'EB Garamond', Georgia, serif",
-      fontSize: 36, fontWeight: 400, margin: '0 0 8px',
-      letterSpacing: '-0.02em',
-    },
-    heroSub: { fontSize: 14, color: t.textSoft, margin: 0 },
-    statsRibbon: {
-      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-      gap: 10, marginBottom: 40,
-    },
-    section: { marginBottom: 40 },
-    sectionTitle: {
-      fontFamily: "'EB Garamond', Georgia, serif",
-      fontSize: 22, fontWeight: 400, margin: '0 0 16px',
-      letterSpacing: '-0.01em',
-    },
-    pathGrid: {
-      display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-      gap: 12,
-    },
-    creatorGrid: {
-      display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-      gap: 12,
-    },
-    productScroll: {
-      display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8,
-    },
-    productThumb: {
-      flexShrink: 0, width: 130, display: 'flex', flexDirection: 'column', gap: 6,
-    },
-    productImg: {
-      width: '100%', height: 130, borderRadius: 12, objectFit: 'cover',
-      border: `1px solid ${t.surfaceBorder}`,
-    },
-    productLabel: {
-      fontSize: 11, fontWeight: 600, color: t.text,
-      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-    },
-    footer: {
-      borderTop: `1px solid ${t.surfaceBorder}`,
-      padding: '32px 24px', textAlign: 'center', fontSize: 12,
-    },
-    footLink: { color: t.text, textDecoration: 'none', fontSize: 12 },
-  }
-}
-
-function makeStatCard(t) {
-  return {
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-    padding: '16px 12px', borderRadius: 16,
-    background: t.surface, border: `1px solid ${t.surfaceBorder}`,
-    textAlign: 'center',
-  }
 }
