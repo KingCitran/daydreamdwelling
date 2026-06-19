@@ -26,7 +26,7 @@ export default function AboutPage({ onBack }) {
         padding: '0 24px', height: 56,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={onBack}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => { window.location.href = '/?hub=1' }}>
           <Logo size={26} color={t.accent} />
           <span style={{ fontSize: 14, fontWeight: 700 }}>DaydreamDwelling</span>
         </div>

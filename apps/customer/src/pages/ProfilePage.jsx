@@ -53,10 +53,10 @@ export default function ProfilePage({ userId, onEnterBuilder }) {
     <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}>
       {/* Header */}
       <div style={{ padding: '12px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <a href="/?hub=1" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           <Logo size={24} color={t.accent} />
           <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>DaydreamDwelling</span>
-        </div>
+        </a>
         <button onClick={onEnterBuilder} style={{ padding: '6px 16px', borderRadius: 8, background: t.accent, color: t.accentText, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           Open Builder
         </button>

@@ -143,7 +143,7 @@ export default function CommunityApp() {
         }}>
           {/* Logo + brand (tagline hidden on narrow to save width) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
-               onClick={() => navigate('/community')}>
+               onClick={() => { window.location.href = '/?hub=1' }}>
             <Logo size={26} color={t.accent} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>DaydreamCommunity</div>
