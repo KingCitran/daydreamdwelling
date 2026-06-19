@@ -1,5 +1,6 @@
-import { useTheme } from '@shared/ThemeProvider'
+import { useTheme, useMoodControl } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
+import WispyArt from '@shared/wispy/art'
 import FeedbackButton from '../ui/FeedbackButton'
 
 // ── About page ─────────────────────────────────────────────────────
@@ -9,6 +10,7 @@ import FeedbackButton from '../ui/FeedbackButton'
 
 export default function AboutPage({ onBack }) {
   const t = useTheme()
+  const { mood } = useMoodControl()
 
   return (
     <div style={{
@@ -45,7 +47,9 @@ export default function AboutPage({ onBack }) {
           background: t.surface, border: `1px solid ${t.surfaceBorder}`,
           marginBottom: 40, position: 'relative',
         }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>☁</div>
+          <div style={{ width: 80, margin: '0 auto 12px' }}>
+            <WispyArt slot="happy" mood={mood} width={80} />
+          </div>
           <p style={{ margin: '0 0 16px', fontSize: 15, lineHeight: 1.8, color: t.text }}>
             Hi. I'm Wispy — I float around here and keep things cozy. You're probably
             wondering who's behind all this. Let me tell you about Hayley.
@@ -58,12 +62,13 @@ export default function AboutPage({ onBack }) {
         {/* The story */}
         <h1 style={{
           fontFamily: "'EB Garamond', Georgia, serif",
-          fontSize: 32, fontWeight: 400, margin: '0 0 8px',
-          color: t.text,
+          fontSize: 32, fontWeight: 500, margin: '0 0 8px',
+          color: t.text, textShadow: '0 0 0 transparent',
+          WebkitTextStroke: 0,
         }}>
           One person. One idea.
         </h1>
-        <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 32px' }}>
+        <p style={{ fontSize: 13, color: t.accent, fontWeight: 600, margin: '0 0 32px' }}>
           The story of DaydreamDwelling
         </p>
 
@@ -129,9 +134,10 @@ export default function AboutPage({ onBack }) {
             hard to say. If you want to talk to her, the feedback button is always there.
             She reads every single one.
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: t.textSoft, fontStyle: 'italic' }}>
-            ☁ See you around.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <div style={{ width: 36 }}><WispyArt slot="resting" mood={mood} width={36} /></div>
+            <p style={{ margin: 0, fontSize: 12, color: t.textSoft, fontStyle: 'italic' }}>See you around.</p>
+          </div>
         </div>
 
         {/* Headshot placeholder — will be added later */}
@@ -163,8 +169,9 @@ function Section({ title, children }) {
       {title && (
         <h2 style={{
           fontFamily: "'EB Garamond', Georgia, serif",
-          fontSize: 22, fontWeight: 400, margin: '0 0 12px',
+          fontSize: 22, fontWeight: 500, margin: '0 0 12px',
           letterSpacing: '-0.01em',
+          textShadow: 'none', WebkitTextStroke: 0,
         }}>{title}</h2>
       )}
       <div style={{ fontSize: 15, lineHeight: 1.85, color: 'inherit' }}>

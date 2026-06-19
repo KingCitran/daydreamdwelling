@@ -299,9 +299,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     useWispy({ itemCount: items.length, mood, drawerOpen })
   const [roomPanelOpen,    setRoomPanelOpen]    = useState(false)
   const [hubOpen,          setHubOpen]          = useState(false)
+  const [brandHubOpen,     setBrandHubOpen]     = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
   const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
-  const [hubOpen,          setHubOpen]          = useState(false)
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -944,7 +944,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
-        onBrandClick={() => setHubOpen(true)}
+        onBrandClick={() => setBrandHubOpen(true)}
         roomName={getRoomName(currentRoomId)}
         rooms={Object.keys(allRoomsData || {}).map(id => getRoomName(id))}
         budget={items.reduce((s, it) => {
@@ -1181,7 +1181,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         </div>
       )}
 
-      {hubOpen          && <BrandHub     onClose={() => setHubOpen(false)} />}
+      {brandHubOpen     && <BrandHub     onClose={() => setBrandHubOpen(false)} />}
       {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
       {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} defaultTab={accountModalTab} />}
       {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
