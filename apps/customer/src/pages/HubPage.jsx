@@ -235,8 +235,15 @@ export default function HubPage({ onBack }) {
             <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(3,1fr)', gridTemplateRows: mobile ? 'auto' : '1fr 1fr 1fr', gap: mobile ? 10 : 12 }}>
               {DESTINATIONS.map(d => {
                 const feat = d.id === 'builder'
-                const span = feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : '1 / 3' } : (mobile && d.id === 'blossoms') ? { gridColumn: 'span 2' } : {}
-                return <div key={d.id} style={span}><DestCard t={t} d={d} surf={surf} mobile={mobile} featured={feat} /></div>
+                return (
+                  <div key={d.id} style={{
+                    ...(feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : '1 / 3' } : {}),
+                    ...(mobile && d.id === 'blossoms' ? { gridColumn: 'span 2' } : {}),
+                    display: 'flex',
+                  }}>
+                    <DestCard t={t} d={d} surf={surf} mobile={mobile} featured={feat} />
+                  </div>
+                )
               })}
             </div>
           </section>
@@ -355,7 +362,7 @@ function DestCard({ t, d, surf, mobile, featured }) {
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         ...surf(hover), borderRadius: 22, padding: featured ? (mobile ? 22 : 30) : (mobile ? 16 : 20),
-        textDecoration: 'none', height: '100%', display: 'flex', flexDirection: 'column',
+        textDecoration: 'none', flex: 1, width: '100%', display: 'flex', flexDirection: 'column',
         position: 'relative', overflow: 'hidden', color: t.text,
         minHeight: featured ? (mobile ? 188 : 'auto') : (mobile ? 124 : 200),
         transform: hover ? 'translateY(-5px)' : 'translateY(0)',
