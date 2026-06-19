@@ -142,10 +142,10 @@ export default function HubPage({ onBack }) {
     boxShadow: lift ? '0 20px 50px rgba(0,0,0,0.12)' : '0 14px 38px rgba(0,0,0,0.08)',
   })
 
-  const pad = mobile ? 14 : 20
-  const maxW = 1200
-  const Shell = ({ children, wide }) => (
-    <div style={{ maxWidth: wide ? maxW + 60 : maxW, margin: '0 auto', padding: `0 ${pad}px` }}>{children}</div>
+  const pad = mobile ? 14 : 24
+  const maxW = 1100
+  const Shell = ({ children }) => (
+    <div style={{ maxWidth: maxW, margin: '0 auto', padding: `0 ${pad}px` }}>{children}</div>
   )
 
   return (
@@ -174,7 +174,7 @@ export default function HubPage({ onBack }) {
           background: t.navBg, backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)',
           borderBottom: `1px solid ${t.navBorder}`,
         }}>
-          <div style={{ maxWidth: maxW + 60, margin: '0 auto', padding: `0 ${pad}px`, height: mobile ? 56 : 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ maxWidth: maxW, margin: '0 auto', padding: `0 ${pad}px`, height: mobile ? 56 : 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <Logo size={mobile ? 26 : 30} color={t.accent} />
               <div>
@@ -195,7 +195,7 @@ export default function HubPage({ onBack }) {
         </header>
 
         {/* Hero */}
-        <Shell wide>
+        <Shell>
           <div style={{ padding: mobile ? '38px 0 26px' : '64px 0 40px', display: 'flex', alignItems: 'center', gap: mobile ? 18 : 36, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 320px' }}>
               <div style={{ fontFamily: F.body, fontSize: 11, fontWeight: 600, letterSpacing: '2.2px', textTransform: 'uppercase', color: t.accent }}>{greetingTime()} · {mood}</div>
@@ -215,7 +215,7 @@ export default function HubPage({ onBack }) {
         {/* Stat pills */}
         {statPills.length > 0 && (
           <Shell>
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: mobile ? 10 : 14, marginBottom: mobile ? 40 : 56 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: mobile ? 10 : 12, marginBottom: mobile ? 36 : 48 }}>
               {statPills.map(s => (
                 <div key={s.label} style={{ ...surf(), borderRadius: 16, padding: mobile ? '14px 14px' : '16px 18px' }}>
                   <div style={{ fontFamily: F.display, fontSize: mobile ? 26 : 30, fontWeight: 500, color: t.text, lineHeight: 1 }}>{compact(s.value)}</div>
@@ -229,7 +229,7 @@ export default function HubPage({ onBack }) {
 
         <Shell>
           {/* Destinations bento */}
-          <section style={{ marginBottom: mobile ? 44 : 60 }}>
+          <section style={{ marginBottom: mobile ? 36 : 48 }}>
             <SectionHead onSky={onSky} accent={t.accent} mobile={mobile}
               eyebrow="Where would you like to go?"
               title={<>Six doors, one <span style={{ fontStyle: 'italic', color: t.accent }}>dwelling</span>.</>}
@@ -251,19 +251,19 @@ export default function HubPage({ onBack }) {
           </section>
 
           {/* Creators */}
-          <section style={{ marginBottom: mobile ? 44 : 60 }}>
+          <section style={{ marginBottom: mobile ? 36 : 48 }}>
             <SectionHead onSky={onSky} accent={t.accent} mobile={mobile}
               eyebrow="For creators"
               title={<>Build the <span style={{ fontStyle: 'italic', color: t.accent }}>business</span> too.</>}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 12 : 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 12 : 12, alignItems: 'stretch' }}>
               {CREATORS.map(c => <CreatorCard key={c.id} t={t} c={c} surf={surf} mobile={mobile} />)}
             </div>
           </section>
 
           {/* Products */}
           {products.length > 0 && (
-            <section style={{ marginBottom: mobile ? 44 : 60 }}>
+            <section style={{ marginBottom: mobile ? 36 : 48 }}>
               <SectionHead onSky={onSky} accent={t.accent} mobile={mobile}
                 eyebrow="Fresh on the shelf"
                 title={<>Just added by <span style={{ fontStyle: 'italic', color: t.accent }}>makers</span>.</>}
@@ -288,7 +288,7 @@ export default function HubPage({ onBack }) {
 
           {/* Hype band */}
           {milestones.length > 0 && (
-            <section style={{ marginBottom: mobile ? 40 : 52 }}>
+            <section style={{ marginBottom: mobile ? 36 : 48 }}>
               <div style={{ ...surf(), borderRadius: 22, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: mobile ? '12px 16px 0' : '16px 22px 0' }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: t.accent, boxShadow: `0 0 10px ${t.accent}`, animation: 'hubPulse 2s ease-in-out infinite' }} />
@@ -318,7 +318,7 @@ export default function HubPage({ onBack }) {
         </Shell>
 
         {/* Closing */}
-        <Shell wide>
+        <Shell>
           <div style={{ ...surf(), borderRadius: 26, padding: mobile ? '28px 22px' : '34px 40px', marginTop: mobile ? 16 : 28, display: 'flex', alignItems: 'center', gap: mobile ? 16 : 28, flexWrap: 'wrap', justifyContent: 'center', textAlign: mobile ? 'center' : 'left' }}>
             <WispyArt slot="resting" mood={mood} width={mobile ? 104 : 120} />
             <div style={{ flex: '1 1 240px' }}>
@@ -394,7 +394,7 @@ function CreatorCard({ t, c, surf, mobile }) {
   const [hover, setHover] = useState(false)
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ ...surf(hover), borderRadius: 20, padding: mobile ? 18 : 24, display: 'flex', gap: 16, alignItems: 'flex-start', transition: 'box-shadow 0.28s, transform 0.28s', transform: hover ? 'translateY(-3px)' : 'none' }}>
+      style={{ ...surf(hover), borderRadius: 20, padding: mobile ? 18 : 24, display: 'flex', gap: 16, alignItems: 'flex-start', height: '100%', boxSizing: 'border-box', transition: 'box-shadow 0.28s, transform 0.28s', transform: hover ? 'translateY(-3px)' : 'none' }}>
       <div style={{ width: 52, height: 52, borderRadius: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: t.accent, background: `${t.accent}14`, border: `1px solid ${t.accent}33` }}>{c.glyph}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: F.display, fontSize: 24, fontWeight: 500, color: t.text }}>{c.title}</div>
