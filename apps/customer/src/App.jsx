@@ -69,6 +69,9 @@ import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
 import HubPage from './pages/HubPage'
+import NotFoundPage from './pages/NotFoundPage'
+import PrivacyPage from './pages/PrivacyPage'
+import TermsPage from './pages/TermsPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import MessagesPage from './pages/MessagesPage'
@@ -183,12 +186,16 @@ function Gate() {
 
   if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
+  // Unknown path (not / and not /community) → 404
+  if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/community')) return <NotFoundPage />
 
   let page
   let isLanding = false
   if (params.get('hub') === '1') page = <HubPage onBack={() => { window.location.search = '' }} />
   else if (params.get('landing') === '1') { page = <LandingPage onEnter={() => { window.location.search = '' }} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
   else if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('privacy') === '1') page = <PrivacyPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('terms') === '1') page = <TermsPage onBack={() => { window.location.search = '' }} />
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />

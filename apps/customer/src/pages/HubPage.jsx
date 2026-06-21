@@ -333,7 +333,7 @@ export default function HubPage({ onBack }) {
               <span style={{ fontFamily: F.body, fontSize: 12, color: t.textSoft }}>© {new Date().getFullYear()} DaydreamDwelling · Stay dreamy ☁</span>
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {[['Community','/community'],['Marketplace','/?shop=1'],['Blossoms','https://daydreamblossoms.com'],['About','/?about=1']].map(([l,h]) => (
+              {[['Community','/community'],['Marketplace','/?shop=1'],['Blossoms','https://daydreamblossoms.com'],['About','/?about=1'],['Privacy','/?privacy=1'],['Terms','/?terms=1']].map(([l,h]) => (
                 <a key={l} href={h} style={{ fontFamily: F.body, fontSize: 12.5, color: t.textSoft, textDecoration: 'none' }}>{l}</a>
               ))}
             </div>

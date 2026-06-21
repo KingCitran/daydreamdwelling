@@ -60,4 +60,14 @@
     <lastmod>2026-06-20</lastmod>
     <priority>0.3</priority>
   </url>
+  <url>
+    <loc>https://daydreamdwelling.com/?privacy=1</loc>
+    <lastmod>2026-06-20</lastmod>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://daydreamdwelling.com/?terms=1</loc>
+    <lastmod>2026-06-20</lastmod>
+    <priority>0.3</priority>
+  </url>
 </urlset>

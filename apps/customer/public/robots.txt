@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /asset-picker.html
+Disallow: /clouds-picker.html
+
+Sitemap: https://daydreamdwelling.com/sitemap.xml
