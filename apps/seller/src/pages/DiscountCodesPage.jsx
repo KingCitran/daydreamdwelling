@@ -48,6 +48,7 @@ export default function DiscountCodesPage() {
   }
 
   async function deleteCode(id) {
+    if (!window.confirm('Delete this discount code?')) return
     await supabase.from('discount_codes').delete().eq('id', id)
     setCodes(prev => prev.filter(c => c.id !== id))
   }

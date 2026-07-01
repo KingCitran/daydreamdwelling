@@ -104,6 +104,7 @@ export default function ContestManagerPage() {
   }
 
   async function deleteContest(id) {
+    if (!window.confirm('Delete this contest and all its entries and votes? This cannot be undone.')) return
     await supabase.from('contests').delete().eq('id', id)
     fetchContests()
   }

@@ -85,10 +85,38 @@ Deno.serve(async (req) => {
     const session     = event.data.object as Stripe.Checkout.Session
     const customerEmail = session.customer_details?.email ?? null
 
+    // ── Idempotency: check if this session was already processed ──
+    // Stripe can retry webhooks on timeout. If we already created an order
+    // or credited PPC for this session, bail out safely.
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('stripe_payment_id', session.payment_intent as string)
+      .maybeSingle()
+    if (existingOrder) {
+      console.log('[stripe-webhook] already processed session', session.id, '→ order', existingOrder.id)
+      return new Response(JSON.stringify({ received: true, already_processed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Branch: artist PPC balance top-up — credit the artist instead of creating an order
     if (session.metadata?.purpose === 'artist_ppc_topup') {
       const artistId    = session.metadata.artist_id
       const creditCents = parseInt(session.metadata.credit_cents ?? '0', 10)
+
+      // H3: Check if this PPC topup was already processed (consumed_at on pending_checkouts)
+      const { data: ppcPending } = await supabase
+        .from('pending_checkouts')
+        .select('consumed_at')
+        .eq('stripe_session_id', session.id)
+        .maybeSingle()
+      if (ppcPending?.consumed_at) {
+        console.log('[stripe-webhook] PPC topup already processed for session', session.id)
+        return new Response(JSON.stringify({ received: true, already_processed: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
       if (artistId && creditCents > 0) {
         const { data: artist } = await supabase
@@ -98,6 +126,12 @@ Deno.serve(async (req) => {
           .single()
 
         if (artist) {
+          // Stamp consumed_at first so retries don't double-credit
+          await supabase
+            .from('pending_checkouts')
+            .update({ consumed_at: new Date().toISOString() })
+            .eq('stripe_session_id', session.id)
+
           await supabase
             .from('artist_profiles')
             .update({ ppc_balance_cents: (artist.ppc_balance_cents ?? 0) + creditCents })
@@ -206,15 +240,17 @@ Deno.serve(async (req) => {
       try { parsedItems = JSON.parse(session.metadata.items) } catch { /* ignore */ }
     }
 
+    // Stamp consumed_at BEFORE inserting items — if we crash after the
+    // order insert but before this stamp, the idempotency check at the
+    // top (existing order lookup) catches the retry instead.
+    if (pending) {
+      await supabase
+        .from('pending_checkouts')
+        .update({ consumed_at: new Date().toISOString() })
+        .eq('stripe_session_id', session.id)
+    }
+
     if (parsedItems.length && order) {
-      // Stamp consumed_at on the pending row so it's clear this session has
-      // been processed. Old pre-table sessions just skip this.
-      if (pending) {
-        await supabase
-          .from('pending_checkouts')
-          .update({ consumed_at: new Date().toISOString() })
-          .eq('stripe_session_id', session.id)
-      }
       const orderItems = parsedItems.map(item => ({
         order_id:         order.id,
         product_id:       item.productId,   // canonical, not null for live products

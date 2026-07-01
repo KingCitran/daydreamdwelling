@@ -109,6 +109,7 @@ export default function AccountModal({ onClose, onLoadRoom, defaultTab = 'Rooms'
   }
 
   async function deleteWishlist(id) {
+    if (!window.confirm('Delete this wishlist and all its items?')) return
     await supabase.from('wishlist_lists').delete().eq('id', id)
     setWlists(prev => prev.filter(l => l.id !== id))
   }

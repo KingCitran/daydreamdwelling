@@ -48,6 +48,14 @@ Deno.serve(async (req) => {
     const callerId = userData?.user?.id
     if (!callerId) return json({ error: 'Auth failed' }, 401)
 
+    // L1: Check if already delivered — skip email on duplicate calls
+    const { data: existing } = await callerClient
+      .from('order_items')
+      .select('fulfillment_status')
+      .eq('id', orderItemId)
+      .single()
+    const alreadyDelivered = existing?.fulfillment_status === 'delivered'
+
     // Caller-scoped update — RLS allows it only if seller_id = auth.uid().
     const { data: updated, error: updateErr } = await callerClient
       .from('order_items')
@@ -81,7 +89,8 @@ Deno.serve(async (req) => {
       buyerEmail = u?.user?.email ?? null
     }
 
-    if (buyerEmail) {
+    // Only send email if this is the FIRST time marking delivered
+    if (buyerEmail && !alreadyDelivered) {
       const productDisplayLabel = updated.product_name || updated.products?.label || 'your order'
       const { subject, html } = deliveryConfirmationEmail({
         itemLabel:  productDisplayLabel,

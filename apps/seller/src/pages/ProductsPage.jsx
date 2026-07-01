@@ -65,6 +65,8 @@ export default function ProductsPage({ onNavigate }) {
   useEffect(() => { load() }, [user])
 
   async function handleDelete(id) {
+    const { count } = await supabase.from('order_items').select('id', { count: 'exact', head: true }).eq('product_id', id)
+    if (count > 0) { window.confirm('This product has orders and cannot be deleted. Archive it instead?'); return }
     if (!window.confirm('Delete this product? This cannot be undone.')) return
     setDeleting(id)
     await supabase.from('products').delete().eq('id', id)
@@ -155,9 +157,12 @@ export default function ProductsPage({ onNavigate }) {
   }
 
   async function bulkDelete() {
+    const ids = [...selected]
+    const { count } = await supabase.from('order_items').select('id', { count: 'exact', head: true }).in('product_id', ids)
+    if (count > 0) { window.confirm('Some selected products have orders and cannot be deleted. Archive them instead?'); return }
     if (!window.confirm(`Delete ${selected.size} product(s)? This cannot be undone.`)) return
     setBulking(true)
-    await supabase.from('products').delete().in('id', [...selected])
+    await supabase.from('products').delete().in('id', ids)
     setSelected(new Set())
     setBulking(false)
     load()

@@ -250,6 +250,8 @@ export default function OrdersPage({ onNavigate }) {
   }, [user])
 
   const [labelBusy, setLabelBusy] = useState({})
+  const [fulfillBusy, setFulfillBusy] = useState({})
+  const [actionBusy, setActionBusy] = useState(false)
 
   // Ship all unshipped items for a given buyer (the cluster) under one label.
   // Generates a label on the first item, then copies tracking + label_url to
@@ -356,27 +358,33 @@ export default function OrdersPage({ onNavigate }) {
   }
 
   async function markFulfillment(itemId, status) {
-    // Mark Delivered fires the buyer's "It made it." email as a side
-    // effect, so route through the mark-delivered edge function instead
-    // of a direct UPDATE. Other fulfillment_status transitions stay on
-    // the direct-update path — they don't trigger any email.
-    if (status === 'delivered') {
-      const { data, error } = await supabase.functions.invoke('mark-delivered', {
-        body: { orderItemId: itemId },
-      })
-      if (error || data?.error) {
-        const real = await readEdgeError(error, data)
-        showToast('error', `Couldn't mark delivered: ${real}`)
-        return
+    if (fulfillBusy[itemId]) return
+    setFulfillBusy(prev => ({ ...prev, [itemId]: true }))
+    try {
+      // Mark Delivered fires the buyer's "It made it." email as a side
+      // effect, so route through the mark-delivered edge function instead
+      // of a direct UPDATE. Other fulfillment_status transitions stay on
+      // the direct-update path — they don't trigger any email.
+      if (status === 'delivered') {
+        const { data, error } = await supabase.functions.invoke('mark-delivered', {
+          body: { orderItemId: itemId },
+        })
+        if (error || data?.error) {
+          const real = await readEdgeError(error, data)
+          showToast('error', `Couldn't mark delivered: ${real}`)
+          return
+        }
+      } else {
+        const { error } = await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
+        if (error) {
+          showToast('error', `Couldn't update status: ${error.message}`)
+          return
+        }
       }
-    } else {
-      const { error } = await supabase.from('order_items').update({ fulfillment_status: status }).eq('id', itemId)
-      if (error) {
-        showToast('error', `Couldn't update status: ${error.message}`)
-        return
-      }
+      setRows(prev => prev.map(r => r.id === itemId ? { ...r, fulfillment_status: status } : r))
+    } finally {
+      setFulfillBusy(prev => ({ ...prev, [itemId]: false }))
     }
-    setRows(prev => prev.map(r => r.id === itemId ? { ...r, fulfillment_status: status } : r))
   }
 
   async function uploadPreShipPhoto(itemId, file) {
@@ -640,40 +648,49 @@ export default function OrdersPage({ onNavigate }) {
   }
 
   async function confirmCancelOrder(orderId, reason) {
-    const { error } = await supabase.rpc('seller_cancel_order', { p_order_id: orderId, p_reason: reason || null })
-    if (error) { console.warn('[cancel]', error.message); return }
-    const now = new Date().toISOString()
-    setRows(prev => prev.map(r => r.orders?.id === orderId
-      ? { ...r, orders: { ...r.orders, status: 'cancelled', cancelled_at: now, cancellation_reason: reason || null } }
-      : r))
-    setActionPrompt(null)
+    setActionBusy(true)
+    try {
+      const { error } = await supabase.rpc('seller_cancel_order', { p_order_id: orderId, p_reason: reason || null })
+      if (error) { console.warn('[cancel]', error.message); return }
+      const now = new Date().toISOString()
+      setRows(prev => prev.map(r => r.orders?.id === orderId
+        ? { ...r, orders: { ...r.orders, status: 'cancelled', cancelled_at: now, cancellation_reason: reason || null } }
+        : r))
+      setActionPrompt(null)
+    } finally { setActionBusy(false) }
   }
 
   async function confirmEscalateOrder(orderId, note) {
-    const { error } = await supabase.rpc('seller_escalate_order', { p_order_id: orderId, p_note: note || null })
-    if (error) { console.warn('[escalate]', error.message); return }
-    const now = new Date().toISOString()
-    setRows(prev => prev.map(r => r.orders?.id === orderId
-      ? { ...r, orders: { ...r.orders, escalated_at: now, escalation_note: note || null } }
-      : r))
-    setActionPrompt(null)
+    setActionBusy(true)
+    try {
+      const { error } = await supabase.rpc('seller_escalate_order', { p_order_id: orderId, p_note: note || null })
+      if (error) { console.warn('[escalate]', error.message); return }
+      const now = new Date().toISOString()
+      setRows(prev => prev.map(r => r.orders?.id === orderId
+        ? { ...r, orders: { ...r.orders, escalated_at: now, escalation_note: note || null } }
+        : r))
+      setActionPrompt(null)
+    } finally { setActionBusy(false) }
   }
 
   async function confirmRefundOrder(orderId, reason) {
-    const { data, error } = await supabase.functions.invoke('refund-order', {
-      body: { orderId, reason: reason || null },
-    })
-    if (error || data?.error) {
-      const msg = data?.error || error?.message || 'Refund failed'
-      console.warn('[refund]', msg)
-      alert(`Refund failed: ${msg}`)
-      return
-    }
-    const now = new Date().toISOString()
-    setRows(prev => prev.map(r => r.orders?.id === orderId
-      ? { ...r, orders: { ...r.orders, status: 'refunded', refunded_at: now, refund_amount_cents: data.amountCents, stripe_refund_id: data.refundId, refund_reason: reason || null } }
-      : r))
-    setActionPrompt(null)
+    setActionBusy(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('refund-order', {
+        body: { orderId, reason: reason || null },
+      })
+      if (error || data?.error) {
+        const msg = data?.error || error?.message || 'Refund failed'
+        console.warn('[refund]', msg)
+        alert(`Refund failed: ${msg}`)
+        return
+      }
+      const now = new Date().toISOString()
+      setRows(prev => prev.map(r => r.orders?.id === orderId
+        ? { ...r, orders: { ...r.orders, status: 'refunded', refunded_at: now, refund_amount_cents: data.amountCents, stripe_refund_id: data.refundId, refund_reason: reason || null } }
+        : r))
+      setActionPrompt(null)
+    } finally { setActionBusy(false) }
   }
 
   async function clearEscalation(orderId) {
@@ -1714,9 +1731,10 @@ export default function OrdersPage({ onNavigate }) {
                             <button
                               style={s.deliveredBtn}
                               onClick={() => markFulfillment(item.id, 'delivered')}
+                              disabled={!!fulfillBusy[item.id]}
                               title="Mark this item as delivered"
                             >
-                              ✓ Mark Delivered
+                              {fulfillBusy[item.id] ? 'Updating…' : '✓ Mark Delivered'}
                             </button>
                           )}
                         </div>
@@ -1746,9 +1764,10 @@ export default function OrdersPage({ onNavigate }) {
                         <button
                           style={s.undoBtn}
                           onClick={() => markFulfillment(item.id, 'shipped')}
+                          disabled={!!fulfillBusy[item.id]}
                           title="Revert this item back to shipped"
                         >
-                          Undo
+                          {fulfillBusy[item.id] ? 'Updating…' : 'Undo'}
                         </button>
                       </div>
                     )}
@@ -1876,13 +1895,15 @@ export default function OrdersPage({ onNavigate }) {
               <button style={s.modalCancel} onClick={() => setActionPrompt(null)}>Never mind</button>
               <button
                 style={actionPrompt.type === 'escalate' ? s.modalConfirm : s.modalConfirmDanger}
+                disabled={actionBusy}
                 onClick={() => {
                   if (actionPrompt.type === 'cancel')   confirmCancelOrder(actionPrompt.orderId, actionPrompt.reason)
                   else if (actionPrompt.type === 'refund') confirmRefundOrder(actionPrompt.orderId, actionPrompt.reason)
                   else confirmEscalateOrder(actionPrompt.orderId, actionPrompt.reason)
                 }}
               >
-                {actionPrompt.type === 'cancel'  ? 'Cancel order'
+                {actionBusy ? 'Working…'
+                : actionPrompt.type === 'cancel'  ? 'Cancel order'
                 : actionPrompt.type === 'refund' ? 'Issue refund'
                 : 'Send escalation'}
               </button>
