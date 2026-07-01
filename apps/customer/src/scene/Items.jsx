@@ -3,6 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
+import { findSurfaceAt, isSurfaceItem } from '../utils/roomGeometry'
 
 const WALL_T      = 0.28
 const _plane      = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -34,16 +35,21 @@ const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDe
   const model = useMemo(() => {
     const cloned = scene.clone(true)
 
-    // Brighten materials — Tripo models often come out too dark because
-    // they bake ambient occlusion into the texture. Boost exposure by
-    // lightening the material color and adding a touch of emissive.
+    // Brighten materials and enable shadow casting on every mesh.
+    // Tripo models often come out too dark because they bake ambient
+    // occlusion into the texture. Boost exposure by lightening the
+    // material color and adding a touch of emissive.
     cloned.traverse(child => {
-      if (child.isMesh && child.material) {
-        const mat = child.material
-        if (mat.color) mat.color.multiplyScalar(1.3)
-        if (mat.roughness != null) mat.roughness = Math.min(mat.roughness, 0.85)
-        mat.envMapIntensity = 1.5
-        mat.needsUpdate = true
+      if (child.isMesh) {
+        child.castShadow = true
+        child.receiveShadow = true
+        if (child.material) {
+          const mat = child.material
+          if (mat.color) mat.color.multiplyScalar(1.3)
+          if (mat.roughness != null) mat.roughness = Math.min(mat.roughness, 0.85)
+          mat.envMapIntensity = 1.5
+          mat.needsUpdate = true
+        }
       }
     })
 
@@ -109,7 +115,7 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
 
 // ── Floor item ─────────────────────────────────────────────────────
 const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
-                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
+                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
   const size       = def.sizes[item.sizeIndex] ?? def.sizes[0]
@@ -170,15 +176,24 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     canvas.style.cursor = 'grabbing'
     const capturedId = item.id
     let lastCol = -1, lastRow = -1
+    const def_ = catalogue[item.typeKey]
+    const isSurfaceCandidate = def_ && !isSurfaceItem(def_) && !item.wall && !item.ceiling
     const handleMove = (ev) => {
       const g = pointerToGrid(ev.clientX, ev.clientY)
       if (g && (g.col !== lastCol || g.row !== lastRow)) {
         lastCol = g.col; lastRow = g.row
         onMove(capturedId, g.col, g.row)
+        // Surface highlight: detect if dragged item is over a surface
+        if (hoveredSurfaceRef && isSurfaceCandidate) {
+          const testItem = { ...item, col: g.col, row: g.row }
+          const surface = findSurfaceAt(allItems, testItem, catalogue)
+          hoveredSurfaceRef.current = surface?.id ?? null
+        }
       }
     }
     const handleUp   = () => {
       activeDragRef.current = null; canvas.style.cursor = ''; onDragEnd()
+      if (hoveredSurfaceRef) hoveredSurfaceRef.current = null
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup',   handleUp)
     }
@@ -202,11 +217,24 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     >
       {modelUrl ? (
         <>
-          {/* Contact shadow — subtle oval on the floor matching the footprint */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]} scale={[fw * 0.5, fd * 0.5, 1]}>
-            <circleGeometry args={[1, 32]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.14} depthWrite={false} />
-          </mesh>
+          {/* Contact shadow — soft multi-ring oval for grounded look */}
+          <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]}>
+            {/* Core shadow — tight under the item */}
+            <mesh scale={[fw * 0.4, fd * 0.4, 1]}>
+              <circleGeometry args={[1, 32]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.18} depthWrite={false} />
+            </mesh>
+            {/* Mid ring — softer spread */}
+            <mesh scale={[fw * 0.55, fd * 0.55, 1]} position={[0, 0, -0.001]}>
+              <circleGeometry args={[1, 32]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.09} depthWrite={false} />
+            </mesh>
+            {/* Outer ring — feathered edge */}
+            <mesh scale={[fw * 0.7, fd * 0.7, 1]} position={[0, 0, -0.002]}>
+              <circleGeometry args={[1, 32]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.04} depthWrite={false} />
+            </mesh>
+          </group>
           <Suspense fallback={
             <mesh castShadow receiveShadow>
               <boxGeometry args={[fw, fh, fd]} />
@@ -466,6 +494,7 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
   const handleDoubleClick = (e) => {
     e.stopPropagation()
     if (def.door && onEnterRoom) { onEnterRoom(item.id); return }
+    if (item.stairs && onEnterRoom) { onEnterRoom(item.id); return }
     onDoubleClick(item.typeKey)
   }
 
@@ -746,6 +775,43 @@ const StairMesh = memo(function StairMesh({ item, isSelected, gridW, gridD, wall
   )
 })
 
+// ── Surface highlight during drag ─────────────────────────────────
+// Reads hoveredSurfaceRef each frame and renders a glowing outline on
+// the surface item that will accept the dragged item.
+const SurfaceHighlight = memo(function SurfaceHighlight({ items, hoveredSurfaceRef, gridW, gridD, catalogue }) {
+  const meshRef = useRef()
+  const [vis, setVis] = useState(false)
+
+  useFrame(() => {
+    const sid = hoveredSurfaceRef.current
+    if (!sid) { if (vis) setVis(false); return }
+    const sItem = items.find(it => it.id === sid)
+    if (!sItem) { if (vis) setVis(false); return }
+    const sDef = catalogue[sItem.typeKey] ?? ITEM_CATALOGUE[sItem.typeKey]
+    const sSize = sDef?.sizes?.[sItem.sizeIndex] ?? sDef?.sizes?.[0]
+    if (!sSize) { if (vis) setVis(false); return }
+    const [sw, sd] = sSize.footprint ?? [1, 1]
+    const sh = sSize.height ?? 1
+    const rotated = sItem.rotation === 90 || sItem.rotation === 270
+    const ew = rotated ? sd : sw
+    const ed = rotated ? sw : sd
+    const wx = (sItem.col + ew / 2) - gridW / 2
+    const wz = (sItem.row + ed / 2) - gridD / 2
+    if (meshRef.current) {
+      meshRef.current.position.set(wx, sh + 0.02, wz)
+      meshRef.current.scale.set(ew + 0.12, 1, ed + 0.12)
+    }
+    if (!vis) setVis(true)
+  })
+
+  return vis ? (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial color="#70e0a0" transparent opacity={0.22} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  ) : null
+})
+
 // Which 2 walls are visible per camera quadrant — matches Walls.jsx VISIBLE_NORMALS
 const VISIBLE_WALLS = [
   new Set(['N', 'W']), // q0
@@ -772,6 +838,7 @@ export default function Items({
 }) {
   const internalDragRef = useRef(null)
   const activeDragRef = externalDragRef || internalDragRef
+  const hoveredSurfaceRef = useRef(null)
   const [visibleWalls, setVisibleWalls] = useState(VISIBLE_WALLS[0])
   const prevQ = useRef(0)
 
@@ -816,7 +883,7 @@ export default function Items({
           onSelect:      onSelectItem,
           onDoubleClick: onDoubleClickItem,
           onDragStart, onDragEnd,
-          roomRotationRef, activeDragRef,
+          roomRotationRef, activeDragRef, hoveredSurfaceRef,
           lightsOff,
           catalogue,
         }
@@ -851,6 +918,7 @@ export default function Items({
         if (ceilingView) return null
         return <ItemMesh key={item.id} {...shared} onMove={onMoveItem} />
       })}
+      <SurfaceHighlight items={items} hoveredSurfaceRef={hoveredSurfaceRef} gridW={gridW} gridD={gridD} catalogue={catalogue} />
     </group>
   )
 }

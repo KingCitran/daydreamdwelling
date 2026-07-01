@@ -846,6 +846,26 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* FX overlays render AFTER canvas so they layer on top */}
       <MoonOverlay />
 
+      {/* Floor level indicator — shows when on upper floors */}
+      {(allRoomsData[currentRoomId]?.level ?? allRooms[currentRoomId]?.level ?? 0) > 0 && (
+        <div style={{
+          position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 16px', borderRadius: 999,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
+          color: '#fff', fontSize: 12, fontWeight: 600,
+          fontFamily: "'Outfit', system-ui, sans-serif",
+          pointerEvents: 'auto',
+        }}>
+          <span>Floor {(allRoomsData[currentRoomId]?.level ?? allRooms[currentRoomId]?.level ?? 0) + 1}</span>
+          <button onClick={goBack} style={{
+            padding: '3px 10px', borderRadius: 8,
+            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+            color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>▾ Go down</button>
+        </div>
+      )}
+
       <div className="ddd-desktop-only">
         <RoomBanner
           currentRoomId={currentRoomId}
@@ -1012,6 +1032,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
+            onStairs={() => { setOverviewOpen(true); setActiveTool(null) }}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
             showGrid={showGrid}
@@ -1386,6 +1407,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuildTabPanel
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
+        onStairs={() => setOverviewOpen(true)}
       />
     </DockablePanel>
     <DockablePanel tabId="place" width={320} maxHeight="78vh">

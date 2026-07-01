@@ -4,13 +4,13 @@ import { DoorOpen, RectangleHorizontal, Layers, ArrowUpDown, Archive } from 'luc
 // pickers; Walls, Stairs, Closets are spec'd but not built (shown as SOON).
 
 export default function BuildTabPanel({
-  onWindow, onDoor,
+  onWindow, onDoor, onStairs,
 }) {
   const items = [
     { id: 'window', label: 'Window', Icon: RectangleHorizontal, onClick: onWindow },
     { id: 'door',   label: 'Door',   Icon: DoorOpen,            onClick: onDoor   },
+    { id: 'stairs', label: 'Stairs', Icon: ArrowUpDown,         onClick: onStairs },
     { id: 'walls',  label: 'Walls',  Icon: Layers,              soon: true },
-    { id: 'stairs', label: 'Stairs', Icon: ArrowUpDown,         soon: true },
     { id: 'closet', label: 'Closet', Icon: Archive,             soon: true },
   ]
 

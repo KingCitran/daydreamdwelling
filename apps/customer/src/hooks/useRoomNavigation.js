@@ -32,7 +32,31 @@ export default function useRoomNavigation({
 }) {
   const enterRoom = useCallback((doorId) => {
     const door = items.find(it => it.id === doorId)
-    if (!door || !door.wall) return
+    if (!door) return
+
+    // ── Stairs navigation: go to the connected floor ──────────────
+    if (door.stairs && door.topFloorRoomId != null) {
+      const targetId = door.topFloorRoomId
+      const targetRoom = allRooms[targetId]
+      if (!targetRoom) return
+      const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation }
+      const sz = zoomRef.current
+      zoomRef.current = Math.max(15, sz * 0.72)
+      setTimeout(() => { zoomRef.current = sz }, 420)
+      setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
+      setCurrentRoomId(targetId)
+      setRoomStack(prev => [...prev, currentRoomId])
+      setGridW(targetRoom.gridW); setGridD(targetRoom.gridD)
+      setCells(new Set(targetRoom.cells))
+      setItems([...targetRoom.items])
+      setWallHeight(targetRoom.wallHeight ?? wallHeight)
+      if (targetRoom.floorColor) setFloorColor(targetRoom.floorColor)
+      if (targetRoom.wallColor) setWallColor(targetRoom.wallColor)
+      setSelectedId(null)
+      return
+    }
+
+    if (!door.wall) return
     if (ITEM_CATALOGUE[door.typeKey]?.entryway) return
 
     if (door.connectedRoomId === undefined || door.connectedRoomId === null) {
@@ -332,8 +356,14 @@ export default function useRoomNavigation({
     const topRoomId = nextRoomIdRef.current++
     const palette   = ROOM_PALETTES[topRoomId % ROOM_PALETTES.length]
     const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation: 0, layer: 0, locked: true, bottomCells: [...bottomCells], topCells: [...topCells] }
+    // Place a matching "return stairs" in the upper room so the user
+    // can double-click to go back down. topFloorRoomId points to the
+    // LOWER room (the one we came from).
+    const topCols = [...topCells].map(k => Number(k.split(',')[0]))
+    const topRows = [...topCells].map(k => Number(k.split(',')[1]))
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
     if (roomId === currentRoomId) {
-      const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
+      const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
       setItems(prev => [...prev, stairItem])
       setAllRooms(prev => ({ ...prev, [currentRoomId]: liveSnap, [topRoomId]: topRoom }))
     } else {
@@ -342,7 +372,7 @@ export default function useRoomNavigation({
         const room     = updated[roomId]
         if (!room) return prev
         const level    = room.level ?? 0
-        const topRoom  = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [], wallHeight: room.wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: level + 1 }
+        const topRoom  = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight: room.wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: level + 1 }
         return { ...updated, [roomId]: { ...room, items: [...(room.items || []), stairItem] }, [topRoomId]: topRoom }
       })
     }

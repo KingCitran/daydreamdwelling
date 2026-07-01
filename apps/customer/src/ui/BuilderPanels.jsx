@@ -195,13 +195,14 @@ const BUILD_ITEMS = [
   { id: 'closet', label: 'Closet', Icon: Home },
 ]
 
-export function DesignBuildContent({ onWindow, onDoor, ceilingView, onToggleCeiling, showGrid, onToggleGrid, showMeasurements, onToggleMeasurements }) {
+export function DesignBuildContent({ onWindow, onDoor, onStairs, ceilingView, onToggleCeiling, showGrid, onToggleGrid, showMeasurements, onToggleMeasurements }) {
   const t = useTheme()
   const u = ui(t)
 
   const handlePick = (id) => {
     if (id === 'window') onWindow?.()
     else if (id === 'door') onDoor?.()
+    else if (id === 'stairs') onStairs?.()
   }
 
   return (
