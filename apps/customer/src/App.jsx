@@ -210,6 +210,80 @@ function Gate() {
   return <WispyProvider>{page}<FeedbackButton /></WispyProvider>
 }
 
+// ── Floor Switcher — Sims-style ▲ Floor N ▼ ───────────────────────
+// Traces stair connections to build a vertical floor stack, then shows
+// up/down arrows to navigate between floors of the same building.
+function FloorSwitcher({ currentRoomId, allRoomsData, items, onNavigate }) {
+  // Build the floor stack: find all rooms connected via stairs
+  const floorStack = useMemo(() => {
+    // Collect all stair connections across all rooms
+    const upLinks = {}   // roomId → roomId it stairs UP to
+    const downLinks = {} // roomId → roomId it stairs DOWN to
+    for (const [ridStr, room] of Object.entries(allRoomsData)) {
+      const rid = Number(ridStr)
+      const roomItems = rid === currentRoomId ? items : (room.items ?? [])
+      for (const it of roomItems) {
+        if (it.stairs && it.topFloorRoomId != null) {
+          if (it.returnStair) {
+            // returnStair's topFloorRoomId points DOWN to the lower room
+            downLinks[rid] = it.topFloorRoomId
+            upLinks[it.topFloorRoomId] = rid
+          } else {
+            upLinks[rid] = it.topFloorRoomId
+            downLinks[it.topFloorRoomId] = rid
+          }
+        }
+      }
+    }
+    // Walk down from current room to find the ground floor
+    let ground = currentRoomId
+    while (downLinks[ground] != null) ground = downLinks[ground]
+    // Walk up from ground to build ordered stack
+    const stack = [ground]
+    let cur = ground
+    while (upLinks[cur] != null) { cur = upLinks[cur]; stack.push(cur) }
+    return stack
+  }, [currentRoomId, allRoomsData, items])
+
+  if (floorStack.length <= 1) return null
+
+  const currentFloor = floorStack.indexOf(currentRoomId)
+  if (currentFloor === -1) return null
+  const canGoUp = currentFloor < floorStack.length - 1
+  const canGoDown = currentFloor > 0
+
+  const btnStyle = (enabled) => ({
+    width: 32, height: 32, borderRadius: 8, border: 'none',
+    background: enabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+    color: enabled ? '#fff' : 'rgba(255,255,255,0.3)',
+    cursor: enabled ? 'pointer' : 'default',
+    fontSize: 14, fontWeight: 800,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontFamily: "'Outfit', system-ui, sans-serif",
+  })
+
+  return (
+    <div style={{
+      position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 20, display: 'flex', alignItems: 'center', gap: 6,
+      padding: '4px 6px', borderRadius: 12,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(12px)',
+      color: '#fff', fontSize: 13, fontWeight: 700,
+      fontFamily: "'Outfit', system-ui, sans-serif",
+      pointerEvents: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+    }}>
+      <button style={btnStyle(canGoDown)} onClick={canGoDown ? () => onNavigate(floorStack[currentFloor - 1]) : undefined}
+        title="Go down one floor">▼</button>
+      <span style={{ padding: '0 8px', minWidth: 64, textAlign: 'center', fontSize: 12 }}>
+        Floor {currentFloor + 1}
+        <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4 }}>/ {floorStack.length}</span>
+      </span>
+      <button style={btnStyle(canGoUp)} onClick={canGoUp ? () => onNavigate(floorStack[currentFloor + 1]) : undefined}
+        title="Go up one floor">▲</button>
+    </div>
+  )
+}
+
 function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
@@ -927,25 +1001,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* FX overlays render AFTER canvas so they layer on top */}
       <MoonOverlay />
 
-      {/* Floor level indicator — shows when on upper floors */}
-      {(allRoomsData[currentRoomId]?.level ?? allRooms[currentRoomId]?.level ?? 0) > 0 && (
-        <div style={{
-          position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 16px', borderRadius: 999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
-          color: '#fff', fontSize: 12, fontWeight: 600,
-          fontFamily: "'Outfit', system-ui, sans-serif",
-          pointerEvents: 'auto',
-        }}>
-          <span>Floor {(allRoomsData[currentRoomId]?.level ?? allRooms[currentRoomId]?.level ?? 0) + 1}</span>
-          <button onClick={goBack} style={{
-            padding: '3px 10px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
-            color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>▾ Go down</button>
-        </div>
-      )}
+      {/* Floor level switcher — Sims-style ▲ Floor N ▼ */}
+      <FloorSwitcher
+        currentRoomId={currentRoomId}
+        allRoomsData={allRoomsData}
+        items={items}
+        onNavigate={jumpToRoom}
+      />
 
       <div className="ddd-desktop-only">
         <RoomBanner
