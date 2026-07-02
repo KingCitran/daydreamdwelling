@@ -16,7 +16,7 @@ import {
   Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home,
   Undo2, Redo2, Trash2, Heart, SlidersHorizontal, RotateCw, RotateCcw,
   Camera, Share2, User, Music, Eye, ClipboardList, Users,
-  ChevronDown, Check, Plus, Minus, Search, Lock, Unlock
+  ChevronDown, Check, Plus, Minus, Search, Lock, Unlock, Layers
 } from 'lucide-react'
 
 // ── Mode detection ─────────────────────────────────────────────────
@@ -101,7 +101,7 @@ function IconBtn({ icon: LucideIcon, onClick, label, badge, active, size = 38, u
 }
 
 // ── Room Switcher ──────────────────────────────────────────────────
-function RoomSwitcher({ mode, rooms, room, onPick, onNew, u }) {
+function RoomSwitcher({ mode, rooms, room, onPick, onNew, onDelete, onOverview, u }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ position: 'relative', minWidth: 0, flexShrink: mode === 'mobile' ? 1 : 0 }}>
@@ -124,18 +124,38 @@ function RoomSwitcher({ mode, rooms, room, onPick, onNew, u }) {
           padding: 6, zIndex: 120, boxShadow: '0 14px 40px rgba(0,0,0,0.28)',
         }}>
           {(rooms || [room]).map(r => (
-            <button key={r} onClick={() => { onPick?.(r); setOpen(false) }} style={{
-              display: 'flex', width: '100%', alignItems: 'center', gap: 8,
-              padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: r === room ? u.accent + '16' : 'transparent',
-              color: r === room ? u.accent : u.text,
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
-            }}>
-              <Home size={15} /> {r}
-              {r === room && <Check size={15} style={{ marginLeft: 'auto' }} />}
-            </button>
+            <div key={r} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+              <button onClick={() => { onPick?.(r); setOpen(false) }} style={{
+                display: 'flex', flex: 1, alignItems: 'center', gap: 8,
+                padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: r === room ? u.accent + '16' : 'transparent',
+                color: r === room ? u.accent : u.text,
+                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
+              }}>
+                <Home size={15} /> {r}
+                {r === room && <Check size={15} style={{ marginLeft: 'auto' }} />}
+              </button>
+              {rooms && rooms.length > 1 && r !== room && (
+                <button onClick={() => { onDelete?.(r); setOpen(false) }} title={`Delete ${r}`} style={{
+                  width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: 'transparent', color: u.soft, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  fontSize: 13,
+                }}>✕</button>
+              )}
+            </div>
           ))}
           <div style={{ height: 1, background: u.line, margin: '4px 6px' }} />
+          {onOverview && (
+            <button onClick={() => { onOverview(); setOpen(false) }} style={{
+              display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+              padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: 'transparent', color: u.text,
+              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
+            }}>
+              <Layers size={15} /> Room map
+            </button>
+          )}
           <button onClick={() => { onNew?.(); setOpen(false) }} style={{
             display: 'flex', width: '100%', alignItems: 'center', gap: 8,
             padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -176,7 +196,7 @@ function BudgetChip({ total, count, onClick, compact, u }) {
 export function BuilderTopBar({
   roomName, rooms, budget, itemCount, cartCount,
   onUndo, onRedo, canUndo, canRedo, onCart, onScreenshot, onShare, onAccount,
-  onPickRoom, onNewRoom, onBudget, onBrandClick,
+  onPickRoom, onNewRoom, onDeleteRoom, onOverview, onBudget, onBrandClick,
 }) {
   const t = useTheme()
   const u = ui(t)
@@ -197,7 +217,7 @@ export function BuilderTopBar({
       <header style={barStyle}>
         <div onClick={onBrandClick} style={{ cursor: 'pointer', flexShrink: 0 }}><Logo size={30} color={u.accent} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-          <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} u={u} />
+          <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onOverview={onOverview} u={u} />
           <BudgetChip total={budget} count={itemCount} onClick={onBudget} compact u={u} />
         </div>
         <IconBtn icon={Undo2} onClick={onUndo} label="Undo" size={36} u={u} disabled={!canUndo} />
@@ -218,7 +238,7 @@ export function BuilderTopBar({
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} u={u} />
+        <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onOverview={onOverview} u={u} />
         <BudgetChip total={budget} count={itemCount} onClick={onBudget} u={u} />
       </div>
       <div style={{ flex: 1 }} />

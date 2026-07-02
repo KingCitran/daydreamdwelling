@@ -1082,7 +1082,18 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           const id = allIds.find(id => getRoomName(id) === name)
           if (id != null) jumpToRoom(id)
         }}
-        onNewRoom={() => {}}
+        onNewRoom={() => {
+          const rW = 10, rD = 10
+          const rCells = new Set()
+          for (let c = 0; c < rW; c++) for (let r = 0; r < rD; r++) rCells.add(`${c},${r}`)
+          addRoom({ gridW: rW, gridD: rD, cells: rCells })
+        }}
+        onDeleteRoom={(name) => {
+          const allIds = Object.keys(allRoomsData || {})
+          const id = allIds.find(id => getRoomName(id) === name)
+          if (id != null) deleteRoom(Number(id))
+        }}
+        onOverview={() => setOverviewOpen(true)}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
       <BuilderToolDock
