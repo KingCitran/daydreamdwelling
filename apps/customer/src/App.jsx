@@ -828,6 +828,35 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return { ...allRooms, [currentRoomId]: currentSnap }
   }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
 
+  // Build floor labels for stair-connected rooms: "Living Room · Floor 1"
+  const floorLabels = useMemo(() => {
+    const labels = {}
+    const upLinks = {}, downLinks = {}
+    for (const [ridStr, room] of Object.entries(allRoomsData)) {
+      const rid = Number(ridStr)
+      for (const it of (room.items ?? [])) {
+        if (!it.stairs || it.topFloorRoomId == null) continue
+        if (it.returnStair) { downLinks[rid] = it.topFloorRoomId; upLinks[it.topFloorRoomId] = rid }
+        else { upLinks[rid] = it.topFloorRoomId; downLinks[it.topFloorRoomId] = rid }
+      }
+    }
+    // Find each ground floor and walk up
+    const visited = new Set()
+    for (const ridStr of Object.keys(allRoomsData)) {
+      let rid = Number(ridStr)
+      if (visited.has(rid)) continue
+      while (downLinks[rid] != null) rid = downLinks[rid]
+      if (visited.has(rid)) continue
+      const stack = [rid]
+      let cur = rid
+      while (upLinks[cur] != null) { cur = upLinks[cur]; stack.push(cur) }
+      if (stack.length > 1) {
+        stack.forEach((id, i) => { labels[id] = `Floor ${i + 1}`; visited.add(id) })
+      }
+    }
+    return labels
+  }, [allRoomsData])
+
   const overviewPositions = useMemo(() => {
     const snap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation }
     const allData = { ...allRooms, [currentRoomId]: snap }
@@ -1127,8 +1156,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
         onBrandClick={() => { window.location.search = '?hub=1' }}
-        roomName={getRoomName(currentRoomId)}
-        rooms={Object.keys(allRoomsData || {}).map(id => getRoomName(id))}
+        roomName={floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
+        rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}
         budget={items.reduce((s, it) => {
           const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
           return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
