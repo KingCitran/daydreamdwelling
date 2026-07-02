@@ -378,5 +378,52 @@ export default function useRoomNavigation({
     }
   }, [gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, currentRoomId, nextRoomIdRef, nextItemIdRef, setItems, setAllRooms]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs }
+  // ── Quick-place stairs (no wizard) ──────────────────────────────
+  // Drops a default 1×3 stair in the current room at the first free
+  // spot, creates the upper room automatically. Returns true if placed.
+  const placeStairsQuick = useCallback(() => {
+    const stairW = 1, stairD = 3, stairCount = 12
+    // Find a free 1×3 area on the floor
+    let placeCol = -1, placeRow = -1
+    const cellSet = cells instanceof Set ? cells : new Set(cells)
+    outer:
+    for (let r = 0; r <= gridD - stairD; r++) {
+      for (let c = 0; c <= gridW - stairW; c++) {
+        // Check all cells in the footprint exist and are free of other stairs
+        let allFree = true
+        for (let dc = 0; dc < stairW; dc++) {
+          for (let dr = 0; dr < stairD; dr++) {
+            const key = `${c + dc},${r + dr}`
+            if (!cellSet.has(key)) { allFree = false; break }
+          }
+          if (!allFree) break
+        }
+        if (allFree) {
+          // Check no other stair item overlaps
+          const hasStair = items.some(it => it.stairs &&
+            it.col < c + stairW && it.col + (it.stairW ?? 1) > c &&
+            it.row < r + stairD && it.row + (it.stairD ?? 1) > r)
+          if (!hasStair) { placeCol = c; placeRow = r; break outer }
+        }
+      }
+    }
+    if (placeCol < 0) return false // no room for stairs
+
+    const bottomCells = new Set()
+    const topCells = new Set()
+    for (let dc = 0; dc < stairW; dc++) {
+      for (let dr = 0; dr < stairD; dr++) {
+        bottomCells.add(`${placeCol + dc},${placeRow + dr}`)
+        topCells.add(`${dc},${dr}`)
+      }
+    }
+    addStairs(currentRoomId, {
+      bottomCells, stairCount, topCells,
+      topW: Math.max(gridW, stairW + 2),
+      topD: Math.max(gridD, stairD + 2),
+    })
+    return true
+  }, [cells, gridW, gridD, items, currentRoomId, addStairs])
+
+  return { enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs, placeStairsQuick }
 }

@@ -530,7 +530,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }, [shopBuilderSellerId, shopSaving, gridW, gridD, wallHeight, cells, items, floorColor, wallColor, bgColor, lightMood])
 
   const {
-    enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom,
+    enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, placeStairsQuick,
     unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs,
   } = useRoomNavigation({
     items, setItems,
@@ -1032,7 +1032,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
-            onStairs={() => { setOverviewOpen(true); setActiveTool(null) }}
+            onStairs={() => {
+              setActiveTool(null)
+              const placed = placeStairsQuick()
+              if (placed) showWispy('Stairs placed! Double-click them to go upstairs. ☁')
+              else showWispy("There's no room for stairs here — try a bigger room.")
+            }}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
             showGrid={showGrid}
@@ -1407,7 +1412,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuildTabPanel
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
-        onStairs={() => setOverviewOpen(true)}
+        onStairs={() => {
+          const placed = placeStairsQuick()
+          if (placed) showWispy('Stairs placed! Double-click them to go upstairs. ☁')
+          else showWispy("There's no room for stairs here — try a bigger room.")
+        }}
       />
     </DockablePanel>
     <DockablePanel tabId="place" width={320} maxHeight="78vh">
