@@ -1117,7 +1117,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         item={selectedItem}
         catalogue={catalogue}
         onRotate={() => selectedItem && rotateItem(selectedItem.id)}
-        onDetails={() => selectedItem && openProductModal(selectedItem.typeKey)}
+        onDetails={() => selectedItem && !selectedItem.stairs && openProductModal(selectedItem.typeKey)}
         onDelete={() => selectedItem && deleteItem(selectedItem.id)}
         onWishlist={() => selectedItem && toggleWishlist(selectedItem.id)}
         isWishlisted={selectedItem?.wishlisted}
