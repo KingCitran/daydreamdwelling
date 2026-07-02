@@ -389,17 +389,18 @@ export default function useRoomNavigation({
     const col = Math.max(0, Math.floor(gridW / 2) - Math.floor(stairW / 2))
     const row = Math.max(0, Math.floor(gridD / 2) - Math.floor(stairD / 2))
     const bottomCells = new Set()
-    const topCells = new Set()
-    for (let dc = 0; dc < stairW; dc++) {
-      for (let dr = 0; dr < stairD; dr++) {
+    for (let dc = 0; dc < stairW; dc++)
+      for (let dr = 0; dr < stairD; dr++)
         bottomCells.add(`${col + dc},${row + dr}`)
-        topCells.add(`${dc},${dr}`)
-      }
-    }
+    // Upper room gets a full grid, not just the stair footprint
+    const topW = Math.max(gridW, stairW + 2)
+    const topD = Math.max(gridD, stairD + 2)
+    const topCells = new Set()
+    for (let c = 0; c < topW; c++)
+      for (let r = 0; r < topD; r++)
+        topCells.add(`${c},${r}`)
     addStairs(currentRoomId, {
-      bottomCells, stairCount, topCells,
-      topW: Math.max(gridW, stairW + 2),
-      topD: Math.max(gridD, stairD + 2),
+      bottomCells, stairCount, topCells, topW, topD,
     })
     return true
   }, [gridW, gridD, items, currentRoomId, addStairs])

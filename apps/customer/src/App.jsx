@@ -893,18 +893,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             if (!ghostPlacement) return
             const g = ghostPlacement
             if (g.typeKey === 'stairs') {
-              // Use addStairs to create upper room + return stair
+              const sw = g.stairW ?? 3, sd = g.stairD ?? 5
               const bottomCells = new Set()
-              const topCells = new Set()
-              for (let dc = 0; dc < (g.stairW ?? 1); dc++)
-                for (let dr = 0; dr < (g.stairD ?? 3); dr++) {
+              for (let dc = 0; dc < sw; dc++)
+                for (let dr = 0; dr < sd; dr++)
                   bottomCells.add(`${col + dc},${row + dr}`)
-                  topCells.add(`${dc},${dr}`)
-                }
+              // Upper room gets a full grid (same size as current room or bigger)
+              const topW = Math.max(gridW, sw + 2)
+              const topD = Math.max(gridD, sd + 2)
+              const topCells = new Set()
+              for (let c = 0; c < topW; c++)
+                for (let r = 0; r < topD; r++)
+                  topCells.add(`${c},${r}`)
               addStairs(currentRoomId, {
-                bottomCells, stairCount: g.stairCount ?? 12, topCells,
-                topW: Math.max(gridW, (g.stairW ?? 1) + 2),
-                topD: Math.max(gridD, (g.stairD ?? 3) + 2),
+                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD,
               })
               showWispy('Stairs placed! Double-click them to go upstairs.')
             } else {
