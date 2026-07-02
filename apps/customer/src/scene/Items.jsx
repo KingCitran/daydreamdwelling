@@ -149,6 +149,46 @@ function StairVisual({ fw, fd, fh, wallHeight, stairCount, color }) {
   )
 }
 
+// ── Stair opening (upper floor) — shows the hole where stairs come through ──
+function StairOpeningVisual({ fw, fd, fh }) {
+  const railH = 3     // railing height in ft
+  const railT = 0.08  // railing thickness
+  const railColor = '#8a7a6a'
+  return (
+    <group position={[0, -fh / 2, 0]}>
+      {/* Dark opening in the floor */}
+      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[fw, fd]} />
+        <meshBasicMaterial color="#1a1018" side={THREE.DoubleSide} />
+      </mesh>
+      {/* Railing posts at corners */}
+      {[[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sz], i) => (
+        <mesh key={i} position={[sx * (fw/2 - railT), railH/2, sz * (fd/2 - railT)]}>
+          <boxGeometry args={[railT, railH, railT]} />
+          <meshStandardMaterial color={railColor} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Top rails */}
+      <mesh position={[0, railH, -fd/2 + railT/2]}>
+        <boxGeometry args={[fw, railT, railT]} />
+        <meshStandardMaterial color={railColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, railH, fd/2 - railT/2]}>
+        <boxGeometry args={[fw, railT, railT]} />
+        <meshStandardMaterial color={railColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[-fw/2 + railT/2, railH, 0]}>
+        <boxGeometry args={[railT, railT, fd]} />
+        <meshStandardMaterial color={railColor} roughness={0.7} />
+      </mesh>
+      <mesh position={[fw/2 - railT/2, railH, 0]}>
+        <boxGeometry args={[railT, railT, fd]} />
+        <meshStandardMaterial color={railColor} roughness={0.7} />
+      </mesh>
+    </group>
+  )
+}
+
 // ── Floor item ─────────────────────────────────────────────────────
 const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
                     onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE, onEnterRoom }) {
@@ -254,8 +294,10 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       onClick={e => e.stopPropagation()}
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
-      {isStairs ? (
-        <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 12} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+      {isStairs && item.returnStair ? (
+        <StairOpeningVisual fw={fw} fd={fd} fh={fh} />
+      ) : isStairs ? (
+        <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
       ) : modelUrl ? (
         <>
           {/* Contact shadow — soft multi-ring oval for grounded look */}

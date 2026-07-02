@@ -889,11 +889,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           catalogue={catalogue}
           cloudsOn={cloudsOn}
           ghostPlacement={ghostPlacement}
-          onGhostPlace={(col, row) => {
+          onGhostPlace={(col, row, rotation) => {
             if (!ghostPlacement) return
             const g = ghostPlacement
             if (g.typeKey === 'stairs') {
-              const sw = g.stairW ?? 3, sd = g.stairD ?? 5
+              const rawW = g.stairW ?? 3, rawD = g.stairD ?? 5
+              const rot = rotation ?? 0
+              const sw = (rot === 90 || rot === 270) ? rawD : rawW
+              const sd = (rot === 90 || rot === 270) ? rawW : rawD
               const bottomCells = new Set()
               for (let dc = 0; dc < sw; dc++)
                 for (let dr = 0; dr < sd; dr++)
@@ -906,9 +909,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
                 for (let r = 0; r < topD; r++)
                   topCells.add(`${c},${r}`)
               addStairs(currentRoomId, {
-                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD,
+                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD, rotation: rot,
               })
-              showWispy('Stairs placed! Double-click them to go upstairs.')
+              showWispy('Stairs placed! Double-click to go upstairs. R to rotate before placing.')
             } else {
               placeItem(g.typeKey, g.sizeIndex ?? 0, g.swatchIndex ?? 0)
             }
@@ -1136,7 +1139,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onStairs={() => {
               setActiveTool(null)
               setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
-              showWispy('Click to place stairs. ESC to cancel.')
+              showWispy('Click to place stairs. R to rotate. ESC to cancel.')
             }}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
@@ -1522,7 +1525,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onDoor={() => setDoorPickerOpen(true)}
         onStairs={() => {
           setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
-          showWispy('Click to place stairs. ESC to cancel.')
+          showWispy('Click to place stairs. R to rotate. ESC to cancel.')
         }}
       />
     </DockablePanel>

@@ -344,7 +344,7 @@ export default function useRoomNavigation({
     }
   }, [currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, setGridW, setGridD, setCells, setAllRooms])
 
-  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD }) => {
+  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD, rotation = 0 }) => {
     const liveSnap = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation }
     const cols = [...bottomCells].map(k => Number(k.split(',')[0]))
     const rows = [...bottomCells].map(k => Number(k.split(',')[1]))
@@ -355,7 +355,7 @@ export default function useRoomNavigation({
     const stairD = Math.max(...rows) - row + 1
     const topRoomId = nextRoomIdRef.current++
     const palette   = ROOM_PALETTES[topRoomId % ROOM_PALETTES.length]
-    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation: 0, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
+    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
     // Place a matching "return stairs" in the upper room so the user
     // can double-click to go back down. topFloorRoomId points to the
     // LOWER room (the one we came from).

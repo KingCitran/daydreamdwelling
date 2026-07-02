@@ -413,7 +413,7 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
       {divider}
       {btn(<Plus size={19} />, 'Zoom in', onZoomIn)}
       <span style={{ fontSize: 9.5, fontWeight: 800, color: u.soft, padding: '1px 0' }}>
-        {Math.round((zoom || 1) * 100)}%
+        {Math.round(((zoom || 40) / 40) * 100)}%
       </span>
       {btn(<Minus size={19} />, 'Zoom out', onZoomOut)}
       {divider}
