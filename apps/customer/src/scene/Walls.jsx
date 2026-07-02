@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { ITEM_CATALOGUE } from '../data/items'
+import { getTexture, TEXTURE_ROUGHNESS, PAINT_FINISH_ROUGHNESS } from './textures'
 
 const WALL_T = 0.28
 
@@ -198,7 +199,7 @@ function WallGrid({ x, z, normal, axis, wallHeight, uLo, uHi, yLo, yHi }) {
   )
 }
 
-export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, currentRotationRef, showGrid, items }) {
+export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wallTexture, wallFinish, wallOverrides, currentRotationRef, showGrid, items, paintMode, onClickWall }) {
   const walls = useMemo(
     () => buildWalls(cells, gridW, gridD),
     [cells, gridW, gridD]
@@ -222,8 +223,17 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, curr
       {walls.map(({ id, x, z, normal, axis }) => {
         const w         = axis === 'z' ? 1 + WALL_T : WALL_T
         const d         = axis === 'z' ? WALL_T     : 1 + WALL_T
-        const base      = wallColor || '#d8d0c6'
-        const color     = normal[0] !== 0 ? base : lightenHex(base, 14)
+
+        // Per-face override or global default
+        const ov = wallOverrides?.get?.(id)
+        const faceColor    = ov?.color   ?? wallColor ?? '#d8d0c6'
+        const faceTexType  = ov?.texture ?? wallTexture ?? 'flat'
+        const faceFinish   = ov?.finish  ?? wallFinish
+        const faceTex      = getTexture(faceTexType, faceColor)
+        const faceRough    = faceFinish
+          ? (PAINT_FINISH_ROUGHNESS[faceFinish] ?? 0.88)
+          : (TEXTURE_ROUGHNESS[faceTexType] ?? 0.88)
+        const color     = faceTex ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
         const isVisible = normalMatches(normal, visibles)
 
         const segW2   = 1 + WALL_T
@@ -243,9 +253,16 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, curr
               const pos  = axis === 'z' ? [uCen, yCen, z] : [x, yCen, uCen]
               const geom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
               return (
-                <mesh key={pi} position={pos} visible={isVisible} castShadow receiveShadow>
+                <mesh key={pi} position={pos} visible={isVisible} castShadow receiveShadow
+                  onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
+                >
                   <boxGeometry args={geom} />
-                  <meshStandardMaterial color={color} roughness={0.88} metalness={0} />
+                  <meshStandardMaterial
+                    color={color}
+                    map={faceTex || undefined}
+                    roughness={faceRough}
+                    metalness={faceFinish === 'highGloss' ? 0.05 : 0}
+                  />
                 </mesh>
               )
             })}

@@ -21,7 +21,7 @@ const PROCESSING_OPTIONS = [
 ]
 
 export const INITIAL_FORM = {
-  label: '', brand: '', category: '', handmadeType: 'manufactured',
+  label: '', brand: '', category: '', subcategory: '', handmadeType: 'manufactured',
   makeModel: '', shortDesc: '', fullDesc: '', materials: [], guarantee: '',
   photos: [],
   sizes: [{ label: '', wFt: '', wIn: '', dFt: '', dIn: '', hFt: '', hIn: '', price: '' }],
@@ -31,6 +31,8 @@ export const INITIAL_FORM = {
   customizationOptions: [],
   shippingType: 'flat', flatRate: '', processingDays: 5, weightLbs: '',
   shippingRegions: ['domestic'], wattage: '', kelvin: '',
+  // Surface product fields (flooring, wall treatments, paint)
+  textureType: '', paintFinish: '', coverageSqft: '',
   active: true,
 }
 
@@ -126,6 +128,12 @@ export default function AddProductPage({ productId, onDone }) {
         is_customizable: form.isCustomizable || false,
         customization_type: form.isCustomizable ? (form.customizationType || 'customized') : null,
         fulfillment_method: form.isCustomizable ? (form.fulfillmentMethod || 'ships_finished') : null,
+        subcategory: form.subcategory || null,
+        is_floor_finish: form.category === 'flooring' || false,
+        is_wall_finish: (form.category === 'wall treatments' || form.category === 'paint') || false,
+        texture_type: form.textureType || null,
+        paint_finish: form.paintFinish || null,
+        coverage_sqft: form.coverageSqft ? Number(form.coverageSqft) : null,
         is_active: form.active, status: form.active ? 'active' : 'draft', seller_id: user.id,
       }
       let pid = productId

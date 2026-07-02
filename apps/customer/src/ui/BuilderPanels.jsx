@@ -3,7 +3,7 @@
 // ui() token system. These are the CONTENTS, not the shell — BuilderSheet
 // handles the container (bottom sheet / side panel).
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { ITEM_CATALOGUE, CATEGORIES } from '../data/items'
@@ -65,17 +65,41 @@ function Seg({ options, value, onChange, u }) {
 
 // ── Presets ─────────────────────────────────────────────────────────
 const WALL_PRESETS = [
-  { name: 'Cloud', hex: '#ece7f5' }, { name: 'Blush', hex: '#f0d8d8' },
-  { name: 'Sage', hex: '#cdd8c4' }, { name: 'Sky', hex: '#cfe0ee' },
-  { name: 'Butter', hex: '#f2e6c2' }, { name: 'Clay', hex: '#e0c2ad' },
-  { name: 'Charcoal', hex: '#3a3a44' }, { name: 'Plum', hex: '#5a3f63' },
+  { name: 'Cloud',     hex: '#ece7f5', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Blush',     hex: '#f0d8d8', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Sage',      hex: '#cdd8c4', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Sky',       hex: '#cfe0ee', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Butter',    hex: '#f2e6c2', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Clay',      hex: '#e0c2ad', tex: 'flat',    finish: 'satin' },
+  { name: 'Charcoal',  hex: '#3a3a44', tex: 'flat',    finish: 'satin' },
+  { name: 'Plum',      hex: '#5a3f63', tex: 'flat',    finish: 'satin' },
+  { name: 'Brick',     hex: '#a04828', tex: 'brick',   finish: null },
+  { name: 'Wht Brick', hex: '#f0ece6', tex: 'brick',   finish: null },
+  { name: 'Shiplap',   hex: '#f0ece6', tex: 'shiplap', finish: null },
+  { name: 'Gry Shiplap',hex:'#c0beb8', tex: 'shiplap', finish: null },
 ]
 
 const FLOOR_PRESETS = [
-  { name: 'Oak', hex: '#c8a878', tex: 'wood' }, { name: 'Walnut', hex: '#7c5a3c', tex: 'wood' },
-  { name: 'Ash', hex: '#d8cdb8', tex: 'wood' }, { name: 'Carpet', hex: '#c4b9ad', tex: 'soft' },
-  { name: 'Tile', hex: '#d2d8dc', tex: 'tile' }, { name: 'Concrete', hex: '#b0b0b4', tex: 'flat' },
-  { name: 'Terracotta', hex: '#bd7d5c', tex: 'tile' }, { name: 'Slate', hex: '#5a6068', tex: 'tile' },
+  { name: 'Oak',        hex: '#c8a878', tex: 'wood' },
+  { name: 'Walnut',     hex: '#7c5a3c', tex: 'wood' },
+  { name: 'Ash',        hex: '#d8cdb8', tex: 'wood' },
+  { name: 'Carpet',     hex: '#c4b9ad', tex: 'carpet' },
+  { name: 'Tile',       hex: '#d2d8dc', tex: 'tile' },
+  { name: 'Concrete',   hex: '#b0b0b4', tex: 'concrete' },
+  { name: 'Terracotta', hex: '#bd7d5c', tex: 'tile' },
+  { name: 'Slate',      hex: '#5a6068', tex: 'tile' },
+  { name: 'Marble',     hex: '#e8e4e0', tex: 'marble' },
+  { name: 'Navy Crpt',  hex: '#2a3a5a', tex: 'carpet' },
+  { name: 'Sage Crpt',  hex: '#8a9a78', tex: 'carpet' },
+  { name: 'Dark Oak',   hex: '#5c4033', tex: 'wood' },
+]
+
+const SHEEN_OPTIONS = [
+  { id: 'flat',      label: 'Matte' },
+  { id: 'eggshell',  label: 'Eggshell' },
+  { id: 'satin',     label: 'Satin' },
+  { id: 'semiGloss', label: 'Semi-Gloss' },
+  { id: 'highGloss', label: 'High-Gloss' },
 ]
 
 const MOOD_LIST = [
@@ -93,8 +117,158 @@ const MOOD_LIST = [
   { key: 'Studio',           label: 'Studio',           desc: 'Neutral flat light',          sky: 'linear-gradient(180deg, #e4e7ec, #eef0f3, #f4f5f7)' },
 ]
 
+// ── Photo Color Matcher ────────────────────────────────────────────
+// Upload a photo of your real wall/floor → click to sample a color →
+// pick the lighting condition → get a corrected hex for the builder.
+const LIGHTING_ADJUSTMENTS = {
+  daylight:    { label: 'Daylight (natural)',   r: 0, g: 0, b: 0 },
+  warmIndoor:  { label: 'Warm bulbs (2700K)',   r: -18, g: -8, b: 8 },
+  coolLed:     { label: 'Cool LED (4000K)',     r: 4, g: 2, b: -6 },
+  evening:     { label: 'Evening / dim lamp',   r: -25, g: -12, b: 12 },
+  fluorescent: { label: 'Fluorescent / office', r: 4, g: -4, b: -2 },
+}
+
+function PhotoColorPicker({ onPickColor, u }) {
+  const canvasRef = useRef(null)
+  const fileRef = useRef(null)
+  const [imgSrc, setImgSrc] = useState(null)
+  const [pickedHex, setPickedHex] = useState(null)
+  const [pickedRaw, setPickedRaw] = useState(null)
+  const [lighting, setLighting] = useState('daylight')
+
+  const handleFile = useCallback((e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setImgSrc(reader.result)
+    reader.readAsDataURL(file)
+    setPickedHex(null); setPickedRaw(null)
+  }, [])
+
+  const handleCanvasClick = useCallback((e) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const x = Math.round((e.clientX - rect.left) * (canvas.width / rect.width))
+    const y = Math.round((e.clientY - rect.top) * (canvas.height / rect.height))
+    const ctx = canvas.getContext('2d')
+    const [r, g, b] = ctx.getImageData(x, y, 1, 1).data
+    setPickedRaw({ r, g, b })
+    applyLighting({ r, g, b }, lighting)
+  }, [lighting])
+
+  const applyLighting = useCallback((raw, lit) => {
+    if (!raw) return
+    const adj = LIGHTING_ADJUSTMENTS[lit] ?? LIGHTING_ADJUSTMENTS.daylight
+    const clamp = v => Math.max(0, Math.min(255, Math.round(v)))
+    const r = clamp(raw.r + adj.r)
+    const g = clamp(raw.g + adj.g)
+    const b = clamp(raw.b + adj.b)
+    const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('')
+    setPickedHex(hex)
+  }, [])
+
+  const handleLightingChange = useCallback((lit) => {
+    setLighting(lit)
+    if (pickedRaw) applyLighting(pickedRaw, lit)
+  }, [pickedRaw, applyLighting])
+
+  // Draw image to canvas when loaded
+  const handleImgLoad = useCallback((e) => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const img = e.target
+    const maxW = 300, maxH = 200
+    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1)
+    canvas.width = Math.round(img.naturalWidth * scale)
+    canvas.height = Math.round(img.naturalHeight * scale)
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+  }, [])
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', borderRadius: 13, background: u.card, border: `1px solid ${u.line}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Camera size={16} style={{ color: u.accent }} />
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: u.text }}>Match my wall</div>
+          <div style={{ fontSize: 11, color: u.soft }}>Snap a photo, tap the colour you want</div>
+        </div>
+      </div>
+
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleFile} style={{ display: 'none' }} />
+      <button onClick={() => fileRef.current?.click()} style={{
+        padding: '9px 0', borderRadius: 9, border: `1px dashed ${u.line}`, background: 'transparent',
+        color: u.soft, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+      }}>
+        {imgSrc ? 'Change photo' : 'Upload or take a photo'}
+      </button>
+
+      {imgSrc && (
+        <>
+          {/* Hidden img to measure + draw to canvas */}
+          <img src={imgSrc} alt="" onLoad={handleImgLoad} style={{ display: 'none' }} />
+
+          <canvas
+            ref={canvasRef}
+            onClick={handleCanvasClick}
+            style={{
+              width: '100%', borderRadius: 9, cursor: 'crosshair',
+              border: `1px solid ${u.line}`,
+            }}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Label u={u}>What lighting was the photo taken in?</Label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {Object.entries(LIGHTING_ADJUSTMENTS).map(([key, { label }]) => (
+                <label key={key} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                  borderRadius: 7, cursor: 'pointer', fontSize: 11.5,
+                  background: lighting === key ? u.accent + '18' : 'transparent',
+                  color: lighting === key ? u.accent : u.soft,
+                }}>
+                  <input type="radio" name="lighting" value={key} checked={lighting === key}
+                    onChange={() => handleLightingChange(key)} style={{ display: 'none' }} />
+                  <div style={{
+                    width: 14, height: 14, borderRadius: '50%',
+                    border: `2px solid ${lighting === key ? u.accent : u.line}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {lighting === key && <div style={{ width: 7, height: 7, borderRadius: '50%', background: u.accent }} />}
+                  </div>
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {pickedHex && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: pickedHex, border: `1px solid ${u.line}`, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: u.text }}>{pickedHex}</div>
+                <div style={{ fontSize: 10, color: u.soft }}>Adjusted for {LIGHTING_ADJUSTMENTS[lighting].label.toLowerCase()}</div>
+              </div>
+              <button onClick={() => onPickColor(pickedHex)} style={{
+                padding: '8px 14px', borderRadius: 8, border: 'none',
+                background: u.accent, color: '#fff', fontSize: 12, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Apply</button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ── Style Panel ────────────────────────────────────────────────────
-export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloorColor }) {
+export function DesignStyleContent({
+  wallColor, floorColor, onWallColor, onFloorColor,
+  floorTexture, wallTexture, wallFinish,
+  onFloorTexture, onWallTexture, onWallFinish,
+  paintMode, onPaintMode, onClearOverrides,
+}) {
   const t = useTheme()
   const u = ui(t)
   const { mood, setMood, moods: moodList } = useMoodControl()
@@ -103,7 +277,37 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
   const skyLookup = Object.fromEntries(MOOD_LIST.map(m => [m.key, m.sky]))
   const presets = tab === 'wall' ? WALL_PRESETS : FLOOR_PRESETS
   const current = tab === 'wall' ? wallColor : floorColor
-  const setColor = tab === 'wall' ? onWallColor : onFloorColor
+  const currentTex = tab === 'wall' ? wallTexture : floorTexture
+
+  const handlePreset = (p) => {
+    if (tab === 'wall') {
+      onWallColor(p.hex)
+      onWallTexture?.(p.tex || 'flat')
+      if (p.finish !== undefined) onWallFinish?.(p.finish)
+      else if (p.tex && p.tex !== 'flat') onWallFinish?.(null)
+    } else {
+      onFloorColor(p.hex)
+      onFloorTexture?.(p.tex || 'flat')
+    }
+  }
+
+  const handleCustomColor = (hex) => {
+    if (tab === 'wall') { onWallColor(hex); onWallTexture?.('flat') }
+    else { onFloorColor(hex); onFloorTexture?.('flat') }
+  }
+
+  // Texture preview CSS for preset buttons
+  const presetBg = (p) => {
+    const tx = p.tex || 'flat'
+    if (tx === 'wood')     return `repeating-linear-gradient(90deg, ${shade(p.hex, 0.06)} 0 6px, ${shade(p.hex, -0.08)} 6px 12px)`
+    if (tx === 'carpet')   return `radial-gradient(circle at 50% 50%, ${shade(p.hex, -0.06)} 0.5px, ${p.hex} 0.5px)`
+    if (tx === 'tile')     return `repeating-conic-gradient(${shade(p.hex, 0.04)} 0% 25%, ${shade(p.hex, -0.06)} 0% 50%) 0 0/20px 20px`
+    if (tx === 'marble')   return `linear-gradient(135deg, ${shade(p.hex, 0.06)} 0%, ${shade(p.hex, -0.04)} 40%, ${shade(p.hex, 0.08)} 100%)`
+    if (tx === 'concrete') return `linear-gradient(180deg, ${shade(p.hex, 0.03)} 0%, ${shade(p.hex, -0.04)} 100%)`
+    if (tx === 'brick')    return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 8px, ${shade(p.hex, -0.15)} 8px, ${shade(p.hex, -0.15)} 9px)`
+    if (tx === 'shiplap')  return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 7px, ${shade(p.hex, -0.08)} 7px, ${shade(p.hex, -0.08)} 8px)`
+    return `linear-gradient(150deg, ${shade(p.hex, 0.1)}, ${shade(p.hex, -0.1)})`
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -112,13 +316,37 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
         { id: 'floor', label: 'Floor', Icon: Grid3x3 },
       ]} />
 
+      {/* Fill All / Paint Individual toggle */}
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button onClick={() => onPaintMode?.(false)} style={{
+          flex: 1, padding: '7px 0', fontSize: 11, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+          background: !paintMode ? u.accent + '22' : 'transparent',
+          border: `1px solid ${!paintMode ? u.accent : u.line}`,
+          color: !paintMode ? u.accent : u.soft, fontFamily: 'inherit',
+        }}>Fill All</button>
+        <button onClick={() => onPaintMode?.(true)} style={{
+          flex: 1, padding: '7px 0', fontSize: 11, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
+          background: paintMode ? u.accent + '22' : 'transparent',
+          border: `1px solid ${paintMode ? u.accent : u.line}`,
+          color: paintMode ? u.accent : u.soft, fontFamily: 'inherit',
+        }}>Paint Individual</button>
+      </div>
+      {paintMode && (
+        <div style={{ fontSize: 11, color: u.soft, lineHeight: 1.4 }}>
+          Click {tab === 'floor' ? 'floor tiles' : 'wall faces'} to paint them.{' '}
+          <button onClick={() => onClearOverrides?.(tab)} style={{
+            background: 'none', border: 'none', color: u.accent, cursor: 'pointer', fontSize: 11, padding: 0, textDecoration: 'underline', fontFamily: 'inherit',
+          }}>Reset all</button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        <Label u={u}>{tab === 'wall' ? 'Wall colour' : 'Floor material'}</Label>
+        <Label u={u}>{tab === 'wall' ? 'Wall material' : 'Floor material'}</Label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9 }}>
           {presets.map(p => {
-            const active = current === p.hex
+            const active = current === p.hex && currentTex === (p.tex || 'flat')
             return (
-              <button key={p.name} onClick={() => setColor(p.hex)} style={{
+              <button key={p.name} onClick={() => handlePreset(p)} style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
                 padding: 5, borderRadius: 13, cursor: 'pointer',
                 border: `1px solid ${active ? u.accent : u.line}`,
@@ -126,9 +354,8 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
               }}>
                 <div style={{
                   width: '100%', height: 40, borderRadius: 9,
-                  background: tab === 'floor'
-                    ? `repeating-linear-gradient(90deg, ${shade(p.hex, 0.06)} 0 6px, ${shade(p.hex, -0.08)} 6px 12px)`
-                    : `linear-gradient(150deg, ${shade(p.hex, 0.1)}, ${shade(p.hex, -0.1)})`,
+                  background: presetBg(p),
+                  backgroundSize: (p.tex === 'carpet') ? '3px 3px' : undefined,
                   boxShadow: active ? `0 0 0 2px ${u.accent}55` : 'inset 0 0 0 1px rgba(0,0,0,0.06)',
                 }} />
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: active ? u.accent : u.soft }}>{p.name}</span>
@@ -138,14 +365,33 @@ export function DesignStyleContent({ wallColor, floorColor, onWallColor, onFloor
         </div>
       </div>
 
+      {/* Sheen picker — walls only, when using flat/paint texture */}
+      {tab === 'wall' && (!wallTexture || wallTexture === 'flat') && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Label u={u}>Paint sheen</Label>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {SHEEN_OPTIONS.map(s => (
+              <button key={s.id} onClick={() => onWallFinish?.(s.id)} style={{
+                flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 600, borderRadius: 7, cursor: 'pointer',
+                background: wallFinish === s.id ? u.accent + '22' : 'transparent',
+                border: `1px solid ${wallFinish === s.id ? u.accent : u.line}`,
+                color: wallFinish === s.id ? u.accent : u.soft, fontFamily: 'inherit',
+              }}>{s.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 13, background: u.card, border: `1px solid ${u.line}` }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: u.text }}>Custom colour</div>
           <div style={{ fontSize: 11.5, color: u.soft }}>Pick any shade with the eyedropper</div>
         </div>
-        <input type="color" value={current || '#cccccc'} onChange={e => setColor(e.target.value)}
+        <input type="color" value={current || '#cccccc'} onChange={e => handleCustomColor(e.target.value)}
           style={{ width: 40, height: 40, borderRadius: 10, border: `1px solid ${u.line}`, background: 'none', cursor: 'pointer', padding: 2 }} />
       </div>
+
+      <PhotoColorPicker onPickColor={handleCustomColor} u={u} />
 
       <div style={{ height: 1, background: u.line }} />
 

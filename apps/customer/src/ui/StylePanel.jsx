@@ -233,29 +233,68 @@ const WALL_TEXTURES = [
   { label: 'Beadboard',      color: '#ece8e0', accent: '#dcd4c8', pattern: 'beadboard' },
 ]
 
-function TexturePresets({ presets, onSelect, selected }) {
+function TexturePresets({ presets, onSelect, selected, selectedTexture }) {
   const t = useTheme()
   return (
     <div style={{ marginBottom: 10 }}>
       <span style={{ fontSize: 9, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Presets</span>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-        {presets.map(p => (
+        {presets.map(p => {
+          const isActive = selected === p.color && selectedTexture === p.pattern
+          return (
+            <button
+              key={p.label}
+              title={p.label}
+              onClick={() => onSelect(p.color, p.pattern, p.finish)}
+              style={{
+                width: 28, height: 28, borderRadius: 4, cursor: 'pointer', padding: 0,
+                background: p.pattern === 'wood' ? `repeating-linear-gradient(90deg, ${p.color} 0px, ${p.accent} 3px, ${p.color} 6px)` :
+                           p.pattern === 'brick' ? `repeating-linear-gradient(0deg, ${p.color} 0px, ${p.color} 8px, ${p.accent} 8px, ${p.accent} 9px)` :
+                           p.pattern === 'carpet' ? `radial-gradient(circle at 50% 50%, ${p.accent} 0.5px, ${p.color} 0.5px)` :
+                           p.pattern === 'shiplap' ? `repeating-linear-gradient(0deg, ${p.color} 0px, ${p.color} 6px, ${p.accent} 6px, ${p.accent} 7px)` :
+                           p.pattern === 'marble' ? `linear-gradient(135deg, ${p.color} 0%, ${p.accent} 50%, ${p.color} 100%)` :
+                           p.pattern === 'concrete' ? `linear-gradient(180deg, ${p.color} 0%, ${p.accent} 100%)` :
+                           p.color,
+                backgroundSize: p.pattern === 'carpet' ? '3px 3px' : undefined,
+                border: isActive ? `2px solid #fff` : `1px solid rgba(0,0,0,0.15)`,
+                outline: isActive ? '2px solid rgba(128,128,128,0.6)' : 'none',
+                outlineOffset: 1,
+              }}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Paint finish selector ─────────────────────────────────────
+const PAINT_FINISHES = [
+  { value: 'flat',      label: 'Flat / Matte' },
+  { value: 'eggshell',  label: 'Eggshell' },
+  { value: 'satin',     label: 'Satin' },
+  { value: 'semiGloss', label: 'Semi-Gloss' },
+  { value: 'highGloss', label: 'High-Gloss' },
+]
+
+function FinishPicker({ value, onChange }) {
+  const t = useTheme()
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <span style={{ fontSize: 9, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Paint Finish</span>
+      <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+        {PAINT_FINISHES.map(f => (
           <button
-            key={p.label}
-            title={p.label}
-            onClick={() => onSelect(p.color)}
+            key={f.value}
+            onClick={() => onChange(f.value)}
             style={{
-              width: 28, height: 28, borderRadius: 4, cursor: 'pointer', padding: 0,
-              background: p.pattern === 'wood' ? `repeating-linear-gradient(90deg, ${p.color} 0px, ${p.accent} 3px, ${p.color} 6px)` :
-                         p.pattern === 'brick' ? `repeating-linear-gradient(0deg, ${p.color} 0px, ${p.color} 8px, ${p.accent} 8px, ${p.accent} 9px)` :
-                         p.pattern === 'carpet' ? `radial-gradient(circle at 50% 50%, ${p.accent} 0.5px, ${p.color} 0.5px)` :
-                         p.color,
-              backgroundSize: p.pattern === 'carpet' ? '3px 3px' : undefined,
-              border: selected === p.color ? `2px solid #fff` : `1px solid rgba(0,0,0,0.15)`,
-              outline: selected === p.color ? '2px solid rgba(128,128,128,0.6)' : 'none',
-              outlineOffset: 1,
+              padding: '4px 8px', fontSize: 10, borderRadius: 4, cursor: 'pointer',
+              background: value === f.value ? `${t.accent}22` : t.surface,
+              border: `1px solid ${value === f.value ? t.accent : t.surfaceBorder}`,
+              color: value === f.value ? t.accent : t.text,
+              fontWeight: value === f.value ? 600 : 400,
             }}
-          />
+          >{f.label}</button>
         ))}
       </div>
     </div>
@@ -263,9 +302,34 @@ function TexturePresets({ presets, onSelect, selected }) {
 }
 
 // ── StylePanel ─────────────────────────────────────────────────
-export default function StylePanel({ floorColor, wallColor, onFloorColor, onWallColor }) {
+export default function StylePanel({
+  floorColor, wallColor, onFloorColor, onWallColor,
+  floorTexture, wallTexture, wallFinish,
+  onFloorTexture, onWallTexture, onWallFinish,
+  paintMode, onPaintMode, onClearOverrides,
+}) {
   const s = useStyles()
   const [target, setTarget] = useState('floor')
+
+  const handleFloorPreset = (color, pattern) => {
+    onFloorColor(color)
+    onFloorTexture?.(pattern || 'flat')
+  }
+  const handleWallPreset = (color, pattern, finish) => {
+    onWallColor(color)
+    onWallTexture?.(pattern || 'flat')
+    // Paint presets clear the finish; textured presets clear finish too
+    if (pattern === 'flat') onWallFinish?.(finish || 'eggshell')
+    else onWallFinish?.(null)
+  }
+  const handleFloorPaletteChange = (hex) => {
+    onFloorColor(hex)
+    onFloorTexture?.('flat')
+  }
+  const handleWallPaletteChange = (hex) => {
+    onWallColor(hex)
+    onWallTexture?.('flat')
+  }
 
   return (
     <div style={s.panel}>
@@ -281,15 +345,49 @@ export default function StylePanel({ floorColor, wallColor, onFloorColor, onWall
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      {/* Apply mode toggle */}
+      <div style={{ display: 'flex', gap: 4, marginTop: 10, marginBottom: 8 }}>
+        <button
+          onClick={() => onPaintMode?.(false)}
+          style={{
+            flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 600, borderRadius: 5, cursor: 'pointer',
+            background: !paintMode ? `${t.accent}22` : t.surface,
+            border: `1px solid ${!paintMode ? t.accent : t.surfaceBorder}`,
+            color: !paintMode ? t.accent : t.textSoft,
+          }}
+        >Fill All</button>
+        <button
+          onClick={() => onPaintMode?.(true)}
+          style={{
+            flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 600, borderRadius: 5, cursor: 'pointer',
+            background: paintMode ? `${t.accent}22` : t.surface,
+            border: `1px solid ${paintMode ? t.accent : t.surfaceBorder}`,
+            color: paintMode ? t.accent : t.textSoft,
+          }}
+        >Paint Individual</button>
+      </div>
+      {paintMode && (
+        <p style={{ margin: '0 0 8px', fontSize: 10, color: t.textSoft, lineHeight: 1.4 }}>
+          Click {target === 'floor' ? 'floor tiles' : 'wall faces'} to paint them with the selected material.{' '}
+          <button onClick={() => onClearOverrides?.(target)} style={{ background: 'none', border: 'none', color: t.accent, cursor: 'pointer', fontSize: 10, padding: 0, textDecoration: 'underline' }}>
+            Reset all to default
+          </button>
+        </p>
+      )}
+
+      <div style={{ marginTop: 0 }}>
         <TexturePresets
           presets={target === 'floor' ? FLOOR_TEXTURES : WALL_TEXTURES}
-          onSelect={target === 'floor' ? onFloorColor : onWallColor}
+          onSelect={target === 'floor' ? handleFloorPreset : handleWallPreset}
           selected={target === 'floor' ? floorColor : wallColor}
+          selectedTexture={target === 'floor' ? floorTexture : wallTexture}
         />
+        {target === 'wall' && (!wallTexture || wallTexture === 'flat') && (
+          <FinishPicker value={wallFinish || 'eggshell'} onChange={v => onWallFinish?.(v)} />
+        )}
         {target === 'floor'
-          ? <PaintPalette key="floor" value={floorColor} onChange={onFloorColor} />
-          : <PaintPalette key="wall"  value={wallColor}  onChange={onWallColor}  />
+          ? <PaintPalette key="floor" value={floorColor} onChange={handleFloorPaletteChange} />
+          : <PaintPalette key="wall"  value={wallColor}  onChange={handleWallPaletteChange}  />
         }
       </div>
 

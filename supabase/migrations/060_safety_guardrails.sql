@@ -15,7 +15,7 @@ ALTER TABLE public.products
 -- Soft-deleted products are invisible to normal queries
 CREATE INDEX IF NOT EXISTS idx_products_active_not_deleted
   ON public.products (seller_id, created_at DESC)
-  WHERE active = true AND deleted_at IS NULL;
+  WHERE is_active = true AND deleted_at IS NULL;
 
 -- ── H4: Soft-delete for orders (admin safety net) ─────────────────
 ALTER TABLE public.orders

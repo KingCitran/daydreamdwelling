@@ -1,12 +1,39 @@
 import { useState, useMemo } from 'react'
 import { useTheme } from '@shared/ThemeProvider'
+import { useAuth } from '@shared/auth/AuthContext'
 import { supabase } from '@shared/supabase'
+
+const REPORT_REASONS = [
+  'Inaccurate 3D model',
+  'Wrong product description',
+  'Wrong photos',
+  'Inappropriate content',
+  'Suspected counterfeit',
+  'Other',
+]
 
 export default function MarketplaceProductModal({ product, onClose, onEnterBuilder }) {
   const t = useTheme()
+  const { user } = useAuth()
   const [sizeIdx, setSizeIdx]       = useState(0)
   const [swatchIdx, setSwatchIdx]   = useState(0)
   const [imageIdx, setImageIdx]     = useState(0)
+  const [reportOpen, setReportOpen]     = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportNote, setReportNote]     = useState('')
+  const [reportSent, setReportSent]     = useState(false)
+
+  async function submitReport() {
+    if (!reportReason) return
+    await supabase.from('product_reports').insert({
+      product_id: product.id,
+      reporter_id: user?.id || null,
+      reason: reportReason,
+      note: reportNote.trim() || null,
+    })
+    setReportSent(true)
+    setTimeout(() => { setReportOpen(false); setReportSent(false); setReportReason(''); setReportNote('') }, 2000)
+  }
 
   const sizes    = product.product_sizes ?? []
   const swatches = product.product_swatches ?? []
@@ -167,6 +194,47 @@ export default function MarketplaceProductModal({ product, onClose, onEnterBuild
                 ✦ Place in a room
               </button>
             </div>
+
+            {/* Report this item */}
+            {!reportOpen && !reportSent && (
+              <button
+                onClick={() => setReportOpen(true)}
+                style={{ width: '100%', padding: '7px 0', fontSize: 11, background: 'transparent', color: t.textSoft, border: 'none', cursor: 'pointer', opacity: 0.6 }}
+              >
+                Report this item
+              </button>
+            )}
+            {reportOpen && !reportSent && (
+              <div style={{ padding: 12, background: `${t.accent}06`, border: `1px solid ${t.surfaceBorder}`, borderRadius: 10, marginTop: 4 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: t.text, margin: '0 0 6px' }}>What's wrong?</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {REPORT_REASONS.map(r => (
+                    <button
+                      key={r}
+                      style={{
+                        padding: '5px 10px', fontSize: 11, borderRadius: 8, cursor: 'pointer',
+                        background: reportReason === r ? `${t.accent}22` : t.surface,
+                        border: `1px solid ${reportReason === r ? t.accent : t.surfaceBorder}`,
+                        color: reportReason === r ? t.accent : t.text,
+                      }}
+                      onClick={() => setReportReason(r)}
+                    >{r}</button>
+                  ))}
+                </div>
+                <textarea
+                  style={{ width: '100%', padding: '8px 10px', fontSize: 12, border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, background: t.bg, color: t.text, outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 8, fontFamily: 'inherit' }}
+                  placeholder="Add details (optional)"
+                  value={reportNote}
+                  onChange={e => setReportNote(e.target.value)}
+                  rows={2}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={submitReport} disabled={!reportReason} style={{ padding: '7px 14px', fontSize: 12, fontWeight: 600, background: '#d06060', color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer' }}>Submit Report</button>
+                  <button onClick={() => { setReportOpen(false); setReportReason(''); setReportNote('') }} style={{ padding: '7px 14px', fontSize: 12, background: 'transparent', color: t.textSoft, border: `1px solid ${t.surfaceBorder}`, borderRadius: 7, cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+            {reportSent && <p style={{ fontSize: 12, color: '#70c070', textAlign: 'center' }}>Report submitted — thank you.</p>}
           </div>
         </div>
       </div>
