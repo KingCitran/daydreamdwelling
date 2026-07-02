@@ -65,28 +65,34 @@ function Seg({ options, value, onChange, u }) {
 
 // ── Presets ─────────────────────────────────────────────────────────
 const WALL_PRESETS = [
-  // Painted walls
-  { name: 'White',      hex: '#f0ece6', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Cream',      hex: '#ede8df', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Sage',       hex: '#cdd8c4', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Charcoal',   hex: '#3a3a44', tex: 'flat',    finish: 'satin' },
+  // Drywall (standard — most homes)
+  { name: 'Drywall',     hex: '#f0ece6', tex: 'drywall',    finish: 'eggshell' },
+  { name: 'Drywl Gray',  hex: '#d0d0d0', tex: 'drywall',    finish: 'eggshell' },
+  // Plaster (older homes, textured)
+  { name: 'Plaster',     hex: '#ede4d4', tex: 'plaster',    finish: null },
+  { name: 'Aged Plaster',hex: '#c8b8a0', tex: 'plaster',    finish: null },
   // Brick
-  { name: 'Red Brick',  hex: '#a04828', tex: 'brick',   finish: null },
-  { name: 'White Brick', hex: '#f0ece6', tex: 'brick',  finish: null },
-  { name: 'Gray Brick', hex: '#888888', tex: 'brick',   finish: null },
-  // Wood paneling
-  { name: 'Shiplap',    hex: '#f0ece6', tex: 'shiplap', finish: null },
-  { name: 'Dark Ship',  hex: '#6a5a48', tex: 'shiplap', finish: null },
-  { name: 'Gray Ship',  hex: '#c0beb8', tex: 'shiplap', finish: null },
-  // Tile
-  { name: 'Subway',     hex: '#f0f0f0', tex: 'tile',    finish: 'semiGloss' },
-  { name: 'Blue Tile',  hex: '#4a6a8a', tex: 'tile',    finish: 'semiGloss' },
+  { name: 'Red Brick',   hex: '#a04828', tex: 'brick',      finish: null },
+  { name: 'White Brick',  hex: '#f0ece6', tex: 'brick',     finish: null },
+  { name: 'Gray Brick',  hex: '#888888', tex: 'brick',      finish: null },
+  // Concrete / cinder block
+  { name: 'Concrete',    hex: '#b0b0b0', tex: 'concrete',   finish: null },
+  { name: 'Cinder Blk',  hex: '#909090', tex: 'cinderblock', finish: null },
   // Stone
-  { name: 'Concrete',   hex: '#b0b0b0', tex: 'concrete', finish: null },
-  { name: 'Marble',     hex: '#e8e4e0', tex: 'marble',  finish: null },
-  // Accent
-  { name: 'Plum',       hex: '#5a3f63', tex: 'flat',    finish: 'satin' },
-  { name: 'Navy',       hex: '#1a2a4a', tex: 'flat',    finish: 'satin' },
+  { name: 'Fieldstone',  hex: '#a09080', tex: 'stone',      finish: null },
+  { name: 'Limestone',   hex: '#d8d0c0', tex: 'stone',      finish: null },
+  { name: 'Marble',      hex: '#e8e4e0', tex: 'marble',     finish: null },
+  // Wood
+  { name: 'Shiplap',     hex: '#f0ece6', tex: 'shiplap',    finish: null },
+  { name: 'Dark Panel',  hex: '#6a5a48', tex: 'shiplap',    finish: null },
+  { name: 'Log Cabin',   hex: '#8a6838', tex: 'log',        finish: null },
+  { name: 'Cedar Log',   hex: '#a07850', tex: 'log',        finish: null },
+  // Stucco (exterior / Mediterranean)
+  { name: 'Stucco',      hex: '#e8dcc8', tex: 'stucco',     finish: null },
+  { name: 'Terra Stucco',hex: '#c89870', tex: 'stucco',     finish: null },
+  // Tile (kitchen / bath)
+  { name: 'Subway Tile', hex: '#f0f0f0', tex: 'tile',       finish: 'semiGloss' },
+  { name: 'Blue Tile',   hex: '#4a6a8a', tex: 'tile',       finish: 'semiGloss' },
 ]
 
 const FLOOR_PRESETS = [
@@ -309,13 +315,19 @@ export function DesignStyleContent({
   // Texture preview CSS for preset buttons
   const presetBg = (p) => {
     const tx = p.tex || 'flat'
-    if (tx === 'wood')     return `repeating-linear-gradient(90deg, ${shade(p.hex, 0.06)} 0 6px, ${shade(p.hex, -0.08)} 6px 12px)`
-    if (tx === 'carpet')   return `radial-gradient(circle at 50% 50%, ${shade(p.hex, -0.06)} 0.5px, ${p.hex} 0.5px)`
-    if (tx === 'tile')     return `repeating-conic-gradient(${shade(p.hex, 0.04)} 0% 25%, ${shade(p.hex, -0.06)} 0% 50%) 0 0/20px 20px`
-    if (tx === 'marble')   return `linear-gradient(135deg, ${shade(p.hex, 0.06)} 0%, ${shade(p.hex, -0.04)} 40%, ${shade(p.hex, 0.08)} 100%)`
-    if (tx === 'concrete') return `linear-gradient(180deg, ${shade(p.hex, 0.03)} 0%, ${shade(p.hex, -0.04)} 100%)`
-    if (tx === 'brick')    return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 8px, ${shade(p.hex, -0.15)} 8px, ${shade(p.hex, -0.15)} 9px)`
-    if (tx === 'shiplap')  return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 7px, ${shade(p.hex, -0.08)} 7px, ${shade(p.hex, -0.08)} 8px)`
+    if (tx === 'wood')        return `repeating-linear-gradient(90deg, ${shade(p.hex, 0.06)} 0 6px, ${shade(p.hex, -0.08)} 6px 12px)`
+    if (tx === 'carpet')      return `radial-gradient(circle at 50% 50%, ${shade(p.hex, -0.06)} 0.5px, ${p.hex} 0.5px)`
+    if (tx === 'tile')        return `repeating-conic-gradient(${shade(p.hex, 0.04)} 0% 25%, ${shade(p.hex, -0.06)} 0% 50%) 0 0/20px 20px`
+    if (tx === 'marble')      return `linear-gradient(135deg, ${shade(p.hex, 0.06)} 0%, ${shade(p.hex, -0.04)} 40%, ${shade(p.hex, 0.08)} 100%)`
+    if (tx === 'concrete')    return `linear-gradient(180deg, ${shade(p.hex, 0.03)} 0%, ${shade(p.hex, -0.04)} 100%)`
+    if (tx === 'brick')       return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 8px, ${shade(p.hex, -0.15)} 8px, ${shade(p.hex, -0.15)} 9px)`
+    if (tx === 'shiplap')     return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 7px, ${shade(p.hex, -0.08)} 7px, ${shade(p.hex, -0.08)} 8px)`
+    if (tx === 'cinderblock') return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 10px, ${shade(p.hex, -0.12)} 10px, ${shade(p.hex, -0.12)} 11px), repeating-linear-gradient(90deg, transparent 0px, transparent 20px, ${shade(p.hex, -0.12)} 20px, ${shade(p.hex, -0.12)} 21px)`
+    if (tx === 'plaster')     return `radial-gradient(ellipse at 30% 40%, ${shade(p.hex, 0.06)} 0%, ${p.hex} 50%, ${shade(p.hex, -0.04)} 100%)`
+    if (tx === 'drywall')     return `linear-gradient(150deg, ${shade(p.hex, 0.03)}, ${shade(p.hex, -0.02)})`
+    if (tx === 'log')         return `repeating-linear-gradient(0deg, ${shade(p.hex, 0.08)} 0px, ${p.hex} 4px, ${shade(p.hex, -0.1)} 8px, ${shade(p.hex, -0.18)} 9px, ${shade(p.hex, 0.08)} 10px)`
+    if (tx === 'stone')       return `radial-gradient(ellipse at 25% 30%, ${shade(p.hex, 0.1)} 15%, transparent 16%), radial-gradient(ellipse at 70% 60%, ${shade(p.hex, -0.08)} 20%, transparent 21%), ${p.hex}`
+    if (tx === 'stucco')      return `radial-gradient(circle at 50% 50%, ${shade(p.hex, 0.04)} 0.8px, transparent 0.8px), ${p.hex}`
     return `linear-gradient(150deg, ${shade(p.hex, 0.1)}, ${shade(p.hex, -0.1)})`
   }
 
