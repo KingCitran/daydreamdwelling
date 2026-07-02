@@ -236,11 +236,11 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
 
         // Per-face override or global default (most faces use global — fast path)
         const ov = wallOverrides?.get?.(id)
-        let faceTex, faceRough, faceColor
+        let faceTex, faceRough, faceColor, faceFinish
         if (ov) {
           faceColor = ov.color ?? globalBase
           const faceTexType = ov.texture ?? wallTexture ?? 'flat'
-          const faceFinish  = ov.finish  ?? wallFinish
+          faceFinish  = ov.finish  ?? wallFinish
           faceTex   = getTexture(faceTexType, faceColor)
           faceRough = faceFinish
             ? (PAINT_FINISH_ROUGHNESS[faceFinish] ?? 0.88)
@@ -249,6 +249,7 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
           faceColor = globalBase
           faceTex   = globalTex
           faceRough = globalRough
+          faceFinish = wallFinish
         }
         const color     = faceTex ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
         const isVisible = normalMatches(normal, visibles)
