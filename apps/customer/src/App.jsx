@@ -370,6 +370,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const getRoomName = useCallback((id) => roomNames[Number(id)] || `Room ${Number(id) + 1}`, [roomNames])
 
   const zoomRef       = useRef(32)
+  const [zoomDisplay, setZoomDisplay] = useState(32)
   const panRef        = useRef({ x: 0, z: 0 })
   const screenshotRef = useRef(null)
 
@@ -1105,12 +1106,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null); if (id === 'place') setDisplacedCount(0) }}
       />
       <BuilderViewControls
-        zoom={zoomRef.current}
+        zoom={zoomDisplay}
         onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
         onRotateRight={() => setTarget(r => r + Math.PI / 2)}
-        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15) }}
-        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15) }}
-        onReset={() => { zoomRef.current = 40; setTarget(0); panRef.current = { x: 0, z: 0 } }}
+        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15); setZoomDisplay(zoomRef.current) }}
+        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15); setZoomDisplay(zoomRef.current) }}
+        onReset={() => { zoomRef.current = 40; setZoomDisplay(40); setTarget(0); panRef.current = { x: 0, z: 0 } }}
         ceilingView={ceilingView}
         onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
         showGrid={showGrid}

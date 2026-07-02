@@ -154,37 +154,45 @@ function StairOpeningVisual({ fw, fd, fh }) {
   const railH = 3     // railing height in ft
   const railT = 0.08  // railing thickness
   const railColor = '#8a7a6a'
+  const rimT = 0.12   // floor rim thickness around the opening
   return (
     <group position={[0, -fh / 2, 0]}>
-      {/* Dark opening in the floor */}
-      <mesh position={[0, -0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[fw, fd]} />
-        <meshBasicMaterial color="#1a1018" side={THREE.DoubleSide} />
+      {/* Dark opening — sits ON TOP of the floor so it covers the tiles */}
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[fw - 0.02, fd - 0.02]} />
+        <meshBasicMaterial color="#0a0808" side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
+      {/* Floor rim around the opening */}
+      {[
+        { p: [0, 0.04, -fd/2], s: [fw + rimT*2, rimT, rimT] },
+        { p: [0, 0.04,  fd/2], s: [fw + rimT*2, rimT, rimT] },
+        { p: [-fw/2, 0.04, 0], s: [rimT, rimT, fd] },
+        { p: [ fw/2, 0.04, 0], s: [rimT, rimT, fd] },
+      ].map(({ p, s }, i) => (
+        <mesh key={`rim${i}`} position={p}>
+          <boxGeometry args={s} />
+          <meshStandardMaterial color="#6a5a4a" roughness={0.8} />
+        </mesh>
+      ))}
       {/* Railing posts at corners */}
       {[[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sz], i) => (
-        <mesh key={i} position={[sx * (fw/2 - railT), railH/2, sz * (fd/2 - railT)]}>
+        <mesh key={i} position={[sx * (fw/2), railH/2, sz * (fd/2)]}>
           <boxGeometry args={[railT, railH, railT]} />
           <meshStandardMaterial color={railColor} roughness={0.7} />
         </mesh>
       ))}
       {/* Top rails */}
-      <mesh position={[0, railH, -fd/2 + railT/2]}>
-        <boxGeometry args={[fw, railT, railT]} />
-        <meshStandardMaterial color={railColor} roughness={0.7} />
-      </mesh>
-      <mesh position={[0, railH, fd/2 - railT/2]}>
-        <boxGeometry args={[fw, railT, railT]} />
-        <meshStandardMaterial color={railColor} roughness={0.7} />
-      </mesh>
-      <mesh position={[-fw/2 + railT/2, railH, 0]}>
-        <boxGeometry args={[railT, railT, fd]} />
-        <meshStandardMaterial color={railColor} roughness={0.7} />
-      </mesh>
-      <mesh position={[fw/2 - railT/2, railH, 0]}>
-        <boxGeometry args={[railT, railT, fd]} />
-        <meshStandardMaterial color={railColor} roughness={0.7} />
-      </mesh>
+      {[
+        { p: [0, railH, -fd/2], s: [fw, railT, railT] },
+        { p: [0, railH,  fd/2], s: [fw, railT, railT] },
+        { p: [-fw/2, railH, 0], s: [railT, railT, fd] },
+        { p: [ fw/2, railH, 0], s: [railT, railT, fd] },
+      ].map(({ p, s }, i) => (
+        <mesh key={`rail${i}`} position={p}>
+          <boxGeometry args={s} />
+          <meshStandardMaterial color={railColor} roughness={0.7} />
+        </mesh>
+      ))}
     </group>
   )
 }
