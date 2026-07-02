@@ -946,12 +946,12 @@ export default function Items({
               gridW={gridW} gridD={gridD}
               wallHeight={wallHeight}
               onSelect={onSelectItem}
-              onDrag={onDrag}
+              onDrag={onMoveItem}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
               roomRotationRef={roomRotationRef}
               activeDragRef={activeDragRef}
-              onDoubleClick={onDoubleClick}
+              onDoubleClick={onDoubleClickItem}
               onEnterRoom={onEnterRoom}
               catalogue={catalogue}
             />
