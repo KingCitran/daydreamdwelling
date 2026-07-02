@@ -6,6 +6,7 @@ import Walls from './Walls'
 import Items from './Items'
 import Ceiling from './Ceiling'
 import Measurements from './Measurements'
+import GhostPreview from './GhostPreview'
 import { useMoodControl } from '@shared/ThemeProvider'
 
 const CAM_OFFSET = 18
@@ -220,7 +221,8 @@ function ZoomController({ zoomRef, panRef }) {
 
 export default function RoomScene({
   targetRotation, cells, gridW, gridD, wallHeight,
-  floorColor, wallColor,
+  floorColor, floorTexture, floorOverrides, wallColor, wallTexture, wallFinish, wallOverrides,
+  paintMode, onClickCell, onClickWall,
   items, selectedId, onSelectItem, onMoveItem, onMoveWallItem, onDoubleClickItem,
   onDragStart, onDragEnd,
   zoomRef, screenshotRef, showMeasurements, showGrid,
@@ -234,6 +236,9 @@ export default function RoomScene({
   lightsOff = false,
   catalogue,
   cloudsOn = true,
+  ghostPlacement = null,
+  onGhostPlace,
+  onGhostCancel,
   onRotate,
   onSwipeVertical,
   panRef: externalPanRef,
@@ -299,9 +304,13 @@ export default function RoomScene({
           gridW={gridW}
           gridD={gridD}
           floorColor={floorColor}
+          floorTexture={floorTexture}
+          floorOverrides={floorOverrides}
           showGrid={showGrid}
-          onClickFloor={() => onSelectItem(null)}
+          onClickFloor={ghostPlacement ? undefined : () => onSelectItem(null)}
+          onClickCell={onClickCell}
           ceilingView={ceilingView}
+          paintMode={paintMode}
         />
         <Walls
           cells={cells}
@@ -309,9 +318,14 @@ export default function RoomScene({
           gridD={gridD}
           wallHeight={wallHeight}
           wallColor={wallColor}
+          wallTexture={wallTexture}
+          wallFinish={wallFinish}
+          wallOverrides={wallOverrides}
           currentRotationRef={currentRY}
           showGrid={showGrid}
           items={items}
+          paintMode={paintMode}
+          onClickWall={onClickWall}
         />
         <Items
           items={items}
@@ -334,6 +348,17 @@ export default function RoomScene({
           catalogue={catalogue}
           activeDragRef={activeDragRef}
         />
+        {ghostPlacement && (
+          <GhostPreview
+            ghost={ghostPlacement}
+            gridW={gridW} gridD={gridD}
+            wallHeight={wallHeight}
+            roomRotationRef={currentRY}
+            onPlace={onGhostPlace}
+            onCancel={onGhostCancel}
+            catalogue={catalogue}
+          />
+        )}
         <Ceiling
           cells={cells}
           gridW={gridW}

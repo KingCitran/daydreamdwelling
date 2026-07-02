@@ -281,8 +281,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   )
   const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
   const [targetRotation, setTarget] = useState(0)
-  const [floorColor, setFloorColor] = useState(initSave?.floorColor ?? '#cec5b8')
-  const [wallColor,  setWallColor]  = useState(initSave?.wallColor  ?? '#d8d0c6')
+  const [floorColor,   setFloorColor]   = useState(initSave?.floorColor ?? '#cec5b8')
+  const [floorTexture, setFloorTexture] = useState(initSave?.floorTexture ?? 'flat')
+  const [wallColor,    setWallColor]    = useState(initSave?.wallColor  ?? '#d8d0c6')
+  const [wallTexture,  setWallTexture]  = useState(initSave?.wallTexture ?? 'flat')
+  const [wallFinish,   setWallFinish]   = useState(initSave?.wallFinish ?? 'eggshell')
+  const [floorOverrides, setFloorOverrides] = useState(() => {
+    if (initSave?.floorOverrides) return new Map(Object.entries(initSave.floorOverrides))
+    return new Map()
+  })
+  const [wallOverrides, setWallOverrides] = useState(() => {
+    if (initSave?.wallOverrides) return new Map(Object.entries(initSave.wallOverrides))
+    return new Map()
+  })
+  const [paintMode, setPaintMode] = useState(false)
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
   const [moonId,     setMoonId]     = useState(initSave?.moonId ?? null)
@@ -309,6 +321,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [hubOpen,          setHubOpen]          = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
   const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
+  const [displacedCount,   setDisplacedCount]   = useState(0)
+  const [ghostPlacement,   setGhostPlacement]   = useState(null)  // { typeKey, stairW, stairD, stairCount, ... }
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -373,8 +387,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── Hooks ────────────────────────────────────────────────────────
   const { undo, redo, onDragStart, onDragEnd, canUndo, canRedo } = useHistoryUndo({
-    gridW, gridD, cells, items, floorColor, wallColor,
-    setGridW, setGridD, setCells, setItems, setFloorColor, setWallColor, setSelectedId,
+    gridW, gridD, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
+    setGridW, setGridD, setCells, setItems, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
   })
 
   // cart must come before usePersistence so importRoom can call setCart
@@ -382,10 +396,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     useCartWishlist({ initSave, items, setItems })
 
   const { importRef, exportRoom, importRoom } = usePersistence({
-    gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, moonId, roomNames,
+    gridW, gridD, wallHeight, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
     allRooms, currentRoomId,
     nextItemIdRef,
-    setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setWallColor, setSelectedId,
+    setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
   })
 
   const {
@@ -394,13 +408,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     moveWallItem, changeItemWall, swapWallFace,
     rotateItem, resizeItem, recolorItem,
     setPaneConfig, adjustWindowSize,
-    toggleOwned, toggleLocked, deleteItem,
+    toggleOwned, toggleLocked, deleteItem, updateStairConfig,
   } = useItemActions({
     items, setItems,
     gridW, gridD, cells, wallHeight,
-    floorColor, wallColor, targetRotation, currentRoomId,
+    floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, currentRoomId,
     allRooms, setAllRooms,
-    setFloorColor, setWallColor,
+    setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish,
     setSelectedId,
     wallPicker, setWallPicker,
     ceilingPicker, setCeilingPicker, setCeilingView,
@@ -408,11 +422,17 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     selectedId,
     getRoomName,
     catalogue,
+    onItemsDisplaced: (count, labels) => {
+      const names = labels.slice(0, 3).join(', ')
+      const suffix = count > 3 ? ` +${count - 3} more` : ''
+      showWispy(`${count} ${count === 1 ? 'item' : 'items'} moved to inventory: ${names}${suffix}`)
+      setDisplacedCount(prev => prev + count)
+    },
   })
 
   const cloudSave = useCloudSave({
     user, gridW, gridD, wallHeight, cells, items, cart,
-    floorColor, wallColor, bgColor, musicStation, lightMood, moonId, roomNames,
+    floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
     allRooms, currentRoomId,
   })
 
@@ -438,7 +458,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         if (d.cells)  setCells(new Set(d.cells))
         if (d.items)  setItems(d.items)
         if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.floorTexture) setFloorTexture(d.floorTexture)
         if (d.wallColor)  setWallColor(d.wallColor)
+        if (d.wallTexture) setWallTexture(d.wallTexture)
+        if (d.wallFinish) setWallFinish(d.wallFinish)
       }
     })()
     return () => { cancelled = true }
@@ -466,7 +489,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     setItems(data.items ?? [])
     setCart(data.cart ?? [])
     if (data.floorColor) setFloorColor(data.floorColor)
+    if (data.floorTexture) setFloorTexture(data.floorTexture)
     if (data.wallColor)  setWallColor(data.wallColor)
+    if (data.wallTexture) setWallTexture(data.wallTexture)
+    if (data.wallFinish) setWallFinish(data.wallFinish)
     if (data.bgColor)    setBgColor(data.bgColor)
     if (data.musicStation !== undefined) setMusicStation(data.musicStation)
     if (data.lightMood)  setLightMood(data.lightMood)
@@ -506,7 +532,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         if (d.cells)  setCells(new Set(d.cells))
         if (d.items)  setItems(d.items)
         if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.floorTexture) setFloorTexture(d.floorTexture)
         if (d.wallColor)  setWallColor(d.wallColor)
+        if (d.wallTexture) setWallTexture(d.wallTexture)
+        if (d.wallFinish) setWallFinish(d.wallFinish)
         if (d.bgColor)    setBgColor(d.bgColor)
         if (d.lightMood)  setLightMood(d.lightMood)
         if (d.items?.length > 0)
@@ -520,14 +549,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     setShopSaving(true)
     const layout = {
       version: 1, gridW, gridD, wallHeight,
-      cells: [...cells], items, floorColor, wallColor, bgColor, lightMood,
+      cells: [...cells], items, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, lightMood,
     }
     await supabase.from('seller_shops').upsert({
       seller_id: shopBuilderSellerId, layout,
       updated_at: new Date().toISOString(),
     })
     setShopSaving(false)
-  }, [shopBuilderSellerId, shopSaving, gridW, gridD, wallHeight, cells, items, floorColor, wallColor, bgColor, lightMood])
+  }, [shopBuilderSellerId, shopSaving, gridW, gridD, wallHeight, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, lightMood])
 
   const {
     enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, placeStairsQuick,
@@ -593,15 +622,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── History bookmark (in-memory, not persisted) ──────────────────
   const saveBookmark = useCallback(() => {
-    setBookmark({ gridW, gridD, cells: new Set(cells), items: [...items], cart: [...cart], floorColor, wallColor })
-  }, [gridW, gridD, cells, items, cart, floorColor, wallColor])
+    setBookmark({ gridW, gridD, cells: new Set(cells), items: [...items], cart: [...cart], floorColor, floorTexture, wallColor, wallTexture, wallFinish })
+  }, [gridW, gridD, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
 
   const restoreBookmark = useCallback(() => {
     if (!bookmark) return
     setGridW(bookmark.gridW); setGridD(bookmark.gridD)
     setCells(new Set(bookmark.cells)); setItems([...bookmark.items])
     setCart([...bookmark.cart])
-    setFloorColor(bookmark.floorColor); setWallColor(bookmark.wallColor)
+    setFloorColor(bookmark.floorColor); setFloorTexture(bookmark.floorTexture ?? 'flat')
+    setWallColor(bookmark.wallColor); setWallTexture(bookmark.wallTexture ?? 'flat'); setWallFinish(bookmark.wallFinish ?? 'eggshell')
     setSelectedId(null)
   }, [bookmark, setCart])
 
@@ -719,12 +749,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── Overview memos ───────────────────────────────────────────────
   const allRoomsData = useMemo(() => {
-    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, wallColor }
+    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish }
     return { ...allRooms, [currentRoomId]: currentSnap }
-  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor])
+  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
 
   const overviewPositions = useMemo(() => {
-    const snap = { gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation }
+    const snap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation }
     const allData = { ...allRooms, [currentRoomId]: snap }
     const { positions, totalW, totalH } = computeRoomLayout(allData, 1, 0)
     const result = {}
@@ -736,7 +766,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       }
     }
     return result
-  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, layoutOverrides])
+  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, layoutOverrides])
 
   const neighborCells = useMemo(() => {
     const blocked = new Set()
@@ -814,7 +844,27 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           gridD={gridD}
           wallHeight={wallHeight}
           floorColor={floorColor}
+          floorTexture={floorTexture}
+          floorOverrides={floorOverrides}
           wallColor={wallColor}
+          wallTexture={wallTexture}
+          wallFinish={wallFinish}
+          wallOverrides={wallOverrides}
+          paintMode={paintMode}
+          onClickCell={(col, row) => {
+            setFloorOverrides(prev => {
+              const next = new Map(prev)
+              next.set(`${col},${row}`, { color: floorColor, texture: floorTexture })
+              return next
+            })
+          }}
+          onClickWall={(wallId) => {
+            setWallOverrides(prev => {
+              const next = new Map(prev)
+              next.set(wallId, { color: wallColor, texture: wallTexture, finish: wallFinish })
+              return next
+            })
+          }}
           zoomRef={zoomRef}
           panRef={panRef}
           items={items}
@@ -838,6 +888,31 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           lightsOff={lightsOff}
           catalogue={catalogue}
           cloudsOn={cloudsOn}
+          ghostPlacement={ghostPlacement}
+          onGhostPlace={(col, row) => {
+            if (!ghostPlacement) return
+            const g = ghostPlacement
+            if (g.typeKey === 'stairs') {
+              // Use addStairs to create upper room + return stair
+              const bottomCells = new Set()
+              const topCells = new Set()
+              for (let dc = 0; dc < (g.stairW ?? 1); dc++)
+                for (let dr = 0; dr < (g.stairD ?? 3); dr++) {
+                  bottomCells.add(`${col + dc},${row + dr}`)
+                  topCells.add(`${dc},${dr}`)
+                }
+              addStairs(currentRoomId, {
+                bottomCells, stairCount: g.stairCount ?? 12, topCells,
+                topW: Math.max(gridW, (g.stairW ?? 1) + 2),
+                topD: Math.max(gridD, (g.stairD ?? 3) + 2),
+              })
+              showWispy('Stairs placed! Double-click them to go upstairs.')
+            } else {
+              placeItem(g.typeKey, g.sizeIndex ?? 0, g.swatchIndex ?? 0)
+            }
+            setGhostPlacement(null)
+          }}
+          onGhostCancel={() => { setGhostPlacement(null); showWispy('Placement cancelled.') }}
           onRotate={delta => setTarget(r => r + delta)}
           onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
         />
@@ -951,9 +1026,21 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {styleOpen && (
         <StylePanel
           floorColor={floorColor}
+          floorTexture={floorTexture}
           wallColor={wallColor}
+          wallTexture={wallTexture}
+          wallFinish={wallFinish}
           onFloorColor={setFloorColor}
+          onFloorTexture={setFloorTexture}
           onWallColor={setWallColor}
+          onWallTexture={setWallTexture}
+          onWallFinish={setWallFinish}
+          paintMode={paintMode}
+          onPaintMode={setPaintMode}
+          onClearOverrides={(target) => {
+            if (target === 'floor') setFloorOverrides(new Map())
+            else setWallOverrides(new Map())
+          }}
         />
       )}
 
@@ -998,7 +1085,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
       <BuilderToolDock
         active={activeTool}
-        onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null) }}
+        displacedCount={displacedCount}
+        onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null); if (id === 'place') setDisplacedCount(0) }}
       />
       <BuilderViewControls
         zoom={zoomRef.current}
@@ -1034,9 +1122,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
             onStairs={() => {
               setActiveTool(null)
-              const placed = placeStairsQuick()
-              if (placed) showWispy('Stairs placed! Double-click them to go upstairs. ☁')
-              else showWispy("There's no room for stairs here — try a bigger room.")
+              setGhostPlacement({ typeKey: 'stairs', stairW: 1, stairD: 3, stairCount: 12 })
+              showWispy('Click to place stairs. ESC to cancel.')
             }}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
@@ -1052,6 +1139,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignStyleContent
             wallColor={wallColor} floorColor={floorColor}
             onWallColor={setWallColor} onFloorColor={setFloorColor}
+            floorTexture={floorTexture} wallTexture={wallTexture} wallFinish={wallFinish}
+            onFloorTexture={setFloorTexture} onWallTexture={setWallTexture} onWallFinish={setWallFinish}
+            paintMode={paintMode} onPaintMode={setPaintMode}
+            onClearOverrides={(target) => {
+              if (target === 'floor') setFloorOverrides(new Map())
+              else setWallOverrides(new Map())
+            }}
           />
         </BuilderSheet>
       )}
@@ -1153,6 +1247,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onSetPaneConfig={(cols, rows) => setPaneConfig(selectedItem.id, cols, rows)}
           onAdjustWindowSize={(w, h) => adjustWindowSize(selectedItem.id, w, h)}
           onEnterRoom={() => enterRoom(selectedItem.id)}
+          onUpdateStairConfig={(cfg) => updateStairConfig(selectedItem.id, cfg)}
         />
       )}
 
@@ -1413,9 +1508,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
         onStairs={() => {
-          const placed = placeStairsQuick()
-          if (placed) showWispy('Stairs placed! Double-click them to go upstairs. ☁')
-          else showWispy("There's no room for stairs here — try a bigger room.")
+          setGhostPlacement({ typeKey: 'stairs', stairW: 1, stairD: 3, stairCount: 12 })
+          showWispy('Click to place stairs. ESC to cancel.')
         }}
       />
     </DockablePanel>

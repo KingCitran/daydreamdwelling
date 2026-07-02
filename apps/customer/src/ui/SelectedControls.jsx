@@ -43,6 +43,7 @@ export default function SelectedControls({
   onMoveWall, onChangeWall,
   parallelFaces, onSwapWallFace,
   wallHeight, onAdjustDropLength, onSetPaneConfig, onAdjustWindowSize, onEnterRoom,
+  onUpdateStairConfig,
 }) {
   const def        = (catalogue ?? ITEM_CATALOGUE)[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey] ?? {}
   const totalSizes = def.sizes?.length ?? 0
@@ -51,6 +52,7 @@ export default function SelectedControls({
   const isCeiling  = !!item.ceiling
   const isWindow   = !!def.window
   const isDoor     = !!def.door
+  const isStairs   = !!item.stairs
   const isFloor    = !isWall && !isCeiling
   // dmap stable across renders unless roomRotation changes
   const dmap       = useMemo(() => DIAMOND_MAP[roomQuadrant(roomRotation ?? 0)], [roomRotation])
@@ -155,6 +157,13 @@ export default function SelectedControls({
             )}
 
             {isDoor && isWall && <DoorSection onEnterRoom={onEnterRoom} />}
+
+            {isStairs && !item.locked && (
+              <StairSection
+                stairW={item.stairW ?? 1} stairD={item.stairD ?? 3} stairCount={item.stairCount ?? 12}
+                onUpdateStairConfig={onUpdateStairConfig}
+              />
+            )}
 
             {totalSizes > 1 && !item.locked && (
               <div style={item.owned ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
@@ -400,6 +409,32 @@ const DoorSection = memo(function DoorSection({ onEnterRoom }) {
         title="Double-click door to enter connected room">
         Enter Room <Icon name="chevronRight" size={13} />
       </button>
+    </Card>
+  )
+}, dataEqual)
+
+const StairSection = memo(function StairSection({
+  stairW, stairD, stairCount, onUpdateStairConfig,
+}) {
+  return (
+    <Card title="Staircase">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Steps</span>
+          <Stepper min={4} max={24} step={1} value={stairCount} unit=""
+            onChange={v => onUpdateStairConfig({ stairCount: v })} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Width</span>
+          <Stepper min={1} max={4} step={1} value={stairW} unit="ft"
+            onChange={v => onUpdateStairConfig({ stairW: v })} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Depth</span>
+          <Stepper min={2} max={6} step={1} value={stairD} unit="ft"
+            onChange={v => onUpdateStairConfig({ stairD: v })} />
+        </div>
+      </div>
     </Card>
   )
 }, dataEqual)

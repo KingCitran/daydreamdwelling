@@ -235,8 +235,33 @@ export function BuilderTopBar({
   )
 }
 
+// ── Displaced items badge (animated pop-in) ──────────────────────
+function DisplacedBadge({ count, u }) {
+  return (
+    <>
+      <style>{`
+        @keyframes badgePop {
+          0%   { transform: scale(0); opacity: 0; }
+          50%  { transform: scale(1.3); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+      <span style={{
+        position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18,
+        padding: '0 5px', borderRadius: 9,
+        background: '#e87fc8', color: '#fff',
+        fontSize: 10, fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: `2px solid ${u.nav}`,
+        animation: 'badgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: '0 2px 8px rgba(232,127,200,0.4)',
+      }}>{count > 99 ? '99+' : count}</span>
+    </>
+  )
+}
+
 // ── Tool Dock ──────────────────────────────────────────────────────
-export function BuilderToolDock({ active, onPick }) {
+export function BuilderToolDock({ active, onPick, displacedCount = 0 }) {
   const t = useTheme()
   const u = ui(t)
   const mode = useMode()
@@ -262,6 +287,7 @@ export function BuilderToolDock({ active, onPick }) {
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: 3, border: 'none', background: 'transparent',
               cursor: 'pointer', fontFamily: 'inherit', minWidth: 0, padding: 0,
+              position: 'relative',
             }}>
               <span style={{
                 width: 46, height: 32, borderRadius: 11,
@@ -274,6 +300,7 @@ export function BuilderToolDock({ active, onPick }) {
               <span style={{ fontSize: 10.5, fontWeight: on ? 800 : 600, color: on ? u.text : u.soft }}>
                 {meta.label}
               </span>
+              {id === 'place' && displacedCount > 0 && <DisplacedBadge count={displacedCount} u={u} />}
             </button>
           )
         })}
@@ -304,6 +331,7 @@ export function BuilderToolDock({ active, onPick }) {
             border: `1px solid ${on ? meta.tint + '88' : 'transparent'}`,
             background: on ? meta.tint + '1e' : 'transparent',
             cursor: 'pointer', fontFamily: 'inherit', color: u.text,
+            position: 'relative',
           }}>
             <span style={{
               width: 36, height: 36, borderRadius: 11, flexShrink: 0,
@@ -318,6 +346,7 @@ export function BuilderToolDock({ active, onPick }) {
                 {meta.label}
               </span>
             )}
+            {id === 'place' && displacedCount > 0 && <DisplacedBadge count={displacedCount} u={u} />}
           </button>
         )
       })}

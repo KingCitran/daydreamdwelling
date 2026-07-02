@@ -25,7 +25,9 @@ export function makeGrid(w, d) {
 export function getItemCells(item, catalogue = ITEM_CATALOGUE) {
   const def  = catalogue[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey]
   const size = def?.sizes?.[item.sizeIndex] ?? def?.sizes?.[0]
-  const [fw, fd] = size?.footprint ?? [1, 1]
+  // Stairs store their own footprint (stairW × stairD) which may differ from catalogue
+  const fw = item.stairW ?? (size?.footprint ?? [1, 1])[0]
+  const fd = item.stairD ?? (size?.footprint ?? [1, 1])[1]
   const rotated  = item.rotation === 90 || item.rotation === 270
   const ew = rotated ? fd : fw
   const ed = rotated ? fw : fd
@@ -76,6 +78,22 @@ export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) 
       if (testCells.has(cell)) return true
   }
   return false
+}
+
+// Like hasOverlap, but returns the IDs of all items that collide.
+export function findOverlappingItems(items, testId, testItem, catalogue = ITEM_CATALOGUE) {
+  const testCells = getItemCells(testItem, catalogue)
+  const ids = []
+  for (const other of items) {
+    if (other.id === testId) continue
+    if (other.wall || other.ceiling) continue
+    if (testItem.parentId === other.id || other.parentId === testId) continue
+    if ((testItem.parentId != null) !== (other.parentId != null)) continue
+    for (const cell of getItemCells(other, catalogue)) {
+      if (testCells.has(cell)) { ids.push(other.id); break }
+    }
+  }
+  return ids
 }
 
 // Check if testItem is positioned over a surface item and fits on it.

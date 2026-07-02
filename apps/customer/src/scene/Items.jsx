@@ -28,17 +28,23 @@ const LIGHT_CONFIG = {
 // Renders a .glb model loaded from Supabase Storage. Falls back to nothing
 // if the load fails (caller wraps in Suspense with a box fallback).
 // Fresh clone on every size change so Box3 always measures the original geometry.
-const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0 }) {
+// Sheen → Three.js roughness target. Blended with the model's own roughness
+// so mixed-material products (chrome legs + matte wood top) keep their variation.
+const SHEEN_ROUGHNESS = { flat: 0.95, eggshell: 0.82, satin: 0.65, semiGloss: 0.42, highGloss: 0.18 }
+const BLEND = 0.5 // 50% model's own roughness, 50% seller's target
+
+const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0, materialSheen = null }) {
   const { scene } = useGLTF(url)
 
   // Clone fresh every time dimensions change so we always measure unscaled geometry
   const model = useMemo(() => {
     const cloned = scene.clone(true)
+    const sheenTarget = materialSheen ? SHEEN_ROUGHNESS[materialSheen] : null
 
     // Brighten materials and enable shadow casting on every mesh.
-    // Tripo models often come out too dark because they bake ambient
-    // occlusion into the texture. Boost exposure by lightening the
-    // material color and adding a touch of emissive.
+    // Tripo models bake ambient occlusion into textures (too dark) but
+    // also capture real material variation (metal vs wood vs fabric).
+    // We preserve that variation while nudging toward the seller's sheen.
     cloned.traverse(child => {
       if (child.isMesh) {
         child.castShadow = true
@@ -46,7 +52,19 @@ const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDe
         if (child.material) {
           const mat = child.material
           if (mat.color) mat.color.multiplyScalar(1.3)
-          if (mat.roughness != null) mat.roughness = Math.min(mat.roughness, 0.85)
+
+          if (sheenTarget != null && mat.roughness != null) {
+            // Blend: keep model's material variation, pull toward seller's target.
+            // A chrome leg (model roughness ~0.2) stays shinier than a wood top
+            // (model roughness ~0.7) even when seller picks "satin" for both.
+            mat.roughness = mat.roughness * BLEND + sheenTarget * (1 - BLEND)
+            // Boost metalness slightly for glossy targets so shiny parts reflect
+            if (sheenTarget < 0.5) {
+              mat.metalness = Math.max(mat.metalness ?? 0, 0.04)
+            }
+          } else if (mat.roughness != null) {
+            mat.roughness = Math.min(mat.roughness, 0.88)
+          }
           mat.envMapIntensity = 1.5
           mat.needsUpdate = true
         }
@@ -71,7 +89,7 @@ const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDe
       -cz * fitScale,
     )
     return cloned
-  }, [scene, fw, fh, fd, scale])
+  }, [scene, fw, fh, fd, scale, materialSheen])
 
   return (
     <group rotation={[0, -(rotationDeg * Math.PI) / 180, 0]}>
@@ -113,16 +131,37 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
   }
 }
 
+// ── Stair visual (pure geometry, no interaction — ItemMesh handles that) ──
+function StairVisual({ fw, fd, fh, wallHeight, stairCount, color }) {
+  const sc = stairCount
+  const wh = wallHeight ?? 8
+  const stepH = wh / sc
+  const stepD = fd / sc
+  return (
+    <group position={[0, -fh / 2, 0]}>
+      {Array.from({ length: sc }, (_, i) => (
+        <mesh key={i} position={[0, (i + 0.5) * stepH, -fd / 2 + (i + 0.5) * stepD]} castShadow receiveShadow>
+          <boxGeometry args={[fw, stepH * 0.95, stepD * 0.95]} />
+          <meshStandardMaterial color={color} roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 // ── Floor item ─────────────────────────────────────────────────────
 const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
-                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
+                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE, onEnterRoom }) {
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
   const size       = def.sizes[item.sizeIndex] ?? def.sizes[0]
   if (!size) return null
-  // Default to 2×2×2 ft if dimensions are missing — lets 3D models still render
-  const [fw, fd]   = (size.footprint && size.footprint[0] > 0) ? size.footprint : [2, 2]
-  const fh         = (size.height && size.height > 0) ? size.height : 2
+  const isStairs   = !!def.isStairs && !!item.stairs
+  // Stairs use their own stairW/stairD dimensions
+  const [fw, fd]   = isStairs
+    ? [item.stairW ?? 1, item.stairD ?? 3]
+    : (size.footprint && size.footprint[0] > 0) ? size.footprint : [2, 2]
+  const fh         = isStairs ? (wallHeight ?? 8) : (size.height && size.height > 0) ? size.height : 2
   const rotated    = item.rotation === 90 || item.rotation === 270
   const effectiveW = rotated ? fd : fw
   const effectiveD = rotated ? fw : fd
@@ -213,9 +252,11 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       rotation={[0, -(item.rotation * Math.PI) / 180, 0]}
       onPointerDown={onPointerDown}
       onClick={e => e.stopPropagation()}
-      onDoubleClick={e => { e.stopPropagation(); onDoubleClick(item.typeKey) }}
+      onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
-      {modelUrl ? (
+      {isStairs ? (
+        <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 12} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+      ) : modelUrl ? (
         <>
           {/* Contact shadow — soft multi-ring oval for grounded look */}
           <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]}>
@@ -241,7 +282,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
               <meshStandardMaterial color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'} roughness={0.76} opacity={0.4} transparent />
             </mesh>
           }>
-            <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} />
+            <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} materialSheen={def.materialSheen} />
           </Suspense>
         </>
       ) : (
@@ -745,85 +786,6 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
   )
 })
 
-// ── Stair mesh ──────────────────────────────────────────────────────
-const StairMesh = memo(function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, onDrag, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onDoubleClick, onEnterRoom, catalogue = ITEM_CATALOGUE }) {
-  const def   = catalogue[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey]
-  const color = def?.swatches?.[item.swatchIndex]?.hex ?? def?.color ?? '#9a8a7a'
-  const sw    = item.stairW ?? 1
-  const sd    = item.stairD ?? 3
-  const sc    = item.stairCount ?? 12
-  const stepH = (wallHeight ?? 8) / sc
-  const stepD = sd / sc
-  const rot   = (item.rotation ?? 0) * Math.PI / 180
-  const rotated = item.rotation === 90 || item.rotation === 270
-  const effW  = rotated ? sd : sw
-  const effD  = rotated ? sw : sd
-  const bx    = (item.col + effW / 2) - gridW / 2
-  const bz    = (item.row + effD / 2) - gridD / 2
-
-  // Drag handling — same pattern as regular floor items
-  const dragRef = useRef(null)
-  const handlePointerDown = (e) => {
-    e.stopPropagation()
-    onSelect(item.id)
-    if (item.locked) return
-    dragRef.current = { startX: e.point.x, startZ: e.point.z, col: item.col, row: item.row }
-    onDragStart?.(item.id)
-    activeDragRef && (activeDragRef.current = item.id)
-  }
-  const handlePointerMove = (e) => {
-    if (!dragRef.current || item.locked) return
-    const roomRot = roomRotationRef?.current ?? 0
-    const cos = Math.cos(-roomRot), sin = Math.sin(-roomRot)
-    const rawDx = e.point.x - dragRef.current.startX
-    const rawDz = e.point.z - dragRef.current.startZ
-    const dx = rawDx * cos - rawDz * sin
-    const dz = rawDx * sin + rawDz * cos
-    const newCol = Math.round(dragRef.current.col + dx)
-    const newRow = Math.round(dragRef.current.row + dz)
-    if (newCol !== item.col || newRow !== item.row) {
-      onDrag?.(item.id, Math.max(0, Math.min(gridW - effW, newCol)), Math.max(0, Math.min(gridD - effD, newRow)))
-    }
-  }
-  const handlePointerUp = () => {
-    if (dragRef.current) {
-      dragRef.current = null
-      onDragEnd?.(item.id)
-      activeDragRef && (activeDragRef.current = null)
-    }
-  }
-  const handleDblClick = (e) => {
-    e.stopPropagation()
-    if (item.stairs && onEnterRoom) { onEnterRoom(item.id); return }
-    if (onDoubleClick) onDoubleClick(item.typeKey)
-  }
-
-  return (
-    <group
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onDoubleClick={handleDblClick}
-      onClick={e => e.stopPropagation()}
-    >
-      <group position={[bx, 0, bz]} rotation={[0, rot, 0]}>
-        {Array.from({ length: sc }, (_, i) => (
-          <mesh key={i} position={[0, (i + 0.5) * stepH, -sd / 2 + (i + 0.5) * stepD]} castShadow receiveShadow>
-            <boxGeometry args={[sw, stepH, stepD]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
-          </mesh>
-        ))}
-      </group>
-      {isSelected && (
-        <mesh position={[bx, (wallHeight ?? 8) / 2, bz]}>
-          <boxGeometry args={[effW + 0.08, (wallHeight ?? 8) + 0.08, effD + 0.08]} />
-          <meshBasicMaterial color={'#9a7aee'} wireframe />
-        </mesh>
-      )}
-    </group>
-  )
-})
-
 // ── Surface highlight during drag ─────────────────────────────────
 // Reads hoveredSurfaceRef each frame and renders a glowing outline on
 // the surface item that will accept the dragged item.
@@ -937,26 +899,6 @@ export default function Items({
           catalogue,
         }
         if (!def) return null   // UUID item not yet in catalogue — skip until async load completes
-        if (def?.isStairs && item.stairs) {
-          return (
-            <StairMesh
-              key={item.id}
-              item={item}
-              isSelected={selectedId === item.id}
-              gridW={gridW} gridD={gridD}
-              wallHeight={wallHeight}
-              onSelect={onSelectItem}
-              onDrag={onMoveItem}
-              onDragStart={onDragStart}
-              onDragEnd={onDragEnd}
-              roomRotationRef={roomRotationRef}
-              activeDragRef={activeDragRef}
-              onDoubleClick={onDoubleClickItem}
-              onEnterRoom={onEnterRoom}
-              catalogue={catalogue}
-            />
-          )
-        }
         if (isWallDef(def) && item.wall) {
           return (
             <WallItemMesh
@@ -972,7 +914,7 @@ export default function Items({
           )
         }
         if (ceilingView) return null
-        return <ItemMesh key={item.id} {...shared} onMove={onMoveItem} />
+        return <ItemMesh key={item.id} {...shared} onMove={onMoveItem} onEnterRoom={onEnterRoom} />
       })}
       <SurfaceHighlight items={items} hoveredSurfaceRef={hoveredSurfaceRef} gridW={gridW} gridD={gridD} catalogue={catalogue} />
     </group>

@@ -3,14 +3,15 @@ import { ITEM_CATALOGUE } from '../data/items'
 import {
   isWallItem, isCeilingItem, isSurfaceItem, hasOverlap, hasWallOverlap,
   findFreePosition, findSurfaceAt, getSurfaceHeight, getParallelWallFaces,
+  findOverlappingItems,
 } from '../utils/roomGeometry'
 
 export default function useItemActions({
   items, setItems,
   gridW, gridD, cells, wallHeight,
-  floorColor, wallColor, targetRotation, currentRoomId,
+  floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, currentRoomId,
   allRooms, setAllRooms,
-  setFloorColor, setWallColor,
+  setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish,
   setSelectedId,
   wallPicker, setWallPicker,
   ceilingPicker, setCeilingPicker, setCeilingView,
@@ -18,6 +19,7 @@ export default function useItemActions({
   selectedId,
   getRoomName,
   catalogue,
+  onItemsDisplaced,
 }) {
   // Keep a ref so callbacks always see the latest merged catalogue without re-creating
   const catalogueRef = useRef(catalogue ?? ITEM_CATALOGUE)
@@ -31,10 +33,14 @@ export default function useItemActions({
     if (!def) return
     if (def.isFloorFinish) {
       setFloorColor(def.swatches?.[swatchIndex]?.hex ?? def.surfaceHex)
+      setFloorTexture?.(def.textureType ?? 'flat')
       return
     }
     if (def.isWallFinish) {
       setWallColor(def.swatches?.[swatchIndex]?.hex ?? def.surfaceHex)
+      setWallTexture?.(def.textureType ?? 'flat')
+      if (def.paintFinish) setWallFinish?.(def.paintFinish)
+      else setWallFinish?.(null)
       return
     }
     if (isWallItem(def)) {
@@ -58,7 +64,7 @@ export default function useItemActions({
       return [...prev, { ...template, col, row }]
     })
     setSelectedId(id)
-  }, [gridW, gridD, setFloorColor, setWallColor, setWallPicker, setCeilingPicker, setCeilingView, nextItemIdRef, setItems, setSelectedId])
+  }, [gridW, gridD, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setWallPicker, setCeilingPicker, setCeilingView, nextItemIdRef, setItems, setSelectedId])
 
   const placeItemOnWall = useCallback((wall) => {
     if (!wallPicker) return
@@ -263,6 +269,27 @@ export default function useItemActions({
     setItems(prev => prev.map(it => it.id === id ? { ...it, customW, customH } : it))
   }, [setItems])
 
+  const updateStairConfig = useCallback((id, { stairW, stairD, stairCount }) => {
+    setItems(prev => {
+      const item = prev.find(it => it.id === id)
+      if (!item || !item.stairs) return prev
+      const updated = { ...item }
+      if (stairW != null) updated.stairW = stairW
+      if (stairD != null) updated.stairD = stairD
+      if (stairCount != null) updated.stairCount = stairCount
+      const conflicting = findOverlappingItems(prev, id, updated, catalogueRef.current)
+      const conflictSet = new Set(conflicting)
+      if (conflicting.length > 0) {
+        const displaced = prev.filter(it => conflictSet.has(it.id))
+        const labels = displaced.map(it => (catalogueRef.current[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey])?.label ?? it.typeKey)
+        onItemsDisplaced?.(displaced.length, labels)
+      }
+      return prev
+        .filter(it => !conflictSet.has(it.id))
+        .map(it => it.id === id ? updated : it)
+    })
+  }, [setItems, onItemsDisplaced])
+
   const toggleOwned = useCallback((id) => {
     setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned } : it))
   }, [setItems])
@@ -316,6 +343,6 @@ export default function useItemActions({
     moveWallItem, changeItemWall, swapWallFace,
     rotateItem, resizeItem, recolorItem,
     setPaneConfig, adjustWindowSize,
-    toggleOwned, toggleLocked, deleteItem,
+    toggleOwned, toggleLocked, deleteItem, updateStairConfig,
   }
 }
