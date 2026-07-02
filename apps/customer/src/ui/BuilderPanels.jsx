@@ -65,18 +65,28 @@ function Seg({ options, value, onChange, u }) {
 
 // ── Presets ─────────────────────────────────────────────────────────
 const WALL_PRESETS = [
-  { name: 'Cloud',     hex: '#ece7f5', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Blush',     hex: '#f0d8d8', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Sage',      hex: '#cdd8c4', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Sky',       hex: '#cfe0ee', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Butter',    hex: '#f2e6c2', tex: 'flat',    finish: 'eggshell' },
-  { name: 'Clay',      hex: '#e0c2ad', tex: 'flat',    finish: 'satin' },
-  { name: 'Charcoal',  hex: '#3a3a44', tex: 'flat',    finish: 'satin' },
-  { name: 'Plum',      hex: '#5a3f63', tex: 'flat',    finish: 'satin' },
-  { name: 'Brick',     hex: '#a04828', tex: 'brick',   finish: null },
-  { name: 'Wht Brick', hex: '#f0ece6', tex: 'brick',   finish: null },
-  { name: 'Shiplap',   hex: '#f0ece6', tex: 'shiplap', finish: null },
-  { name: 'Gry Shiplap',hex:'#c0beb8', tex: 'shiplap', finish: null },
+  // Painted walls
+  { name: 'White',      hex: '#f0ece6', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Cream',      hex: '#ede8df', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Sage',       hex: '#cdd8c4', tex: 'flat',    finish: 'eggshell' },
+  { name: 'Charcoal',   hex: '#3a3a44', tex: 'flat',    finish: 'satin' },
+  // Brick
+  { name: 'Red Brick',  hex: '#a04828', tex: 'brick',   finish: null },
+  { name: 'White Brick', hex: '#f0ece6', tex: 'brick',  finish: null },
+  { name: 'Gray Brick', hex: '#888888', tex: 'brick',   finish: null },
+  // Wood paneling
+  { name: 'Shiplap',    hex: '#f0ece6', tex: 'shiplap', finish: null },
+  { name: 'Dark Ship',  hex: '#6a5a48', tex: 'shiplap', finish: null },
+  { name: 'Gray Ship',  hex: '#c0beb8', tex: 'shiplap', finish: null },
+  // Tile
+  { name: 'Subway',     hex: '#f0f0f0', tex: 'tile',    finish: 'semiGloss' },
+  { name: 'Blue Tile',  hex: '#4a6a8a', tex: 'tile',    finish: 'semiGloss' },
+  // Stone
+  { name: 'Concrete',   hex: '#b0b0b0', tex: 'concrete', finish: null },
+  { name: 'Marble',     hex: '#e8e4e0', tex: 'marble',  finish: null },
+  // Accent
+  { name: 'Plum',       hex: '#5a3f63', tex: 'flat',    finish: 'satin' },
+  { name: 'Navy',       hex: '#1a2a4a', tex: 'flat',    finish: 'satin' },
 ]
 
 const FLOOR_PRESETS = [

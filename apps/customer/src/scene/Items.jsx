@@ -18,11 +18,11 @@ const snapW = v => Math.round(v * 4) / 4   // 0.25 ft grid (wall)
 // Note: ceiling items (chandelier, pendant, recessedLight, ceilingFan) are rendered
 // exclusively by Ceiling.jsx and are skipped here.
 const LIGHT_CONFIG = {
-  floorLamp:    { color: '#ffcc88', intensity: 1.0, distance: 8  },
-  tableLamp:    { color: '#ffcc88', intensity: 0.6, distance: 5  },
-  stringLights: { color: '#ffe8a0', intensity: 0.4, distance: 4  },
-  deskLamp:     { color: '#ffcc88', intensity: 0.5, distance: 4  },
-  wallSconce:   { color: '#ffcc88', intensity: 0.8, distance: 5  },
+  floorLamp:    { color: '#ffcc88', intensity: 3.0, distance: 12 },
+  tableLamp:    { color: '#ffcc88', intensity: 2.0, distance: 8  },
+  stringLights: { color: '#ffe8a0', intensity: 1.2, distance: 6  },
+  deskLamp:     { color: '#ffcc88', intensity: 1.8, distance: 6  },
+  wallSconce:   { color: '#ffcc88', intensity: 2.5, distance: 8  },
 }
 
 // Renders a .glb model loaded from Supabase Storage. Falls back to nothing
