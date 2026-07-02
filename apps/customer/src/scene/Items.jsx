@@ -746,29 +746,78 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
 })
 
 // ── Stair mesh ──────────────────────────────────────────────────────
-const StairMesh = memo(function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, catalogue = ITEM_CATALOGUE }) {
-  const def   = catalogue[item.typeKey]
-  const color = def.swatches?.[item.swatchIndex]?.hex ?? def.color
-  const sw    = item.stairW ?? 3
-  const sd    = item.stairD ?? 4
+const StairMesh = memo(function StairMesh({ item, isSelected, gridW, gridD, wallHeight, onSelect, onDrag, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onDoubleClick, onEnterRoom, catalogue = ITEM_CATALOGUE }) {
+  const def   = catalogue[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey]
+  const color = def?.swatches?.[item.swatchIndex]?.hex ?? def?.color ?? '#9a8a7a'
+  const sw    = item.stairW ?? 1
+  const sd    = item.stairD ?? 3
   const sc    = item.stairCount ?? 12
   const stepH = (wallHeight ?? 8) / sc
   const stepD = sd / sc
-  const bx    = (item.col + sw / 2) - gridW / 2
-  const bz    = (item.row + sd / 2) - gridD / 2
+  const rot   = (item.rotation ?? 0) * Math.PI / 180
+  const rotated = item.rotation === 90 || item.rotation === 270
+  const effW  = rotated ? sd : sw
+  const effD  = rotated ? sw : sd
+  const bx    = (item.col + effW / 2) - gridW / 2
+  const bz    = (item.row + effD / 2) - gridD / 2
+
+  // Drag handling — same pattern as regular floor items
+  const dragRef = useRef(null)
+  const handlePointerDown = (e) => {
+    e.stopPropagation()
+    onSelect(item.id)
+    if (item.locked) return
+    dragRef.current = { startX: e.point.x, startZ: e.point.z, col: item.col, row: item.row }
+    onDragStart?.(item.id)
+    activeDragRef && (activeDragRef.current = item.id)
+  }
+  const handlePointerMove = (e) => {
+    if (!dragRef.current || item.locked) return
+    const roomRot = roomRotationRef?.current ?? 0
+    const cos = Math.cos(-roomRot), sin = Math.sin(-roomRot)
+    const rawDx = e.point.x - dragRef.current.startX
+    const rawDz = e.point.z - dragRef.current.startZ
+    const dx = rawDx * cos - rawDz * sin
+    const dz = rawDx * sin + rawDz * cos
+    const newCol = Math.round(dragRef.current.col + dx)
+    const newRow = Math.round(dragRef.current.row + dz)
+    if (newCol !== item.col || newRow !== item.row) {
+      onDrag?.(item.id, Math.max(0, Math.min(gridW - effW, newCol)), Math.max(0, Math.min(gridD - effD, newRow)))
+    }
+  }
+  const handlePointerUp = () => {
+    if (dragRef.current) {
+      dragRef.current = null
+      onDragEnd?.(item.id)
+      activeDragRef && (activeDragRef.current = null)
+    }
+  }
+  const handleDblClick = (e) => {
+    e.stopPropagation()
+    if (item.stairs && onEnterRoom) { onEnterRoom(item.id); return }
+    if (onDoubleClick) onDoubleClick(item.typeKey)
+  }
 
   return (
-    <group onPointerDown={e => { e.stopPropagation(); onSelect(item.id) }} onClick={e => e.stopPropagation()}>
-      {Array.from({ length: sc }, (_, i) => (
-        <mesh key={i} position={[bx, (i + 0.5) * stepH, bz - sd / 2 + (i + 0.5) * stepD]} castShadow receiveShadow>
-          <boxGeometry args={[sw, stepH, stepD]} />
-          <meshStandardMaterial color={color} roughness={0.8} />
-        </mesh>
-      ))}
+    <group
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onDoubleClick={handleDblClick}
+      onClick={e => e.stopPropagation()}
+    >
+      <group position={[bx, 0, bz]} rotation={[0, rot, 0]}>
+        {Array.from({ length: sc }, (_, i) => (
+          <mesh key={i} position={[0, (i + 0.5) * stepH, -sd / 2 + (i + 0.5) * stepD]} castShadow receiveShadow>
+            <boxGeometry args={[sw, stepH, stepD]} />
+            <meshStandardMaterial color={color} roughness={0.8} />
+          </mesh>
+        ))}
+      </group>
       {isSelected && (
         <mesh position={[bx, (wallHeight ?? 8) / 2, bz]}>
-          <boxGeometry args={[sw + 0.08, (wallHeight ?? 8) + 0.08, sd + 0.08]} />
-          <meshBasicMaterial color={item.owned ? '#f0c060' : '#9a7aee'} wireframe />
+          <boxGeometry args={[effW + 0.08, (wallHeight ?? 8) + 0.08, effD + 0.08]} />
+          <meshBasicMaterial color={'#9a7aee'} wireframe />
         </mesh>
       )}
     </group>
@@ -897,6 +946,13 @@ export default function Items({
               gridW={gridW} gridD={gridD}
               wallHeight={wallHeight}
               onSelect={onSelectItem}
+              onDrag={onDrag}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              roomRotationRef={roomRotationRef}
+              activeDragRef={activeDragRef}
+              onDoubleClick={onDoubleClick}
+              onEnterRoom={onEnterRoom}
               catalogue={catalogue}
             />
           )

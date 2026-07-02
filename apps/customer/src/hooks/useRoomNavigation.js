@@ -355,13 +355,13 @@ export default function useRoomNavigation({
     const stairD = Math.max(...rows) - row + 1
     const topRoomId = nextRoomIdRef.current++
     const palette   = ROOM_PALETTES[topRoomId % ROOM_PALETTES.length]
-    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation: 0, layer: 0, locked: true, bottomCells: [...bottomCells], topCells: [...topCells] }
+    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation: 0, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
     // Place a matching "return stairs" in the upper room so the user
     // can double-click to go back down. topFloorRoomId points to the
     // LOWER room (the one we came from).
     const topCols = [...topCells].map(k => Number(k.split(',')[0]))
     const topRows = [...topCells].map(k => Number(k.split(',')[1]))
-    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: false, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
     if (roomId === currentRoomId) {
       const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
       setItems(prev => [...prev, stairItem])
@@ -383,11 +383,11 @@ export default function useRoomNavigation({
   // creates the upper room automatically. Returns true if placed.
   const placeStairsQuick = useCallback(() => {
     if (gridW < 1 || gridD < 3) return false
-    // Check no existing stairs in this room
-    if (items.some(it => it.stairs)) return false
 
     const stairW = 1, stairD = 3, stairCount = 12
-    const col = 0, row = 0
+    // Place near the center of the room
+    const col = Math.max(0, Math.floor(gridW / 2) - Math.floor(stairW / 2))
+    const row = Math.max(0, Math.floor(gridD / 2) - Math.floor(stairD / 2))
     const bottomCells = new Set()
     const topCells = new Set()
     for (let dc = 0; dc < stairW; dc++) {
