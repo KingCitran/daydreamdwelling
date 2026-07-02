@@ -1339,7 +1339,7 @@ export const ITEM_CATALOGUE = {
   stairs: {
     label: 'Stairs', category: 'Structure', subcategory: 'Stairs',
     isStairs: true,
-    color: '#9a8a7a', layer: 0, footprint: [3, 4], height: 8,
+    color: '#9a8a7a', layer: 0, footprint: [3, 5], height: 8,
     gradient: 'linear-gradient(135deg, #9a8a7a 0%, #5a4a3a 100%)',
     brand: '', price: 0, priceMax: 0,
     rating: 0, reviewCount: 0,
@@ -1348,7 +1348,7 @@ export const ITEM_CATALOGUE = {
       { name: 'Dark Wood',    hex: '#5a3a1a', family: 'Wood'  },
       { name: 'Painted',      hex: '#e8e0d8', family: 'White' },
     ],
-    sizes: [{ label: 'Custom', footprint: [3, 4], height: 8, price: 0 }],
+    sizes: [{ label: 'Custom', footprint: [3, 5], height: 8, price: 0 }],
     description: 'Custom staircase connecting two floor levels. Shape and step count set during placement.',
     materials: [], guarantee: '',
   },
@@ -1796,7 +1796,7 @@ export const ITEM_CATALOGUE = {
 
   hardwoodOak: {
     label: 'Hardwood Oak Flooring', category: 'Flooring', subcategory: 'Hardwood',
-    isFloorFinish: true, surfaceHex: '#c4a060',
+    isFloorFinish: true, textureType: 'wood', surfaceHex: '#c4a060',
     color: '#c4a060', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #d4b070 0%, #a89050 100%)',
     brand: 'FloorCraft', price: 8, priceMax: 8, pricePerSqFt: 8,
@@ -1820,7 +1820,7 @@ export const ITEM_CATALOGUE = {
 
   hardwoodWalnut: {
     label: 'Hardwood Walnut Flooring', category: 'Flooring', subcategory: 'Hardwood',
-    isFloorFinish: true, surfaceHex: '#6a4020',
+    isFloorFinish: true, textureType: 'wood', surfaceHex: '#6a4020',
     color: '#6a4020', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #7a5030 0%, #4a2810 100%)',
     brand: 'FloorCraft', price: 12, priceMax: 12, pricePerSqFt: 12,
@@ -1844,7 +1844,7 @@ export const ITEM_CATALOGUE = {
 
   lvpFloor: {
     label: 'Luxury Vinyl Plank', category: 'Flooring', subcategory: 'Luxury Vinyl',
-    isFloorFinish: true, surfaceHex: '#b89060',
+    isFloorFinish: true, textureType: 'wood', surfaceHex: '#b89060',
     color: '#b89060', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #c8a070 0%, #a08050 100%)',
     brand: 'FloorCraft', price: 4, priceMax: 4, pricePerSqFt: 4,
@@ -1868,7 +1868,7 @@ export const ITEM_CATALOGUE = {
 
   ceramicTileFloor: {
     label: 'Ceramic Tile Flooring', category: 'Flooring', subcategory: 'Ceramic Tile',
-    isFloorFinish: true, surfaceHex: '#c8c4b8',
+    isFloorFinish: true, textureType: 'tile', surfaceHex: '#c8c4b8',
     color: '#c8c4b8', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #d8d4c8 0%, #b8b4a8 100%)',
     brand: 'TileCraft', price: 5, priceMax: 5, pricePerSqFt: 5,
@@ -1892,7 +1892,7 @@ export const ITEM_CATALOGUE = {
 
   carpetPlush: {
     label: 'Plush Carpet', category: 'Flooring', subcategory: 'Carpet',
-    isFloorFinish: true, surfaceHex: '#c0b8a8',
+    isFloorFinish: true, textureType: 'carpet', surfaceHex: '#c0b8a8',
     color: '#c0b8a8', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #d0c8b8 0%, #b0a898 100%)',
     brand: 'SoftStep', price: 4, priceMax: 4, pricePerSqFt: 4,
@@ -1916,7 +1916,7 @@ export const ITEM_CATALOGUE = {
 
   carpetBerber: {
     label: 'Berber Loop Carpet', category: 'Flooring', subcategory: 'Carpet',
-    isFloorFinish: true, surfaceHex: '#c8c0a8',
+    isFloorFinish: true, textureType: 'carpet', surfaceHex: '#c8c0a8',
     color: '#c8c0a8', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #d8d0b8 0%, #b8b0a0 100%)',
     brand: 'SoftStep', price: 3, priceMax: 3, pricePerSqFt: 3,
@@ -1940,7 +1940,7 @@ export const ITEM_CATALOGUE = {
 
   concreteFloor: {
     label: 'Polished Concrete', category: 'Flooring', subcategory: 'Concrete',
-    isFloorFinish: true, surfaceHex: '#a8a8a8',
+    isFloorFinish: true, textureType: 'concrete', surfaceHex: '#a8a8a8',
     color: '#a8a8a8', layer: -1, footprint: [1, 1], height: 0.01,
     gradient: 'linear-gradient(135deg, #b8b8b8 0%, #989898 100%)',
     brand: 'TileCraft', price: 6, priceMax: 6, pricePerSqFt: 6,
@@ -1966,7 +1966,7 @@ export const ITEM_CATALOGUE = {
 
   peelStickWallpaper: {
     label: 'Peel & Stick Wallpaper', category: 'Wallpaper', subcategory: 'Peel & Stick',
-    isWallFinish: true, surfaceHex: '#d0c8b0',
+    isWallFinish: true, textureType: 'flat', surfaceHex: '#d0c8b0',
     color: '#d0c8b0', layer: -1, footprint: [1, 0.1], height: 0.1,
     gradient: 'linear-gradient(135deg, #e8c898 0%, #c0a870 50%, #d8e0a8 100%)',
     brand: 'WallCraft', price: 3, priceMax: 3, pricePerSqFt: 3,
@@ -1990,7 +1990,7 @@ export const ITEM_CATALOGUE = {
 
   grassclothWallpaper: {
     label: 'Grasscloth Wallpaper', category: 'Wallpaper', subcategory: 'Grasscloth',
-    isWallFinish: true, surfaceHex: '#c8b878',
+    isWallFinish: true, textureType: 'flat', surfaceHex: '#c8b878',
     color: '#c8b878', layer: -1, footprint: [1, 0.1], height: 0.1,
     gradient: 'linear-gradient(135deg, #d8c888 0%, #b8a868 100%)',
     brand: 'WallCraft', price: 6, priceMax: 6, pricePerSqFt: 6,
@@ -2014,7 +2014,7 @@ export const ITEM_CATALOGUE = {
 
   shiplapPaneling: {
     label: 'Shiplap Paneling', category: 'Wallpaper', subcategory: 'Shiplap & Paneling',
-    isWallFinish: true, surfaceHex: '#e8e0d8',
+    isWallFinish: true, textureType: 'shiplap', surfaceHex: '#e8e0d8',
     color: '#e8e0d8', layer: -1, footprint: [1, 0.1], height: 0.1,
     gradient: 'linear-gradient(135deg, #f0e8e0 0%, #d8d0c8 100%)',
     brand: 'WallCraft', price: 7, priceMax: 7, pricePerSqFt: 7,
@@ -2038,7 +2038,7 @@ export const ITEM_CATALOGUE = {
 
   muralWallpaper: {
     label: 'Wall Mural', category: 'Wallpaper', subcategory: 'Murals',
-    isWallFinish: true, surfaceHex: '#a0b8c8',
+    isWallFinish: true, textureType: 'flat', surfaceHex: '#a0b8c8',
     color: '#a0b8c8', layer: -1, footprint: [1, 0.1], height: 0.1,
     gradient: 'linear-gradient(135deg, #90a8c0 0%, #c8a8a0 50%, #a0c890 100%)',
     brand: 'Studio PAPER', price: 8, priceMax: 8, pricePerSqFt: 8,

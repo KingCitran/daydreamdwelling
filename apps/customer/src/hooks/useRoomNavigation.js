@@ -382,9 +382,9 @@ export default function useRoomNavigation({
   // Drops a default 1×3 stair at position (0,0) in the current room,
   // creates the upper room automatically. Returns true if placed.
   const placeStairsQuick = useCallback(() => {
-    if (gridW < 1 || gridD < 3) return false
+    if (gridW < 3 || gridD < 5) return false
 
-    const stairW = 1, stairD = 3, stairCount = 12
+    const stairW = 3, stairD = 5, stairCount = 14
     // Place near the center of the room
     const col = Math.max(0, Math.floor(gridW / 2) - Math.floor(stairW / 2))
     const row = Math.max(0, Math.floor(gridD / 2) - Math.floor(stairD / 2))

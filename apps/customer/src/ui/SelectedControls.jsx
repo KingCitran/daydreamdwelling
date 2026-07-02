@@ -160,7 +160,7 @@ export default function SelectedControls({
 
             {isStairs && !item.locked && (
               <StairSection
-                stairW={item.stairW ?? 1} stairD={item.stairD ?? 3} stairCount={item.stairCount ?? 12}
+                stairW={item.stairW ?? 3} stairD={item.stairD ?? 5} stairCount={item.stairCount ?? 14}
                 onUpdateStairConfig={onUpdateStairConfig}
               />
             )}

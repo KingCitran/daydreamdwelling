@@ -1122,7 +1122,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
             onStairs={() => {
               setActiveTool(null)
-              setGhostPlacement({ typeKey: 'stairs', stairW: 1, stairD: 3, stairCount: 12 })
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
               showWispy('Click to place stairs. ESC to cancel.')
             }}
             ceilingView={ceilingView}
@@ -1508,7 +1508,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
         onStairs={() => {
-          setGhostPlacement({ typeKey: 'stairs', stairW: 1, stairD: 3, stairCount: 12 })
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
           showWispy('Click to place stairs. ESC to cancel.')
         }}
       />
