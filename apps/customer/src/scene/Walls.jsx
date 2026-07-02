@@ -218,21 +218,38 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
 
   const visibles = VISIBLE_NORMALS[quadrant]
 
+  // Memoize the global wall texture once — not per face
+  const globalTex = useMemo(
+    () => getTexture(wallTexture, wallColor || '#d8d0c6'),
+    [wallTexture, wallColor]
+  )
+  const globalRough = wallFinish
+    ? (PAINT_FINISH_ROUGHNESS[wallFinish] ?? 0.88)
+    : (TEXTURE_ROUGHNESS[wallTexture] ?? 0.88)
+  const globalBase = wallColor || '#d8d0c6'
+
   return (
     <group>
       {walls.map(({ id, x, z, normal, axis }) => {
         const w         = axis === 'z' ? 1 + WALL_T : WALL_T
         const d         = axis === 'z' ? WALL_T     : 1 + WALL_T
 
-        // Per-face override or global default
+        // Per-face override or global default (most faces use global — fast path)
         const ov = wallOverrides?.get?.(id)
-        const faceColor    = ov?.color   ?? wallColor ?? '#d8d0c6'
-        const faceTexType  = ov?.texture ?? wallTexture ?? 'flat'
-        const faceFinish   = ov?.finish  ?? wallFinish
-        const faceTex      = getTexture(faceTexType, faceColor)
-        const faceRough    = faceFinish
-          ? (PAINT_FINISH_ROUGHNESS[faceFinish] ?? 0.88)
-          : (TEXTURE_ROUGHNESS[faceTexType] ?? 0.88)
+        let faceTex, faceRough, faceColor
+        if (ov) {
+          faceColor = ov.color ?? globalBase
+          const faceTexType = ov.texture ?? wallTexture ?? 'flat'
+          const faceFinish  = ov.finish  ?? wallFinish
+          faceTex   = getTexture(faceTexType, faceColor)
+          faceRough = faceFinish
+            ? (PAINT_FINISH_ROUGHNESS[faceFinish] ?? 0.88)
+            : (TEXTURE_ROUGHNESS[faceTexType] ?? 0.88)
+        } else {
+          faceColor = globalBase
+          faceTex   = globalTex
+          faceRough = globalRough
+        }
         const color     = faceTex ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
         const isVisible = normalMatches(normal, visibles)
 
