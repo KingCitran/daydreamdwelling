@@ -1340,7 +1340,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
       <BuilderTopBar
         onBrandClick={() => { window.location.search = '?hub=1' }}
-        roomName={floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
+        roomName={activeZoneIdx != null && roomZones[activeZoneIdx]
+          ? (roomNames[`zone_${activeZoneIdx}`] || `Room ${activeZoneIdx + 1}`)
+          : floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
         roomIds={Object.keys(allRoomsData || {}).map(Number)}
         rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}
         budget={items.reduce((s, it) => {
@@ -1373,8 +1375,25 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onOverview={() => {
           setActiveZoneIdx(null)
           setFloorPlanOpen(false)
-          const maxDim = Math.max(gridW, gridD, 10)
-          const fitZoom = Math.max(15, Math.min(80, 320 / maxDim))
+          // Show the highest floor so all ghost floors render below
+          if (floorStack.length > 1) {
+            const topFloor = floorStack[floorStack.length - 1]
+            jumpToRoom(topFloor.roomId)
+            setActiveFloorLevel(topFloor.level)
+          }
+          // Fit to content
+          let minC = gridW, maxC = 0, minR = gridD, maxR = 0
+          for (const key of cells) {
+            const [c, r] = key.split(',').map(Number)
+            minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+            minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+          }
+          const contentW = maxC - minC + 1 || gridW
+          const contentD = maxR - minR + 1 || gridD
+          const maxDim = Math.max(contentW, contentD, 6)
+          // Zoom out more to see stacked floors
+          const floorCount = floorStack.length || 1
+          const fitZoom = Math.max(10, Math.min(60, 240 / (maxDim + floorCount * 4)))
           zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
           setTarget(0); panRef.current = { x: 0, z: 0 }
         }}
