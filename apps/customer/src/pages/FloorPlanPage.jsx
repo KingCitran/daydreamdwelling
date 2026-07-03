@@ -283,7 +283,7 @@ export default function FloorPlanPage({
 
     // Hover previews
     if (hoverInfo) {
-      if (tool === 'shape' && hoverInfo.rect) {
+      if ((tool === 'shape' || tool === 'addroom') && hoverInfo.rect) {
         const { startCol, startRow, endCol, endRow, action } = hoverInfo.rect
         const c0 = Math.min(startCol, endCol), c1 = Math.max(startCol, endCol)
         const r0 = Math.min(startRow, endRow), r1 = Math.max(startRow, endRow)
@@ -292,7 +292,7 @@ export default function FloorPlanPage({
         ctx.strokeStyle = action === 'addroom' ? '#60a0ff' : action === 'add' ? '#50c878' : '#ff5050'
         ctx.lineWidth = 1.5
         ctx.strokeRect(offsetX + c0 * cellSize, offsetY + r0 * cellSize, (c1-c0+1) * cellSize, (r1-r0+1) * cellSize)
-      } else if (tool === 'shape' && hoverInfo.col != null) {
+      } else if ((tool === 'shape' || tool === 'addroom') && hoverInfo.col != null) {
         const { col, row } = hoverInfo
         ctx.fillStyle = cells.has(`${col},${row}`) ? 'rgba(255,70,70,0.2)' : 'rgba(70,200,120,0.2)'
         ctx.fillRect(offsetX + col * cellSize, offsetY + row * cellSize, cellSize, cellSize)
@@ -506,22 +506,28 @@ export default function FloorPlanPage({
       const r0 = Math.min(startRow, endRow), r1 = Math.max(startRow, endRow)
 
       if (action === 'addroom') {
-        // Add Room: add cells + walls around the perimeter in one action
+        // Add Room: add cells, then add internal walls where new room
+        // touches EXISTING cells (shared edges become internal walls)
+        // First, note which cells already exist (neighbors)
+        const existingBefore = new Set(cells)
+        // Add all cells in the rectangle
         for (let c = c0; c <= c1; c++)
           for (let r = r0; r <= r1; r++)
             if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
-        // Add internal walls on all 4 edges where a neighbor cell exists
+        // Now add internal walls ONLY where the new room borders existing floor
+        // (not at outer edges — those get boundary walls automatically)
+        const wallsToAdd = []
         for (let c = c0; c <= c1; c++) {
-          // Top edge
-          if (cells.has(`${c},${r0 - 1}`) || r0 > 0) onToggleWall(`${c},${r0}:N`)
-          // Bottom edge
-          if (cells.has(`${c},${r1 + 1}`) || r1 < gridD - 1) onToggleWall(`${c},${r1}:S`)
+          if (existingBefore.has(`${c},${r0 - 1}`)) wallsToAdd.push(`${c},${r0}:N`)
+          if (existingBefore.has(`${c},${r1 + 1}`)) wallsToAdd.push(`${c},${r1}:S`)
         }
         for (let r = r0; r <= r1; r++) {
-          // Left edge
-          if (cells.has(`${c0 - 1},${r}`) || c0 > 0) onToggleWall(`${c0},${r}:W`)
-          // Right edge
-          if (cells.has(`${c1 + 1},${r}`) || c1 < gridW - 1) onToggleWall(`${c1},${r}:E`)
+          if (existingBefore.has(`${c0 - 1},${r}`)) wallsToAdd.push(`${c0},${r}:W`)
+          if (existingBefore.has(`${c1 + 1},${r}`)) wallsToAdd.push(`${c1},${r}:E`)
+        }
+        // Add walls (not toggle — only add if not already present)
+        for (const wk of wallsToAdd) {
+          if (!internalWalls?.has(wk)) onToggleWall(wk)
         }
       } else {
         for (let c = c0; c <= c1; c++)
