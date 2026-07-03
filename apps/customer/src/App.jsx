@@ -1358,7 +1358,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           addRoom({ gridW: rW, gridD: rD, cells: rCells })
         }}
         onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
-        onOverview={() => setFloorPlanOpen(true)}
+        onOverview={() => {
+          setActiveZoneIdx(null)
+          setFloorPlanOpen(false)
+          const maxDim = Math.max(gridW, gridD, 10)
+          const fitZoom = Math.max(15, Math.min(80, 320 / maxDim))
+          zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
+          setTarget(0); panRef.current = { x: 0, z: 0 }
+        }}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
       <BuilderToolDock
@@ -1373,11 +1380,23 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15); setZoomDisplay(zoomRef.current) }}
         onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15); setZoomDisplay(zoomRef.current) }}
         onReset={() => {
-          // Fit room to screen — zoom based on room dimensions
-          const maxDim = Math.max(gridW, gridD, 10)
-          const fitZoom = Math.max(15, Math.min(80, 320 / maxDim))
+          // Fit visible content to screen
+          let minC = gridW, maxC = 0, minR = gridD, maxR = 0
+          for (const key of activeZoneCells) {
+            const [c, r] = key.split(',').map(Number)
+            minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+            minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+          }
+          const contentW = maxC - minC + 1 || gridW
+          const contentD = maxR - minR + 1 || gridD
+          const maxDim = Math.max(contentW, contentD, 6)
+          const fitZoom = Math.max(15, Math.min(80, 280 / maxDim))
           zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
-          setTarget(0); panRef.current = { x: 0, z: 0 }
+          // Center pan on the content
+          const centerX = ((minC + maxC + 1) / 2 - gridW / 2) * 0.5
+          const centerZ = ((minR + maxR + 1) / 2 - gridD / 2) * 0.5
+          panRef.current = { x: -centerX, z: -centerZ }
+          setTarget(0)
         }}
         ceilingView={ceilingView}
         onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
