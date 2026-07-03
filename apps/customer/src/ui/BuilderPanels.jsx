@@ -65,49 +65,41 @@ function Seg({ options, value, onChange, u }) {
 
 // ── Presets ─────────────────────────────────────────────────────────
 const WALL_PRESETS = [
-  // Drywall (standard — most homes)
-  { name: 'Drywall',     hex: '#f0ece6', tex: 'drywall',    finish: 'eggshell' },
-  { name: 'Drywl Gray',  hex: '#d0d0d0', tex: 'drywall',    finish: 'eggshell' },
-  // Plaster (older homes, textured)
-  { name: 'Plaster',     hex: '#ede4d4', tex: 'plaster',    finish: null },
-  { name: 'Aged Plaster',hex: '#c8b8a0', tex: 'plaster',    finish: null },
-  // Brick
-  { name: 'Red Brick',   hex: '#a04828', tex: 'brick',      finish: null },
-  { name: 'White Brick',  hex: '#f0ece6', tex: 'brick',     finish: null },
-  { name: 'Gray Brick',  hex: '#888888', tex: 'brick',      finish: null },
-  // Concrete / cinder block
-  { name: 'Concrete',    hex: '#b0b0b0', tex: 'concrete',   finish: null },
-  { name: 'Cinder Blk',  hex: '#909090', tex: 'cinderblock', finish: null },
+  // Drywall / Plaster (painted surfaces — use color picker for color)
+  { name: 'Drywall',     hex: '#f0ece6', tex: 'drywall',     finish: 'eggshell' },
+  { name: 'Plaster',     hex: '#ede4d4', tex: 'plaster',     finish: null },
+  // Brick (real photo textures)
+  { name: 'Red Brick',   hex: '#a04828', tex: 'brick',       finish: null },
+  { name: 'Old Brick',   hex: '#8a5038', tex: 'brickOld',    finish: null },
+  { name: 'White Brick', hex: '#f0ece6', tex: 'brickWhite',  finish: null },
+  // Concrete
+  { name: 'Concrete',    hex: '#b0b0b0', tex: 'concrete',    finish: null },
   // Stone
-  { name: 'Fieldstone',  hex: '#a09080', tex: 'stone',      finish: null },
-  { name: 'Limestone',   hex: '#d8d0c0', tex: 'stone',      finish: null },
-  { name: 'Marble',      hex: '#e8e4e0', tex: 'marble',     finish: null },
+  { name: 'Stone',       hex: '#a09080', tex: 'stone',       finish: null },
+  { name: 'Marble',      hex: '#e8e4e0', tex: 'marble',      finish: null },
   // Wood
-  { name: 'Shiplap',     hex: '#f0ece6', tex: 'shiplap',    finish: null },
-  { name: 'Dark Panel',  hex: '#6a5a48', tex: 'shiplap',    finish: null },
-  { name: 'Log Cabin',   hex: '#8a6838', tex: 'log',        finish: null },
-  { name: 'Cedar Log',   hex: '#a07850', tex: 'log',        finish: null },
-  // Stucco (exterior / Mediterranean)
-  { name: 'Stucco',      hex: '#e8dcc8', tex: 'stucco',     finish: null },
-  { name: 'Terra Stucco',hex: '#c89870', tex: 'stucco',     finish: null },
-  // Tile (kitchen / bath)
-  { name: 'Subway Tile', hex: '#f0f0f0', tex: 'tile',       finish: 'semiGloss' },
-  { name: 'Blue Tile',   hex: '#4a6a8a', tex: 'tile',       finish: 'semiGloss' },
+  { name: 'Shiplap',     hex: '#c8a878', tex: 'shiplap',     finish: null },
+  // Tile
+  { name: 'Tile',        hex: '#d2d8dc', tex: 'tile',        finish: 'semiGloss' },
+  // Carpet (for floors, but also accent walls)
+  { name: 'Fabric',      hex: '#c4b9ad', tex: 'carpet',      finish: null },
+  // Paint colors (flat texture, finish controls sheen)
+  { name: 'Sage',        hex: '#cdd8c4', tex: 'flat',        finish: 'eggshell' },
+  { name: 'Charcoal',    hex: '#3a3a44', tex: 'flat',        finish: 'satin' },
+  { name: 'Navy',        hex: '#1a2a4a', tex: 'flat',        finish: 'satin' },
+  { name: 'Plum',        hex: '#5a3f63', tex: 'flat',        finish: 'satin' },
+  { name: 'Blush',       hex: '#f0d8d8', tex: 'flat',        finish: 'eggshell' },
 ]
 
 const FLOOR_PRESETS = [
   { name: 'Oak',        hex: '#c8a878', tex: 'wood' },
-  { name: 'Walnut',     hex: '#7c5a3c', tex: 'wood' },
-  { name: 'Ash',        hex: '#d8cdb8', tex: 'wood' },
+  { name: 'Dark Wood',  hex: '#5c4033', tex: 'woodDark' },
   { name: 'Carpet',     hex: '#c4b9ad', tex: 'carpet' },
   { name: 'Tile',       hex: '#d2d8dc', tex: 'tile' },
   { name: 'Concrete',   hex: '#b0b0b4', tex: 'concrete' },
-  { name: 'Terracotta', hex: '#bd7d5c', tex: 'tile' },
-  { name: 'Slate',      hex: '#5a6068', tex: 'tile' },
   { name: 'Marble',     hex: '#e8e4e0', tex: 'marble' },
-  { name: 'Navy Crpt',  hex: '#2a3a5a', tex: 'carpet' },
-  { name: 'Sage Crpt',  hex: '#8a9a78', tex: 'carpet' },
-  { name: 'Dark Oak',   hex: '#5c4033', tex: 'wood' },
+  { name: 'Stone',      hex: '#a09080', tex: 'stone' },
+  { name: 'Brick',      hex: '#a04828', tex: 'brick' },
 ]
 
 const SHEEN_OPTIONS = [

@@ -218,8 +218,8 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
 
   const visibles = VISIBLE_NORMALS[quadrant]
 
-  // Memoize the global wall texture once — not per face
-  const globalTex = useMemo(
+  // Memoize the global wall PBR set once — not per face
+  const globalPBR = useMemo(
     () => getTexture(wallTexture, wallColor || '#d8d0c6'),
     [wallTexture, wallColor]
   )
@@ -236,22 +236,22 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
 
         // Per-face override or global default (most faces use global — fast path)
         const ov = wallOverrides?.get?.(id)
-        let faceTex, faceRough, faceColor, faceFinish
+        let pbr, faceRough, faceColor, faceFinish
         if (ov) {
           faceColor = ov.color ?? globalBase
           const faceTexType = ov.texture ?? wallTexture ?? 'flat'
-          faceFinish  = ov.finish  ?? wallFinish
-          faceTex   = getTexture(faceTexType, faceColor)
+          faceFinish = ov.finish ?? wallFinish
+          pbr = getTexture(faceTexType, faceColor)
           faceRough = faceFinish
             ? (PAINT_FINISH_ROUGHNESS[faceFinish] ?? 0.88)
             : (TEXTURE_ROUGHNESS[faceTexType] ?? 0.88)
         } else {
           faceColor = globalBase
-          faceTex   = globalTex
+          pbr = globalPBR
           faceRough = globalRough
           faceFinish = wallFinish
         }
-        const color     = faceTex ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
+        const color = pbr ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
         const isVisible = normalMatches(normal, visibles)
 
         const segW2   = 1 + WALL_T
@@ -277,8 +277,10 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
                   <boxGeometry args={geom} />
                   <meshStandardMaterial
                     color={color}
-                    map={faceTex || undefined}
-                    roughness={faceRough}
+                    map={pbr?.map || undefined}
+                    normalMap={pbr?.normalMap || undefined}
+                    roughnessMap={pbr?.roughnessMap || undefined}
+                    roughness={pbr ? 1.0 : faceRough}
                     metalness={faceFinish === 'highGloss' ? 0.05 : 0}
                   />
                 </mesh>

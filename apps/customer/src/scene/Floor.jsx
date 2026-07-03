@@ -4,15 +4,6 @@ import { getTexture, TEXTURE_ROUGHNESS } from './textures'
 
 const WALL_T = 0.28  // must match Walls.jsx
 
-/**
- * Floor renderer with per-cell material overrides.
- *
- * floorColor / floorTexture = global default for all cells.
- * floorOverrides = Map of "col,row" → { color, texture } for individually painted cells.
- *
- * When painting mode is active, onClickCell fires with (col, row) so the
- * parent can stamp the active brush material onto that cell.
- */
 export default function Floor({
   cells, gridW, gridD,
   floorColor, floorTexture,
@@ -27,8 +18,8 @@ export default function Floor({
     [cells, floorCutouts]
   )
 
-  // Global default texture (used for cells with no override)
-  const globalTexture = useMemo(
+  // Global default texture set (used for cells with no override)
+  const globalPBR = useMemo(
     () => getTexture(floorTexture, floorColor),
     [floorTexture, floorColor]
   )
@@ -39,7 +30,6 @@ export default function Floor({
   return (
     <group>
       {activeCells.map(([col, row]) => {
-        // Extend slab under any adjacent wall (border edge = no neighbour cell)
         const extL = cells.has(`${col - 1},${row}`) ? 0 : WALL_T / 2
         const extR = cells.has(`${col + 1},${row}`) ? 0 : WALL_T / 2
         const extB = cells.has(`${col},${row - 1}`) ? 0 : WALL_T / 2
@@ -54,8 +44,8 @@ export default function Floor({
         const ov = floorOverrides?.get?.(`${col},${row}`)
         const cellColor   = ov?.color   ?? floorColor ?? '#cec5b8'
         const cellTexType = ov?.texture ?? floorTexture ?? 'flat'
-        const cellTex     = ov ? getTexture(cellTexType, cellColor) : globalTexture
-        const cellRough   = TEXTURE_ROUGHNESS[cellTexType] ?? globalRoughness
+        const pbr = ov ? getTexture(cellTexType, cellColor) : globalPBR
+        const cellRough = TEXTURE_ROUGHNESS[cellTexType] ?? globalRoughness
 
         const handleClick = (e) => {
           if (paintMode && onClickCell) {
@@ -75,9 +65,11 @@ export default function Floor({
           >
             <boxGeometry args={[w, WALL_T, d]} />
             <meshStandardMaterial
-              color={cellTex ? '#ffffff' : cellColor}
-              map={cellTex || undefined}
-              roughness={cellRough}
+              color={pbr ? '#ffffff' : cellColor}
+              map={pbr?.map || undefined}
+              normalMap={pbr?.normalMap || undefined}
+              roughnessMap={pbr?.roughnessMap || undefined}
+              roughness={pbr ? 1.0 : cellRough}
               metalness={0}
             />
           </mesh>
