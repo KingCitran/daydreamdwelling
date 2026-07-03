@@ -89,11 +89,9 @@ import ExploreBanner from './ui/ExploreBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
 import ShareToCommunityModal from './ui/ShareToCommunityModal'
 import CommunityApp from './pages/CommunityApp'
-import QuizPage from './ui/onboarding/QuizPage'
 import NotificationBell from './ui/NotificationBell'
 import { useMoodControl } from '@shared/ThemeProvider'
 import Logo from '@shared/Logo'
-import { MOOD_TO_TAGS } from '@shared/moodTags'
 import { supabase } from '@shared/supabase'
 import { WispyProvider } from '@shared/wispy'
 import useSharedWispy from '@shared/wispy/useWispy'
@@ -166,24 +164,8 @@ function Gate() {
   const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
-  const quizDone                   = !!localStorage.getItem('ddd_quiz_done')
   const { mood, setMood }          = useMoodControl()
   const { user }                   = useAuth()
-
-  async function completeQuiz(mood) {
-    setMood(mood)
-    localStorage.setItem('ddd_quiz_done', '1')
-    localStorage.setItem('ddd_style_tags', JSON.stringify(MOOD_TO_TAGS[mood] ?? []))
-    if (user) {
-      await supabase.from('profiles').update({ style_tags: MOOD_TO_TAGS[mood] ?? [] }).eq('id', user.id)
-    }
-    setInBuilder(true)
-  }
-
-  function skipQuiz() {
-    localStorage.setItem('ddd_quiz_done', '1')
-    setInBuilder(true)
-  }
 
   if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
@@ -202,7 +184,6 @@ function Gate() {
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
   else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
-  else if (!quizDone) page = <QuizPage onComplete={completeQuiz} onSkip={skipQuiz} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
   // Corner Wispy renders everywhere EXCEPT the landing page (which
@@ -926,15 +907,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         }
       `}</style>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => setSelectedId(null)}>
-        {/* Ghost floors below the active level */}
+        {/* Ghost floors below — rendered at negative Y so active floor stays at Y=0 */}
         {floorStack.filter(f => f.level < activeFloorLevel).map(f => {
           const rd = allRoomsData[f.roomId]
           if (!rd) return null
+          const floorsBelow = activeFloorLevel - f.level
           return (
             <GhostFloor
               key={`ghost-${f.roomId}`}
               roomData={rd}
-              yOffset={f.level * wallHeight}
+              yOffset={-floorsBelow * wallHeight}
               wallHeight={rd.wallHeight ?? wallHeight}
               roomRotationRef={roomRotationRef}
               catalogue={catalogue}
@@ -943,8 +925,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         })}
         <RoomScene
           targetRotation={targetRotation}
-          yOffset={activeFloorLevel * wallHeight}
-          lookAtYOverride={activeFloorLevel * wallHeight + wallHeight / 2}
           lowerFloorStairs={(() => {
             if (activeFloorLevel <= 0) return null
             const belowEntry = floorStack.find(f => f.level === activeFloorLevel - 1)

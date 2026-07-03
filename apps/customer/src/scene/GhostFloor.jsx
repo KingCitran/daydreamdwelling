@@ -2,7 +2,6 @@
 // Walls at half height, all materials at 25% opacity, no raycasting.
 import { useRef, useEffect, useMemo } from 'react'
 import Floor from './Floor'
-import Walls from './Walls'
 import Items from './Items'
 import { ITEM_CATALOGUE } from '../data/items'
 
@@ -73,18 +72,7 @@ export default function GhostFloor({
         showGrid={false}
         paintMode={false}
       />
-      <Walls
-        cells={cells}
-        gridW={gridW}
-        gridD={gridD}
-        wallHeight={wh}
-        wallColor={roomData.wallColor ?? '#d8d0c6'}
-        wallTexture={roomData.wallTexture ?? 'flat'}
-        wallFinish={roomData.wallFinish ?? 'eggshell'}
-        currentRotationRef={roomRotationRef}
-        showGrid={false}
-        items={items}
-      />
+      {/* No walls on ghost floor — just floor + items for clean look */}
       <Items
         items={items}
         cells={cells}
