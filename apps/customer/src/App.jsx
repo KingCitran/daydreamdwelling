@@ -1030,7 +1030,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
                 for (let r = 0; r < topD; r++)
                   topCells.add(`${c},${r}`)
               addStairs(currentRoomId, {
-                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD, rotation: rot,
+                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD,
+                rotation: rot, rawW, rawD,
               })
               showWispy('Stairs placed! Double-click to go upstairs. R to rotate before placing.')
             } else {

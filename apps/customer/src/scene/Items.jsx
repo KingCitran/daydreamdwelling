@@ -131,73 +131,35 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
   }
 }
 
-// ── Stair visual (pure geometry, no interaction — ItemMesh handles that) ──
-function StairVisual({ fw, fd, fh, wallHeight, stairCount, color }) {
-  const sc = stairCount
+// ── Stair visual — clean stepped boxes sitting on the floor ──
+// fw/fd are EFFECTIVE (grid-aligned) dimensions. No rotation needed.
+// Steps go from Y=0 (ground) to Y=wallHeight (ceiling).
+function StairVisual({ fw, fd, wallHeight, stairCount, color }) {
   const wh = wallHeight ?? 8
+  const sc = stairCount ?? 14
   const stepH = wh / sc
   const stepD = fd / sc
   return (
-    <group position={[0, -fh / 2, 0]}>
+    <group>
       {Array.from({ length: sc }, (_, i) => (
-        <mesh key={i} position={[0, (i + 0.5) * stepH, -fd / 2 + (i + 0.5) * stepD]} castShadow receiveShadow>
-          <boxGeometry args={[fw, stepH * 0.95, stepD * 0.95]} />
-          <meshStandardMaterial color={color} roughness={0.8} />
+        <mesh key={i}
+          position={[0, (i + 0.5) * stepH, (i + 0.5) * stepD - fd / 2]}
+          castShadow receiveShadow
+        >
+          <boxGeometry args={[fw * 0.98, stepH * 0.92, stepD * 0.92]} />
+          <meshStandardMaterial color={color} roughness={0.75} />
         </mesh>
       ))}
-    </group>
-  )
-}
-
-// ── Stair opening (upper floor) — floor tiles are cut by Floor.jsx,
-// renders trim + safety railing on 3 sides (open on front for stair access).
-function StairOpeningVisual({ fw, fd, fh }) {
-  const trimH = 0.12
-  const trimT = 0.05
-  const railH = 2.8   // ~34 inches, standard railing height
-  const postT = 0.1
-  const railT = 0.05
-  const woodColor = '#a08060'
-  const railColor = '#8a7050'
-  // 3 sides: back, left, right (front is open for stair access)
-  const rails = [
-    { from: [-fw/2, -fd/2], to: [fw/2, -fd/2] },   // back
-    { from: [-fw/2, -fd/2], to: [-fw/2, fd/2] },    // left
-    { from: [fw/2, -fd/2],  to: [fw/2, fd/2] },     // right
-  ]
-  return (
-    <group position={[0, -fh / 2, 0]}>
-      {/* Floor trim */}
-      {[
-        { p: [0, trimH/2, -fd/2], s: [fw + trimT*2, trimH, trimT] },
-        { p: [0, trimH/2,  fd/2], s: [fw + trimT*2, trimH, trimT] },
-        { p: [-fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
-        { p: [ fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
-      ].map(({ p, s }, i) => (
-        <mesh key={`t${i}`} position={p} castShadow>
-          <boxGeometry args={s} />
-          <meshStandardMaterial color={woodColor} roughness={0.75} />
+      {/* Side stringers */}
+      {[-1, 1].map(side => (
+        <mesh key={side}
+          position={[side * (fw / 2 - 0.04), wh / 2, 0]}
+          castShadow
+        >
+          <boxGeometry args={[0.08, wh, fd]} />
+          <meshStandardMaterial color={color} roughness={0.8} metalness={0.02} />
         </mesh>
       ))}
-      {/* Corner posts */}
-      {[[-fw/2,-fd/2],[fw/2,-fd/2],[-fw/2,fd/2],[fw/2,fd/2]].map(([x,z], i) => (
-        <mesh key={`p${i}`} position={[x, railH/2, z]} castShadow>
-          <boxGeometry args={[postT, railH, postT]} />
-          <meshStandardMaterial color={railColor} roughness={0.7} />
-        </mesh>
-      ))}
-      {/* Top rails on 3 sides */}
-      {rails.map(({ from, to }, i) => {
-        const len = Math.sqrt((to[0]-from[0])**2 + (to[1]-from[1])**2)
-        const mx = (from[0]+to[0])/2, mz = (from[1]+to[1])/2
-        const horiz = Math.abs(to[0]-from[0]) > Math.abs(to[1]-from[1])
-        return (
-          <mesh key={`r${i}`} position={[mx, railH, mz]} castShadow>
-            <boxGeometry args={horiz ? [len, railT, railT] : [railT, railT, len]} />
-            <meshStandardMaterial color={railColor} roughness={0.7} />
-          </mesh>
-        )
-      })}
     </group>
   )
 }
@@ -231,7 +193,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       surfaceY = (pSize?.height && pSize.height > 0) ? pSize.height : 2
     }
   }
-  const wy = fh / 2 + surfaceY
+  const wy = isStairs ? 0 : (fh / 2 + surfaceY)
 
   const lightCfg = LIGHT_CONFIG[item.typeKey] ?? null
   // Chandelier represents ceiling mount — push the point light up near the ceiling
@@ -307,11 +269,9 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
       {isStairs && item.returnStair ? (
-        // Opening visual rendered WITHOUT rotation — always grid-aligned
-        <StairOpeningVisual fw={effectiveW} fd={effectiveD} fh={fh} />
+        null  /* returnStair is invisible — floor cutout handles the opening */
       ) : isStairs ? (
-        // Stair steps use effectiveW/D (already grid-aligned), no extra rotation
-        <StairVisual fw={effectiveW} fd={effectiveD} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+        <StairVisual fw={effectiveW} fd={effectiveD} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
       ) : modelUrl ? (
         <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
           {/* Contact shadow — soft multi-ring oval for grounded look */}

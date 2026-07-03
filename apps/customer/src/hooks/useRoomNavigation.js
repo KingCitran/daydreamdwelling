@@ -388,15 +388,16 @@ export default function useRoomNavigation({
     }
   }, [currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, setGridW, setGridD, setCells, setAllRooms])
 
-  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD, rotation = 0 }) => {
+  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD, rotation = 0, rawW, rawD }) => {
     const liveSnap = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation }
     const cols = [...bottomCells].map(k => Number(k.split(',')[0]))
     const rows = [...bottomCells].map(k => Number(k.split(',')[1]))
     if (cols.length === 0) return
     const col    = Math.min(...cols)
     const row    = Math.min(...rows)
-    const stairW = Math.max(...cols) - col + 1
-    const stairD = Math.max(...rows) - row + 1
+    // Store RAW (unrotated) dimensions — ItemMesh applies rotation via effectiveW/D
+    const stairW = rawW ?? (Math.max(...cols) - col + 1)
+    const stairD = rawD ?? (Math.max(...rows) - row + 1)
     const topRoomId = nextRoomIdRef.current++
     const palette   = ROOM_PALETTES[topRoomId % ROOM_PALETTES.length]
     const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }

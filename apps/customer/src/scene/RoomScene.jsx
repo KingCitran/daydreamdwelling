@@ -255,31 +255,22 @@ export default function RoomScene({
   const panRef = externalPanRef || internalPanRef
 
   // Cells to cut from the floor — from returnStair items on this floor
-  // AND from stair items on the floor below (their footprint = our opening)
+  // Floor cutouts: from returnStair items on this floor AND stairs on the floor below
   const floorCutouts = useMemo(() => {
     const cuts = new Set()
-    // Return stairs on this floor
-    for (const it of items) {
-      if (!it.stairs || !it.returnStair) continue
+    const addCuts = (it) => {
       const sw = it.stairW ?? 3, sd = it.stairD ?? 5
-      const rotated = it.rotation === 90 || it.rotation === 270
-      const ew = rotated ? sd : sw, ed = rotated ? sw : sd
+      const rot = it.rotation === 90 || it.rotation === 270
+      const ew = rot ? sd : sw, ed = rot ? sw : sd
       for (let dc = 0; dc < ew; dc++)
         for (let dr = 0; dr < ed; dr++)
           cuts.add(`${it.col + dc},${it.row + dr}`)
     }
-    // Stairs from the floor below (their position = our floor opening)
-    if (lowerFloorStairs) {
-      for (const it of lowerFloorStairs) {
-        if (!it.stairs || it.returnStair) continue
-        const sw = it.stairW ?? 3, sd = it.stairD ?? 5
-        const rotated = it.rotation === 90 || it.rotation === 270
-        const ew = rotated ? sd : sw, ed = rotated ? sw : sd
-        for (let dc = 0; dc < ew; dc++)
-          for (let dr = 0; dr < ed; dr++)
-            cuts.add(`${it.col + dc},${it.row + dr}`)
-      }
-    }
+    for (const it of items)
+      if (it.stairs && it.returnStair) addCuts(it)
+    if (lowerFloorStairs)
+      for (const it of lowerFloorStairs)
+        if (it.stairs && !it.returnStair) addCuts(it)
     return cuts
   }, [items, lowerFloorStairs])
 
