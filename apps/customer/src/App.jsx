@@ -857,6 +857,18 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return roomZones[activeZoneIdx]
   }, [activeZoneIdx, roomZones, cells])
 
+  // Filter items to only those within the active zone
+  const activeZoneItems = useMemo(() => {
+    if (activeZoneIdx == null) return items
+    const zoneCells = roomZones[activeZoneIdx]
+    if (!zoneCells) return items
+    return items.filter(it => {
+      if (it.wall) return true  // wall items always show
+      const key = `${Math.floor(it.col)},${Math.floor(it.row)}`
+      return zoneCells.has(key)
+    })
+  }, [activeZoneIdx, roomZones, items])
+
   const neighborCells = useMemo(() => {
     const blocked = new Set()
     const myPos = overviewPositions[currentRoomId]
@@ -1089,7 +1101,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           }}
           zoomRef={zoomRef}
           panRef={panRef}
-          items={items}
+          items={activeZoneItems}
           selectedId={selectedId}
           onSelectItem={setSelectedId}
           onMoveItem={moveItem}
