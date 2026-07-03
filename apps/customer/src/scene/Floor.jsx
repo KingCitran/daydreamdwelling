@@ -1,13 +1,10 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Grid } from '@react-three/drei'
 import * as THREE from 'three'
 import { getTexture, TEXTURE_ROUGHNESS, onTextureReady } from './textures'
 
 const WALL_T = 0.28
 
-// Scale: how many feet of real surface one texture tile covers.
-// The texture repeat in the registry is ignored here — we control
-// tiling via UV coordinates so the pattern flows continuously.
 const TEX_SCALE = {
   wood: 3, woodDark: 3, shiplap: 3,
   brick: 3, brickOld: 3, brickWhite: 3,
@@ -16,20 +13,16 @@ const TEX_SCALE = {
   plaster: 4, drywall: 5,
 }
 
-// Build a plane geometry with UVs mapped to world-space so the texture
-// tiles continuously across all cells. The top face (Y+) gets real UVs;
-// other faces keep 0 UVs (invisible on a floor slab).
-function makeFloorGeom(w, d, col, row, scale) {
-  const geom = new THREE.PlaneGeometry(w, d)
-  geom.rotateX(-Math.PI / 2) // lay flat
-  // Map UVs to world position so texture flows across room
+// Remap boxGeometry UVs to world-space on the top face (+Y) so the
+// texture tiles continuously across the room. All faces get the same
+// mapping so the thin slab sides also look correct.
+function remapFloorUVs(geom, w, d, col, row, scale) {
   const uv = geom.attributes.uv
+  const pos = geom.attributes.position
   for (let i = 0; i < uv.count; i++) {
-    // PlaneGeometry verts go from -w/2..w/2 and -d/2..d/2
-    // Map to world: col + local offset
-    const localX = geom.attributes.position.getX(i)
-    const localZ = geom.attributes.position.getZ(i)
-    uv.setXY(i, (col + localX + 0.5) / scale, (row - localZ + 0.5) / scale)
+    const lx = pos.getX(i)
+    const lz = pos.getZ(i)
+    uv.setXY(i, (col + 0.5 + lx) / scale, (row + 0.5 + lz) / scale)
   }
   uv.needsUpdate = true
   return geom
@@ -90,36 +83,28 @@ export default function Floor({
           }
         }
 
-        // World-space UV geometry (can't use useMemo inside .map — compute directly)
-        const geom = pbr ? makeFloorGeom(w, d, col, row, scale) : undefined
+        // Single box with world-space UVs when textured
+        const boxGeom = new THREE.BoxGeometry(w, WALL_T, d)
+        if (pbr) remapFloorUVs(boxGeom, w, d, col, row, scale)
 
         return (
-          <group key={`${col},${row}`}>
-            {/* Slab body (thin box for shadow receiving + thickness) */}
-            <mesh position={[cx, -WALL_T / 2, cz]} receiveShadow onClick={handleClick}>
-              <boxGeometry args={[w, WALL_T, d]} />
-              <meshStandardMaterial
-                color={pbr ? '#ffffff' : cellColor}
-                roughness={cellRough}
-                metalness={0}
-              />
-            </mesh>
-            {/* Textured top surface with world-space UVs */}
-            {pbr && geom && (
-              <mesh position={[cx, 0.003, cz]} receiveShadow onClick={handleClick} geometry={geom}>
-                <meshStandardMaterial
-                  key={`floor_mat_${texVer}`}
-                  color={cellColor}
-                  map={pbr.map || undefined}
-                  normalMap={pbr.normalMap || undefined}
-                  normalScale={new THREE.Vector2(1.2, 1.2)}
-                  roughnessMap={pbr.roughnessMap || undefined}
-                  roughness={pbr.roughnessMap ? 1.0 : cellRough}
-                  metalness={0}
-                />
-              </mesh>
-            )}
-          </group>
+          <mesh
+            key={`${col},${row}`}
+            position={[cx, -WALL_T / 2, cz]}
+            receiveShadow
+            onClick={handleClick}
+            geometry={boxGeom}
+          >
+            <meshStandardMaterial
+              key={`floor_mat_${texVer}`}
+              color={cellColor}
+              map={pbr?.map || undefined}
+              normalMap={pbr?.normalMap || undefined}
+              roughnessMap={pbr?.roughnessMap || undefined}
+              roughness={pbr?.roughnessMap ? 1.0 : cellRough}
+              metalness={0}
+            />
+          </mesh>
         )
       })}
 

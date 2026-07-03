@@ -69,9 +69,11 @@ const WALL_PRESETS = [
   { name: 'Drywall',     hex: '#f0ece6', tex: 'drywall',     finish: 'eggshell' },
   { name: 'Plaster',     hex: '#ede4d4', tex: 'plaster',     finish: null },
   // Brick (real photo textures)
-  { name: 'Red Brick',   hex: '#a04828', tex: 'brick',       finish: null },
-  { name: 'Old Brick',   hex: '#8a5038', tex: 'brickOld',    finish: null },
-  { name: 'White Brick', hex: '#f0ece6', tex: 'brickWhite',  finish: null },
+  { name: 'Red Brick',   hex: '#ffffff', tex: 'brick',       finish: null },
+  { name: 'Old Brick',   hex: '#ffffff', tex: 'brickOld',    finish: null },
+  { name: 'White Brick', hex: '#ffffff', tex: 'brickWhite',  finish: null },
+  { name: 'Brown Brick', hex: '#ffffff', tex: 'brickBrown',  finish: null },
+  { name: 'Tan Brick',   hex: '#ffffff', tex: 'brickTan',    finish: null },
   // Concrete
   { name: 'Concrete',    hex: '#b0b0b0', tex: 'concrete',    finish: null },
   // Stone
