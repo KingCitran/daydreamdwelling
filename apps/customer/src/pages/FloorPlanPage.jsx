@@ -4,12 +4,12 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 
 const TOOLS = [
-  { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area' },
-  { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls' },
-  { id: 'door',   label: 'Doors',        icon: '▯', desc: 'Click a wall edge to place a door' },
-  { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to place stairs' },
-  { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it' },
-  { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste it' },
+  { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure' },
+  { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls', group: 'structure' },
+  { id: 'door',   label: 'Doors',        icon: '▯', desc: 'Click a wall edge to place a door', group: 'structure' },
+  { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to mark stair connection', group: 'stairs' },
+  { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it', group: 'rooms' },
+  { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste', group: 'rooms' },
 ]
 
 // Flood-fill to detect room zones from internal walls.
@@ -62,7 +62,8 @@ export default function FloorPlanPage({
   onAddStairs, onRemoveStairs, onAddDoor,
   onBulkAddCells,
   roomZoneLabels, onSetZoneLabel,
-  onEditZone,  // (zoneIdx) => void — switch to 3D builder for this zone
+  onEditZone,
+  onAddFloor,  // ('above' | 'below') => void — create empty floor
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
 }) {
@@ -536,22 +537,45 @@ export default function FloorPlanPage({
       <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0', padding: '8px 10px 12px' }}>Floor Plan</div>
 
-        {/* Floor tabs */}
-        {floorStack && floorStack.length > 1 && (
-          <div style={{ display: 'flex', gap: 2, margin: '0 6px 8px', background: '#12122a', borderRadius: 6, padding: 2 }}>
-            {floorStack.map(f => (
-              <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
-                style={{
-                  flex: 1, padding: '4px 6px', borderRadius: 4, border: 'none', fontSize: 10, fontWeight: 700,
-                  background: f.level === activeFloorLevel ? '#2a8a5a30' : 'transparent',
-                  color: f.level === activeFloorLevel ? '#50c878' : '#505070',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
-            ))}
-          </div>
-        )}
+        {/* Floor management */}
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Floors</div>
+        <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap' }}>
+          {(floorStack && floorStack.length > 0 ? floorStack : [{ roomId: 0, level: 0 }]).map(f => (
+            <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
+              style={{
+                flex: 1, minWidth: 28, padding: '5px 6px', borderRadius: 4, border: 'none', fontSize: 10, fontWeight: 700,
+                background: f.level === activeFloorLevel ? '#2a8a5a30' : 'transparent',
+                color: f.level === activeFloorLevel ? '#50c878' : '#505070',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 3, margin: '0 6px 6px' }}>
+          <button onClick={() => onAddFloor?.('above')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Above</button>
+          <button onClick={() => onAddFloor?.('below')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Below</button>
+        </div>
 
-        {TOOLS.map(t => (
+        <div style={{ height: 1, background: '#1e1e30', margin: '2px 10px' }} />
+
+        {/* Tool groups */}
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Structure</div>
+        {TOOLS.filter(t => t.group === 'structure').map(t => (
+          <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
+            <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Stairs</div>
+        {TOOLS.filter(t => t.group === 'stairs').map(t => (
+          <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
+            <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Rooms</div>
+        {TOOLS.filter(t => t.group === 'rooms').map(t => (
           <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
             <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
             <span>{t.label}</span>

@@ -973,23 +973,42 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           }}
           onResizeGrid={(newW, newD) => { setGridW(newW); setGridD(newD) }}
           onAddStairs={(col, row) => {
+            // Find the floor above to connect to
+            const floorAbove = floorStack.find(f => f.level === activeFloorLevel + 1)
+            const floorBelow = floorStack.find(f => f.level === activeFloorLevel - 1)
+            if (!floorAbove && !floorBelow) {
+              showWispy('Add a floor above or below first, then place stairs to connect.')
+              return
+            }
+            const targetFloor = floorAbove ?? floorBelow
+            const direction = floorAbove ? 'up' : 'down'
             const sw = 3, sd = 5
-            const bottomCells = new Set()
-            for (let dc = 0; dc < sw; dc++)
-              for (let dr = 0; dr < sd; dr++)
-                bottomCells.add(`${col + dc},${row + dr}`)
-            // Upper floor starts with just the stair landing area
-            // User draws the full shape in the floor plan editor
-            const topW = gridW, topD = gridD
-            const topCells = new Set()
-            // Just add cells around the stair area for a landing
-            for (let dc = -1; dc <= sw; dc++)
-              for (let dr = -1; dr <= sd; dr++) {
-                const c = col + dc, r = row + dr
-                if (c >= 0 && c < topW && r >= 0 && r < topD)
-                  topCells.add(`${c},${r}`)
-              }
-            addStairs(currentRoomId, { bottomCells, stairCount: 14, topCells, topW, topD, rotation: 0, rawW: sw, rawD: sd, direction: 'up' })
+            // Place stair item on current floor
+            const stairItem = {
+              id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
+              stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
+              topFloorRoomId: targetFloor.roomId, rotation: 0, direction,
+              layer: 0, locked: false,
+            }
+            setItems(prev => [...prev, stairItem])
+            // Place return stair on the target floor
+            const returnStair = {
+              id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
+              stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
+              topFloorRoomId: currentRoomId, rotation: 0,
+              direction: direction === 'up' ? 'down' : 'up',
+              layer: 0, locked: true, returnStair: true,
+            }
+            setAllRooms(prev => {
+              const targetRoom = prev[targetFloor.roomId]
+              if (!targetRoom) return prev
+              return { ...prev, [targetFloor.roomId]: {
+                ...targetRoom,
+                items: [...(targetRoom.items || []), returnStair],
+              }}
+            })
+            setSelectedId(stairItem.id)
+            showWispy(`Stairs connect to ${direction === 'up' ? 'floor above' : 'floor below'}. Adjust in the panel.`)
           }}
           onAddDoor={(col, row, dir) => {
             // Place a door-like opening by removing the internal wall at this edge
@@ -1005,6 +1024,28 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               return next
             })
             showWispy('Door opening created — wall removed at that edge.')
+          }}
+          onAddFloor={(direction) => {
+            // Create empty floor — no stairs, user draws shape then adds stairs
+            const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
+            const newRoomId = nextItemIdRef.current++  // reuse ID counter
+            const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae'][Math.abs(newRoomId) % 4]
+            const newRoom = {
+              gridW, gridD,
+              cells: new Set(),  // empty — user draws the shape
+              items: [],
+              internalWalls: new Set(),
+              wallHeight,
+              floorColor: palette,
+              wallColor: '#d8d0c6',
+              targetRotation: 0,
+              level: newLevel,
+            }
+            setAllRooms(prev => ({ ...prev, [newRoomId]: newRoom }))
+            // Switch to the new floor
+            jumpToRoom(newRoomId)
+            setActiveFloorLevel(newLevel)
+            showWispy(`${direction === 'below' ? 'Basement' : 'Upper floor'} added. Draw the floor shape, then add stairs to connect.`)
           }}
           activeFloorLevel={activeFloorLevel}
           floorStack={floorStack}
