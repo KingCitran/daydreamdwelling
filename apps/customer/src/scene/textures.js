@@ -97,6 +97,7 @@ export function getTexture(type, _hex) {
   if (CACHE.has(key)) return CACHE.get(key)
 
   const base = `/textures/${reg.folder}`
+  console.log(`[textures] Loading ${type} from ${base}/color.jpg`)
   const colorMap = loadTex(`${base}/color.jpg`)
   colorMap.repeat.set(reg.repeat[0], reg.repeat[1])
 
