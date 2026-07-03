@@ -36,11 +36,14 @@ function detectQuality() {
 }
 
 const QUALITY = detectQuality()
+if (typeof console !== 'undefined') console.log(`[textures] Quality tier: ${QUALITY}`)
 
 // ── Texture loaders ─────────────────────────────────────────────
 function loadTex(path) {
   if (CACHE.has(path)) return CACHE.get(path)
-  const tex = loader.load(path)
+  const tex = loader.load(path, undefined, undefined, () => {
+    console.warn(`[textures] Failed to load: ${path}`)
+  })
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   tex.colorSpace = THREE.SRGBColorSpace
   CACHE.set(path, tex)
@@ -49,7 +52,9 @@ function loadTex(path) {
 
 function loadLinear(path) {
   if (CACHE.has(path)) return CACHE.get(path)
-  const tex = loader.load(path)
+  const tex = loader.load(path, undefined, undefined, () => {
+    console.warn(`[textures] Failed to load: ${path}`)
+  })
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
   tex.colorSpace = THREE.LinearSRGBColorSpace
   CACHE.set(path, tex)
