@@ -48,7 +48,7 @@ export default function GhostFloor({
       if (child.isMesh && child.material) {
         child.material = child.material.clone()
         child.material.transparent = true
-        child.material.opacity = 0.25
+        child.material.opacity = 0.18
         child.material.depthWrite = false
       }
     })
@@ -71,7 +71,7 @@ export default function GhostFloor({
         cells={cells}
         gridW={gridW}
         gridD={gridD}
-        wallHeight={wh * 0.5}
+        wallHeight={wh}
         wallColor={roomData.wallColor ?? '#d8d0c6'}
         wallTexture={roomData.wallTexture ?? 'flat'}
         wallFinish={roomData.wallFinish ?? 'eggshell'}
