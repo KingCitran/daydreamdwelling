@@ -154,7 +154,7 @@ function RoomSwitcher({ mode, rooms, roomIds, room, onPick, onNew, onDelete, onO
               background: 'transparent', color: u.text,
               fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
             }}>
-              <Layers size={15} /> Room map
+              <Layers size={15} /> Dwelling Overview
             </button>
           )}
           <button onClick={() => { onNew?.(); setOpen(false) }} style={{

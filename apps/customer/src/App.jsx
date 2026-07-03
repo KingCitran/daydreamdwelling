@@ -8,7 +8,7 @@ import StylePanel from './ui/StylePanel'
 import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
 import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
-import RoomOverview from './overview/RoomOverview'
+// RoomOverview archived — Floor Plan is the Dwelling Overview now
 import { useBuilderStyles } from './ui/styles/appStyles'
 // MusicPanel removed — replaced by MusicTabPanel in BuilderSheet + DockablePanel
 import WallPicker from './ui/WallPicker'
@@ -376,7 +376,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [showMeasurements, setShowMeasurements] = useState(false)
   const [showGrid,         _setShowGrid]        = useState(() => localStorage.getItem('ddd_grid') !== '0')
   const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
-  const [overviewOpen,        setOverviewOpen]        = useState(false)
+  // overviewOpen removed — Floor Plan (floorPlanOpen) is the Dwelling Overview
   const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
   const [layoutOverrides,     setLayoutOverrides]     = useState({})
   const [bookmark,        setBookmark]        = useState(null)
@@ -1238,7 +1238,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           roomName={getRoomName(currentRoomId)}
           allRoomsData={allRoomsData}
           roomNames={roomNames}
-          onOpenOverview={() => setOverviewOpen(true)}
+          onOpenOverview={() => setFloorPlanOpen(true)}
           onNavigate={jumpToRoom}
           onRename={setRoomName}
         />
@@ -1279,27 +1279,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onMarketplace={() => { window.location.href = '/?shop=1' }}
       />
 
-      {overviewOpen && (
-        <RoomOverview
-          allRoomsData={allRoomsData}
-          currentRoomId={currentRoomId}
-          roomNames={roomNames}
-          showLabels={showOverviewLabels}
-          onToggleLabels={() => setShowOverviewLabels(v => !v)}
-          onNavigate={(id) => { jumpToRoom(id); setOverviewOpen(false) }}
-          onRename={setRoomName}
-          onDeleteRoom={deleteRoom}
-          onClose={() => setOverviewOpen(false)}
-          layoutOverrides={layoutOverrides}
-          onSetLayoutOverrides={setLayoutOverrides}
-          onUnlinkDoors={unlinkDoors}
-          onAddRoom={addRoom}
-          onAddDoor={addDoor}
-          onAddExteriorDoor={addExteriorDoor}
-          onUpdateRoomShape={updateRoomShape}
-          onAddStairs={addStairs}
-        />
-      )}
+      {/* Old RoomOverview archived — Floor Plan is now the Dwelling Overview */}
 
       {panelOpen && (
         <Panel
@@ -1378,7 +1358,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           addRoom({ gridW: rW, gridD: rD, cells: rCells })
         }}
         onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
-        onOverview={() => setOverviewOpen(true)}
+        onOverview={() => setFloorPlanOpen(true)}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
       <BuilderToolDock
