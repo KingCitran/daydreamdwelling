@@ -90,11 +90,8 @@ export default function Floor({
           }
         }
 
-        // World-space UV geometry so texture flows continuously
-        const geom = useMemo(
-          () => pbr ? makeFloorGeom(w, d, col, row, scale) : undefined,
-          [w, d, col, row, scale, !!pbr]
-        )
+        // World-space UV geometry (can't use useMemo inside .map — compute directly)
+        const geom = pbr ? makeFloorGeom(w, d, col, row, scale) : undefined
 
         return (
           <group key={`${col},${row}`}>
@@ -112,7 +109,7 @@ export default function Floor({
               <mesh position={[cx, 0.003, cz]} receiveShadow onClick={handleClick} geometry={geom}>
                 <meshStandardMaterial
                   key={`floor_mat_${texVer}`}
-                  color="#ffffff"
+                  color={cellColor}
                   map={pbr.map || undefined}
                   normalMap={pbr.normalMap || undefined}
                   normalScale={new THREE.Vector2(1.2, 1.2)}
