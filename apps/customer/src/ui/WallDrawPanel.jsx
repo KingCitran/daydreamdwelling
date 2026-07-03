@@ -3,8 +3,10 @@
 // This IS the home overview — shows the entire floor layout.
 import { useRef, useEffect, useState, useCallback } from 'react'
 
-const MIN_CELL = 14
-const MAX_CELL = 28
+const MIN_CELL = 10
+const MAX_CELL = 24
+const MAX_PANEL_W = 640
+const MAX_PANEL_H = 520
 
 export default function WallDrawPanel({
   gridW, gridD, cells, internalWalls,
@@ -16,8 +18,10 @@ export default function WallDrawPanel({
   const paintRef = useRef(null)
   const wallDragRef = useRef(null)
 
-  const cellSize = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(Math.min(600 / gridW, 500 / gridD))))
-  const pad = 32
+  const canvasMaxW = MAX_PANEL_W - 40
+  const canvasMaxH = MAX_PANEL_H - 40
+  const cellSize = Math.max(MIN_CELL, Math.min(MAX_CELL, Math.floor(Math.min(canvasMaxW / gridW, canvasMaxH / gridD))))
+  const pad = 20
   const totalW = gridW * cellSize + pad * 2
   const totalH = gridD * cellSize + pad * 2
 
@@ -216,7 +220,10 @@ export default function WallDrawPanel({
       zIndex: 200, background: '#0e0e1e',
       border: '1.5px solid #2a2a40', borderRadius: 14,
       padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.7)',
-      fontFamily: "'Outfit',sans-serif", maxWidth: '95vw', maxHeight: '95vh', overflow: 'auto',
+      fontFamily: "'Outfit',sans-serif",
+      maxWidth: Math.min(MAX_PANEL_W, window.innerWidth - 40),
+      maxHeight: Math.min(MAX_PANEL_H + 120, window.innerHeight - 40),
+      overflow: 'auto',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -225,25 +232,33 @@ export default function WallDrawPanel({
       </div>
 
       {/* Tool toggle + grid resize */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
-        <div style={{ display: 'flex', gap: 2, background: '#1a1a2a', borderRadius: 7, padding: 2, flex: 1 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 2, background: '#1a1a2a', borderRadius: 7, padding: 2 }}>
           {[
             { id: 'shape', label: 'Floor Shape' },
             { id: 'walls', label: 'Divide Rooms' },
           ].map(m => (
             <button key={m.id} onClick={() => setMode(m.id)} style={{
-              flex: 1, padding: '6px 10px', borderRadius: 5, border: 'none',
+              padding: '6px 12px', borderRadius: 5, border: 'none',
               background: mode === m.id ? '#2a8a5a25' : 'transparent',
               color: mode === m.id ? '#50c878' : '#505078',
               fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
             }}>{m.label}</button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 3 }}>
-          <button style={btnS} onClick={() => onResizeGrid?.(gridW + 2, gridD)} title="Wider">W+</button>
-          <button style={btnS} onClick={() => onResizeGrid?.(gridW, gridD + 2)} title="Deeper">D+</button>
-          <button style={btnS} onClick={() => onResizeGrid?.(Math.max(4, gridW - 2), gridD)} title="Narrower">W-</button>
-          <button style={btnS} onClick={() => onResizeGrid?.(gridW, Math.max(4, gridD - 2))} title="Shallower">D-</button>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center', fontSize: 11, color: '#707090' }}>
+          <span>W</span>
+          <input type="number" min={4} max={80} value={gridW}
+            onChange={e => { const v = Math.max(4, Math.min(80, Number(e.target.value) || 4)); onResizeGrid?.(v, gridD) }}
+            style={{ width: 42, padding: '3px 4px', background: '#1a1a2a', border: '1px solid #3a3a5a', borderRadius: 4, color: '#c0c0e0', fontSize: 12, textAlign: 'center', fontFamily: 'inherit' }}
+          />
+          <span>×</span>
+          <span>D</span>
+          <input type="number" min={4} max={80} value={gridD}
+            onChange={e => { const v = Math.max(4, Math.min(80, Number(e.target.value) || 4)); onResizeGrid?.(gridW, v) }}
+            style={{ width: 42, padding: '3px 4px', background: '#1a1a2a', border: '1px solid #3a3a5a', borderRadius: 4, color: '#c0c0e0', fontSize: 12, textAlign: 'center', fontFamily: 'inherit' }}
+          />
+          <span>ft</span>
         </div>
       </div>
 
