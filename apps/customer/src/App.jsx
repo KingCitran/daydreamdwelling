@@ -72,6 +72,7 @@ import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
 import HubPage from './pages/HubPage'
+import FloorPlanPage from './pages/FloorPlanPage'
 import NotFoundPage from './pages/NotFoundPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
@@ -326,6 +327,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return new Map()
   })
   const [wallDrawMode, setWallDrawMode] = useState(false)
+  const [floorPlanOpen, setFloorPlanOpen] = useState(false)
   const [internalWalls, setInternalWalls] = useState(() => {
     if (initSave?.internalWalls) return new Set(initSave.internalWalls)
     return new Set()
@@ -913,7 +915,39 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           .ddd-builder-logo { display: none !important; }
         }
       `}</style>
-      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; /* keep wall mode on pointer miss */ }}>
+      {floorPlanOpen && (
+        <FloorPlanPage
+          gridW={gridW} gridD={gridD} cells={cells}
+          internalWalls={internalWalls} items={items}
+          floorColor={floorColor} wallColor={wallColor}
+          onToggleCell={toggleCell}
+          onToggleWall={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              if (next.has(edgeKey)) next.delete(edgeKey)
+              else next.add(edgeKey)
+              return next
+            })
+          }}
+          onResizeGrid={(newW, newD) => { setGridW(newW); setGridD(newD) }}
+          onAddStairs={(col, row) => {
+            const sw = 3, sd = 5
+            const bottomCells = new Set()
+            for (let dc = 0; dc < sw; dc++)
+              for (let dr = 0; dr < sd; dr++)
+                bottomCells.add(`${col + dc},${row + dr}`)
+            const topW = Math.max(gridW, sw + 2), topD = Math.max(gridD, sd + 2)
+            const topCells = new Set()
+            for (let c = 0; c < topW; c++)
+              for (let r = 0; r < topD; r++)
+                topCells.add(`${c},${r}`)
+            addStairs(currentRoomId, { bottomCells, stairCount: 14, topCells, topW, topD, rotation: 0, rawW: sw, rawD: sd, direction: 'up' })
+          }}
+          onDone={() => setFloorPlanOpen(false)}
+        />
+      )}
+      {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
+
         {/* Ghost floors below — rendered at negative Y so active floor stays at Y=0 */}
         {floorStack.filter(f => f.level < activeFloorLevel).map(f => {
           const rd = allRoomsData[f.roomId]
@@ -1082,7 +1116,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onRotate={delta => setTarget(r => r + delta)}
           onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
         />
-      </Canvas>
+      </Canvas>}
 
       {/* FX overlays render AFTER canvas so they layer on top */}
       <MoonOverlay />
@@ -1313,8 +1347,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
             onWalls={() => {
               setActiveTool(null)
-              setWallDrawMode(true)
-              showWispy('Click on the floor to draw walls. Click "Draw Walls" again to stop.')
+              setFloorPlanOpen(true)
             }}
             onStairsUp={() => {
               setActiveTool(null); setWallDrawMode(false)
@@ -1708,8 +1741,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
         onWalls={() => {
-          setWallDrawMode(v => !v)
-          showWispy(wallDrawMode ? 'Wall drawing off.' : 'Click between cells to draw/remove walls. Click again to exit.')
+          setFloorPlanOpen(true)
         }}
         wallDrawMode={wallDrawMode}
         onStairsUp={() => {
