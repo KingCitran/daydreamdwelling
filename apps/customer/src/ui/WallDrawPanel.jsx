@@ -137,16 +137,40 @@ export default function WallDrawPanel({ gridW, gridD, cells, internalWalls, onTo
     return { col, row, dir: nearest.dir }
   }
 
-  const handleClick = (e) => {
+  // Drag to draw/erase a whole wall line
+  const dragRef = useRef(null)  // { axis: 'h'|'v', erasing: bool, placed: Set }
+
+  const handleDown = (e) => {
     const edge = getEdgeFromMouse(e)
     if (!edge) return
-    onToggleWall(`${edge.col},${edge.row}:${edge.dir}`)
+    const key = `${edge.col},${edge.row}:${edge.dir}`
+    const erasing = internalWalls?.has(key)
+    dragRef.current = { axis: (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v', erasing, placed: new Set([key]) }
+    onToggleWall(key)
   }
 
   const handleMove = (e) => {
     const edge = getEdgeFromMouse(e)
     setHoverEdge(edge)
+    if (!dragRef.current || !edge) return
+    // Lock to the initial axis (horizontal or vertical wall line)
+    const edgeAxis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
+    if (edgeAxis !== dragRef.current.axis) return
+    const key = `${edge.col},${edge.row}:${edge.dir}`
+    if (dragRef.current.placed.has(key)) return
+    dragRef.current.placed.add(key)
+    // If we started by erasing, keep erasing. If adding, keep adding.
+    if (dragRef.current.erasing) {
+      if (internalWalls?.has(key)) onToggleWall(key)
+    } else {
+      if (!internalWalls?.has(key)) onToggleWall(key)
+    }
   }
+
+  const handleUp = () => { dragRef.current = null }
+
+  // Clean up drag on mouse leave
+  const handleLeave = () => { setHoverEdge(null); dragRef.current = null }
 
   return (
     <div style={{
@@ -169,9 +193,10 @@ export default function WallDrawPanel({ gridW, gridD, cells, internalWalls, onTo
       </div>
       <canvas
         ref={canvasRef}
-        onClick={handleClick}
+        onMouseDown={handleDown}
         onMouseMove={handleMove}
-        onMouseLeave={() => setHoverEdge(null)}
+        onMouseUp={handleUp}
+        onMouseLeave={handleLeave}
         style={{ cursor: 'crosshair', borderRadius: 8, display: 'block' }}
       />
       <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 11, color: '#8878aa' }}>
