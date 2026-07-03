@@ -1,9 +1,48 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
 import { getTexture, TEXTURE_ROUGHNESS, PAINT_FINISH_ROUGHNESS, onTextureReady } from './textures'
 
 const WALL_T = 0.28
+
+// How many feet one texture tile covers on a wall
+const WALL_TEX_SCALE = {
+  wood: 3, woodDark: 3, shiplap: 3,
+  brick: 3, brickOld: 3, brickWhite: 3,
+  tile: 2, carpet: 2,
+  concrete: 4, marble: 3, stone: 3,
+  plaster: 4, drywall: 5,
+}
+
+// Build a plane with world-space UVs for a wall piece.
+// axis='z' → wall faces N/S (horizontal = X, vertical = Y)
+// axis='x' → wall faces E/W (horizontal = Z, vertical = Y)
+function makeWallGeom(uw, ph, uCen, yCen, axis, texScale) {
+  const geom = new THREE.PlaneGeometry(uw, ph)
+  // Orient: z-axis walls face along Z, x-axis walls face along X
+  if (axis === 'z') {
+    // Already facing +Z by default, no rotation needed for UV purposes
+  } else {
+    geom.rotateY(Math.PI / 2)
+  }
+  const uv = geom.attributes.uv
+  const pos = geom.attributes.position
+  for (let i = 0; i < uv.count; i++) {
+    // PlaneGeometry local coords: x = -w/2..w/2, y = -h/2..h/2
+    const lx = pos.getX(i)
+    const ly = pos.getY(i)
+    if (axis === 'z') {
+      uv.setXY(i, (uCen + lx) / texScale, (yCen + ly) / texScale)
+    } else {
+      // After rotateY, x became z
+      const lz = pos.getZ(i)
+      uv.setXY(i, (uCen + lz) / texScale, (yCen + ly) / texScale)
+    }
+  }
+  uv.needsUpdate = true
+  return geom
+}
 
 const DIRECTIONS = [
   { dc:  0, dr: -1, normal: [0, 0,  1], axis: 'z' }, // -Z edge of cell
@@ -258,7 +297,9 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
           faceRough = globalRough
           faceFinish = wallFinish
         }
-        const color = pbr ? '#ffffff' : (normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14))
+        const color = normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14)
+        const faceTexType = ov?.texture ?? wallTexture ?? 'flat'
+        const texScale = WALL_TEX_SCALE[faceTexType] ?? 3
         const isVisible = normalMatches(normal, visibles)
 
         const segW2   = 1 + WALL_T
@@ -276,22 +317,46 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
               const uCen = (p.uL + p.uR) / 2
               const yCen = (p.yL + p.yH) / 2
               const pos  = axis === 'z' ? [uCen, yCen, z] : [x, yCen, uCen]
-              const geom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
+              const boxGeom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
+              // Offset the textured face slightly in front of the box
+              const faceOffset = WALL_T / 2 + 0.002
+              const facePos = axis === 'z'
+                ? [uCen, yCen, z + normal[2] * faceOffset]
+                : [x + normal[0] * faceOffset, yCen, uCen]
               return (
-                <mesh key={pi} position={pos} visible={isVisible} castShadow receiveShadow
-                  onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
-                >
-                  <boxGeometry args={geom} />
-                  <meshStandardMaterial
-                    key={`wall_mat_${texVer}`}
-                    color={color}
-                    map={pbr?.map || undefined}
-                    normalMap={pbr?.normalMap || undefined}
-                    roughnessMap={pbr?.roughnessMap || undefined}
-                    roughness={pbr?.roughnessMap ? 1.0 : faceRough}
-                    metalness={faceFinish === 'highGloss' ? 0.05 : 0}
-                  />
-                </mesh>
+                <group key={pi}>
+                  {/* Wall body */}
+                  <mesh position={pos} visible={isVisible} castShadow receiveShadow
+                    onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
+                  >
+                    <boxGeometry args={boxGeom} />
+                    <meshStandardMaterial
+                      color={color}
+                      roughness={faceRough}
+                      metalness={faceFinish === 'highGloss' ? 0.05 : 0}
+                    />
+                  </mesh>
+                  {/* Textured face with world-space UVs */}
+                  {pbr && isVisible && (
+                    <mesh
+                      position={facePos}
+                      rotation={axis === 'z' ? [0, normal[2] > 0 ? 0 : Math.PI, 0] : [0, normal[0] > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
+                      visible={isVisible} receiveShadow
+                    >
+                      <planeGeometry args={[uw, ph]} />
+                      <meshStandardMaterial
+                        key={`wall_mat_${texVer}`}
+                        color={color}
+                        map={pbr.map || undefined}
+                        normalMap={pbr.normalMap || undefined}
+                        normalScale={new THREE.Vector2(1.2, 1.2)}
+                        roughnessMap={pbr.roughnessMap || undefined}
+                        roughness={pbr.roughnessMap ? 1.0 : faceRough}
+                        metalness={faceFinish === 'highGloss' ? 0.05 : 0}
+                      />
+                    </mesh>
+                  )}
+                </group>
               )
             })}
             {showGrid && isVisible && pieces.map((p) =>

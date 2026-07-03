@@ -302,8 +302,10 @@ export function DesignStyleContent({
   }
 
   const handleCustomColor = (hex) => {
-    if (tab === 'wall') { onWallColor(hex); onWallTexture?.('flat') }
-    else { onFloorColor(hex); onFloorTexture?.('flat') }
+    // Tint the active texture — don't reset to flat.
+    // If no texture is active, it just changes the flat color.
+    if (tab === 'wall') onWallColor(hex)
+    else onFloorColor(hex)
   }
 
   // Texture preview CSS for preset buttons
