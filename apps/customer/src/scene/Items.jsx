@@ -131,39 +131,44 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
   }
 }
 
-// ── Stair visual — ported from open3dFloorplan (MIT license) ──
-// Renders treads + risers. fw = stairWidth, fd = stairDepth (RAW, unrotated).
-// Steps centered at Z=0, going from Z=-fd/2 (bottom) to Z=+fd/2 (top).
-// Parent group handles rotation and positioning.
+// ── Stair visual — adapted from open3dFloorplan (MIT license) ──
+// Treads + risers + side stringers. fw/fd are RAW unrotated dimensions.
+// Centered at origin, parent rotation group handles orientation.
 function StairVisual({ fw, fd, wallHeight, stairCount, color }) {
   const wh = wallHeight ?? 8
   const sc = stairCount ?? 14
   const riserH = wh / sc
   const treadD = fd / sc
-  const treadThick = 0.08  // tread thickness (ft)
-  const riserThick = 0.05  // riser thickness (ft)
+  const treadThick = 0.12  // ~1.5 inches
+  const riserThick = 0.08
+  const stringerW = 0.1
   const darkerColor = '#8a6a48'
+  const stringerColor = '#7a5a38'
   return (
     <group position={[0, 0, -fd / 2]}>
+      {/* Treads + risers */}
       {Array.from({ length: sc }, (_, i) => (
         <group key={i}>
-          {/* Tread (horizontal step surface) */}
-          <mesh
-            position={[0, (i + 1) * riserH - treadThick / 2, i * treadD + treadD / 2]}
-            castShadow receiveShadow
-          >
-            <boxGeometry args={[fw, treadThick, treadD * 0.98]} />
+          <mesh position={[0, (i + 1) * riserH - treadThick / 2, i * treadD + treadD / 2]}
+            castShadow receiveShadow>
+            <boxGeometry args={[fw, treadThick, treadD]} />
             <meshStandardMaterial color={color} roughness={0.7} />
           </mesh>
-          {/* Riser (vertical face) */}
-          <mesh
-            position={[0, i * riserH + riserH / 2, i * treadD]}
-            castShadow
-          >
-            <boxGeometry args={[fw, riserH, riserThick]} />
+          <mesh position={[0, i * riserH + riserH / 2, i * treadD + riserThick / 2]}
+            castShadow>
+            <boxGeometry args={[fw - stringerW * 2, riserH, riserThick]} />
             <meshStandardMaterial color={darkerColor} roughness={0.8} />
           </mesh>
         </group>
+      ))}
+      {/* Side stringers — diagonal boards supporting the steps */}
+      {[-1, 1].map(side => (
+        <mesh key={side}
+          position={[side * (fw / 2 - stringerW / 2), wh / 2, fd / 2]}
+          castShadow>
+          <boxGeometry args={[stringerW, wh * 1.02, fd * 1.01]} />
+          <meshStandardMaterial color={stringerColor} roughness={0.75} />
+        </mesh>
       ))}
     </group>
   )
