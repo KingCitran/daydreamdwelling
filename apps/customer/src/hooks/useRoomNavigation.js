@@ -399,7 +399,7 @@ export default function useRoomNavigation({
     // LOWER room (the one we came from).
     const topCols = [...topCells].map(k => Number(k.split(',')[0]))
     const topRows = [...topCells].map(k => Number(k.split(',')[1]))
-    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: false, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
     if (roomId === currentRoomId) {
       const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
       setItems(prev => [...prev, stairItem])

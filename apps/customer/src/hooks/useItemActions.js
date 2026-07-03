@@ -138,13 +138,30 @@ export default function useItemActions({
       // Move children with parent (items sitting on this surface)
       const dx = col - item.col
       const dy = row - item.row
+
+      // Sync return stair in upper room when main stair moves
+      if (item.stairs && !item.returnStair && item.topFloorRoomId != null) {
+        setAllRooms(prev => {
+          const upperRoom = prev[item.topFloorRoomId]
+          if (!upperRoom) return prev
+          return { ...prev, [item.topFloorRoomId]: {
+            ...upperRoom,
+            items: upperRoom.items.map(it =>
+              it.returnStair && it.topFloorRoomId === currentRoomId
+                ? { ...it, col: it.col + dx, row: it.row + dy }
+                : it
+            )
+          }}
+        })
+      }
+
       return prev.map(it => {
         if (it.id === id) return updated
         if (it.parentId === id) return { ...it, col: it.col + dx, row: it.row + dy }
         return it
       })
     })
-  }, [setItems])
+  }, [setItems, setAllRooms, currentRoomId])
 
   const moveCeilingItem = useCallback((id, col, row) => {
     setItems(prev => prev.map(it => it.id === id ? { ...it, col, row } : it))
