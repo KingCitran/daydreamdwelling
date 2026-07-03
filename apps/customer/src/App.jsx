@@ -1028,7 +1028,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onAddFloor={(direction) => {
             // Create empty floor — no stairs, user draws shape then adds stairs
             const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
-            const newRoomId = nextItemIdRef.current++  // reuse ID counter
+            const newRoomId = nextRoomIdRef.current++
             const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae'][Math.abs(newRoomId) % 4]
             const newRoom = {
               gridW, gridD,

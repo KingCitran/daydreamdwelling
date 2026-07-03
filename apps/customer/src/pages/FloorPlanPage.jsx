@@ -5,6 +5,7 @@ import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 
 const TOOLS = [
   { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure' },
+  { id: 'addroom',label: 'Add Room',     icon: '⊞', desc: 'Drag a rectangle to add a walled room', group: 'structure' },
   { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls', group: 'structure' },
   { id: 'door',   label: 'Doors',        icon: '▯', desc: 'Click a wall edge to place a door', group: 'structure' },
   { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to mark stair connection', group: 'stairs' },
@@ -286,9 +287,9 @@ export default function FloorPlanPage({
         const { startCol, startRow, endCol, endRow, action } = hoverInfo.rect
         const c0 = Math.min(startCol, endCol), c1 = Math.max(startCol, endCol)
         const r0 = Math.min(startRow, endRow), r1 = Math.max(startRow, endRow)
-        ctx.fillStyle = action === 'add' ? 'rgba(70,200,120,0.25)' : 'rgba(255,70,70,0.25)'
+        ctx.fillStyle = action === 'addroom' ? 'rgba(100,160,255,0.3)' : action === 'add' ? 'rgba(70,200,120,0.25)' : 'rgba(255,70,70,0.25)'
         ctx.fillRect(offsetX + c0 * cellSize, offsetY + r0 * cellSize, (c1-c0+1) * cellSize, (r1-r0+1) * cellSize)
-        ctx.strokeStyle = action === 'add' ? '#50c878' : '#ff5050'
+        ctx.strokeStyle = action === 'addroom' ? '#60a0ff' : action === 'add' ? '#50c878' : '#ff5050'
         ctx.lineWidth = 1.5
         ctx.strokeRect(offsetX + c0 * cellSize, offsetY + r0 * cellSize, (c1-c0+1) * cellSize, (r1-r0+1) * cellSize)
       } else if (tool === 'shape' && hoverInfo.col != null) {
@@ -383,9 +384,10 @@ export default function FloorPlanPage({
     const info = getCellFromMouse(e)
     if (!info) return
 
-    if (tool === 'shape') {
+    if (tool === 'shape' || tool === 'addroom') {
       const key = `${info.col},${info.row}`
-      rectRef.current = { startCol: info.col, startRow: info.row, endCol: info.col, endRow: info.row, action: cells.has(key) ? 'remove' : 'add' }
+      const action = tool === 'addroom' ? 'addroom' : (cells.has(key) ? 'remove' : 'add')
+      rectRef.current = { startCol: info.col, startRow: info.row, endCol: info.col, endRow: info.row, action }
       setHoverInfo({ rect: rectRef.current })
     } else if (tool === 'walls') {
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
@@ -471,7 +473,7 @@ export default function FloorPlanPage({
     const info = getCellFromMouse(e)
     if (!info) { setHoverInfo(null); return }
 
-    if (tool === 'shape') {
+    if (tool === 'shape' || tool === 'addroom') {
       if (rectRef.current) {
         rectRef.current.endCol = info.col; rectRef.current.endRow = info.row
         setHoverInfo({ rect: { ...rectRef.current } })
@@ -502,12 +504,33 @@ export default function FloorPlanPage({
       const { startCol, startRow, endCol, endRow, action } = rectRef.current
       const c0 = Math.min(startCol, endCol), c1 = Math.max(startCol, endCol)
       const r0 = Math.min(startRow, endRow), r1 = Math.max(startRow, endRow)
-      for (let c = c0; c <= c1; c++)
-        for (let r = r0; r <= r1; r++) {
-          const key = `${c},${r}`
-          if (action === 'add' && !cells.has(key)) onToggleCell(c, r)
-          if (action === 'remove' && cells.has(key)) onToggleCell(c, r)
+
+      if (action === 'addroom') {
+        // Add Room: add cells + walls around the perimeter in one action
+        for (let c = c0; c <= c1; c++)
+          for (let r = r0; r <= r1; r++)
+            if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
+        // Add internal walls on all 4 edges where a neighbor cell exists
+        for (let c = c0; c <= c1; c++) {
+          // Top edge
+          if (cells.has(`${c},${r0 - 1}`) || r0 > 0) onToggleWall(`${c},${r0}:N`)
+          // Bottom edge
+          if (cells.has(`${c},${r1 + 1}`) || r1 < gridD - 1) onToggleWall(`${c},${r1}:S`)
         }
+        for (let r = r0; r <= r1; r++) {
+          // Left edge
+          if (cells.has(`${c0 - 1},${r}`) || c0 > 0) onToggleWall(`${c0},${r}:W`)
+          // Right edge
+          if (cells.has(`${c1 + 1},${r}`) || c1 < gridW - 1) onToggleWall(`${c1},${r}:E`)
+        }
+      } else {
+        for (let c = c0; c <= c1; c++)
+          for (let r = r0; r <= r1; r++) {
+            const key = `${c},${r}`
+            if (action === 'add' && !cells.has(key)) onToggleCell(c, r)
+            if (action === 'remove' && cells.has(key)) onToggleCell(c, r)
+          }
+      }
       rectRef.current = null; setHoverInfo(null)
     }
     wallDragRef.current = null
@@ -540,15 +563,19 @@ export default function FloorPlanPage({
         {/* Floor management */}
         <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Floors</div>
         <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap' }}>
-          {(floorStack && floorStack.length > 0 ? floorStack : [{ roomId: 0, level: 0 }]).map(f => (
-            <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
-              style={{
-                flex: 1, minWidth: 28, padding: '5px 6px', borderRadius: 4, border: 'none', fontSize: 10, fontWeight: 700,
-                background: f.level === activeFloorLevel ? '#2a8a5a30' : 'transparent',
-                color: f.level === activeFloorLevel ? '#50c878' : '#505070',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
-          ))}
+          {/* Show ALL rooms sorted by level — not just stair-connected */}
+          {Object.entries(allRoomsData ?? {})
+            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            .sort((a, b) => a.level - b.level)
+            .map(f => (
+              <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
+                style={{
+                  flex: 1, minWidth: 28, padding: '5px 6px', borderRadius: 4, border: 'none', fontSize: 10, fontWeight: 700,
+                  background: f.level === activeFloorLevel ? '#2a8a5a30' : 'transparent',
+                  color: f.level === activeFloorLevel ? '#50c878' : '#505070',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
+            ))}
         </div>
         <div style={{ display: 'flex', gap: 3, margin: '0 6px 6px' }}>
           <button onClick={() => onAddFloor?.('above')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Above</button>
