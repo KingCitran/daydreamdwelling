@@ -131,34 +131,39 @@ function actualWallFace(wall, wallU, gridW, gridD, colBounds, rowBounds, wallAnc
   }
 }
 
-// ── Stair visual — clean stepped boxes sitting on the floor ──
-// fw/fd are EFFECTIVE (grid-aligned) dimensions. No rotation needed.
-// Steps go from Y=0 (ground) to Y=wallHeight (ceiling).
+// ── Stair visual — ported from open3dFloorplan (MIT license) ──
+// Renders treads + risers. fw = stairWidth, fd = stairDepth (RAW, unrotated).
+// Steps centered at Z=0, going from Z=-fd/2 (bottom) to Z=+fd/2 (top).
+// Parent group handles rotation and positioning.
 function StairVisual({ fw, fd, wallHeight, stairCount, color }) {
   const wh = wallHeight ?? 8
   const sc = stairCount ?? 14
-  const stepH = wh / sc
-  const stepD = fd / sc
+  const riserH = wh / sc
+  const treadD = fd / sc
+  const treadThick = 0.08  // tread thickness (ft)
+  const riserThick = 0.05  // riser thickness (ft)
+  const darkerColor = '#8a6a48'
   return (
-    <group>
+    <group position={[0, 0, -fd / 2]}>
       {Array.from({ length: sc }, (_, i) => (
-        <mesh key={i}
-          position={[0, (i + 0.5) * stepH, (i + 0.5) * stepD - fd / 2]}
-          castShadow receiveShadow
-        >
-          <boxGeometry args={[fw * 0.98, stepH * 0.92, stepD * 0.92]} />
-          <meshStandardMaterial color={color} roughness={0.75} />
-        </mesh>
-      ))}
-      {/* Side stringers */}
-      {[-1, 1].map(side => (
-        <mesh key={side}
-          position={[side * (fw / 2 - 0.04), wh / 2, 0]}
-          castShadow
-        >
-          <boxGeometry args={[0.08, wh, fd]} />
-          <meshStandardMaterial color={color} roughness={0.8} metalness={0.02} />
-        </mesh>
+        <group key={i}>
+          {/* Tread (horizontal step surface) */}
+          <mesh
+            position={[0, (i + 1) * riserH - treadThick / 2, i * treadD + treadD / 2]}
+            castShadow receiveShadow
+          >
+            <boxGeometry args={[fw, treadThick, treadD * 0.98]} />
+            <meshStandardMaterial color={color} roughness={0.7} />
+          </mesh>
+          {/* Riser (vertical face) */}
+          <mesh
+            position={[0, i * riserH + riserH / 2, i * treadD]}
+            castShadow
+          >
+            <boxGeometry args={[fw, riserH, riserThick]} />
+            <meshStandardMaterial color={darkerColor} roughness={0.8} />
+          </mesh>
+        </group>
       ))}
     </group>
   )
@@ -271,7 +276,11 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       {isStairs && item.returnStair ? (
         null  /* returnStair is invisible — floor cutout handles the opening */
       ) : isStairs ? (
-        <StairVisual fw={effectiveW} fd={effectiveD} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+        /* Rotation applied to the group, steps built along raw depth axis
+           — ported from open3dFloorplan pattern */
+        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+          <StairVisual fw={fw} fd={fd} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+        </group>
       ) : modelUrl ? (
         <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
           {/* Contact shadow — soft multi-ring oval for grounded look */}
