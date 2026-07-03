@@ -1111,6 +1111,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               return next
             })
           }}
+          onResizeGrid={(newW, newD) => {
+            setGridW(newW)
+            setGridD(newD)
+            // Expand cells to fill the new grid area (keep existing, add new)
+            setCells(prev => {
+              const next = new Set(prev)
+              // Don't remove existing cells, just allow the grid to be bigger
+              return next
+            })
+          }}
           onDone={() => setWallDrawMode(false)}
         />
       )}
