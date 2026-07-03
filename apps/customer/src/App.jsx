@@ -912,7 +912,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           .ddd-builder-logo { display: none !important; }
         }
       `}</style>
-      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => setSelectedId(null)}>
+      <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; /* keep wall mode on pointer miss */ }}>
         {/* Ghost floors below — rendered at negative Y so active floor stays at Y=0 */}
         {floorStack.filter(f => f.level < activeFloorLevel).map(f => {
           const rd = allRoomsData[f.roomId]
@@ -1094,6 +1094,24 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onNavigate={jumpToRoom}
         onSetFloorLevel={setActiveFloorLevel}
       />
+
+      {wallDrawMode && (
+        <div style={{
+          position: 'absolute', top: 110, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
+          padding: '6px 14px', borderRadius: 10,
+          background: 'rgba(60,180,120,0.9)', color: '#fff',
+          fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
+          pointerEvents: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+        }}>
+          Drawing Walls — click cell edges
+          <button onClick={() => setWallDrawMode(false)} style={{
+            padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.4)',
+            background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>Done</button>
+        </div>
+      )}
 
       <div className="ddd-desktop-only">
         <RoomBanner
@@ -1284,9 +1302,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
             onWalls={() => {
-              setWallDrawMode(v => !v)
+              setActiveTool(null)
+              setWallDrawMode(true)
               setPaintMode(false)
-              showWispy(wallDrawMode ? 'Wall drawing off.' : 'Click between cells to draw/remove walls.')
+              showWispy('Click on the floor to draw walls. Click "Draw Walls" again to stop.')
             }}
             onStairsUp={() => {
               setActiveTool(null); setWallDrawMode(false)
