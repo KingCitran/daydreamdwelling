@@ -69,7 +69,7 @@ export default function Floor({
               map={pbr?.map || undefined}
               normalMap={pbr?.normalMap || undefined}
               roughnessMap={pbr?.roughnessMap || undefined}
-              roughness={pbr ? 1.0 : cellRough}
+              roughness={pbr?.roughnessMap ? 1.0 : cellRough}
               metalness={0}
             />
           </mesh>

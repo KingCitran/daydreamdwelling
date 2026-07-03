@@ -280,7 +280,7 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
                     map={pbr?.map || undefined}
                     normalMap={pbr?.normalMap || undefined}
                     roughnessMap={pbr?.roughnessMap || undefined}
-                    roughness={pbr ? 1.0 : faceRough}
+                    roughness={pbr?.roughnessMap ? 1.0 : faceRough}
                     metalness={faceFinish === 'highGloss' ? 0.05 : 0}
                   />
                 </mesh>

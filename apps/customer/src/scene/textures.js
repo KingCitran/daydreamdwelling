@@ -1,15 +1,43 @@
 /**
- * Real PBR texture system — loads photographic CC0 textures from ambientCG.
- * Each material has color + normal + roughness maps at 512px, ~120KB each.
- * Textures are loaded on demand and cached permanently.
+ * PBR texture system with adaptive quality.
  *
- * CC0 license — no attribution required. Source: ambientcg.com
+ * Three quality tiers based on device + connection:
+ *   FULL  — color + normal + roughness maps (desktop / fast Wi-Fi)
+ *   LITE  — color map only, no normal/roughness (mobile / slow connection)
+ *   FLAT  — hex color fallback, no texture files (data saver / offline)
+ *
+ * Textures are CC0 from ambientcg.com, 512px JPGs, loaded on demand.
  */
 import * as THREE from 'three'
 
 const loader = new THREE.TextureLoader()
 const CACHE = new Map()
 
+// ── Quality detection ───────────────────────────────────────────
+// Runs once on load. Checks: data saver, connection speed, device memory, touch screen.
+function detectQuality() {
+  const nav = typeof navigator !== 'undefined' ? navigator : {}
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection
+
+  // User explicitly asked to save data
+  if (conn?.saveData) return 'flat'
+
+  // Slow connection (2G or slow 3G)
+  if (conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return 'flat'
+  if (conn?.effectiveType === '3g') return 'lite'
+
+  // Low device memory (< 4GB)
+  if (nav.deviceMemory && nav.deviceMemory < 4) return 'lite'
+
+  // Touch device = probably mobile (load lite by default, fast mobile still gets color map)
+  if ('ontouchstart' in globalThis && !matchMedia('(min-width: 1024px)').matches) return 'lite'
+
+  return 'full'
+}
+
+const QUALITY = detectQuality()
+
+// ── Texture loaders ─────────────────────────────────────────────
 function loadTex(path) {
   if (CACHE.has(path)) return CACHE.get(path)
   const tex = loader.load(path)
@@ -19,17 +47,7 @@ function loadTex(path) {
   return tex
 }
 
-function loadNormal(path) {
-  if (CACHE.has(path)) return CACHE.get(path)
-  const tex = loader.load(path)
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping
-  // Normal maps should stay in linear color space
-  tex.colorSpace = THREE.LinearSRGBColorSpace
-  CACHE.set(path, tex)
-  return tex
-}
-
-function loadRoughness(path) {
+function loadLinear(path) {
   if (CACHE.has(path)) return CACHE.get(path)
   const tex = loader.load(path)
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
@@ -39,61 +57,62 @@ function loadRoughness(path) {
 }
 
 // ── Texture registry ────────────────────────────────────────────
-// Maps material type → ambientCG folder name + repeat scale.
-// Repeat controls how many times the texture tiles per foot of wall/floor.
 const TEXTURE_REGISTRY = {
-  // Brick
   brick:       { folder: 'Bricks076A',       repeat: [1.0, 1.0], roughnessVal: 0.92 },
   brickOld:    { folder: 'Bricks059',         repeat: [1.0, 1.0], roughnessVal: 0.94 },
   brickWhite:  { folder: 'PaintedBricks001',  repeat: [1.0, 1.0], roughnessVal: 0.88 },
-  // Concrete
   concrete:    { folder: 'Concrete034',       repeat: [1.0, 1.0], roughnessVal: 0.82 },
-  // Plaster
   plaster:     { folder: 'Plaster003',        repeat: [1.0, 1.0], roughnessVal: 0.90 },
   drywall:     { folder: 'PaintedPlaster017', repeat: [1.0, 1.0], roughnessVal: 0.88 },
-  // Stone
   stone:       { folder: 'Rock049',           repeat: [1.0, 1.0], roughnessVal: 0.92 },
   marble:      { folder: 'Marble012',         repeat: [1.0, 1.0], roughnessVal: 0.35 },
-  // Wood
   wood:        { folder: 'WoodFloor051',      repeat: [1.0, 1.0], roughnessVal: 0.78 },
   woodDark:    { folder: 'WoodFloor040',      repeat: [1.0, 1.0], roughnessVal: 0.78 },
   shiplap:     { folder: 'WoodSiding009',     repeat: [1.0, 1.0], roughnessVal: 0.80 },
-  // Tile
   tile:        { folder: 'Tiles093',          repeat: [1.0, 1.0], roughnessVal: 0.55 },
-  // Carpet / Fabric
   carpet:      { folder: 'Fabric038',         repeat: [2.0, 2.0], roughnessVal: 0.98 },
 }
 
 /**
- * Get a real PBR texture set for a material type.
- * @param {string} type - material type key (e.g. 'brick', 'wood', 'concrete')
- * @param {string} _hex - Base color hex (used as tint for flat types, ignored for photo textures)
- * @returns {{ map, normalMap, roughnessMap, repeat } | null} null for 'flat'
+ * Get a PBR texture set for a material type.
+ * Returns quality-appropriate maps based on device/connection.
+ *
+ * @param {string} type - material type key
+ * @param {string} _hex - fallback color (used when quality = 'flat')
+ * @returns {{ map, normalMap, roughnessMap, repeat } | null}
  */
 export function getTexture(type, _hex) {
   if (!type || type === 'flat') return null
+  if (QUALITY === 'flat') return null  // Data saver — fall back to hex color
+
   const reg = TEXTURE_REGISTRY[type]
   if (!reg) return null
 
-  const base = `/textures/${reg.folder}`
-  const key = `pbr_${type}`
+  const key = `pbr_${type}_${QUALITY}`
   if (CACHE.has(key)) return CACHE.get(key)
 
-  const result = {
-    map: loadTex(`${base}/color.jpg`),
-    normalMap: loadNormal(`${base}/normal.jpg`),
-    roughnessMap: loadRoughness(`${base}/roughness.jpg`),
-    repeat: reg.repeat,
-  }
+  const base = `/textures/${reg.folder}`
+  const colorMap = loadTex(`${base}/color.jpg`)
+  colorMap.repeat.set(reg.repeat[0], reg.repeat[1])
 
-  // Set repeat on all maps
-  for (const tex of [result.map, result.normalMap, result.roughnessMap]) {
-    if (tex) tex.repeat.set(reg.repeat[0], reg.repeat[1])
+  const result = { map: colorMap, normalMap: undefined, roughnessMap: undefined, repeat: reg.repeat }
+
+  // Full quality: load normal + roughness maps for real surface depth
+  if (QUALITY === 'full') {
+    const nMap = loadLinear(`${base}/normal.jpg`)
+    const rMap = loadLinear(`${base}/roughness.jpg`)
+    nMap.repeat.set(reg.repeat[0], reg.repeat[1])
+    rMap.repeat.set(reg.repeat[0], reg.repeat[1])
+    result.normalMap = nMap
+    result.roughnessMap = rMap
   }
 
   CACHE.set(key, result)
   return result
 }
+
+/** Current quality tier — exposed for UI indicators */
+export const textureQuality = QUALITY
 
 /**
  * Roughness value for paint finish types.
@@ -107,7 +126,7 @@ export const PAINT_FINISH_ROUGHNESS = {
 }
 
 /**
- * Fallback roughness per texture type (used when no roughness map loaded yet).
+ * Fallback roughness per texture type.
  */
 export const TEXTURE_ROUGHNESS = {
   wood:        0.78,
