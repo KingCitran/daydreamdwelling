@@ -294,6 +294,7 @@ export default function useItemActions({
       if (stairW != null) updated.stairW = stairW
       if (stairD != null) updated.stairD = stairD
       if (stairCount != null) updated.stairCount = stairCount
+      // Displace conflicting items to inventory
       const conflicting = findOverlappingItems(prev, id, updated, catalogueRef.current)
       const conflictSet = new Set(conflicting)
       if (conflicting.length > 0) {
@@ -301,11 +302,26 @@ export default function useItemActions({
         const labels = displaced.map(it => (catalogueRef.current[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey])?.label ?? it.typeKey)
         onItemsDisplaced?.(displaced.length, labels)
       }
+      // Sync return stair in upper floor
+      if (item.topFloorRoomId != null && !item.returnStair) {
+        setAllRooms(prev => {
+          const upperRoom = prev[item.topFloorRoomId]
+          if (!upperRoom) return prev
+          return { ...prev, [item.topFloorRoomId]: {
+            ...upperRoom,
+            items: upperRoom.items.map(it =>
+              it.returnStair && it.topFloorRoomId === currentRoomId
+                ? { ...it, stairW: updated.stairW, stairD: updated.stairD, stairCount: updated.stairCount }
+                : it
+            )
+          }}
+        })
+      }
       return prev
         .filter(it => !conflictSet.has(it.id))
         .map(it => it.id === id ? updated : it)
     })
-  }, [setItems, onItemsDisplaced])
+  }, [setItems, onItemsDisplaced, setAllRooms, currentRoomId])
 
   const toggleOwned = useCallback((id) => {
     setItems(prev => prev.map(it => it.id === id ? { ...it, owned: !it.owned } : it))

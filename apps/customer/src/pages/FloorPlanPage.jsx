@@ -669,7 +669,25 @@ export default function FloorPlanPage({
           <button onClick={() => setZoom(z => Math.max(0.3, z * 0.8))} style={{ flex: 1, padding: '4px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#a0a0c0', cursor: 'pointer', fontSize: 13 }}>−</button>
         </div>
 
-        <button onClick={onDone} style={{
+        <button onClick={() => {
+          // Validate: check for stairs clipping outside room bounds
+          const errors = []
+          for (const it of (items ?? [])) {
+            if (!it.stairs || it.returnStair) continue
+            const sw = it.stairW ?? 3, sd = it.stairD ?? 5
+            const rot = it.rotation === 90 || it.rotation === 270
+            const ew = rot ? sd : sw, ed = rot ? sw : sd
+            for (let dc = 0; dc < ew; dc++)
+              for (let dr = 0; dr < ed; dr++)
+                if (!cells.has(`${it.col + dc},${it.row + dr}`))
+                  errors.push(`Stairs at (${it.col},${it.row}) extend outside the floor`)
+          }
+          if (errors.length > 0) {
+            alert('Fix before leaving:\n\n' + [...new Set(errors)].join('\n'))
+            return
+          }
+          onDone()
+        }} style={{
           padding: '10px', borderRadius: 8, border: 'none', margin: '6px',
           background: '#2a8a5a', color: '#fff', fontSize: 13, fontWeight: 700,
           cursor: 'pointer', fontFamily: 'inherit',
