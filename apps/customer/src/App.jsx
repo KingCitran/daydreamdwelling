@@ -26,6 +26,7 @@ import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation, { getFloorStack } from './hooks/useRoomNavigation'
 import GhostFloor from './scene/GhostFloor'
+import NeighborRoom from './scene/NeighborRoom'
 import useShopProducts from './hooks/useShopProducts'
 import useOwnedItems from './hooks/useOwnedItems'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
@@ -923,6 +924,36 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             />
           )
         })}
+        {/* Neighbor rooms on the SAME floor — semi-transparent, clickable */}
+        {(() => {
+          const myPos = overviewPositions[currentRoomId]
+          if (!myPos) return null
+          return Object.entries(allRoomsData)
+            .filter(([idStr]) => {
+              const id = Number(idStr)
+              if (id === currentRoomId) return false
+              const rd = allRoomsData[id]
+              const roomLevel = rd?.level ?? 0
+              return roomLevel === activeFloorLevel && overviewPositions[id]
+            })
+            .map(([idStr]) => {
+              const id = Number(idStr)
+              const rd = allRoomsData[id]
+              const pos = overviewPositions[id]
+              return (
+                <NeighborRoom
+                  key={`neighbor-${id}`}
+                  roomData={rd}
+                  xOffset={pos.ox - myPos.ox}
+                  zOffset={pos.oz - myPos.oz}
+                  wallHeight={rd.wallHeight ?? wallHeight}
+                  roomRotationRef={roomRotationRef}
+                  catalogue={catalogue}
+                  onClick={() => jumpToRoom(id)}
+                />
+              )
+            })
+        })()}
         <RoomScene
           targetRotation={targetRotation}
           lowerFloorStairs={(() => {
