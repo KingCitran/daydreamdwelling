@@ -854,13 +854,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   // Active zone cells — filter to only show the active zone in the builder
   const activeZoneCells = useMemo(() => {
     if (activeZoneIdx == null || !roomZones[activeZoneIdx]) return cells
-    return roomZones[activeZoneIdx]
+    return roomZones[activeZoneIdx].cells
   }, [activeZoneIdx, roomZones, cells])
 
   // Filter items to only those within the active zone
   const activeZoneItems = useMemo(() => {
     if (activeZoneIdx == null) return items
-    const zoneCells = roomZones[activeZoneIdx]
+    const zoneCells = roomZones[activeZoneIdx]?.cells
     if (!zoneCells) return items
     return items.filter(it => {
       if (it.wall) return true  // wall items always show
@@ -967,20 +967,17 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             for (let dc = 0; dc < sw; dc++)
               for (let dr = 0; dr < sd; dr++)
                 bottomCells.add(`${col + dc},${row + dr}`)
-            // Upper room matches the house footprint, not the workspace grid
-            let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
-            for (const key of cells) {
-              const [c, r] = key.split(',').map(Number)
-              minC = Math.min(minC, c); maxC = Math.max(maxC, c)
-              minR = Math.min(minR, r); maxR = Math.max(maxR, r)
-            }
-            const houseW = maxC - minC + 1 || 12
-            const houseD = maxR - minR + 1 || 12
-            const topW = Math.max(houseW, sw + 2), topD = Math.max(houseD, sd + 2)
+            // Upper floor starts with just the stair landing area
+            // User draws the full shape in the floor plan editor
+            const topW = gridW, topD = gridD
             const topCells = new Set()
-            for (let c = minC; c <= maxC; c++)
-              for (let r = minR; r <= maxR; r++)
-                if (cells.has(`${c},${r}`)) topCells.add(`${c},${r}`)
+            // Just add cells around the stair area for a landing
+            for (let dc = -1; dc <= sw; dc++)
+              for (let dr = -1; dr <= sd; dr++) {
+                const c = col + dc, r = row + dr
+                if (c >= 0 && c < topW && r >= 0 && r < topD)
+                  topCells.add(`${c},${r}`)
+              }
             addStairs(currentRoomId, { bottomCells, stairCount: 14, topCells, topW, topD, rotation: 0, rawW: sw, rawD: sd, direction: 'up' })
           }}
           onAddDoor={(col, row, dir) => {
@@ -1004,7 +1001,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onSwitchFloor={(roomId, level) => { jumpToRoom(roomId); setActiveFloorLevel(level) }}
           roomZoneLabels={roomNames}
           onSetZoneLabel={(zoneIdx, label) => {
-            setRoomNamesState(prev => ({ ...prev, [`zone_${zoneIdx}`]: label }))
+            const zone = roomZones[zoneIdx]
+            if (zone) setRoomNamesState(prev => ({ ...prev, [`zone_${zone.id}`]: label }))
           }}
           onEditZone={(zoneIdx) => { setActiveZoneIdx(zoneIdx); setFloorPlanOpen(false) }}
           onDone={() => setFloorPlanOpen(false)}
@@ -1194,32 +1192,40 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
 
       {/* Room zone picker — shows when zones exist */}
-      {roomZones.length > 1 && !floorPlanOpen && (
+      {/* Zone picker + Floor Plan button — always visible */}
+      {!floorPlanOpen && (
         <div style={{
-          position: 'absolute', top: activeFloorLevel !== 0 ? 140 : 74, left: '50%', transform: 'translateX(-50%)',
+          position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, display: 'flex', alignItems: 'center', gap: 3,
           padding: '3px 4px', borderRadius: 10,
           background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
           fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
+          maxWidth: '80vw', overflowX: 'auto',
         }}>
-          <button onClick={() => setActiveZoneIdx(null)} style={{
-            padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
-            background: activeZoneIdx == null ? 'rgba(80,200,120,0.3)' : 'transparent',
-            color: activeZoneIdx == null ? '#50c878' : '#a0a0b0',
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>All</button>
-          {roomZones.map((zone, i) => (
-            <button key={i} onClick={() => setActiveZoneIdx(i)} style={{
-              padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
-              background: activeZoneIdx === i ? 'rgba(80,200,120,0.3)' : 'transparent',
-              color: activeZoneIdx === i ? '#50c878' : '#a0a0b0',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>{roomNames[`zone_${i}`] || `Room ${i + 1}`}</button>
-          ))}
           <button onClick={() => setFloorPlanOpen(true)} style={{
-            padding: '4px 8px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 600,
-            background: 'transparent', color: '#606080', cursor: 'pointer', fontFamily: 'inherit',
-          }} title="Open Floor Plan">▦</button>
+            padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+            background: 'rgba(60,120,200,0.2)', color: '#70a0e0',
+            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          }} title="Open Floor Plan Editor">▦ Plan</button>
+          {roomZones.length > 1 && (
+            <>
+              <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+              <button onClick={() => setActiveZoneIdx(null)} style={{
+                padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+                background: activeZoneIdx == null ? 'rgba(80,200,120,0.3)' : 'transparent',
+                color: activeZoneIdx == null ? '#50c878' : '#a0a0b0',
+                cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+              }}>All</button>
+              {roomZones.map((zone, i) => (
+                <button key={zone.id} onClick={() => setActiveZoneIdx(i)} style={{
+                  padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+                  background: activeZoneIdx === i ? 'rgba(80,200,120,0.3)' : 'transparent',
+                  color: activeZoneIdx === i ? '#50c878' : '#a0a0b0',
+                  cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap',
+                }}>{roomNames[`zone_${zone.id}`] || `Room ${i + 1}`}</button>
+              ))}
+            </>
+          )}
         </div>
       )}
 
@@ -1349,7 +1355,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuilderTopBar
         onBrandClick={() => { window.location.search = '?hub=1' }}
         roomName={activeZoneIdx != null && roomZones[activeZoneIdx]
-          ? (roomNames[`zone_${activeZoneIdx}`] || `Room ${activeZoneIdx + 1}`)
+          ? (roomNames[`zone_${roomZones[activeZoneIdx]?.id}`] || `Room ${activeZoneIdx + 1}`)
           : floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
         roomIds={Object.keys(allRoomsData || {}).map(Number)}
         rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}

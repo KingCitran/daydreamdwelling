@@ -11,7 +11,9 @@ const TOOLS = [
   { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it' },
 ]
 
-// Flood-fill to detect room zones from internal walls
+// Flood-fill to detect room zones from internal walls.
+// Returns [{ id: "3,4", cells: Set, seedCell: "3,4" }]
+// ID = smallest cell key in the zone (stable across wall edits).
 export function detectRoomZones(cells, internalWalls) {
   const visited = new Set()
   const zones = []
@@ -23,22 +25,29 @@ export function detectRoomZones(cells, internalWalls) {
     return internalWalls?.has(`${nc},${nr}:${opp[dir]}`)
   }
 
-  for (const key of cells) {
+  // Sort cells for deterministic order
+  const sortedCells = [...cells].sort()
+
+  for (const key of sortedCells) {
     if (visited.has(key)) continue
-    const zone = new Set()
+    const zoneCells = new Set()
     const queue = [key]
     while (queue.length > 0) {
       const cur = queue.pop()
       if (visited.has(cur) || !cells.has(cur)) continue
       visited.add(cur)
-      zone.add(cur)
+      zoneCells.add(cur)
       const [c, r] = cur.split(',').map(Number)
       if (!hasWall(c, r, 'N') && cells.has(`${c},${r-1}`) && !visited.has(`${c},${r-1}`)) queue.push(`${c},${r-1}`)
       if (!hasWall(c, r, 'S') && cells.has(`${c},${r+1}`) && !visited.has(`${c},${r+1}`)) queue.push(`${c},${r+1}`)
       if (!hasWall(c, r, 'W') && cells.has(`${c-1},${r}`) && !visited.has(`${c-1},${r}`)) queue.push(`${c-1},${r}`)
       if (!hasWall(c, r, 'E') && cells.has(`${c+1},${r}`) && !visited.has(`${c+1},${r}`)) queue.push(`${c+1},${r}`)
     }
-    if (zone.size > 0) zones.push(zone)
+    if (zoneCells.size > 0) {
+      // Stable ID = smallest cell key in the zone
+      const sorted = [...zoneCells].sort()
+      zones.push({ id: sorted[0], cells: zoneCells, seedCell: sorted[0] })
+    }
   }
   return zones
 }
@@ -172,25 +181,25 @@ export default function FloorPlanPage({
     }
 
     // Room zone fills
-    roomZones.forEach((zone, zi) => {
+    roomZones.forEach(({ id: zoneId, cells: zoneCells }, zi) => {
       ctx.fillStyle = ZONE_COLORS[zi % ZONE_COLORS.length]
-      for (const key of zone) {
+      for (const key of zoneCells) {
         const [c, r] = key.split(',').map(Number)
         ctx.fillRect(offsetX + c * cellSize + 0.5, offsetY + r * cellSize + 0.5, cellSize - 1, cellSize - 1)
       }
       // Zone label at centroid
       let sumC = 0, sumR = 0
-      for (const key of zone) { const [c, r] = key.split(',').map(Number); sumC += c; sumR += r }
-      const cx = offsetX + (sumC / zone.size + 0.5) * cellSize
-      const cy = offsetY + (sumR / zone.size + 0.5) * cellSize
-      const label = roomZoneLabels?.[zi] ?? `Room ${zi + 1}`
+      for (const key of zoneCells) { const [c, r] = key.split(',').map(Number); sumC += c; sumR += r }
+      const cx = offsetX + (sumC / zoneCells.size + 0.5) * cellSize
+      const cy = offsetY + (sumR / zoneCells.size + 0.5) * cellSize
+      const label = roomZoneLabels?.[zoneId] ?? `Room ${zi + 1}`
       ctx.fillStyle = '#a0a0b0'
       ctx.font = `bold ${Math.max(9, cellSize * 0.45)}px Outfit, sans-serif`
       ctx.textAlign = 'center'
       ctx.fillText(label, cx, cy)
       ctx.fillStyle = '#606080'
       ctx.font = `${Math.max(8, cellSize * 0.35)}px Outfit, sans-serif`
-      ctx.fillText(`${zone.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
+      ctx.fillText(`${zoneCells.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
       ctx.fillStyle = '#50c87880'
       ctx.font = `${Math.max(7, cellSize * 0.3)}px Outfit, sans-serif`
       ctx.fillText('double-click to edit', cx, cy + Math.max(22, cellSize * 0.8))
@@ -360,7 +369,7 @@ export default function FloorPlanPage({
     } else if (tool === 'label') {
       // Find which zone was clicked
       const key = `${info.col},${info.row}`
-      const zoneIdx = roomZones.findIndex(z => z.has(key))
+      const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
       if (zoneIdx >= 0) {
         const rect = canvasRef.current.getBoundingClientRect()
         setEditingLabel({ zoneIdx, x: e.clientX - rect.left, y: e.clientY - rect.top })
@@ -595,7 +604,7 @@ export default function FloorPlanPage({
             const info = getCellFromMouse(e)
             if (!info) return
             const key = `${info.col},${info.row}`
-            const zoneIdx = roomZones.findIndex(z => z.has(key))
+            const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
             if (zoneIdx >= 0) onEditZone?.(zoneIdx)
           }}
           onWheel={handleWheel}
