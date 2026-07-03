@@ -857,6 +857,17 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return roomZones[activeZoneIdx].cells
   }, [activeZoneIdx, roomZones, cells])
 
+  // Content center offset — so rotation pivots around the house, not grid origin
+  const contentCenter = useMemo(() => {
+    let sumC = 0, sumR = 0, count = 0
+    for (const key of activeZoneCells) {
+      const [c, r] = key.split(',').map(Number)
+      sumC += c + 0.5; sumR += r + 0.5; count++
+    }
+    if (count === 0) return { x: 0, z: 0 }
+    return { x: sumC / count - gridW / 2, z: sumR / count - gridD / 2 }
+  }, [activeZoneCells, gridW, gridD])
+
   // Filter items to only those within the active zone
   const activeZoneItems = useMemo(() => {
     if (activeZoneIdx == null) return items
@@ -1010,8 +1021,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
       {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
 
-        {/* All floors at real Y positions — active floor full, others ghost */}
-        {floorStack.filter(f => f.level !== activeFloorLevel).map(f => {
+        {/* Ghost floors — only visible in overview mode (All zones) */}
+        {activeZoneIdx == null && floorStack.filter(f => f.level !== activeFloorLevel).map(f => {
           const rd = allRoomsData[f.roomId]
           if (!rd) return null
           return (
@@ -1062,6 +1073,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         })()}
         <RoomScene
           targetRotation={targetRotation}
+          contentCenter={contentCenter}
           lowerFloorStairs={(() => {
             if (activeFloorLevel <= 0) return null
             const belowEntry = floorStack.find(f => f.level === activeFloorLevel - 1)

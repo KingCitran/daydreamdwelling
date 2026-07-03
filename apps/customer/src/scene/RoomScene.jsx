@@ -244,6 +244,7 @@ export default function RoomScene({
   panRef: externalPanRef,
   yOffset = 0,
   lookAtYOverride,
+  contentCenter,
   lowerFloorStairs,
 }) {
   const { mood: sharedMood } = useMoodControl()
@@ -275,16 +276,20 @@ export default function RoomScene({
   }, [items, lowerFloorStairs])
 
   const lookAtY = lookAtYOverride ?? (wallHeight / 2 + yOffset)
+  const cx = contentCenter?.x ?? 0
+  const cz = contentCenter?.z ?? 0
   const camTarget = useMemo(
-    () => new THREE.Vector3(0, lookAtY, 0),
-    [lookAtY]
+    () => new THREE.Vector3(cx, lookAtY, cz),
+    [lookAtY, cx, cz]
   )
 
+  // Rotation pivot at content center
+  const pivotRef = useRef()
   useFrame((_, delta) => {
-    if (!groupRef.current) return
+    if (!pivotRef.current) return
     const t = 1 - Math.pow(0.001, delta)
     currentRY.current = THREE.MathUtils.lerp(currentRY.current, targetRotation, t)
-    groupRef.current.rotation.y = currentRY.current
+    pivotRef.current.rotation.y = currentRY.current
   })
 
   return (
@@ -321,7 +326,9 @@ export default function RoomScene({
       {/* In ceiling view: upward fill so the ceiling slab is lit */}
       <directionalLight position={[8, -20, 6]} intensity={ceilingView ? mood.keyI * 0.55 : 0.04} color={mood.keyC} />
 
-      <group ref={groupRef} position={[0, yOffset, 0]}>
+      <group position={[cx, 0, cz]}>
+      <group ref={pivotRef}>
+      <group ref={groupRef} position={[-cx, yOffset, -cz]}>
         <Floor
           cells={cells}
           gridW={gridW}
@@ -422,6 +429,8 @@ export default function RoomScene({
         {showMeasurements && (
           <Measurements gridW={gridW} gridD={gridD} wallHeight={wallHeight} items={items} selectedId={selectedId} />
         )}
+      </group>
+      </group>
       </group>
     </>
   )
