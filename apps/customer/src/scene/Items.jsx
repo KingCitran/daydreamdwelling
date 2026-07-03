@@ -274,7 +274,20 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
       {isStairs && item.returnStair ? (
-        null  /* returnStair is invisible — floor cutout handles the opening */
+        /* Trim border around the floor opening — railings are marketplace products */
+        <group>
+          {[
+            { p: [0, 0.06, -effectiveD/2], s: [effectiveW + 0.1, 0.12, 0.05] },
+            { p: [0, 0.06,  effectiveD/2], s: [effectiveW + 0.1, 0.12, 0.05] },
+            { p: [-effectiveW/2, 0.06, 0],  s: [0.05, 0.12, effectiveD] },
+            { p: [ effectiveW/2, 0.06, 0],  s: [0.05, 0.12, effectiveD] },
+          ].map(({ p, s }, i) => (
+            <mesh key={i} position={p} castShadow>
+              <boxGeometry args={s} />
+              <meshStandardMaterial color="#a08060" roughness={0.75} />
+            </mesh>
+          ))}
+        </group>
       ) : isStairs ? (
         /* Rotation applied to the group, steps built along raw depth axis
            — ported from open3dFloorplan pattern */

@@ -1009,11 +1009,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               for (let c = 0; c < topW; c++)
                 for (let r = 0; r < topD; r++)
                   topCells.add(`${c},${r}`)
+              const stairItemId = nextItemIdRef.current  // will be the stair's ID
               addStairs(currentRoomId, {
                 bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD,
                 rotation: rot, rawW, rawD,
               })
-              showWispy('Stairs placed! Double-click to go upstairs. R to rotate before placing.')
+              setSelectedId(stairItemId)  // auto-select for immediate editing
+              showWispy('Stairs placed! Adjust steps, width and depth in the panel. Double-click to go upstairs.')
             } else {
               placeItem(g.typeKey, g.sizeIndex ?? 0, g.swatchIndex ?? 0)
             }
