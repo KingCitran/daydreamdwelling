@@ -943,6 +943,29 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
                 topCells.add(`${c},${r}`)
             addStairs(currentRoomId, { bottomCells, stairCount: 14, topCells, topW, topD, rotation: 0, rawW: sw, rawD: sd, direction: 'up' })
           }}
+          onAddDoor={(col, row, dir) => {
+            // Place a door-like opening by removing the internal wall at this edge
+            const key = `${col},${row}:${dir}`
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              next.delete(key)
+              // Also delete the opposite side
+              const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }
+              const nc = dir === 'W' ? col-1 : dir === 'E' ? col+1 : col
+              const nr = dir === 'N' ? row-1 : dir === 'S' ? row+1 : row
+              next.delete(`${nc},${nr}:${opp[dir]}`)
+              return next
+            })
+            showWispy('Door opening created — wall removed at that edge.')
+          }}
+          activeFloorLevel={activeFloorLevel}
+          floorStack={floorStack}
+          allRoomsData={allRoomsData}
+          onSwitchFloor={(roomId, level) => { jumpToRoom(roomId); setActiveFloorLevel(level) }}
+          roomZoneLabels={roomNames}
+          onSetZoneLabel={(zoneIdx, label) => {
+            setRoomNamesState(prev => ({ ...prev, [`zone_${zoneIdx}`]: label }))
+          }}
           onDone={() => setFloorPlanOpen(false)}
         />
       )}
