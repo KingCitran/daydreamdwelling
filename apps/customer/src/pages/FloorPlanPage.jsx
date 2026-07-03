@@ -50,6 +50,7 @@ export default function FloorPlanPage({
   gridW, gridD, cells, internalWalls, items,
   onToggleCell, onToggleWall, onResizeGrid, onDone,
   onAddStairs, onRemoveStairs, onAddDoor,
+  onBulkAddCells,  // (cellKeys: string[]) => void — add multiple cells at once
   roomZoneLabels, onSetZoneLabel,
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
@@ -64,7 +65,15 @@ export default function FloorPlanPage({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const panStartRef = useRef(null)
-  const [editingLabel, setEditingLabel] = useState(null) // { zoneIdx, x, y }
+  const [editingLabel, setEditingLabel] = useState(null)
+  // Background image for tracing
+  const [bgImage, setBgImage] = useState(null)  // { img: HTMLImageElement, opacity: 0.4 }
+  const [bgScale, setBgScale] = useState(1)
+  // Import modals
+  const [showImport, setShowImport] = useState(false)
+  const [dimInput, setDimInput] = useState({ name: '', w: 12, d: 10 })
+  const fileInputRef = useRef(null)
+  const roomPlanInputRef = useRef(null)
 
   // Auto-detect room zones
   const roomZones = useMemo(() => detectRoomZones(cells, internalWalls), [cells, internalWalls])
@@ -122,6 +131,15 @@ export default function FloorPlanPage({
 
     ctx.fillStyle = '#0c0c1a'
     ctx.fillRect(0, 0, canvasSize.w, canvasSize.h)
+
+    // Background trace image
+    if (bgImage?.img) {
+      ctx.globalAlpha = bgImage.opacity ?? 0.4
+      const imgW = bgImage.img.width * bgScale * (cellSize / 10)
+      const imgH = bgImage.img.height * bgScale * (cellSize / 10)
+      ctx.drawImage(bgImage.img, offsetX, offsetY, imgW, imgH)
+      ctx.globalAlpha = 1
+    }
 
     // Ghost floor below (faint)
     if (ghostFloorData) {
@@ -275,7 +293,7 @@ export default function FloorPlanPage({
     ctx.textAlign = 'left'
     const floorLabel = activeFloorLevel === 0 ? 'Ground Floor' : activeFloorLevel < 0 ? `Basement ${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`
     ctx.fillText(`${floorLabel} · ${gridW}×${gridD} ft · ${cells.size} sq ft · ${roomZones.length} rooms · ${Math.round(zoom * 100)}%`, 8, canvasSize.h - 8)
-  }, [canvasSize, gridW, gridD, cells, internalWalls, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel])
+  }, [canvasSize, gridW, gridD, cells, internalWalls, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale])
 
   useEffect(() => { draw() }, [draw])
 
@@ -442,6 +460,94 @@ export default function FloorPlanPage({
           </button>
         ))}
 
+        {/* Divider */}
+        <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
+
+        {/* Import section */}
+        <div style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Import</div>
+        <button onClick={() => fileInputRef.current?.click()} style={toolBtn(false)} title="Upload a floor plan image to trace over">
+          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📷</span>
+          <span>Trace Image</span>
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            const img = new Image()
+            img.onload = () => setBgImage({ img, opacity: 0.35 })
+            img.src = URL.createObjectURL(file)
+            e.target.value = ''
+          }}
+        />
+        <button onClick={() => setShowImport('dims')} style={toolBtn(false)} title="Quick-add a room by typing dimensions">
+          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📐</span>
+          <span>Room Size</span>
+        </button>
+        <button onClick={() => roomPlanInputRef.current?.click()} style={toolBtn(false)} title="Import Apple RoomPlan LiDAR scan (JSON)">
+          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📱</span>
+          <span>LiDAR Scan</span>
+        </button>
+        <input ref={roomPlanInputRef} type="file" accept=".json,.zip" style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            const reader = new FileReader()
+            reader.onload = (ev) => {
+              try {
+                const data = JSON.parse(ev.target.result)
+                // RoomPlan JSON has walls[] with start/end points
+                // Convert to cells by rasterizing wall bounding box
+                const walls = data.walls ?? data.rooms?.[0]?.walls ?? []
+                if (walls.length === 0) { alert('No walls found in scan file'); return }
+                let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
+                for (const w of walls) {
+                  const pts = w.start ? [w.start, w.end] : w.vertices ?? []
+                  for (const p of pts) {
+                    const x = p.x ?? p[0] ?? 0, z = p.z ?? p[2] ?? p.y ?? 0
+                    minX = Math.min(minX, x); maxX = Math.max(maxX, x)
+                    minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z)
+                  }
+                }
+                // Convert meters to feet, create cells
+                const scale = 3.281  // meters to feet
+                const w = Math.ceil((maxX - minX) * scale)
+                const d = Math.ceil((maxZ - minZ) * scale)
+                if (w > 0 && d > 0 && w < 200 && d < 200) {
+                  onResizeGrid?.(Math.max(gridW, w + 2), Math.max(gridD, d + 2))
+                  // Fill cells for the scanned area
+                  for (let c = 1; c <= w; c++)
+                    for (let r = 1; r <= d; r++)
+                      if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
+                  alert(`Imported ${w}×${d} ft floor plan from scan`)
+                }
+              } catch (err) { alert('Could not parse scan file: ' + err.message) }
+            }
+            reader.readAsText(file)
+            e.target.value = ''
+          }}
+        />
+
+        {/* Background image controls */}
+        {bgImage && (
+          <div style={{ padding: '4px 10px', fontSize: 11, color: '#505070' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+              <span>Opacity</span>
+              <input type="range" min={0} max={100} value={(bgImage.opacity ?? 0.35) * 100}
+                onChange={e => setBgImage(prev => ({ ...prev, opacity: e.target.value / 100 }))}
+                style={{ flex: 1, height: 14 }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>Scale</span>
+              <input type="range" min={20} max={300} value={bgScale * 100}
+                onChange={e => setBgScale(e.target.value / 100)}
+                style={{ flex: 1, height: 14 }}
+              />
+              <button onClick={() => setBgImage(null)} style={{ background: 'none', border: 'none', color: '#ff6060', cursor: 'pointer', fontSize: 11 }}>✕</button>
+            </div>
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         {/* Grid size */}
@@ -511,6 +617,55 @@ export default function FloorPlanPage({
           {TOOLS.find(t => t.id === tool)?.desc} · Right-click or Space to pan · Scroll to zoom
         </div>
       </div>
+
+      {/* Dimension input modal */}
+      {showImport === 'dims' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+        }} onClick={() => setShowImport(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#14142a', border: '1px solid #2a2a40', borderRadius: 14,
+            padding: 20, width: 320, fontFamily: 'inherit',
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0', marginBottom: 14 }}>Add Room by Dimensions</div>
+            <div style={{ fontSize: 11, color: '#606080', marginBottom: 8 }}>Type the room size in feet. It will be added to the floor plan.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input placeholder="Room name (e.g. Kitchen)" value={dimInput.name}
+                onChange={e => setDimInput(d => ({ ...d, name: e.target.value }))}
+                style={{ padding: '7px 10px', background: '#1a1a2e', border: '1px solid #2a2a40', borderRadius: 6, color: '#c0c0e0', fontSize: 13, fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input type="number" min={2} max={60} value={dimInput.w} placeholder="Width"
+                  onChange={e => setDimInput(d => ({ ...d, w: Number(e.target.value) || 10 }))}
+                  style={{ flex: 1, padding: '7px 10px', background: '#1a1a2e', border: '1px solid #2a2a40', borderRadius: 6, color: '#c0c0e0', fontSize: 13, textAlign: 'center' }}
+                />
+                <span style={{ color: '#606080' }}>×</span>
+                <input type="number" min={2} max={60} value={dimInput.d} placeholder="Depth"
+                  onChange={e => setDimInput(d => ({ ...d, d: Number(e.target.value) || 10 }))}
+                  style={{ flex: 1, padding: '7px 10px', background: '#1a1a2e', border: '1px solid #2a2a40', borderRadius: 6, color: '#c0c0e0', fontSize: 13, textAlign: 'center' }}
+                />
+                <span style={{ color: '#606080', fontSize: 12 }}>ft</span>
+              </div>
+              <button onClick={() => {
+                const w = Math.max(2, Math.min(60, dimInput.w))
+                const d = Math.max(2, Math.min(60, dimInput.d))
+                // Ensure grid is big enough
+                onResizeGrid?.(Math.max(gridW, w + 2), Math.max(gridD, d + 2))
+                // Add cells for this room (offset by 1 so there's a border)
+                for (let c = 1; c <= w; c++)
+                  for (let r = 1; r <= d; r++)
+                    if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
+                setShowImport(false)
+              }} style={{
+                padding: '10px', borderRadius: 8, border: 'none',
+                background: '#2a8a5a', color: '#fff', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit', marginTop: 4,
+              }}>Add {dimInput.w}×{dimInput.d} ft Room</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
