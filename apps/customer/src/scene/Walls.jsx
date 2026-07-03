@@ -205,8 +205,11 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
     [cells, gridW, gridD]
   )
 
-  // Force re-render when async texture images finish loading
-  const [, setTexVer] = useState(0)
+  // Force material recreation when async texture images finish loading.
+  // R3F skips material updates when the map prop is the same object reference,
+  // even if the texture's image data has loaded. Keying the material on texVer
+  // forces R3F to create a fresh material that picks up the loaded image.
+  const [texVer, setTexVer] = useState(0)
   useEffect(() => onTextureReady(() => setTexVer(v => v + 1)), [])
 
   const [quadrant, setQuadrant] = useState(0)
@@ -280,6 +283,7 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
                 >
                   <boxGeometry args={geom} />
                   <meshStandardMaterial
+                    key={`wall_mat_${texVer}`}
                     color={color}
                     map={pbr?.map || undefined}
                     normalMap={pbr?.normalMap || undefined}

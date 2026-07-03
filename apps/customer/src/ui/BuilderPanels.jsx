@@ -79,6 +79,8 @@ const WALL_PRESETS = [
   { name: 'Marble',      hex: '#e8e4e0', tex: 'marble',      finish: null },
   // Wood
   { name: 'Shiplap',     hex: '#c8a878', tex: 'shiplap',     finish: null },
+  { name: 'Wood Panel',  hex: '#c8a878', tex: 'wood',        finish: null },
+  { name: 'Dark Panel',  hex: '#5c4033', tex: 'woodDark',    finish: null },
   // Tile
   { name: 'Tile',        hex: '#d2d8dc', tex: 'tile',        finish: 'semiGloss' },
   // Carpet (for floors, but also accent walls)

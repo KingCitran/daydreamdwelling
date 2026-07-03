@@ -13,8 +13,7 @@ export default function Floor({
   ceilingView,
   paintMode = false,
 }) {
-  // Force re-render when async texture images finish loading
-  const [, setTexVer] = useState(0)
+  const [texVer, setTexVer] = useState(0)
   useEffect(() => onTextureReady(() => setTexVer(v => v + 1)), [])
 
   const activeCells = useMemo(
@@ -69,6 +68,7 @@ export default function Floor({
           >
             <boxGeometry args={[w, WALL_T, d]} />
             <meshStandardMaterial
+              key={`floor_mat_${texVer}`}
               color={pbr ? '#ffffff' : cellColor}
               map={pbr?.map || undefined}
               normalMap={pbr?.normalMap || undefined}
