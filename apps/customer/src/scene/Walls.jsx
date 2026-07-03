@@ -15,28 +15,23 @@ const WALL_TEX_SCALE = {
   plaster: 4, drywall: 5,
 }
 
-// Build a plane with world-space UVs for a wall piece.
-// axis='z' → wall faces N/S (horizontal = X, vertical = Y)
-// axis='x' → wall faces E/W (horizontal = Z, vertical = Y)
-function makeWallGeom(uw, ph, uCen, yCen, axis, texScale) {
-  const geom = new THREE.PlaneGeometry(uw, ph)
-  // Orient: z-axis walls face along Z, x-axis walls face along X
-  if (axis === 'z') {
-    // Already facing +Z by default, no rotation needed for UV purposes
-  } else {
-    geom.rotateY(Math.PI / 2)
-  }
+// Remap boxGeometry UVs to world-space so textures tile at consistent
+// real-world scale regardless of wall piece dimensions. Without this,
+// a narrow piece beside a door squishes the texture horizontally.
+function remapBoxUVs(geom, uw, ph, uCen, yCen, axis, texScale) {
   const uv = geom.attributes.uv
   const pos = geom.attributes.position
+  // BoxGeometry has 24 verts (4 per face × 6 faces).
+  // We remap ALL faces so every visible angle looks correct.
   for (let i = 0; i < uv.count; i++) {
-    // PlaneGeometry local coords: x = -w/2..w/2, y = -h/2..h/2
     const lx = pos.getX(i)
     const ly = pos.getY(i)
+    const lz = pos.getZ(i)
     if (axis === 'z') {
+      // Wall runs along X axis. U = x position, V = y position.
       uv.setXY(i, (uCen + lx) / texScale, (yCen + ly) / texScale)
     } else {
-      // After rotateY, x became z
-      const lz = pos.getZ(i)
+      // Wall runs along Z axis. U = z position, V = y position.
       uv.setXY(i, (uCen + lz) / texScale, (yCen + ly) / texScale)
     }
   }
@@ -317,12 +312,15 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
               const uCen = (p.uL + p.uR) / 2
               const yCen = (p.yL + p.yH) / 2
               const pos  = axis === 'z' ? [uCen, yCen, z] : [x, yCen, uCen]
-              const geom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
+              const args = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
+              // Create box with world-space UVs for consistent texture tiling
+              const boxGeom = new THREE.BoxGeometry(...args)
+              if (pbr) remapBoxUVs(boxGeom, uw, ph, uCen, yCen, axis, texScale)
               return (
                 <mesh key={pi} position={pos} visible={isVisible} castShadow receiveShadow
                   onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
+                  geometry={boxGeom}
                 >
-                  <boxGeometry args={geom} />
                   <meshStandardMaterial
                     key={`wall_mat_${texVer}`}
                     color={color}
