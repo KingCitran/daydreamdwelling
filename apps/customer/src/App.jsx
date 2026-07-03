@@ -45,6 +45,7 @@ import SocialTabPanel from './ui/SocialTabPanel'
 import PlanTabPanel from './ui/PlanTabPanel'
 import ViewTabPanel from './ui/ViewTabPanel'
 import BuildTabPanel from './ui/BuildTabPanel'
+import WallDrawPanel from './ui/WallDrawPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
 import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode, TOOL_SETS } from './ui/MobileChrome'
@@ -1096,21 +1097,21 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
 
       {wallDrawMode && (
-        <div style={{
-          position: 'absolute', top: 110, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 20, display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 14px', borderRadius: 10,
-          background: 'rgba(60,180,120,0.9)', color: '#fff',
-          fontSize: 12, fontWeight: 700, fontFamily: "'Outfit',sans-serif",
-          pointerEvents: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-        }}>
-          Drawing Walls — click cell edges
-          <button onClick={() => setWallDrawMode(false)} style={{
-            padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.4)',
-            background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 11, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>Done</button>
-        </div>
+        <WallDrawPanel
+          gridW={gridW}
+          gridD={gridD}
+          cells={cells}
+          internalWalls={internalWalls}
+          onToggleWall={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              if (next.has(edgeKey)) next.delete(edgeKey)
+              else next.add(edgeKey)
+              return next
+            })
+          }}
+          onDone={() => setWallDrawMode(false)}
+        />
       )}
 
       <div className="ddd-desktop-only">
