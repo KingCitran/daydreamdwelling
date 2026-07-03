@@ -77,6 +77,16 @@ export default function FloorPlanPage({
     return allRoomsData?.[belowEntry.roomId] ?? null
   }, [floorStack, activeFloorLevel, allRoomsData])
 
+  // Space key for pan mode
+  const spaceRef = useRef(false)
+  useEffect(() => {
+    const down = (e) => { if (e.code === 'Space' && !e.repeat) { spaceRef.current = true; e.preventDefault() } }
+    const up = (e) => { if (e.code === 'Space') spaceRef.current = false }
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
+  }, [])
+
   useEffect(() => {
     const update = () => {
       if (!containerRef.current) return
@@ -297,8 +307,12 @@ export default function FloorPlanPage({
 
   // ── Interactions ────────────────────────────────────────────────
   const handleDown = (e) => {
-    // Middle mouse or space+click = pan
-    if (e.button === 1) { panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }; return }
+    // Middle mouse OR space+click OR right-click = pan
+    if (e.button === 1 || e.button === 2 || spaceRef.current) {
+      e.preventDefault()
+      panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }
+      return
+    }
 
     const info = getCellFromMouse(e)
     if (!info) return
@@ -466,8 +480,9 @@ export default function FloorPlanPage({
           onMouseMove={handleMove}
           onMouseUp={handleUp}
           onWheel={handleWheel}
+          onContextMenu={e => e.preventDefault()}
           onMouseLeave={() => { setHoverInfo(null); rectRef.current = null; wallDragRef.current = null; panStartRef.current = null }}
-          style={{ cursor: tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0 }}
+          style={{ cursor: panStartRef.current ? 'grabbing' : tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0 }}
         />
 
         {/* Inline label editor */}
@@ -493,7 +508,7 @@ export default function FloorPlanPage({
           padding: '5px 14px', borderRadius: 8, background: '#1a1a30', color: '#606080',
           fontSize: 11, fontWeight: 600, pointerEvents: 'none',
         }}>
-          {TOOLS.find(t => t.id === tool)?.desc} {tool === 'walls' ? '· Middle-click to pan · Scroll to zoom' : ''}
+          {TOOLS.find(t => t.id === tool)?.desc} · Right-click or Space to pan · Scroll to zoom
         </div>
       </div>
     </div>

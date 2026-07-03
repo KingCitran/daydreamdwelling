@@ -924,7 +924,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onToggleWall={(edgeKey) => {
             setInternalWalls(prev => {
               const next = new Set(prev)
-              if (next.has(edgeKey)) next.delete(edgeKey)
+              // Compute opposite key (e.g., "3,4:E" ↔ "4,4:W")
+              const sep = edgeKey.lastIndexOf(':')
+              const [c, r] = edgeKey.slice(0, sep).split(',').map(Number)
+              const dir = edgeKey.slice(sep + 1)
+              const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }[dir]
+              const nc = dir === 'W' ? c-1 : dir === 'E' ? c+1 : c
+              const nr = dir === 'N' ? r-1 : dir === 'S' ? r+1 : r
+              const altKey = `${nc},${nr}:${opp}`
+              if (next.has(edgeKey)) { next.delete(edgeKey); next.delete(altKey) }
+              else if (next.has(altKey)) { next.delete(altKey) }
               else next.add(edgeKey)
               return next
             })
