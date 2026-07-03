@@ -324,7 +324,8 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
         const color = normal[0] !== 0 ? faceColor : lightenHex(faceColor, 14)
         const faceTexType = ov?.texture ?? wallTexture ?? 'flat'
         const texScale = WALL_TEX_SCALE[faceTexType] ?? 3
-        const isVisible = normalMatches(normal, visibles)
+        const isInternal = id.includes(':internal:')
+        const isVisible = isInternal || normalMatches(normal, visibles)
 
         const segW2   = 1 + WALL_T
         const uCtr    = axis === 'z' ? x : z
