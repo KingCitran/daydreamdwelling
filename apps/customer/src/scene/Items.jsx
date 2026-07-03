@@ -274,19 +274,40 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
       {isStairs && item.returnStair ? (
-        /* Trim border around the floor opening — railings are marketplace products */
+        /* Floor opening: trim border + 3-sided safety railing (open on front) */
         <group>
+          {/* Wooden trim around the opening edge */}
           {[
-            { p: [0, 0.06, -effectiveD/2], s: [effectiveW + 0.1, 0.12, 0.05] },
-            { p: [0, 0.06,  effectiveD/2], s: [effectiveW + 0.1, 0.12, 0.05] },
-            { p: [-effectiveW/2, 0.06, 0],  s: [0.05, 0.12, effectiveD] },
-            { p: [ effectiveW/2, 0.06, 0],  s: [0.05, 0.12, effectiveD] },
+            { p: [0, 0.06, -effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.06] },
+            { p: [0, 0.06,  effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.06] },
+            { p: [-effectiveW/2, 0.06, 0],  s: [0.06, 0.12, effectiveD] },
+            { p: [ effectiveW/2, 0.06, 0],  s: [0.06, 0.12, effectiveD] },
           ].map(({ p, s }, i) => (
-            <mesh key={i} position={p} castShadow>
+            <mesh key={`t${i}`} position={p} castShadow>
               <boxGeometry args={s} />
               <meshStandardMaterial color="#a08060" roughness={0.75} />
             </mesh>
           ))}
+          {/* Corner posts — 3ft tall (~36 inches, standard railing) */}
+          {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sz], i) => (
+            <mesh key={`p${i}`} position={[sx * effectiveW/2, 1.5, sz * effectiveD/2]} castShadow>
+              <boxGeometry args={[0.1, 3, 0.1]} />
+              <meshStandardMaterial color="#8a6a48" roughness={0.65} />
+            </mesh>
+          ))}
+          {/* Top rails on 3 sides (open on +D side for stair access) */}
+          <mesh position={[0, 3, -effectiveD/2]} castShadow>
+            <boxGeometry args={[effectiveW, 0.06, 0.06]} />
+            <meshStandardMaterial color="#a08060" roughness={0.7} />
+          </mesh>
+          <mesh position={[-effectiveW/2, 3, 0]} castShadow>
+            <boxGeometry args={[0.06, 0.06, effectiveD]} />
+            <meshStandardMaterial color="#a08060" roughness={0.7} />
+          </mesh>
+          <mesh position={[effectiveW/2, 3, 0]} castShadow>
+            <boxGeometry args={[0.06, 0.06, effectiveD]} />
+            <meshStandardMaterial color="#a08060" roughness={0.7} />
+          </mesh>
         </group>
       ) : isStairs ? (
         /* Rotation applied to the group, steps built along raw depth axis
