@@ -1102,6 +1102,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           gridD={gridD}
           cells={cells}
           internalWalls={internalWalls}
+          onToggleCell={toggleCell}
           onToggleWall={(edgeKey) => {
             setInternalWalls(prev => {
               const next = new Set(prev)
