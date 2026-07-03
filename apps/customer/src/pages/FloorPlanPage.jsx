@@ -12,7 +12,7 @@ const TOOLS = [
 ]
 
 // Flood-fill to detect room zones from internal walls
-function detectRoomZones(cells, internalWalls) {
+export function detectRoomZones(cells, internalWalls) {
   const visited = new Set()
   const zones = []
   const hasWall = (col, row, dir) => {
@@ -50,8 +50,9 @@ export default function FloorPlanPage({
   gridW, gridD, cells, internalWalls, items,
   onToggleCell, onToggleWall, onResizeGrid, onDone,
   onAddStairs, onRemoveStairs, onAddDoor,
-  onBulkAddCells,  // (cellKeys: string[]) => void — add multiple cells at once
+  onBulkAddCells,
   roomZoneLabels, onSetZoneLabel,
+  onEditZone,  // (zoneIdx) => void — switch to 3D builder for this zone
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
 }) {
@@ -183,11 +184,16 @@ export default function FloorPlanPage({
       const cx = offsetX + (sumC / zone.size + 0.5) * cellSize
       const cy = offsetY + (sumR / zone.size + 0.5) * cellSize
       const label = roomZoneLabels?.[zi] ?? `Room ${zi + 1}`
-      ctx.fillStyle = '#808090'
-      ctx.font = `${Math.max(9, cellSize * 0.45)}px Outfit, sans-serif`
+      ctx.fillStyle = '#a0a0b0'
+      ctx.font = `bold ${Math.max(9, cellSize * 0.45)}px Outfit, sans-serif`
       ctx.textAlign = 'center'
-      ctx.fillText(label, cx, cy + 4)
-      ctx.fillText(`${zone.size} sq ft`, cx, cy + 4 + Math.max(10, cellSize * 0.4))
+      ctx.fillText(label, cx, cy)
+      ctx.fillStyle = '#606080'
+      ctx.font = `${Math.max(8, cellSize * 0.35)}px Outfit, sans-serif`
+      ctx.fillText(`${zone.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
+      ctx.fillStyle = '#50c87880'
+      ctx.font = `${Math.max(7, cellSize * 0.3)}px Outfit, sans-serif`
+      ctx.fillText('double-click to edit', cx, cy + Math.max(22, cellSize * 0.8))
     })
 
     // Active cells (on top of zone fill)
@@ -585,6 +591,13 @@ export default function FloorPlanPage({
           onMouseDown={handleDown}
           onMouseMove={handleMove}
           onMouseUp={handleUp}
+          onDoubleClick={(e) => {
+            const info = getCellFromMouse(e)
+            if (!info) return
+            const key = `${info.col},${info.row}`
+            const zoneIdx = roomZones.findIndex(z => z.has(key))
+            if (zoneIdx >= 0) onEditZone?.(zoneIdx)
+          }}
           onWheel={handleWheel}
           onContextMenu={e => e.preventDefault()}
           onMouseLeave={() => { setHoverInfo(null); rectRef.current = null; wallDragRef.current = null; panStartRef.current = null }}

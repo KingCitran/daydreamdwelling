@@ -72,7 +72,7 @@ import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
 import AboutPage from './pages/AboutPage'
 import HubPage from './pages/HubPage'
-import FloorPlanPage from './pages/FloorPlanPage'
+import FloorPlanPage, { detectRoomZones } from './pages/FloorPlanPage'
 import NotFoundPage from './pages/NotFoundPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
@@ -328,6 +328,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   })
   const [wallDrawMode, setWallDrawMode] = useState(false)
   const [floorPlanOpen, setFloorPlanOpen] = useState(false)
+  const [activeZoneIdx, setActiveZoneIdx] = useState(null)  // null = show all, number = specific zone
   const [internalWalls, setInternalWalls] = useState(() => {
     if (initSave?.internalWalls) return new Set(initSave.internalWalls)
     return new Set()
@@ -847,6 +848,15 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return result
   }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, layoutOverrides])
 
+  // Room zones — auto-detected from internal walls
+  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls), [cells, internalWalls])
+
+  // Active zone cells — filter to only show the active zone in the builder
+  const activeZoneCells = useMemo(() => {
+    if (activeZoneIdx == null || !roomZones[activeZoneIdx]) return cells
+    return roomZones[activeZoneIdx]
+  }, [activeZoneIdx, roomZones, cells])
+
   const neighborCells = useMemo(() => {
     const blocked = new Set()
     const myPos = overviewPositions[currentRoomId]
@@ -975,6 +985,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onSetZoneLabel={(zoneIdx, label) => {
             setRoomNamesState(prev => ({ ...prev, [`zone_${zoneIdx}`]: label }))
           }}
+          onEditZone={(zoneIdx) => { setActiveZoneIdx(zoneIdx); setFloorPlanOpen(false) }}
           onDone={() => setFloorPlanOpen(false)}
         />
       )}
@@ -1040,7 +1051,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             const belowRoom = allRoomsData[belowEntry.roomId]
             return belowRoom?.items?.filter(it => it.stairs && !it.returnStair) ?? null
           })()}
-          cells={cells}
+          cells={activeZoneCells}
           gridW={gridW}
           gridD={gridD}
           wallHeight={wallHeight}
@@ -1161,6 +1172,36 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onNavigate={jumpToRoom}
         onSetFloorLevel={setActiveFloorLevel}
       />
+
+      {/* Room zone picker — shows when zones exist */}
+      {roomZones.length > 1 && !floorPlanOpen && (
+        <div style={{
+          position: 'absolute', top: activeFloorLevel !== 0 ? 140 : 74, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, display: 'flex', alignItems: 'center', gap: 3,
+          padding: '3px 4px', borderRadius: 10,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
+          fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
+        }}>
+          <button onClick={() => setActiveZoneIdx(null)} style={{
+            padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+            background: activeZoneIdx == null ? 'rgba(80,200,120,0.3)' : 'transparent',
+            color: activeZoneIdx == null ? '#50c878' : '#a0a0b0',
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>All</button>
+          {roomZones.map((zone, i) => (
+            <button key={i} onClick={() => setActiveZoneIdx(i)} style={{
+              padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+              background: activeZoneIdx === i ? 'rgba(80,200,120,0.3)' : 'transparent',
+              color: activeZoneIdx === i ? '#50c878' : '#a0a0b0',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>{roomNames[`zone_${i}`] || `Room ${i + 1}`}</button>
+          ))}
+          <button onClick={() => setFloorPlanOpen(true)} style={{
+            padding: '4px 8px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 600,
+            background: 'transparent', color: '#606080', cursor: 'pointer', fontFamily: 'inherit',
+          }} title="Open Floor Plan">▦</button>
+        </div>
+      )}
 
       {wallDrawMode && (
         <WallDrawPanel
