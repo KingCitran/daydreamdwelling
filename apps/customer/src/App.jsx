@@ -945,6 +945,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           targetRotation={targetRotation}
           yOffset={activeFloorLevel * wallHeight}
           lookAtYOverride={activeFloorLevel * wallHeight + wallHeight / 2}
+          lowerFloorStairs={(() => {
+            if (activeFloorLevel <= 0) return null
+            const belowEntry = floorStack.find(f => f.level === activeFloorLevel - 1)
+            if (!belowEntry) return null
+            const belowRoom = allRoomsData[belowEntry.roomId]
+            return belowRoom?.items?.filter(it => it.stairs && !it.returnStair) ?? null
+          })()}
           cells={cells}
           gridW={gridW}
           gridD={gridD}

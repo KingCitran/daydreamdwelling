@@ -244,6 +244,7 @@ export default function RoomScene({
   panRef: externalPanRef,
   yOffset = 0,
   lookAtYOverride,
+  lowerFloorStairs,
 }) {
   const { mood: sharedMood } = useMoodControl()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
@@ -253,9 +254,11 @@ export default function RoomScene({
   const internalPanRef = useRef({ x: 0, z: 0 })
   const panRef = externalPanRef || internalPanRef
 
-  // Cells to cut from the floor (under return stairs = stairwell openings)
+  // Cells to cut from the floor — from returnStair items on this floor
+  // AND from stair items on the floor below (their footprint = our opening)
   const floorCutouts = useMemo(() => {
     const cuts = new Set()
+    // Return stairs on this floor
     for (const it of items) {
       if (!it.stairs || !it.returnStair) continue
       const sw = it.stairW ?? 3, sd = it.stairD ?? 5
@@ -265,8 +268,20 @@ export default function RoomScene({
         for (let dr = 0; dr < ed; dr++)
           cuts.add(`${it.col + dc},${it.row + dr}`)
     }
+    // Stairs from the floor below (their position = our floor opening)
+    if (lowerFloorStairs) {
+      for (const it of lowerFloorStairs) {
+        if (!it.stairs || it.returnStair) continue
+        const sw = it.stairW ?? 3, sd = it.stairD ?? 5
+        const rotated = it.rotation === 90 || it.rotation === 270
+        const ew = rotated ? sd : sw, ed = rotated ? sw : sd
+        for (let dc = 0; dc < ew; dc++)
+          for (let dr = 0; dr < ed; dr++)
+            cuts.add(`${it.col + dc},${it.row + dr}`)
+      }
+    }
     return cuts
-  }, [items])
+  }, [items, lowerFloorStairs])
 
   const lookAtY = lookAtYOverride ?? (wallHeight / 2 + yOffset)
   const camTarget = useMemo(
