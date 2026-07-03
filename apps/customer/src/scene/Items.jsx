@@ -302,17 +302,20 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
   return (
     <group
       position={[wx, wy, wz]}
-      rotation={[0, -(item.rotation * Math.PI) / 180, 0]}
       onPointerDown={onPointerDown}
       onClick={e => e.stopPropagation()}
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
     >
       {isStairs && item.returnStair ? (
-        <StairOpeningVisual fw={fw} fd={fd} fh={fh} />
+        // Opening visual rendered WITHOUT rotation — always grid-aligned
+        <StairOpeningVisual fw={effectiveW} fd={effectiveD} fh={fh} />
       ) : isStairs ? (
-        <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+        // Stair steps rendered WITH rotation
+        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+          <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
+        </group>
       ) : modelUrl ? (
-        <>
+        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
           {/* Contact shadow — soft multi-ring oval for grounded look */}
           <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]}>
             {/* Core shadow — tight under the item */}
@@ -339,17 +342,19 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
           }>
             <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} materialSheen={def.materialSheen} />
           </Suspense>
-        </>
+        </group>
       ) : (
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[fw, fh, fd]} />
-          <meshStandardMaterial
-            color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
-            roughness={0.76} metalness={0}
-            emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
-            emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
-          />
-        </mesh>
+        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+          <mesh castShadow receiveShadow>
+            <boxGeometry args={[fw, fh, fd]} />
+            <meshStandardMaterial
+              color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a7aee'}
+              roughness={0.76} metalness={0}
+              emissive={lightCfg && !lightsOff ? lightCfg.color : '#000000'}
+              emissiveIntensity={lightCfg && !lightsOff ? 0.25 : 0}
+            />
+          </mesh>
+        </group>
       )}
       {lightCfg && !lightsOff && (
         <pointLight
