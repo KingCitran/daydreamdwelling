@@ -64,46 +64,64 @@ function Seg({ options, value, onChange, u }) {
 }
 
 // ── Presets ─────────────────────────────────────────────────────────
-const WALL_PRESETS = [
-  // ── Paint colors (most common — painted drywall) ──
-  { name: 'White',       hex: '#f0ece6', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Cream',       hex: '#ede8df', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Warm Gray',   hex: '#c8c0b8', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Cool Gray',   hex: '#b8bcc8', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Sage',        hex: '#cdd8c4', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Sky',         hex: '#c0d4e8', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Blush',       hex: '#f0d8d8', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Butter',      hex: '#f2e6c2', tex: 'flat',        finish: 'eggshell' },
-  { name: 'Charcoal',    hex: '#3a3a44', tex: 'flat',        finish: 'satin' },
-  { name: 'Navy',        hex: '#1a2a4a', tex: 'flat',        finish: 'satin' },
-  { name: 'Plum',        hex: '#5a3f63', tex: 'flat',        finish: 'satin' },
-  { name: 'Forest',      hex: '#2a4a2a', tex: 'flat',        finish: 'satin' },
-  // ── Materials ──
-  { name: 'Red Brick',   hex: '#ffffff', tex: 'brick',       finish: null },
-  { name: 'Old Brick',   hex: '#ffffff', tex: 'brickOld',    finish: null },
-  { name: 'White Brick', hex: '#ffffff', tex: 'brickWhite',  finish: null },
-  { name: 'Brown Brick', hex: '#ffffff', tex: 'brickBrown',  finish: null },
-  { name: 'Tan Brick',   hex: '#ffffff', tex: 'brickTan',    finish: null },
-  { name: 'Concrete',    hex: '#ffffff', tex: 'concrete',    finish: null },
-  { name: 'Stone',       hex: '#ffffff', tex: 'stone',       finish: null },
-  { name: 'Marble',      hex: '#ffffff', tex: 'marble',      finish: null },
-  { name: 'Shiplap',     hex: '#ffffff', tex: 'shiplap',     finish: null },
-  { name: 'Wood Panel',  hex: '#ffffff', tex: 'wood',        finish: null },
-  { name: 'Dark Panel',  hex: '#ffffff', tex: 'woodDark',    finish: null },
-  { name: 'Tile',        hex: '#ffffff', tex: 'tile',        finish: 'semiGloss' },
+// Material categories → variants within each.
+// User picks a category, then toggles between variants.
+const WALL_MATERIALS = [
+  { category: 'Paint', icon: '🎨', variants: [
+    { name: 'White',     hex: '#f0ece6', tex: 'flat', finish: 'eggshell' },
+    { name: 'Cream',     hex: '#ede8df', tex: 'flat', finish: 'eggshell' },
+    { name: 'Warm Gray', hex: '#c8c0b8', tex: 'flat', finish: 'eggshell' },
+    { name: 'Cool Gray', hex: '#b8bcc8', tex: 'flat', finish: 'eggshell' },
+    { name: 'Sage',      hex: '#cdd8c4', tex: 'flat', finish: 'eggshell' },
+    { name: 'Sky',       hex: '#c0d4e8', tex: 'flat', finish: 'eggshell' },
+    { name: 'Blush',     hex: '#f0d8d8', tex: 'flat', finish: 'eggshell' },
+    { name: 'Butter',    hex: '#f2e6c2', tex: 'flat', finish: 'eggshell' },
+    { name: 'Charcoal',  hex: '#3a3a44', tex: 'flat', finish: 'satin' },
+    { name: 'Navy',      hex: '#1a2a4a', tex: 'flat', finish: 'satin' },
+    { name: 'Plum',      hex: '#5a3f63', tex: 'flat', finish: 'satin' },
+    { name: 'Forest',    hex: '#2a4a2a', tex: 'flat', finish: 'satin' },
+  ]},
+  { category: 'Brick', icon: '🧱', variants: [
+    { name: 'Red',       hex: '#ffffff', tex: 'brick' },
+    { name: 'Old',       hex: '#ffffff', tex: 'brickOld' },
+    { name: 'White',     hex: '#ffffff', tex: 'brickWhite' },
+    { name: 'Brown',     hex: '#ffffff', tex: 'brickBrown' },
+    { name: 'Tan',       hex: '#ffffff', tex: 'brickTan' },
+  ]},
+  { category: 'Wood', icon: '🪵', variants: [
+    { name: 'Shiplap',   hex: '#ffffff', tex: 'shiplap' },
+    { name: 'Light',     hex: '#ffffff', tex: 'wood' },
+    { name: 'Dark',      hex: '#ffffff', tex: 'woodDark' },
+  ]},
+  { category: 'Stone', icon: '🪨', variants: [
+    { name: 'Natural',   hex: '#ffffff', tex: 'stone' },
+    { name: 'Marble',    hex: '#ffffff', tex: 'marble' },
+    { name: 'Concrete',  hex: '#ffffff', tex: 'concrete' },
+  ]},
+  { category: 'Tile', icon: '🔲', variants: [
+    { name: 'Ceramic',   hex: '#ffffff', tex: 'tile', finish: 'semiGloss' },
+  ]},
 ]
 
-const FLOOR_PRESETS = [
-  { name: 'Oak',          hex: '#ffffff', tex: 'wood' },
-  { name: 'Dark Wood',    hex: '#ffffff', tex: 'woodDark' },
-  { name: 'Cream Carpet', hex: '#e8ddd0', tex: 'carpet' },
-  { name: 'Gray Carpet',  hex: '#b0b0b0', tex: 'carpet' },
-  { name: 'Beige Carpet', hex: '#d4c8b0', tex: 'carpetFine' },
-  { name: 'Tile',         hex: '#ffffff', tex: 'tile' },
-  { name: 'Concrete',     hex: '#ffffff', tex: 'concrete' },
-  { name: 'Marble',       hex: '#ffffff', tex: 'marble' },
-  { name: 'Stone',        hex: '#ffffff', tex: 'stone' },
-  { name: 'Brick',        hex: '#ffffff', tex: 'brick' },
+const FLOOR_MATERIALS = [
+  { category: 'Wood', icon: '🪵', variants: [
+    { name: 'Oak',       hex: '#ffffff', tex: 'wood' },
+    { name: 'Dark',      hex: '#ffffff', tex: 'woodDark' },
+  ]},
+  { category: 'Carpet', icon: '🧶', variants: [
+    { name: 'Cream',     hex: '#e8ddd0', tex: 'carpet' },
+    { name: 'Gray',      hex: '#b0b0b0', tex: 'carpet' },
+    { name: 'Beige',     hex: '#d4c8b0', tex: 'carpetFine' },
+  ]},
+  { category: 'Tile', icon: '🔲', variants: [
+    { name: 'Ceramic',   hex: '#ffffff', tex: 'tile' },
+    { name: 'Marble',    hex: '#ffffff', tex: 'marble' },
+  ]},
+  { category: 'Stone', icon: '🪨', variants: [
+    { name: 'Natural',   hex: '#ffffff', tex: 'stone' },
+    { name: 'Concrete',  hex: '#ffffff', tex: 'concrete' },
+    { name: 'Brick',     hex: '#ffffff', tex: 'brick' },
+  ]},
 ]
 
 const SHEEN_OPTIONS = [
@@ -285,55 +303,37 @@ export function DesignStyleContent({
   const u = ui(t)
   const { mood, setMood, moods: moodList } = useMoodControl()
   const [tab, setTab] = useState('wall')
-  // Use real mood list from context, fall back to MOOD_LIST for sky gradients
+  const [openCat, setOpenCat] = useState(null) // which material category is expanded
   const skyLookup = Object.fromEntries(MOOD_LIST.map(m => [m.key, m.sky]))
-  const presets = tab === 'wall' ? WALL_PRESETS : FLOOR_PRESETS
-  const current = tab === 'wall' ? wallColor : floorColor
+  const materials = tab === 'wall' ? WALL_MATERIALS : FLOOR_MATERIALS
   const currentTex = tab === 'wall' ? wallTexture : floorTexture
 
-  const handlePreset = (p) => {
+  const handleVariant = (v) => {
     if (tab === 'wall') {
-      // Photo textures show at full brightness (white tint).
-      // Flat/paint presets use the preset hex as the wall color.
-      onWallColor(p.tex && p.tex !== 'flat' ? '#ffffff' : p.hex)
-      onWallTexture?.(p.tex || 'flat')
-      if (p.finish !== undefined) onWallFinish?.(p.finish)
-      else if (p.tex && p.tex !== 'flat') onWallFinish?.(null)
+      onWallColor(v.tex && v.tex !== 'flat' ? (v.hex || '#ffffff') : v.hex)
+      onWallTexture?.(v.tex || 'flat')
+      if (v.finish !== undefined) onWallFinish?.(v.finish)
+      else if (v.tex && v.tex !== 'flat') onWallFinish?.(null)
     } else {
-      onFloorColor(p.tex && p.tex !== 'flat' ? '#ffffff' : p.hex)
-      onFloorTexture?.(p.tex || 'flat')
+      onFloorColor(v.tex && v.tex !== 'flat' ? (v.hex || '#ffffff') : v.hex)
+      onFloorTexture?.(v.tex || 'flat')
     }
   }
 
   const handleCustomColor = (hex) => {
-    // Tint the active texture — don't reset to flat.
-    // If no texture is active, it just changes the flat color.
     if (tab === 'wall') onWallColor(hex)
     else onFloorColor(hex)
   }
 
-  // Texture preview CSS for preset buttons
-  const presetBg = (p) => {
-    const tx = p.tex || 'flat'
-    if (tx === 'wood')        return `repeating-linear-gradient(90deg, ${shade(p.hex, 0.06)} 0 6px, ${shade(p.hex, -0.08)} 6px 12px)`
-    if (tx === 'carpet')      return `radial-gradient(circle at 50% 50%, ${shade(p.hex, -0.06)} 0.5px, ${p.hex} 0.5px)`
-    if (tx === 'tile')        return `repeating-conic-gradient(${shade(p.hex, 0.04)} 0% 25%, ${shade(p.hex, -0.06)} 0% 50%) 0 0/20px 20px`
-    if (tx === 'marble')      return `linear-gradient(135deg, ${shade(p.hex, 0.06)} 0%, ${shade(p.hex, -0.04)} 40%, ${shade(p.hex, 0.08)} 100%)`
-    if (tx === 'concrete')    return `linear-gradient(180deg, ${shade(p.hex, 0.03)} 0%, ${shade(p.hex, -0.04)} 100%)`
-    if (tx === 'brick')       return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 8px, ${shade(p.hex, -0.15)} 8px, ${shade(p.hex, -0.15)} 9px)`
-    if (tx === 'shiplap')     return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 7px, ${shade(p.hex, -0.08)} 7px, ${shade(p.hex, -0.08)} 8px)`
-    if (tx === 'cinderblock') return `repeating-linear-gradient(0deg, ${p.hex} 0px, ${p.hex} 10px, ${shade(p.hex, -0.12)} 10px, ${shade(p.hex, -0.12)} 11px), repeating-linear-gradient(90deg, transparent 0px, transparent 20px, ${shade(p.hex, -0.12)} 20px, ${shade(p.hex, -0.12)} 21px)`
-    if (tx === 'plaster')     return `radial-gradient(ellipse at 30% 40%, ${shade(p.hex, 0.06)} 0%, ${p.hex} 50%, ${shade(p.hex, -0.04)} 100%)`
-    if (tx === 'drywall')     return `linear-gradient(150deg, ${shade(p.hex, 0.03)}, ${shade(p.hex, -0.02)})`
-    if (tx === 'log')         return `repeating-linear-gradient(0deg, ${shade(p.hex, 0.08)} 0px, ${p.hex} 4px, ${shade(p.hex, -0.1)} 8px, ${shade(p.hex, -0.18)} 9px, ${shade(p.hex, 0.08)} 10px)`
-    if (tx === 'stone')       return `radial-gradient(ellipse at 25% 30%, ${shade(p.hex, 0.1)} 15%, transparent 16%), radial-gradient(ellipse at 70% 60%, ${shade(p.hex, -0.08)} 20%, transparent 21%), ${p.hex}`
-    if (tx === 'stucco')      return `radial-gradient(circle at 50% 50%, ${shade(p.hex, 0.04)} 0.8px, transparent 0.8px), ${p.hex}`
-    return `linear-gradient(150deg, ${shade(p.hex, 0.1)}, ${shade(p.hex, -0.1)})`
+  // Check if a variant is currently active
+  const isActive = (v) => {
+    const ct = v.tex || 'flat'
+    return currentTex === ct
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <Seg u={u} value={tab} onChange={setTab} options={[
+      <Seg u={u} value={tab} onChange={(t) => { setTab(t); setOpenCat(null) }} options={[
         { id: 'wall', label: 'Walls', Icon: Palette },
         { id: 'floor', label: 'Floor', Icon: Grid3x3 },
       ]} />
@@ -362,29 +362,68 @@ export function DesignStyleContent({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+      {/* Material categories — tap to expand variants */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <Label u={u}>{tab === 'wall' ? 'Wall material' : 'Floor material'}</Label>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9 }}>
-          {presets.map(p => {
-            const active = current === p.hex && currentTex === (p.tex || 'flat')
-            return (
-              <button key={p.name} onClick={() => handlePreset(p)} style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                padding: 5, borderRadius: 13, cursor: 'pointer',
-                border: `1px solid ${active ? u.accent : u.line}`,
-                background: active ? u.accent + '14' : 'transparent', fontFamily: 'inherit',
+        {materials.map(mat => {
+          const isOpen = openCat === mat.category
+          // Check if any variant in this category is active
+          const catActive = mat.variants.some(v => isActive(v))
+          return (
+            <div key={mat.category}>
+              {/* Category header */}
+              <button onClick={() => setOpenCat(isOpen ? null : mat.category)} style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                padding: '9px 12px', borderRadius: 10, cursor: 'pointer',
+                background: catActive ? u.accent + '14' : 'transparent',
+                border: `1px solid ${catActive ? u.accent : isOpen ? u.accent + '60' : u.line}`,
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                color: catActive ? u.accent : u.text,
               }}>
-                <div style={{
-                  width: '100%', height: 40, borderRadius: 9,
-                  background: presetBg(p),
-                  backgroundSize: (p.tex === 'carpet') ? '3px 3px' : undefined,
-                  boxShadow: active ? `0 0 0 2px ${u.accent}55` : 'inset 0 0 0 1px rgba(0,0,0,0.06)',
+                <span style={{ fontSize: 16 }}>{mat.icon}</span>
+                <span style={{ flex: 1, textAlign: 'left' }}>{mat.category}</span>
+                <ChevronRight size={14} style={{
+                  transform: isOpen ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 0.15s', opacity: 0.5,
                 }} />
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: active ? u.accent : u.soft }}>{p.name}</span>
               </button>
-            )
-          })}
-        </div>
+              {/* Expanded variants */}
+              {isOpen && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 4px 4px' }}>
+                  {mat.variants.map(v => {
+                    const active = isActive(v)
+                    const bg = v.tex === 'flat' || !v.tex
+                      ? v.hex
+                      : v.tex.includes('brick') ? '#a04828'
+                      : v.tex.includes('wood') || v.tex === 'shiplap' ? '#b89060'
+                      : v.tex === 'marble' ? '#e0dcd8'
+                      : v.tex === 'concrete' ? '#b0b0b0'
+                      : v.tex === 'stone' ? '#a09080'
+                      : v.tex === 'tile' ? '#d4d8dc'
+                      : v.tex.includes('carpet') ? v.hex
+                      : '#c0c0c0'
+                    return (
+                      <button key={v.name} onClick={() => handleVariant(v)} style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                        padding: 5, borderRadius: 10, cursor: 'pointer', minWidth: 56,
+                        border: `1.5px solid ${active ? u.accent : u.line}`,
+                        background: active ? u.accent + '14' : 'transparent',
+                        fontFamily: 'inherit',
+                      }}>
+                        <div style={{
+                          width: 44, height: 32, borderRadius: 7,
+                          background: bg,
+                          boxShadow: active ? `0 0 0 2px ${u.accent}55` : 'inset 0 0 0 1px rgba(0,0,0,0.06)',
+                        }} />
+                        <span style={{ fontSize: 10, fontWeight: 600, color: active ? u.accent : u.soft }}>{v.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {/* Sheen picker — walls only, when using flat/paint texture */}
