@@ -68,23 +68,23 @@ function loadLinear(path) {
 }
 
 // ── Texture registry ────────────────────────────────────────────
-// Repeat values control how many times the texture tiles per wall/floor unit.
-// Lower = bigger pattern (more realistic), higher = smaller/denser pattern.
-// Each texture covers ~3ft of real-world surface, so repeat 0.33 = life-size.
+// Tiling is controlled by world-space UVs in Floor.jsx and Walls.jsx,
+// not by texture.repeat. Repeat is set to 1.0 here as a default —
+// the components compute their own UV scale based on TEX_SCALE.
 const TEXTURE_REGISTRY = {
-  brick:       { folder: 'Bricks076A',       repeat: [0.33, 0.33], roughnessVal: 0.92 },
-  brickOld:    { folder: 'Bricks059',         repeat: [0.33, 0.33], roughnessVal: 0.94 },
-  brickWhite:  { folder: 'PaintedBricks001',  repeat: [0.33, 0.33], roughnessVal: 0.88 },
-  concrete:    { folder: 'Concrete034',       repeat: [0.25, 0.25], roughnessVal: 0.82 },
-  plaster:     { folder: 'Plaster003',        repeat: [0.25, 0.25], roughnessVal: 0.90 },
-  drywall:     { folder: 'PaintedPlaster017', repeat: [0.20, 0.20], roughnessVal: 0.88 },
-  stone:       { folder: 'Rock049',           repeat: [0.33, 0.33], roughnessVal: 0.92 },
-  marble:      { folder: 'Marble012',         repeat: [0.25, 0.25], roughnessVal: 0.35 },
-  wood:        { folder: 'WoodFloor051',      repeat: [0.33, 0.33], roughnessVal: 0.78 },
-  woodDark:    { folder: 'WoodFloor040',      repeat: [0.33, 0.33], roughnessVal: 0.78 },
-  shiplap:     { folder: 'WoodSiding009',     repeat: [0.33, 0.33], roughnessVal: 0.80 },
-  tile:        { folder: 'Tiles093',          repeat: [0.5, 0.5],   roughnessVal: 0.55 },
-  carpet:      { folder: 'Fabric038',         repeat: [0.5, 0.5],   roughnessVal: 0.98 },
+  brick:       { folder: 'Bricks076A',       repeat: [1, 1], roughnessVal: 0.92 },
+  brickOld:    { folder: 'Bricks059',         repeat: [1, 1], roughnessVal: 0.94 },
+  brickWhite:  { folder: 'PaintedBricks001',  repeat: [1, 1], roughnessVal: 0.88 },
+  concrete:    { folder: 'Concrete034',       repeat: [1, 1], roughnessVal: 0.82 },
+  plaster:     { folder: 'Plaster003',        repeat: [1, 1], roughnessVal: 0.90 },
+  drywall:     { folder: 'PaintedPlaster017', repeat: [1, 1], roughnessVal: 0.88 },
+  stone:       { folder: 'Rock049',           repeat: [1, 1], roughnessVal: 0.92 },
+  marble:      { folder: 'Marble012',         repeat: [1, 1], roughnessVal: 0.35 },
+  wood:        { folder: 'WoodFloor051',      repeat: [1, 1], roughnessVal: 0.78 },
+  woodDark:    { folder: 'WoodFloor040',      repeat: [1, 1], roughnessVal: 0.78 },
+  shiplap:     { folder: 'WoodSiding009',     repeat: [1, 1], roughnessVal: 0.80 },
+  tile:        { folder: 'Tiles093',          repeat: [1, 1], roughnessVal: 0.55 },
+  carpet:      { folder: 'Fabric038',         repeat: [1, 1], roughnessVal: 0.98 },
 }
 
 /**
