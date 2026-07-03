@@ -1168,6 +1168,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuilderTopBar
         onBrandClick={() => { window.location.search = '?hub=1' }}
         roomName={floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
+        roomIds={Object.keys(allRoomsData || {}).map(Number)}
         rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}
         budget={items.reduce((s, it) => {
           const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
@@ -1183,22 +1184,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
-        onPickRoom={(name) => {
-          const allIds = Object.keys(allRoomsData || {})
-          const id = allIds.find(id => getRoomName(id) === name)
-          if (id != null) jumpToRoom(id)
-        }}
+        onPickRoom={(id) => { if (id != null) jumpToRoom(id) }}
         onNewRoom={() => {
           const rW = 10, rD = 10
           const rCells = new Set()
           for (let c = 0; c < rW; c++) for (let r = 0; r < rD; r++) rCells.add(`${c},${r}`)
           addRoom({ gridW: rW, gridD: rD, cells: rCells })
         }}
-        onDeleteRoom={(name) => {
-          const allIds = Object.keys(allRoomsData || {})
-          const id = allIds.find(id => getRoomName(id) === name)
-          if (id != null) deleteRoom(Number(id))
-        }}
+        onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
         onOverview={() => setOverviewOpen(true)}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
