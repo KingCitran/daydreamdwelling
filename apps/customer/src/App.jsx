@@ -967,11 +967,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             for (let dc = 0; dc < sw; dc++)
               for (let dr = 0; dr < sd; dr++)
                 bottomCells.add(`${col + dc},${row + dr}`)
-            const topW = Math.max(gridW, sw + 2), topD = Math.max(gridD, sd + 2)
+            // Upper room matches the house footprint, not the workspace grid
+            let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
+            for (const key of cells) {
+              const [c, r] = key.split(',').map(Number)
+              minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+              minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+            }
+            const houseW = maxC - minC + 1 || 12
+            const houseD = maxR - minR + 1 || 12
+            const topW = Math.max(houseW, sw + 2), topD = Math.max(houseD, sd + 2)
             const topCells = new Set()
-            for (let c = 0; c < topW; c++)
-              for (let r = 0; r < topD; r++)
-                topCells.add(`${c},${r}`)
+            for (let c = minC; c <= maxC; c++)
+              for (let r = minR; r <= maxR; r++)
+                if (cells.has(`${c},${r}`)) topCells.add(`${c},${r}`)
             addStairs(currentRoomId, { bottomCells, stairCount: 14, topCells, topW, topD, rotation: 0, rawW: sw, rawD: sd, direction: 'up' })
           }}
           onAddDoor={(col, row, dir) => {
@@ -1003,16 +1012,15 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       )}
       {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
 
-        {/* Ghost floors below — rendered at negative Y so active floor stays at Y=0 */}
-        {floorStack.filter(f => f.level < activeFloorLevel).map(f => {
+        {/* All floors at real Y positions — active floor full, others ghost */}
+        {floorStack.filter(f => f.level !== activeFloorLevel).map(f => {
           const rd = allRoomsData[f.roomId]
           if (!rd) return null
-          const floorsBelow = activeFloorLevel - f.level
           return (
             <GhostFloor
               key={`ghost-${f.roomId}`}
               roomData={rd}
-              yOffset={-floorsBelow * wallHeight}
+              yOffset={(f.level - activeFloorLevel) * wallHeight}
               wallHeight={rd.wallHeight ?? wallHeight}
               roomRotationRef={roomRotationRef}
               catalogue={catalogue}
