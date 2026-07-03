@@ -24,7 +24,8 @@ import useHistoryUndo from './hooks/useHistoryUndo'
 import usePersistence from './hooks/usePersistence'
 import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
-import useRoomNavigation from './hooks/useRoomNavigation'
+import useRoomNavigation, { getFloorStack } from './hooks/useRoomNavigation'
+import GhostFloor from './scene/GhostFloor'
 import useShopProducts from './hooks/useShopProducts'
 import useOwnedItems from './hooks/useOwnedItems'
 import { AuthProvider, useAuth } from '@shared/auth/AuthContext'
@@ -211,46 +212,19 @@ function Gate() {
 }
 
 // ── Floor Switcher — Sims-style ▲ Floor N ▼ ───────────────────────
-// Traces stair connections to build a vertical floor stack, then shows
-// up/down arrows to navigate between floors of the same building.
-function FloorSwitcher({ currentRoomId, allRoomsData, items, onNavigate }) {
-  // Build the floor stack: find all rooms connected via stairs
-  const floorStack = useMemo(() => {
-    // Collect all stair connections across all rooms
-    const upLinks = {}   // roomId → roomId it stairs UP to
-    const downLinks = {} // roomId → roomId it stairs DOWN to
-    for (const [ridStr, room] of Object.entries(allRoomsData)) {
-      const rid = Number(ridStr)
-      const roomItems = rid === currentRoomId ? items : (room.items ?? [])
-      for (const it of roomItems) {
-        if (it.stairs && it.topFloorRoomId != null) {
-          if (it.returnStair) {
-            // returnStair's topFloorRoomId points DOWN to the lower room
-            downLinks[rid] = it.topFloorRoomId
-            upLinks[it.topFloorRoomId] = rid
-          } else {
-            upLinks[rid] = it.topFloorRoomId
-            downLinks[it.topFloorRoomId] = rid
-          }
-        }
-      }
-    }
-    // Walk down from current room to find the ground floor
-    let ground = currentRoomId
-    while (downLinks[ground] != null) ground = downLinks[ground]
-    // Walk up from ground to build ordered stack
-    const stack = [ground]
-    let cur = ground
-    while (upLinks[cur] != null) { cur = upLinks[cur]; stack.push(cur) }
-    return stack
-  }, [currentRoomId, allRoomsData, items])
+function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, onSetFloorLevel }) {
+  if (!floorStack || floorStack.length <= 1) return null
 
-  if (floorStack.length <= 1) return null
-
-  const currentFloor = floorStack.indexOf(currentRoomId)
+  const currentFloor = floorStack.findIndex(f => f.roomId === currentRoomId)
   if (currentFloor === -1) return null
   const canGoUp = currentFloor < floorStack.length - 1
   const canGoDown = currentFloor > 0
+
+  const go = (targetIdx) => {
+    const target = floorStack[targetIdx]
+    onNavigate(target.roomId)
+    onSetFloorLevel(target.level)
+  }
 
   const btnStyle = (enabled) => ({
     width: 32, height: 32, borderRadius: 8, border: 'none',
@@ -272,13 +246,13 @@ function FloorSwitcher({ currentRoomId, allRoomsData, items, onNavigate }) {
       fontFamily: "'Outfit', system-ui, sans-serif",
       pointerEvents: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
     }}>
-      <button style={btnStyle(canGoDown)} onClick={canGoDown ? () => onNavigate(floorStack[currentFloor - 1]) : undefined}
+      <button style={btnStyle(canGoDown)} onClick={canGoDown ? () => go(currentFloor - 1) : undefined}
         title="Go down one floor">▼</button>
       <span style={{ padding: '0 8px', minWidth: 64, textAlign: 'center', fontSize: 12 }}>
         Floor {currentFloor + 1}
         <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4 }}>/ {floorStack.length}</span>
       </span>
-      <button style={btnStyle(canGoUp)} onClick={canGoUp ? () => onNavigate(floorStack[currentFloor + 1]) : undefined}
+      <button style={btnStyle(canGoUp)} onClick={canGoUp ? () => go(currentFloor + 1) : undefined}
         title="Go up one floor">▲</button>
     </div>
   )
@@ -375,6 +349,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [items,      setItems]      = useState(initSave?.items ?? [])
   const [selectedId, setSelectedId] = useState(null)
   const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
+  useEffect(() => { roomRotationRef.current = targetRotation }, [targetRotation])
 
   // Explore mode + waiting inventory
   const [exploreData, setExploreData] = useState(null) // { post, designer } when exploring
@@ -397,6 +372,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
   const [displacedCount,   setDisplacedCount]   = useState(0)
   const [ghostPlacement,   setGhostPlacement]   = useState(null)  // { typeKey, stairW, stairD, stairCount, ... }
+  const [activeFloorLevel, setActiveFloorLevel] = useState(0)
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -444,6 +420,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const getRoomName = useCallback((id) => roomNames[Number(id)] || `Room ${Number(id) + 1}`, [roomNames])
 
   const zoomRef       = useRef(32)
+  const roomRotationRef = useRef(targetRotation)
   const [zoomDisplay, setZoomDisplay] = useState(32)
   const panRef        = useRef({ x: 0, z: 0 })
   const screenshotRef = useRef(null)
@@ -828,6 +805,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return { ...allRooms, [currentRoomId]: currentSnap }
   }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
 
+  // Floor stack for multi-floor rendering (ghost floors below active)
+  const floorStack = useMemo(
+    () => getFloorStack(currentRoomId, allRoomsData),
+    [currentRoomId, allRoomsData]
+  )
+
   // Build floor labels for stair-connected rooms: "Living Room · Floor 1"
   const floorLabels = useMemo(() => {
     const labels = {}
@@ -941,8 +924,25 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         }
       `}</style>
       <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => setSelectedId(null)}>
+        {/* Ghost floors below the active level */}
+        {floorStack.filter(f => f.level < activeFloorLevel).map(f => {
+          const rd = allRoomsData[f.roomId]
+          if (!rd) return null
+          return (
+            <GhostFloor
+              key={`ghost-${f.roomId}`}
+              roomData={rd}
+              yOffset={f.level * wallHeight}
+              wallHeight={rd.wallHeight ?? wallHeight}
+              roomRotationRef={roomRotationRef}
+              catalogue={catalogue}
+            />
+          )
+        })}
         <RoomScene
           targetRotation={targetRotation}
+          yOffset={activeFloorLevel * wallHeight}
+          lookAtYOverride={activeFloorLevel * wallHeight + wallHeight / 2}
           cells={cells}
           gridW={gridW}
           gridD={gridD}
@@ -987,7 +987,15 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           ceilingPicker={ceilingPicker}
           onPlaceCeilingItem={placeCeilingItem}
           onMoveCeilingItem={moveCeilingItem}
-          onEnterRoom={enterRoom}
+          onEnterRoom={(doorId) => {
+            enterRoom(doorId)
+            // After entering, find the target room's floor level
+            const door = items.find(it => it.id === doorId)
+            if (door?.stairs && door.topFloorRoomId != null) {
+              const targetEntry = floorStack.find(f => f.roomId === door.topFloorRoomId)
+              if (targetEntry) setActiveFloorLevel(targetEntry.level)
+            }
+          }}
           cartHighlight={cartHighlight}
           lightsOff={lightsOff}
           catalogue={catalogue}
@@ -1034,8 +1042,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <FloorSwitcher
         currentRoomId={currentRoomId}
         allRoomsData={allRoomsData}
-        items={items}
+        floorStack={floorStack}
         onNavigate={jumpToRoom}
+        onSetFloorLevel={setActiveFloorLevel}
       />
 
       <div className="ddd-desktop-only">

@@ -242,6 +242,8 @@ export default function RoomScene({
   onRotate,
   onSwipeVertical,
   panRef: externalPanRef,
+  yOffset = 0,
+  lookAtYOverride,
 }) {
   const { mood: sharedMood } = useMoodControl()
   const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
@@ -266,7 +268,7 @@ export default function RoomScene({
     return cuts
   }, [items])
 
-  const lookAtY = wallHeight / 2
+  const lookAtY = lookAtYOverride ?? (wallHeight / 2 + yOffset)
   const camTarget = useMemo(
     () => new THREE.Vector3(0, lookAtY, 0),
     [lookAtY]
@@ -313,7 +315,7 @@ export default function RoomScene({
       {/* In ceiling view: upward fill so the ceiling slab is lit */}
       <directionalLight position={[8, -20, 6]} intensity={ceilingView ? mood.keyI * 0.55 : 0.04} color={mood.keyC} />
 
-      <group ref={groupRef}>
+      <group ref={groupRef} position={[0, yOffset, 0]}>
         <Floor
           cells={cells}
           gridW={gridW}

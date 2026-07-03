@@ -4,6 +4,44 @@ import { makeGrid, getParallelWallFaces } from '../utils/roomGeometry'
 import { findSpatialNeighbors } from '../overview/layout'
 
 const DEFAULT_wallHeight = 8
+
+// Trace stair connections to build an ordered floor stack for a building.
+// Returns [{roomId, level}] sorted by level (0 = ground floor).
+export function getFloorStack(startRoomId, allRoomsData) {
+  const upLinks = {}    // roomId → roomId it stairs UP to
+  const downLinks = {}  // roomId → roomId it stairs DOWN to
+  for (const [ridStr, room] of Object.entries(allRoomsData)) {
+    const rid = Number(ridStr)
+    for (const it of (room.items ?? [])) {
+      if (!it.stairs || it.topFloorRoomId == null) continue
+      if (it.returnStair) {
+        downLinks[rid] = it.topFloorRoomId
+        upLinks[it.topFloorRoomId] = rid
+      } else {
+        upLinks[rid] = it.topFloorRoomId
+        downLinks[it.topFloorRoomId] = rid
+      }
+    }
+  }
+  // Walk down to ground floor
+  let ground = Number(startRoomId)
+  const seen = new Set()
+  while (downLinks[ground] != null && !seen.has(ground)) {
+    seen.add(ground)
+    ground = downLinks[ground]
+  }
+  // Walk up from ground to build stack
+  const stack = []
+  let cur = ground, level = 0
+  const visited = new Set()
+  while (cur != null && !visited.has(cur)) {
+    visited.add(cur)
+    stack.push({ roomId: cur, level })
+    cur = upLinks[cur]
+    level++
+  }
+  return stack
+}
 const ROOM_PALETTES = [
   { floorColor: '#cec5b8', wallColor: '#d8d0c6' },
   { floorColor: '#b8c8c4', wallColor: '#c6d4d0' },
