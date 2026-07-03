@@ -325,7 +325,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     if (initSave?.wallOverrides) return new Map(Object.entries(initSave.wallOverrides))
     return new Map()
   })
-  const [paintMode, setPaintMode] = useState(false)
   const [wallDrawMode, setWallDrawMode] = useState(false)
   const [internalWalls, setInternalWalls] = useState(() => {
     if (initSave?.internalWalls) return new Set(initSave.internalWalls)
@@ -358,6 +357,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [hubOpen,          setHubOpen]          = useState(false)
   const [styleOpen,        setStyleOpen]        = useState(false)
   const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
+  const paintMode = activeTool === 'style'
   const [displacedCount,   setDisplacedCount]   = useState(0)
   const [ghostPlacement,   setGhostPlacement]   = useState(null)  // { typeKey, stairW, stairD, stairCount, ... }
   const [activeFloorLevel, setActiveFloorLevel] = useState(0)
@@ -1208,8 +1208,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           onWallColor={setWallColor}
           onWallTexture={setWallTexture}
           onWallFinish={setWallFinish}
-          paintMode={paintMode}
-          onPaintMode={setPaintMode}
           onClearOverrides={(target) => {
             if (target === 'floor') setFloorOverrides(new Map())
             else setWallOverrides(new Map())
@@ -1305,7 +1303,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onWalls={() => {
               setActiveTool(null)
               setWallDrawMode(true)
-              setPaintMode(false)
               showWispy('Click on the floor to draw walls. Click "Draw Walls" again to stop.')
             }}
             onStairsUp={() => {
@@ -1334,7 +1331,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             onWallColor={setWallColor} onFloorColor={setFloorColor}
             floorTexture={floorTexture} wallTexture={wallTexture} wallFinish={wallFinish}
             onFloorTexture={setFloorTexture} onWallTexture={setWallTexture} onWallFinish={setWallFinish}
-            paintMode={paintMode} onPaintMode={setPaintMode}
             onClearOverrides={(target) => {
               if (target === 'floor') setFloorOverrides(new Map())
               else setWallOverrides(new Map())
@@ -1702,7 +1698,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onDoor={() => setDoorPickerOpen(true)}
         onWalls={() => {
           setWallDrawMode(v => !v)
-          setPaintMode(false)
           showWispy(wallDrawMode ? 'Wall drawing off.' : 'Click between cells to draw/remove walls. Click again to exit.')
         }}
         wallDrawMode={wallDrawMode}

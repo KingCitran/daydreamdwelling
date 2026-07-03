@@ -306,7 +306,7 @@ export default function StylePanel({
   floorColor, wallColor, onFloorColor, onWallColor,
   floorTexture, wallTexture, wallFinish,
   onFloorTexture, onWallTexture, onWallFinish,
-  paintMode, onPaintMode, onClearOverrides,
+  onClearOverrides,
 }) {
   const s = useStyles()
   const [target, setTarget] = useState('floor')
@@ -345,35 +345,6 @@ export default function StylePanel({
         </div>
       </div>
 
-      {/* Apply mode toggle */}
-      <div style={{ display: 'flex', gap: 4, marginTop: 10, marginBottom: 8 }}>
-        <button
-          onClick={() => onPaintMode?.(false)}
-          style={{
-            flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 600, borderRadius: 5, cursor: 'pointer',
-            background: !paintMode ? `${t.accent}22` : t.surface,
-            border: `1px solid ${!paintMode ? t.accent : t.surfaceBorder}`,
-            color: !paintMode ? t.accent : t.textSoft,
-          }}
-        >Fill All</button>
-        <button
-          onClick={() => onPaintMode?.(true)}
-          style={{
-            flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 600, borderRadius: 5, cursor: 'pointer',
-            background: paintMode ? `${t.accent}22` : t.surface,
-            border: `1px solid ${paintMode ? t.accent : t.surfaceBorder}`,
-            color: paintMode ? t.accent : t.textSoft,
-          }}
-        >Paint Individual</button>
-      </div>
-      {paintMode && (
-        <p style={{ margin: '0 0 8px', fontSize: 10, color: t.textSoft, lineHeight: 1.4 }}>
-          Click {target === 'floor' ? 'floor tiles' : 'wall faces'} to paint them with the selected material.{' '}
-          <button onClick={() => onClearOverrides?.(target)} style={{ background: 'none', border: 'none', color: t.accent, cursor: 'pointer', fontSize: 10, padding: 0, textDecoration: 'underline' }}>
-            Reset all to default
-          </button>
-        </p>
-      )}
 
       <div style={{ marginTop: 0 }}>
         <TexturePresets

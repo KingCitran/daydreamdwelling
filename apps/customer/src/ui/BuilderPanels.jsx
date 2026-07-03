@@ -297,18 +297,22 @@ export function DesignStyleContent({
   wallColor, floorColor, onWallColor, onFloorColor,
   floorTexture, wallTexture, wallFinish,
   onFloorTexture, onWallTexture, onWallFinish,
-  paintMode, onPaintMode, onClearOverrides,
+  onClearOverrides,
 }) {
   const t = useTheme()
   const u = ui(t)
   const { mood, setMood, moods: moodList } = useMoodControl()
   const [tab, setTab] = useState('wall')
-  const [openCat, setOpenCat] = useState(null) // which material category is expanded
+  const [openCat, setOpenCat] = useState(null)
   const skyLookup = Object.fromEntries(MOOD_LIST.map(m => [m.key, m.sky]))
   const materials = tab === 'wall' ? WALL_MATERIALS : FLOOR_MATERIALS
   const currentTex = tab === 'wall' ? wallTexture : floorTexture
 
+  // Clicking a preset fills ALL surfaces and clears individual overrides.
+  // Clicking a wall/floor in the 3D room paints just that one surface
+  // (handled in App.jsx — always enabled, no mode toggle).
   const handleVariant = (v) => {
+    onClearOverrides?.(tab)
     if (tab === 'wall') {
       onWallColor(v.tex && v.tex !== 'flat' ? (v.hex || '#ffffff') : v.hex)
       onWallTexture?.(v.tex || 'flat')
@@ -325,11 +329,7 @@ export function DesignStyleContent({
     else onFloorColor(hex)
   }
 
-  // Check if a variant is currently active
-  const isActive = (v) => {
-    const ct = v.tex || 'flat'
-    return currentTex === ct
-  }
+  const isActive = (v) => currentTex === (v.tex || 'flat')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -338,29 +338,9 @@ export function DesignStyleContent({
         { id: 'floor', label: 'Floor', Icon: Grid3x3 },
       ]} />
 
-      {/* Fill All / Paint Individual toggle */}
-      <div style={{ display: 'flex', gap: 4 }}>
-        <button onClick={() => onPaintMode?.(false)} style={{
-          flex: 1, padding: '7px 0', fontSize: 11, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
-          background: !paintMode ? u.accent + '22' : 'transparent',
-          border: `1px solid ${!paintMode ? u.accent : u.line}`,
-          color: !paintMode ? u.accent : u.soft, fontFamily: 'inherit',
-        }}>Fill All</button>
-        <button onClick={() => onPaintMode?.(true)} style={{
-          flex: 1, padding: '7px 0', fontSize: 11, fontWeight: 600, borderRadius: 8, cursor: 'pointer',
-          background: paintMode ? u.accent + '22' : 'transparent',
-          border: `1px solid ${paintMode ? u.accent : u.line}`,
-          color: paintMode ? u.accent : u.soft, fontFamily: 'inherit',
-        }}>Paint Individual</button>
+      <div style={{ fontSize: 11, color: u.soft, lineHeight: 1.4 }}>
+        Pick a material to fill all {tab === 'wall' ? 'walls' : 'floors'}. Then click individual {tab === 'wall' ? 'walls' : 'tiles'} in the room to paint them differently.
       </div>
-      {paintMode && (
-        <div style={{ fontSize: 11, color: u.soft, lineHeight: 1.4 }}>
-          Click {tab === 'floor' ? 'floor tiles' : 'wall faces'} to paint them.{' '}
-          <button onClick={() => onClearOverrides?.(tab)} style={{
-            background: 'none', border: 'none', color: u.accent, cursor: 'pointer', fontSize: 11, padding: 0, textDecoration: 'underline', fontFamily: 'inherit',
-          }}>Reset all</button>
-        </div>
-      )}
 
       {/* Material categories — tap to expand variants */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
