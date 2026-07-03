@@ -317,46 +317,22 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
               const uCen = (p.uL + p.uR) / 2
               const yCen = (p.yL + p.yH) / 2
               const pos  = axis === 'z' ? [uCen, yCen, z] : [x, yCen, uCen]
-              const boxGeom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
-              // Offset the textured face slightly in front of the box
-              const faceOffset = WALL_T / 2 + 0.002
-              const facePos = axis === 'z'
-                ? [uCen, yCen, z + normal[2] * faceOffset]
-                : [x + normal[0] * faceOffset, yCen, uCen]
+              const geom = axis === 'z' ? [uw, ph, WALL_T] : [WALL_T, ph, uw]
               return (
-                <group key={pi}>
-                  {/* Wall body */}
-                  <mesh position={pos} visible={isVisible} castShadow receiveShadow
-                    onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
-                  >
-                    <boxGeometry args={boxGeom} />
-                    <meshStandardMaterial
-                      color={color}
-                      roughness={faceRough}
-                      metalness={faceFinish === 'highGloss' ? 0.05 : 0}
-                    />
-                  </mesh>
-                  {/* Textured face with world-space UVs */}
-                  {pbr && isVisible && (
-                    <mesh
-                      position={facePos}
-                      rotation={axis === 'z' ? [0, normal[2] > 0 ? 0 : Math.PI, 0] : [0, normal[0] > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
-                      visible={isVisible} receiveShadow
-                    >
-                      <planeGeometry args={[uw, ph]} />
-                      <meshStandardMaterial
-                        key={`wall_mat_${texVer}`}
-                        color={color}
-                        map={pbr.map || undefined}
-                        normalMap={pbr.normalMap || undefined}
-                        normalScale={new THREE.Vector2(1.2, 1.2)}
-                        roughnessMap={pbr.roughnessMap || undefined}
-                        roughness={pbr.roughnessMap ? 1.0 : faceRough}
-                        metalness={faceFinish === 'highGloss' ? 0.05 : 0}
-                      />
-                    </mesh>
-                  )}
-                </group>
+                <mesh key={pi} position={pos} visible={isVisible} castShadow receiveShadow
+                  onClick={paintMode ? (e) => { e.stopPropagation(); onClickWall?.(id) } : undefined}
+                >
+                  <boxGeometry args={geom} />
+                  <meshStandardMaterial
+                    key={`wall_mat_${texVer}`}
+                    color={color}
+                    map={pbr?.map || undefined}
+                    normalMap={pbr?.normalMap || undefined}
+                    roughnessMap={pbr?.roughnessMap || undefined}
+                    roughness={pbr?.roughnessMap ? 1.0 : faceRough}
+                    metalness={faceFinish === 'highGloss' ? 0.05 : 0}
+                  />
+                </mesh>
               )
             })}
             {showGrid && isVisible && pieces.map((p) =>

@@ -291,12 +291,14 @@ export function DesignStyleContent({
 
   const handlePreset = (p) => {
     if (tab === 'wall') {
-      onWallColor(p.hex)
+      // Photo textures show at full brightness (white tint).
+      // Flat/paint presets use the preset hex as the wall color.
+      onWallColor(p.tex && p.tex !== 'flat' ? '#ffffff' : p.hex)
       onWallTexture?.(p.tex || 'flat')
       if (p.finish !== undefined) onWallFinish?.(p.finish)
       else if (p.tex && p.tex !== 'flat') onWallFinish?.(null)
     } else {
-      onFloorColor(p.hex)
+      onFloorColor(p.tex && p.tex !== 'flat' ? '#ffffff' : p.hex)
       onFloorTexture?.(p.tex || 'flat')
     }
   }
