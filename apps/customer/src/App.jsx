@@ -325,6 +325,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return new Map()
   })
   const [paintMode, setPaintMode] = useState(false)
+  const [wallDrawMode, setWallDrawMode] = useState(false)
+  const [internalWalls, setInternalWalls] = useState(() => {
+    if (initSave?.internalWalls) return new Set(initSave.internalWalls)
+    return new Set()
+  })
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
   const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
   const [moonId,     setMoonId]     = useState(initSave?.moonId ?? null)
@@ -980,6 +985,16 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           wallFinish={wallFinish}
           wallOverrides={wallOverrides}
           paintMode={paintMode}
+          wallDrawMode={wallDrawMode}
+          internalWalls={internalWalls}
+          onToggleWallEdge={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              if (next.has(edgeKey)) next.delete(edgeKey)
+              else next.add(edgeKey)
+              return next
+            })
+          }}
           onClickCell={(col, row) => {
             setFloorOverrides(prev => {
               const next = new Map(prev)
@@ -1268,8 +1283,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
+            onWalls={() => {
+              setWallDrawMode(v => !v)
+              setPaintMode(false)
+              showWispy(wallDrawMode ? 'Wall drawing off.' : 'Click between cells to draw/remove walls.')
+            }}
             onStairsUp={() => {
-              setActiveTool(null)
+              setActiveTool(null); setWallDrawMode(false)
               setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
               showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
             }}
@@ -1660,11 +1680,19 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuildTabPanel
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
+        onWalls={() => {
+          setWallDrawMode(v => !v)
+          setPaintMode(false)
+          showWispy(wallDrawMode ? 'Wall drawing off.' : 'Click between cells to draw/remove walls. Click again to exit.')
+        }}
+        wallDrawMode={wallDrawMode}
         onStairsUp={() => {
+          setWallDrawMode(false)
           setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
           showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
         }}
         onStairsDown={() => {
+          setWallDrawMode(false)
           setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
           showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
         }}

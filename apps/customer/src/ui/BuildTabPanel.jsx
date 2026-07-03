@@ -3,14 +3,14 @@ import { DoorOpen, RectangleHorizontal, Layers, ArrowUp, ArrowDown, Archive } fr
 // Build tab — structural elements.
 
 export default function BuildTabPanel({
-  onWindow, onDoor, onStairsUp, onStairsDown,
+  onWindow, onDoor, onStairsUp, onStairsDown, onWalls, wallDrawMode,
 }) {
   const items = [
     { id: 'window',     label: 'Window',           Icon: RectangleHorizontal, onClick: onWindow },
     { id: 'door',       label: 'Door',             Icon: DoorOpen,            onClick: onDoor   },
+    { id: 'walls',      label: 'Draw Walls',       Icon: Layers,              onClick: onWalls, active: wallDrawMode },
     { id: 'stairs-up',  label: 'Add floor above',  Icon: ArrowUp,             onClick: onStairsUp },
     { id: 'stairs-dn',  label: 'Add floor below',  Icon: ArrowDown,           onClick: onStairsDown },
-    { id: 'walls',      label: 'Walls',            Icon: Layers,              soon: true },
     { id: 'closet',     label: 'Closet',           Icon: Archive,             soon: true },
   ]
 
@@ -24,8 +24,8 @@ export default function BuildTabPanel({
           style={{
             display: 'flex', alignItems: 'center', gap: 12,
             padding: '11px 14px', borderRadius: 10,
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: it.soon ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+            border: it.active ? '1px solid #88d8b088' : '1px solid rgba(255,255,255,0.1)',
+            background: it.active ? '#88d8b020' : it.soon ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
             color: '#f0eaff',
             cursor: it.soon ? 'default' : 'pointer',
             opacity: it.soon ? 0.55 : 1,

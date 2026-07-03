@@ -16,7 +16,7 @@ const ZOOM_MAX   = 120
 // skyColor = indirect ceiling/sky bounce; groundColor = floor bounce (always darker)
 // keyI/keyC = main directional (window light); fillI/fillC = soft counter-fill
 // Goal: atmosphere without color-casting walls — keep keyC near-white, raise hemiI in dark moods
-const MOOD_SCENE_PRESETS = {
+export const MOOD_SCENE_PRESETS = {
   'Golden Hour':      { hemiI: 0.28, skyColor: '#c8a870', groundColor: '#4a2010', keyI: 0.80, keyC: '#fff4e0', fillI: 0.18, fillC: '#f0ddb0' },
   'Bright Day':       { hemiI: 0.55, skyColor: '#e8f0f8', groundColor: '#b8a870', keyI: 1.20, keyC: '#fffdf8', fillI: 0.28, fillC: '#e0ecf8' },
   'Vivid Sunset':     { hemiI: 0.22, skyColor: '#9a5830', groundColor: '#1e0808', keyI: 0.40, keyC: '#f0b870', fillI: 0.14, fillC: '#d09050' },
@@ -222,7 +222,7 @@ function ZoomController({ zoomRef, panRef }) {
 export default function RoomScene({
   targetRotation, cells, gridW, gridD, wallHeight,
   floorColor, floorTexture, floorOverrides, wallColor, wallTexture, wallFinish, wallOverrides,
-  paintMode, onClickCell, onClickWall,
+  paintMode, onClickCell, onClickWall, internalWalls, wallDrawMode, onToggleWallEdge,
   items, selectedId, onSelectItem, onMoveItem, onMoveWallItem, onDoubleClickItem,
   onDragStart, onDragEnd,
   zoomRef, screenshotRef, showMeasurements, showGrid,
@@ -331,8 +331,27 @@ export default function RoomScene({
           floorOverrides={floorOverrides}
           showGrid={showGrid}
           floorCutouts={floorCutouts}
-          onClickFloor={ghostPlacement ? undefined : () => onSelectItem(null)}
-          onClickCell={onClickCell}
+          onClickFloor={wallDrawMode ? (e) => {
+            // Detect nearest cell edge from click position
+            const ry = currentRY.current
+            const lx = Math.cos(ry) * e.point.x - Math.sin(ry) * e.point.z
+            const lz = Math.sin(ry) * e.point.x + Math.cos(ry) * e.point.z
+            const gx = lx + gridW / 2, gz = lz + gridD / 2
+            const col = Math.floor(gx), row = Math.floor(gz)
+            const fx = gx - col, fz = gz - row  // fractional within cell
+            // Which edge is closest?
+            const edges = [
+              { dir: 'N', dist: fz },           // top edge
+              { dir: 'S', dist: 1 - fz },       // bottom edge
+              { dir: 'W', dist: fx },            // left edge
+              { dir: 'E', dist: 1 - fx },        // right edge
+            ]
+            const nearest = edges.reduce((a, b) => a.dist < b.dist ? a : b)
+            if (col >= 0 && col < gridW && row >= 0 && row < gridD) {
+              onToggleWallEdge?.(`${col},${row}:${nearest.dir}`)
+            }
+          } : ghostPlacement ? undefined : () => onSelectItem(null)}
+          onClickCell={wallDrawMode ? (col, row) => {} : onClickCell}
           ceilingView={ceilingView}
           paintMode={paintMode}
         />
@@ -350,6 +369,7 @@ export default function RoomScene({
           items={items}
           paintMode={paintMode}
           onClickWall={onClickWall}
+          internalWalls={internalWalls}
         />
         <Items
           items={items}

@@ -62,24 +62,53 @@ function normalMatches(n, visibles) {
   return visibles.some(v => v[0] === n[0] && v[2] === n[2])
 }
 
-function buildWalls(cells, gridW, gridD) {
+// Compass → direction offset lookup for internal walls
+const COMPASS_DIR = { N: { dc: 0, dr: -1 }, S: { dc: 0, dr: 1 }, W: { dc: -1, dr: 0 }, E: { dc: 1, dr: 0 } }
+
+function buildWalls(cells, gridW, gridD, internalWalls) {
   const walls = []
+  const seen = new Set()  // deduplicate (e.g., "3,4:E" and "4,4:W" are the same wall)
+
+  // Boundary walls — where a cell exists but its neighbor doesn't
   for (const key of cells) {
     const [col, row] = key.split(',').map(Number)
     for (const { dc, dr, normal, axis } of DIRECTIONS) {
       if (!cells.has(`${col + dc},${row + dr}`)) {
         const cx = (col + 0.5) - gridW / 2
         const cz = (row + 0.5) - gridD / 2
-        walls.push({
-          id: `${key}:${dc},${dr}`,
-          x:  cx + dc * 0.5,
-          z:  cz + dr * 0.5,
-          normal,
-          axis,
-        })
+        const wallId = `${key}:${dc},${dr}`
+        walls.push({ id: wallId, x: cx + dc * 0.5, z: cz + dr * 0.5, normal, axis })
+        seen.add(wallId)
       }
     }
   }
+
+  // Internal walls — between two cells that both exist
+  if (internalWalls) {
+    for (const edgeKey of internalWalls) {
+      const sepIdx = edgeKey.lastIndexOf(':')
+      if (sepIdx === -1) continue
+      const cellKey = edgeKey.slice(0, sepIdx)
+      const compass = edgeKey.slice(sepIdx + 1)
+      const cd = COMPASS_DIR[compass]
+      if (!cd || !cells.has(cellKey)) continue
+      const [col, row] = cellKey.split(',').map(Number)
+      const dir = DIRECTIONS.find(d => d.dc === cd.dc && d.dr === cd.dr)
+      if (!dir) continue
+      // Deduplicate: check if the opposite side was already added
+      const neighborKey = `${col + cd.dc},${row + cd.dr}`
+      const oppCompass = compass === 'N' ? 'S' : compass === 'S' ? 'N' : compass === 'W' ? 'E' : 'W'
+      const altKey = `${neighborKey}:${oppCompass}`
+      if (seen.has(`${cellKey}:${cd.dc},${cd.dr}`) || seen.has(altKey)) continue
+
+      const cx = (col + 0.5) - gridW / 2
+      const cz = (row + 0.5) - gridD / 2
+      const wallId = `${cellKey}:internal:${compass}`
+      walls.push({ id: wallId, x: cx + cd.dc * 0.5, z: cz + cd.dr * 0.5, normal: dir.normal, axis: dir.axis })
+      seen.add(edgeKey)
+    }
+  }
+
   return walls
 }
 
@@ -233,10 +262,10 @@ function WallGrid({ x, z, normal, axis, wallHeight, uLo, uHi, yLo, yHi }) {
   )
 }
 
-export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wallTexture, wallFinish, wallOverrides, currentRotationRef, showGrid, items, paintMode, onClickWall }) {
+export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wallTexture, wallFinish, wallOverrides, currentRotationRef, showGrid, items, paintMode, onClickWall, internalWalls }) {
   const walls = useMemo(
-    () => buildWalls(cells, gridW, gridD),
-    [cells, gridW, gridD]
+    () => buildWalls(cells, gridW, gridD, internalWalls),
+    [cells, gridW, gridD, internalWalls]
   )
 
   // Force material recreation when async texture images finish loading.
