@@ -86,7 +86,8 @@ const TEXTURE_REGISTRY = {
   woodDark:    { folder: 'WoodFloor040',      repeat: [1, 1], roughnessVal: 0.78 },
   shiplap:     { folder: 'WoodSiding009',     repeat: [1, 1], roughnessVal: 0.80 },
   tile:        { folder: 'Tiles093',          repeat: [1, 1], roughnessVal: 0.55 },
-  carpet:      { folder: 'Fabric038',         repeat: [1, 1], roughnessVal: 0.98 },
+  carpet:      { folder: 'Carpet008',         repeat: [1, 1], roughnessVal: 0.98 },
+  carpetFine:  { folder: 'Fabric032',         repeat: [1, 1], roughnessVal: 0.96 },
 }
 
 /**
@@ -150,6 +151,7 @@ export const TEXTURE_ROUGHNESS = {
   woodDark:    0.78,
   tile:        0.55,
   carpet:      0.98,
+  carpetFine:  0.96,
   concrete:    0.82,
   marble:      0.35,
   brick:       0.92,

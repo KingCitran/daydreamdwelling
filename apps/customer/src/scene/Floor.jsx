@@ -5,12 +5,13 @@ import { getTexture, TEXTURE_ROUGHNESS, onTextureReady } from './textures'
 
 const WALL_T = 0.28
 
+// How many feet one texture tile covers. Larger = less obvious repeat.
 const TEX_SCALE = {
-  wood: 3, woodDark: 3, shiplap: 3,
-  brick: 3, brickOld: 3, brickWhite: 3,
-  tile: 2, carpet: 2,
-  concrete: 4, marble: 3, stone: 3,
-  plaster: 4, drywall: 5,
+  wood: 5, woodDark: 5, shiplap: 5,
+  brick: 6, brickOld: 6, brickWhite: 6, brickBrown: 6, brickTan: 6,
+  tile: 4, carpet: 6, carpetFine: 6,
+  concrete: 8, marble: 6, stone: 6,
+  plaster: 8, drywall: 10,
 }
 
 // Remap boxGeometry UVs to world-space on the top face (+Y) so the
