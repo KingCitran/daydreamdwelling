@@ -17,12 +17,13 @@ export default function Floor({
   cells, gridW, gridD,
   floorColor, floorTexture,
   floorOverrides,
+  floorCutouts,
   showGrid, onClickFloor, onClickCell,
   ceilingView,
   paintMode = false,
 }) {
   const activeCells = useMemo(
-    () => [...cells].map(key => key.split(',').map(Number)),
+    () => [...cells].map(key => key.split(',').map(Number)).filter(([c, r]) => !floorCutouts?.has(`${c},${r}`)),
     [cells]
   )
 

@@ -149,93 +149,27 @@ function StairVisual({ fw, fd, fh, wallHeight, stairCount, color }) {
   )
 }
 
-// ── Stair opening (upper floor) — shows the hole where stairs come through ──
-// Renders a floor cutout with a wooden trim border and realistic railing
-// with balusters (vertical spindles) on 3 sides, open on one short side
-// so it looks like you can walk up from below.
+// ── Stair opening (upper floor) — floor tiles are cut by Floor.jsx,
+// this just renders a thin trim around the edge of the opening.
+// Railings will be separate marketplace products in the future.
 function StairOpeningVisual({ fw, fd, fh }) {
-  const railH = 2.9   // railing height (ft) — standard 34-36 inches
-  const postT = 0.12  // newel post thickness
-  const railT = 0.06  // top rail / bottom rail thickness
-  const balT  = 0.04  // baluster (spindle) thickness
-  const trimH = 0.18  // floor trim height
-  const trimT = 0.06  // floor trim depth
+  const trimH = 0.15  // trim height
+  const trimT = 0.05  // trim depth
   const woodColor = '#a08060'
-  const postColor = '#8a6a48'
-  const darkHole  = '#080608'
-  // Baluster spacing — roughly every 4 inches (0.33 ft)
-  const balSpacing = 0.33
-
-  // Build balusters for a rail segment from (x1,z1) to (x2,z2)
-  const balusters = (x1, z1, x2, z2) => {
-    const len = Math.sqrt((x2-x1)**2 + (z2-z1)**2)
-    const count = Math.max(1, Math.floor(len / balSpacing))
-    return Array.from({ length: count - 1 }, (_, i) => {
-      const t = (i + 1) / count
-      return [x1 + (x2-x1)*t, z1 + (z2-z1)*t]
-    })
-  }
-
-  // 3 railing sides (leave one short side open for stair access)
-  const sides = [
-    { from: [-fw/2, -fd/2], to: [fw/2, -fd/2] },  // back
-    { from: [-fw/2, -fd/2], to: [-fw/2, fd/2] },   // left
-    { from: [fw/2, -fd/2],  to: [fw/2, fd/2] },    // right
-  ]
-
   return (
     <group position={[0, -fh / 2, 0]}>
-      {/* Dark opening plane — covers floor tiles */}
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[fw + 0.04, fd + 0.04]} />
-        <meshBasicMaterial color={darkHole} side={THREE.DoubleSide} />
-      </mesh>
-      {/* Wooden trim border around the opening */}
+      {/* Wooden trim border around the floor opening */}
       {[
         { p: [0, trimH/2, -fd/2], s: [fw + trimT*2, trimH, trimT] },
         { p: [0, trimH/2,  fd/2], s: [fw + trimT*2, trimH, trimT] },
         { p: [-fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
         { p: [ fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
       ].map(({ p, s }, i) => (
-        <mesh key={`trim${i}`} position={p} castShadow>
+        <mesh key={i} position={p} castShadow>
           <boxGeometry args={s} />
           <meshStandardMaterial color={woodColor} roughness={0.75} />
         </mesh>
       ))}
-      {/* Newel posts at corners (thicker, taller) */}
-      {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sz], i) => (
-        <mesh key={`post${i}`} position={[sx * fw/2, (railH + 0.15)/2, sz * fd/2]} castShadow>
-          <boxGeometry args={[postT, railH + 0.15, postT]} />
-          <meshStandardMaterial color={postColor} roughness={0.65} />
-        </mesh>
-      ))}
-      {/* Top rail + balusters on 3 sides */}
-      {sides.map(({ from, to }, si) => {
-        const mx = (from[0] + to[0]) / 2, mz = (from[1] + to[1]) / 2
-        const len = Math.sqrt((to[0]-from[0])**2 + (to[1]-from[1])**2)
-        const angle = Math.atan2(to[0]-from[0], to[1]-from[1])
-        return (
-          <group key={`side${si}`}>
-            {/* Top rail */}
-            <mesh position={[mx, railH, mz]} rotation={[0, angle, 0]} castShadow>
-              <boxGeometry args={[railT, railT, len]} />
-              <meshStandardMaterial color={woodColor} roughness={0.7} />
-            </mesh>
-            {/* Bottom rail */}
-            <mesh position={[mx, 0.4, mz]} rotation={[0, angle, 0]}>
-              <boxGeometry args={[railT, railT, len]} />
-              <meshStandardMaterial color={woodColor} roughness={0.7} />
-            </mesh>
-            {/* Balusters */}
-            {balusters(from[0], from[1], to[0], to[1]).map(([bx, bz], bi) => (
-              <mesh key={bi} position={[bx, (railH + 0.4) / 2, bz]}>
-                <boxGeometry args={[balT, railH - 0.4, balT]} />
-                <meshStandardMaterial color={woodColor} roughness={0.75} />
-              </mesh>
-            ))}
-          </group>
-        )
-      })}
     </group>
   )
 }

@@ -251,6 +251,21 @@ export default function RoomScene({
   const internalPanRef = useRef({ x: 0, z: 0 })
   const panRef = externalPanRef || internalPanRef
 
+  // Cells to cut from the floor (under return stairs = stairwell openings)
+  const floorCutouts = useMemo(() => {
+    const cuts = new Set()
+    for (const it of items) {
+      if (!it.stairs || !it.returnStair) continue
+      const sw = it.stairW ?? 3, sd = it.stairD ?? 5
+      const rotated = it.rotation === 90 || it.rotation === 270
+      const ew = rotated ? sd : sw, ed = rotated ? sw : sd
+      for (let dc = 0; dc < ew; dc++)
+        for (let dr = 0; dr < ed; dr++)
+          cuts.add(`${it.col + dc},${it.row + dr}`)
+    }
+    return cuts
+  }, [items])
+
   const lookAtY = wallHeight / 2
   const camTarget = useMemo(
     () => new THREE.Vector3(0, lookAtY, 0),
@@ -307,6 +322,7 @@ export default function RoomScene({
           floorTexture={floorTexture}
           floorOverrides={floorOverrides}
           showGrid={showGrid}
+          floorCutouts={floorCutouts}
           onClickFloor={ghostPlacement ? undefined : () => onSelectItem(null)}
           onClickCell={onClickCell}
           ceilingView={ceilingView}
