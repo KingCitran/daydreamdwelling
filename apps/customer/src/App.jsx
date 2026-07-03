@@ -823,16 +823,18 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         else { upLinks[rid] = it.topFloorRoomId; downLinks[it.topFloorRoomId] = rid }
       }
     }
-    // Find each ground floor and walk up
+    // Find each ground floor and walk up (with cycle protection)
     const visited = new Set()
     for (const ridStr of Object.keys(allRoomsData)) {
       let rid = Number(ridStr)
       if (visited.has(rid)) continue
-      while (downLinks[rid] != null) rid = downLinks[rid]
+      const downSeen = new Set()
+      while (downLinks[rid] != null && !downSeen.has(rid)) { downSeen.add(rid); rid = downLinks[rid] }
       if (visited.has(rid)) continue
       const stack = [rid]
       let cur = rid
-      while (upLinks[cur] != null) { cur = upLinks[cur]; stack.push(cur) }
+      const upSeen = new Set([rid])
+      while (upLinks[cur] != null && !upSeen.has(upLinks[cur])) { cur = upLinks[cur]; upSeen.add(cur); stack.push(cur) }
       if (stack.length > 1) {
         stack.forEach((id, i) => { labels[id] = `Floor ${i + 1}`; visited.add(id) })
       }
