@@ -459,18 +459,20 @@ const BUILD_ITEMS = [
   { id: 'door', label: 'Door', Icon: Hammer },
   { id: 'window', label: 'Window', Icon: Grid3x3 },
   { id: 'opening', label: 'Opening', Icon: Layers },
-  { id: 'stairs', label: 'Stairs', Icon: ClipboardList },
+  { id: 'stairs-up', label: 'Floor above', Icon: ClipboardList },
+  { id: 'stairs-dn', label: 'Floor below', Icon: Home },
   { id: 'closet', label: 'Closet', Icon: Home },
 ]
 
-export function DesignBuildContent({ onWindow, onDoor, onStairs, ceilingView, onToggleCeiling, showGrid, onToggleGrid, showMeasurements, onToggleMeasurements }) {
+export function DesignBuildContent({ onWindow, onDoor, onStairsUp, onStairsDown, ceilingView, onToggleCeiling, showGrid, onToggleGrid, showMeasurements, onToggleMeasurements }) {
   const t = useTheme()
   const u = ui(t)
 
   const handlePick = (id) => {
     if (id === 'window') onWindow?.()
     else if (id === 'door') onDoor?.()
-    else if (id === 'stairs') onStairs?.()
+    else if (id === 'stairs-up') onStairsUp?.()
+    else if (id === 'stairs-dn') onStairsDown?.()
   }
 
   return (
