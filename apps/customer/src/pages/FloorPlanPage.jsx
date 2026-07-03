@@ -9,6 +9,7 @@ const TOOLS = [
   { id: 'door',   label: 'Doors',        icon: '▯', desc: 'Click a wall edge to place a door' },
   { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to place stairs' },
   { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it' },
+  { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste it' },
 ]
 
 // Flood-fill to detect room zones from internal walls.
@@ -71,6 +72,8 @@ export default function FloorPlanPage({
   const [hoverInfo, setHoverInfo] = useState(null)
   const rectRef = useRef(null)
   const wallDragRef = useRef(null)
+  // Copy room: { cells: Set of relative "dc,dr", walls: Set of relative edges, w, d }
+  const [clipboard, setClipboard] = useState(null)
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 })
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
@@ -95,6 +98,13 @@ export default function FloorPlanPage({
     if (!belowEntry) return null
     return allRoomsData?.[belowEntry.roomId] ?? null
   }, [floorStack, activeFloorLevel, allRoomsData])
+
+  // ESC clears clipboard
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') setClipboard(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Space key for pan mode
   const spaceRef = useRef(false)
@@ -299,6 +309,28 @@ export default function FloorPlanPage({
         const { col, row } = hoverInfo
         ctx.fillStyle = 'rgba(180,140,80,0.3)'
         ctx.fillRect(offsetX + col * cellSize, offsetY + row * cellSize, 3 * cellSize, 5 * cellSize)
+      } else if (tool === 'copy' && clipboard && hoverInfo.col != null) {
+        // Show paste preview
+        const { col, row } = hoverInfo
+        ctx.fillStyle = 'rgba(100,180,255,0.25)'
+        for (const k of clipboard.cells) {
+          const [dc, dr] = k.split(',').map(Number)
+          ctx.fillRect(offsetX + (col + dc) * cellSize, offsetY + (row + dr) * cellSize, cellSize, cellSize)
+        }
+        ctx.strokeStyle = '#60b0ff'
+        ctx.lineWidth = 2
+        for (const wk of clipboard.walls) {
+          const sep = wk.lastIndexOf(':')
+          const [dc, dr] = wk.slice(0, sep).split(',').map(Number)
+          const dir = wk.slice(sep + 1)
+          const x = offsetX + (col + dc) * cellSize, y = offsetY + (row + dr) * cellSize
+          ctx.beginPath()
+          if (dir === 'N') { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y) }
+          if (dir === 'S') { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize) }
+          if (dir === 'W') { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize) }
+          if (dir === 'E') { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize) }
+          ctx.stroke()
+        }
       }
     }
 
@@ -308,7 +340,7 @@ export default function FloorPlanPage({
     ctx.textAlign = 'left'
     const floorLabel = activeFloorLevel === 0 ? 'Ground Floor' : activeFloorLevel < 0 ? `Basement ${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`
     ctx.fillText(`${floorLabel} · ${gridW}×${gridD} ft · ${cells.size} sq ft · ${roomZones.length} rooms · ${Math.round(zoom * 100)}%`, 8, canvasSize.h - 8)
-  }, [canvasSize, gridW, gridD, cells, internalWalls, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale])
+  }, [canvasSize, gridW, gridD, cells, internalWalls, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard])
 
   useEffect(() => { draw() }, [draw])
 
@@ -367,12 +399,63 @@ export default function FloorPlanPage({
     } else if (tool === 'stairs') {
       if (cells.has(`${info.col},${info.row}`)) onAddStairs?.(info.col, info.row)
     } else if (tool === 'label') {
-      // Find which zone was clicked
       const key = `${info.col},${info.row}`
       const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
       if (zoneIdx >= 0) {
         const rect = canvasRef.current.getBoundingClientRect()
         setEditingLabel({ zoneIdx, x: e.clientX - rect.left, y: e.clientY - rect.top })
+      }
+    } else if (tool === 'copy') {
+      const key = `${info.col},${info.row}`
+      if (!clipboard) {
+        // COPY: capture the zone under cursor
+        const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
+        if (zoneIdx < 0) return
+        const zone = roomZones[zoneIdx]
+        // Find bounds and make relative
+        let minC = Infinity, minR = Infinity
+        for (const k of zone.cells) {
+          const [c, r] = k.split(',').map(Number)
+          minC = Math.min(minC, c); minR = Math.min(minR, r)
+        }
+        const relCells = new Set()
+        for (const k of zone.cells) {
+          const [c, r] = k.split(',').map(Number)
+          relCells.add(`${c - minC},${r - minR}`)
+        }
+        // Capture relative internal walls within this zone
+        const relWalls = new Set()
+        for (const edgeKey of (internalWalls ?? [])) {
+          const sep = edgeKey.lastIndexOf(':')
+          const cellKey = edgeKey.slice(0, sep)
+          if (zone.cells.has(cellKey)) {
+            const [c, r] = cellKey.split(',').map(Number)
+            relWalls.add(`${c - minC},${r - minR}:${edgeKey.slice(sep + 1)}`)
+          }
+        }
+        let maxC = 0, maxR = 0
+        for (const k of zone.cells) {
+          const [c, r] = k.split(',').map(Number)
+          maxC = Math.max(maxC, c - minC); maxR = Math.max(maxR, r - minR)
+        }
+        setClipboard({ cells: relCells, walls: relWalls, w: maxC + 1, d: maxR + 1 })
+      } else {
+        // PASTE: place copied room at cursor position
+        const { cells: relCells, walls: relWalls } = clipboard
+        const baseC = info.col, baseR = info.row
+        for (const k of relCells) {
+          const [dc, dr] = k.split(',').map(Number)
+          const key = `${baseC + dc},${baseR + dr}`
+          if (!cells.has(key)) onToggleCell(baseC + dc, baseR + dr)
+        }
+        for (const wk of relWalls) {
+          const sep = wk.lastIndexOf(':')
+          const [dc, dr] = wk.slice(0, sep).split(',').map(Number)
+          const dir = wk.slice(sep + 1)
+          const newKey = `${baseC + dc},${baseR + dr}:${dir}`
+          if (!internalWalls?.has(newKey)) onToggleWall(newKey)
+        }
+        setClipboard(null)  // Clear after paste (click again on source to re-copy)
       }
     }
   }
@@ -407,7 +490,7 @@ export default function FloorPlanPage({
         if (wallDragRef.current.erasing) { if (internalWalls?.has(key)) onToggleWall(key) }
         else { if (!internalWalls?.has(key)) onToggleWall(key) }
       }
-    } else if (tool === 'stairs') {
+    } else if (tool === 'stairs' || tool === 'copy') {
       setHoverInfo({ col: info.col, row: info.row })
     }
   }
@@ -636,7 +719,7 @@ export default function FloorPlanPage({
           padding: '5px 14px', borderRadius: 8, background: '#1a1a30', color: '#606080',
           fontSize: 11, fontWeight: 600, pointerEvents: 'none',
         }}>
-          {TOOLS.find(t => t.id === tool)?.desc} · Right-click or Space to pan · Scroll to zoom
+          {tool === 'copy' && clipboard ? 'Click to paste the copied room · ESC to cancel' : TOOLS.find(t => t.id === tool)?.desc} · Right-click to pan · Scroll to zoom
         </div>
       </div>
 
