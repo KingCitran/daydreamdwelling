@@ -13,6 +13,12 @@ import * as THREE from 'three'
 const loader = new THREE.TextureLoader()
 const CACHE = new Map()
 
+// Subscribers get notified when any texture finishes loading so React
+// components can re-render and show the newly loaded image.
+const subscribers = new Set()
+export function onTextureReady(fn) { subscribers.add(fn); return () => subscribers.delete(fn) }
+function notifyReady() { subscribers.forEach(fn => fn()) }
+
 // ── Quality detection ───────────────────────────────────────────
 // Runs once on load. Checks: data saver, connection speed, device memory, touch screen.
 function detectQuality() {
@@ -41,7 +47,7 @@ if (typeof console !== 'undefined') console.log(`[textures] Quality tier: ${QUAL
 // ── Texture loaders ─────────────────────────────────────────────
 function loadTex(path) {
   if (CACHE.has(path)) return CACHE.get(path)
-  const tex = loader.load(path, undefined, undefined, () => {
+  const tex = loader.load(path, () => notifyReady(), undefined, () => {
     console.warn(`[textures] Failed to load: ${path}`)
   })
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping
@@ -52,7 +58,7 @@ function loadTex(path) {
 
 function loadLinear(path) {
   if (CACHE.has(path)) return CACHE.get(path)
-  const tex = loader.load(path, undefined, undefined, () => {
+  const tex = loader.load(path, () => notifyReady(), undefined, () => {
     console.warn(`[textures] Failed to load: ${path}`)
   })
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping

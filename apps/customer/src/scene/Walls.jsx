@@ -1,7 +1,7 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { ITEM_CATALOGUE } from '../data/items'
-import { getTexture, TEXTURE_ROUGHNESS, PAINT_FINISH_ROUGHNESS } from './textures'
+import { getTexture, TEXTURE_ROUGHNESS, PAINT_FINISH_ROUGHNESS, onTextureReady } from './textures'
 
 const WALL_T = 0.28
 
@@ -204,6 +204,10 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
     () => buildWalls(cells, gridW, gridD),
     [cells, gridW, gridD]
   )
+
+  // Force re-render when async texture images finish loading
+  const [, setTexVer] = useState(0)
+  useEffect(() => onTextureReady(() => setTexVer(v => v + 1)), [])
 
   const [quadrant, setQuadrant] = useState(0)
   const prevQ = useRef(0)

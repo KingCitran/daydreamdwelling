@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Grid } from '@react-three/drei'
-import { getTexture, TEXTURE_ROUGHNESS } from './textures'
+import { getTexture, TEXTURE_ROUGHNESS, onTextureReady } from './textures'
 
 const WALL_T = 0.28  // must match Walls.jsx
 
@@ -13,6 +13,10 @@ export default function Floor({
   ceilingView,
   paintMode = false,
 }) {
+  // Force re-render when async texture images finish loading
+  const [, setTexVer] = useState(0)
+  useEffect(() => onTextureReady(() => setTexVer(v => v + 1)), [])
+
   const activeCells = useMemo(
     () => [...cells].map(key => key.split(',').map(Number)).filter(([c, r]) => !floorCutouts?.has(`${c},${r}`)),
     [cells, floorCutouts]
