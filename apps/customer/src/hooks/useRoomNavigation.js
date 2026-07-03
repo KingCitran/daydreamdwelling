@@ -16,13 +16,15 @@ export function getFloorStack(startRoomId, allRoomsData) {
     for (const it of (room.items ?? [])) {
       if (!it.stairs || it.topFloorRoomId == null) continue
       if (it.returnStair) {
-        // returnStair's topFloorRoomId points to the LOWER room
-        downLinks[rid] = it.topFloorRoomId
-        upLinks[it.topFloorRoomId] = rid
+        // returnStair's topFloorRoomId points back to the originating room
+        const goesUp = it.direction === 'up'
+        if (goesUp) { upLinks[rid] = it.topFloorRoomId; downLinks[it.topFloorRoomId] = rid }
+        else        { downLinks[rid] = it.topFloorRoomId; upLinks[it.topFloorRoomId] = rid }
       } else {
-        // regular stair's topFloorRoomId points to the UPPER room
-        upLinks[rid] = it.topFloorRoomId
-        downLinks[it.topFloorRoomId] = rid
+        // regular stair: direction determines which way the new room is
+        const goesUp = (it.direction ?? 'up') === 'up'
+        if (goesUp) { upLinks[rid] = it.topFloorRoomId; downLinks[it.topFloorRoomId] = rid }
+        else        { downLinks[rid] = it.topFloorRoomId; upLinks[it.topFloorRoomId] = rid }
       }
     }
   }
@@ -388,40 +390,43 @@ export default function useRoomNavigation({
     }
   }, [currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, setGridW, setGridD, setCells, setAllRooms])
 
-  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD, rotation = 0, rawW, rawD }) => {
+  const addStairs = useCallback((roomId, { bottomCells, stairCount, topCells, topW, topD, rotation = 0, rawW, rawD, direction = 'up' }) => {
     const liveSnap = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation }
     const cols = [...bottomCells].map(k => Number(k.split(',')[0]))
     const rows = [...bottomCells].map(k => Number(k.split(',')[1]))
     if (cols.length === 0) return
     const col    = Math.min(...cols)
     const row    = Math.min(...rows)
-    // Store RAW (unrotated) dimensions — ItemMesh applies rotation via effectiveW/D
     const stairW = rawW ?? (Math.max(...cols) - col + 1)
     const stairD = rawD ?? (Math.max(...rows) - row + 1)
-    const topRoomId = nextRoomIdRef.current++
-    const palette   = ROOM_PALETTES[topRoomId % ROOM_PALETTES.length]
-    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: topRoomId, rotation, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
-    // Place a matching "return stairs" in the upper room so the user
-    // can double-click to go back down. topFloorRoomId points to the
-    // LOWER room (the one we came from).
-    const topCols = [...topCells].map(k => Number(k.split(',')[0]))
-    const topRows = [...topCells].map(k => Number(k.split(',')[1]))
-    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+    const newRoomId = nextRoomIdRef.current++
+    const palette   = ROOM_PALETTES[newRoomId % ROOM_PALETTES.length]
+    const currentLevel = liveSnap.level ?? allRooms[roomId]?.level ?? 0
+
+    // Stair on THIS floor — points to the new room
+    const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: newRoomId, rotation, direction, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
+    // Return stair in the NEW room — points back to this room
+    const returnCol = Math.min(...[...topCells].map(k => Number(k.split(',')[0])))
+    const returnRow = Math.min(...[...topCells].map(k => Number(k.split(',')[1])))
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: returnCol, row: returnRow, stairW, stairD, stairCount, topFloorRoomId: roomId, rotation, direction: direction === 'up' ? 'down' : 'up', layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+
+    const newLevel = direction === 'down' ? currentLevel - 1 : currentLevel + 1
     if (roomId === currentRoomId) {
-      const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
+      const newRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: newLevel }
       setItems(prev => [...prev, stairItem])
-      setAllRooms(prev => ({ ...prev, [currentRoomId]: liveSnap, [topRoomId]: topRoom }))
+      setAllRooms(prev => ({ ...prev, [currentRoomId]: { ...liveSnap, level: currentLevel }, [newRoomId]: newRoom }))
     } else {
       setAllRooms(prev => {
         const updated  = { ...prev, [currentRoomId]: liveSnap }
         const room     = updated[roomId]
         if (!room) return prev
         const level    = room.level ?? 0
-        const topRoom  = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight: room.wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: level + 1 }
-        return { ...updated, [roomId]: { ...room, items: [...(room.items || []), stairItem] }, [topRoomId]: topRoom }
+        const roomLevel = direction === 'down' ? level - 1 : level + 1
+        const newRoom  = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight: room.wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: roomLevel }
+        return { ...updated, [roomId]: { ...room, items: [...(room.items || []), stairItem] }, [newRoomId]: newRoom }
       })
     }
-  }, [gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, currentRoomId, nextRoomIdRef, nextItemIdRef, setItems, setAllRooms]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, currentRoomId, allRooms, nextRoomIdRef, nextItemIdRef, setItems, setAllRooms]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Quick-place stairs (no wizard) ──────────────────────────────
   // Drops a default 1×3 stair at position (0,0) in the current room,

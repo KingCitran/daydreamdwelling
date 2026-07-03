@@ -1,17 +1,17 @@
-import { DoorOpen, RectangleHorizontal, Layers, ArrowUpDown, Archive } from 'lucide-react'
+import { DoorOpen, RectangleHorizontal, Layers, ArrowUp, ArrowDown, Archive } from 'lucide-react'
 
-// Build tab — structural elements. Window + Door are wired to the existing
-// pickers; Walls, Stairs, Closets are spec'd but not built (shown as SOON).
+// Build tab — structural elements.
 
 export default function BuildTabPanel({
-  onWindow, onDoor, onStairs,
+  onWindow, onDoor, onStairsUp, onStairsDown,
 }) {
   const items = [
-    { id: 'window', label: 'Window', Icon: RectangleHorizontal, onClick: onWindow },
-    { id: 'door',   label: 'Door',   Icon: DoorOpen,            onClick: onDoor   },
-    { id: 'stairs', label: 'Stairs', Icon: ArrowUpDown,         onClick: onStairs },
-    { id: 'walls',  label: 'Walls',  Icon: Layers,              soon: true },
-    { id: 'closet', label: 'Closet', Icon: Archive,             soon: true },
+    { id: 'window',     label: 'Window',           Icon: RectangleHorizontal, onClick: onWindow },
+    { id: 'door',       label: 'Door',             Icon: DoorOpen,            onClick: onDoor   },
+    { id: 'stairs-up',  label: 'Add floor above',  Icon: ArrowUp,             onClick: onStairsUp },
+    { id: 'stairs-dn',  label: 'Add floor below',  Icon: ArrowDown,           onClick: onStairsDown },
+    { id: 'walls',      label: 'Walls',            Icon: Layers,              soon: true },
+    { id: 'closet',     label: 'Closet',           Icon: Archive,             soon: true },
   ]
 
   return (

@@ -996,26 +996,31 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             if (g.typeKey === 'stairs') {
               const rawW = g.stairW ?? 3, rawD = g.stairD ?? 5
               const rot = rotation ?? 0
+              const dir = g.direction ?? 'up'
               const sw = (rot === 90 || rot === 270) ? rawD : rawW
               const sd = (rot === 90 || rot === 270) ? rawW : rawD
-              const bottomCells = new Set()
+              const stairCells = new Set()
               for (let dc = 0; dc < sw; dc++)
                 for (let dr = 0; dr < sd; dr++)
-                  bottomCells.add(`${col + dc},${row + dr}`)
-              // Upper room gets a full grid (same size as current room or bigger)
-              const topW = Math.max(gridW, sw + 2)
-              const topD = Math.max(gridD, sd + 2)
-              const topCells = new Set()
-              for (let c = 0; c < topW; c++)
-                for (let r = 0; r < topD; r++)
-                  topCells.add(`${c},${r}`)
-              const stairItemId = nextItemIdRef.current  // will be the stair's ID
+                  stairCells.add(`${col + dc},${row + dr}`)
+              const newW = Math.max(gridW, sw + 2)
+              const newD = Math.max(gridD, sd + 2)
+              const newRoomCells = new Set()
+              for (let c = 0; c < newW; c++)
+                for (let r = 0; r < newD; r++)
+                  newRoomCells.add(`${c},${r}`)
+              const stairItemId = nextItemIdRef.current
               addStairs(currentRoomId, {
-                bottomCells, stairCount: g.stairCount ?? 14, topCells, topW, topD,
-                rotation: rot, rawW, rawD,
+                bottomCells: stairCells, stairCount: g.stairCount ?? 14,
+                topCells: newRoomCells, topW: newW, topD: newD,
+                rotation: rot, rawW, rawD, direction: dir,
               })
-              setSelectedId(stairItemId)  // auto-select for immediate editing
-              showWispy('Stairs placed! Adjust steps, width and depth in the panel. Double-click to go upstairs.')
+              setSelectedId(stairItemId)
+              if (dir === 'down') {
+                showWispy('Basement stairs placed! Use the floor switcher to go down.')
+              } else {
+                showWispy('Stairs placed! Adjust in the panel. Double-click to go upstairs.')
+              }
             } else {
               placeItem(g.typeKey, g.sizeIndex ?? 0, g.swatchIndex ?? 0)
             }
@@ -1227,10 +1232,15 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           <DesignBuildContent
             onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
             onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
-            onStairs={() => {
+            onStairsUp={() => {
               setActiveTool(null)
-              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
-              showWispy('Click to place stairs. R to rotate. ESC to cancel.')
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+              showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
+            }}
+            onStairsDown={() => {
+              setActiveTool(null)
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+              showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
             }}
             ceilingView={ceilingView}
             onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
@@ -1614,9 +1624,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       <BuildTabPanel
         onWindow={() => setWindowPickerOpen(true)}
         onDoor={() => setDoorPickerOpen(true)}
-        onStairs={() => {
-          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14 })
-          showWispy('Click to place stairs. R to rotate. ESC to cancel.')
+        onStairsUp={() => {
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+          showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
+        }}
+        onStairsDown={() => {
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+          showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
         }}
       />
     </DockablePanel>
