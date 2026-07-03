@@ -139,6 +139,15 @@ export function computeRoomLayout(allRoomsData, SCALE = 14, GAP = 28) {
       }
       queue.push({ id: cid, x: nx, y: ny })
     }
+
+    // Also trace stair connections — place upper rooms above current room
+    for (const item of (room.items || [])) {
+      if (!item.stairs || item.returnStair || !item.topFloorRoomId) continue
+      const cid = item.topFloorRoomId
+      if (visited.has(cid) || !allRoomsData[cid]) continue
+      // Stack vertically above with slight offset
+      queue.push({ id: cid, x: x + 0.5 * SCALE, y: y - 0.5 * SCALE })
+    }
   }
 
   // Place any rooms not reachable via doors (newly added rooms with no connections yet)

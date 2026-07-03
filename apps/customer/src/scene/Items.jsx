@@ -310,10 +310,8 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
         // Opening visual rendered WITHOUT rotation — always grid-aligned
         <StairOpeningVisual fw={effectiveW} fd={effectiveD} fh={fh} />
       ) : isStairs ? (
-        // Stair steps rendered WITH rotation
-        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
-          <StairVisual fw={fw} fd={fd} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
-        </group>
+        // Stair steps use effectiveW/D (already grid-aligned), no extra rotation
+        <StairVisual fw={effectiveW} fd={effectiveD} fh={fh} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
       ) : modelUrl ? (
         <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
           {/* Contact shadow — soft multi-ring oval for grounded look */}

@@ -40,19 +40,25 @@ export default function GhostFloor({
   }, [items])
 
   // After mount/update: make all materials transparent and disable raycasting
+  // Use a small delay so child meshes are mounted before traversal
+  const appliedRef = useRef(false)
   useEffect(() => {
-    if (!groupRef.current) return
-    groupRef.current.traverse(child => {
-      // Disable all raycasting so ghost floor can't intercept clicks
-      child.raycast = noop
-      if (child.isMesh && child.material) {
-        child.material = child.material.clone()
-        child.material.transparent = true
-        child.material.opacity = 0.18
-        child.material.depthWrite = false
-      }
-    })
-  })
+    appliedRef.current = false
+    const timer = setTimeout(() => {
+      if (!groupRef.current || appliedRef.current) return
+      appliedRef.current = true
+      groupRef.current.traverse(child => {
+        child.raycast = noop
+        if (child.isMesh && child.material) {
+          child.material = child.material.clone()
+          child.material.transparent = true
+          child.material.opacity = 0.18
+          child.material.depthWrite = false
+        }
+      })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [roomData.items, roomData.cells, roomData.wallColor, roomData.floorColor])
 
   return (
     <group ref={groupRef} position={[0, yOffset, 0]}>
@@ -71,7 +77,7 @@ export default function GhostFloor({
         cells={cells}
         gridW={gridW}
         gridD={gridD}
-        wallHeight={wh}
+        wallHeight={wh * 0.4}
         wallColor={roomData.wallColor ?? '#d8d0c6'}
         wallTexture={roomData.wallTexture ?? 'flat'}
         wallFinish={roomData.wallFinish ?? 'eggshell'}
