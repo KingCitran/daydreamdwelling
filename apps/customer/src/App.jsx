@@ -1191,7 +1191,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onScreenshot={() => screenshotRef.current?.()}
         onShare={() => {}}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
-        onPickRoom={(id) => { if (id != null) jumpToRoom(id) }}
+        onPickRoom={(id) => {
+          if (id == null) return
+          jumpToRoom(id)
+          const entry = floorStack.find(f => f.roomId === Number(id))
+          setActiveFloorLevel(entry?.level ?? 0)
+        }}
         onNewRoom={() => {
           const rW = 10, rD = 10
           const rCells = new Set()

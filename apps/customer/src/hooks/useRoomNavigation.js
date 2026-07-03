@@ -7,6 +7,7 @@ const DEFAULT_wallHeight = 8
 
 // Trace stair connections to build an ordered floor stack for a building.
 // Returns [{roomId, level}] sorted by level (0 = ground floor).
+// Scans ALL rooms' stair items to build bidirectional links.
 export function getFloorStack(startRoomId, allRoomsData) {
   const upLinks = {}    // roomId → roomId it stairs UP to
   const downLinks = {}  // roomId → roomId it stairs DOWN to
@@ -15,30 +16,35 @@ export function getFloorStack(startRoomId, allRoomsData) {
     for (const it of (room.items ?? [])) {
       if (!it.stairs || it.topFloorRoomId == null) continue
       if (it.returnStair) {
+        // returnStair's topFloorRoomId points to the LOWER room
         downLinks[rid] = it.topFloorRoomId
         upLinks[it.topFloorRoomId] = rid
       } else {
+        // regular stair's topFloorRoomId points to the UPPER room
         upLinks[rid] = it.topFloorRoomId
         downLinks[it.topFloorRoomId] = rid
       }
     }
   }
-  // Walk down to ground floor
+  // Walk down to ground floor (with cycle guard)
   let ground = Number(startRoomId)
-  const seen = new Set()
-  while (downLinks[ground] != null && !seen.has(ground)) {
-    seen.add(ground)
+  const downSeen = new Set()
+  while (downLinks[ground] != null && !downSeen.has(ground)) {
+    downSeen.add(ground)
     ground = downLinks[ground]
   }
-  // Walk up from ground to build stack
+  // Walk up from ground to build stack (with cycle guard)
   const stack = []
   let cur = ground, level = 0
-  const visited = new Set()
-  while (cur != null && !visited.has(cur)) {
-    visited.add(cur)
-    stack.push({ roomId: cur, level })
+  const upSeen = new Set()
+  while (cur != null && !upSeen.has(cur)) {
+    upSeen.add(cur)
+    // Only include rooms that actually exist in allRoomsData
+    if (allRoomsData[cur]) {
+      stack.push({ roomId: cur, level })
+      level++
+    }
     cur = upLinks[cur]
-    level++
   }
   return stack
 }
@@ -399,7 +405,7 @@ export default function useRoomNavigation({
     // LOWER room (the one we came from).
     const topCols = [...topCells].map(k => Number(k.split(',')[0]))
     const topRows = [...topCells].map(k => Number(k.split(',')[1]))
-    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation: 0, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: Math.min(...topCols), row: Math.min(...topRows), stairW, stairD, stairCount, topFloorRoomId: roomId, rotation, layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
     if (roomId === currentRoomId) {
       const topRoom = { gridW: topW, gridD: topD, cells: new Set(topCells), items: [returnStair], wallHeight, floorColor: palette.floorColor, wallColor: palette.wallColor, targetRotation: 0, level: 1 }
       setItems(prev => [...prev, stairItem])

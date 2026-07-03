@@ -150,26 +150,54 @@ function StairVisual({ fw, fd, fh, wallHeight, stairCount, color }) {
 }
 
 // ── Stair opening (upper floor) — floor tiles are cut by Floor.jsx,
-// this just renders a thin trim around the edge of the opening.
-// Railings will be separate marketplace products in the future.
+// renders trim + safety railing on 3 sides (open on front for stair access).
 function StairOpeningVisual({ fw, fd, fh }) {
-  const trimH = 0.15  // trim height
-  const trimT = 0.05  // trim depth
+  const trimH = 0.12
+  const trimT = 0.05
+  const railH = 2.8   // ~34 inches, standard railing height
+  const postT = 0.1
+  const railT = 0.05
   const woodColor = '#a08060'
+  const railColor = '#8a7050'
+  // 3 sides: back, left, right (front is open for stair access)
+  const rails = [
+    { from: [-fw/2, -fd/2], to: [fw/2, -fd/2] },   // back
+    { from: [-fw/2, -fd/2], to: [-fw/2, fd/2] },    // left
+    { from: [fw/2, -fd/2],  to: [fw/2, fd/2] },     // right
+  ]
   return (
     <group position={[0, -fh / 2, 0]}>
-      {/* Wooden trim border around the floor opening */}
+      {/* Floor trim */}
       {[
         { p: [0, trimH/2, -fd/2], s: [fw + trimT*2, trimH, trimT] },
         { p: [0, trimH/2,  fd/2], s: [fw + trimT*2, trimH, trimT] },
         { p: [-fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
         { p: [ fw/2, trimH/2, 0], s: [trimT, trimH, fd] },
       ].map(({ p, s }, i) => (
-        <mesh key={i} position={p} castShadow>
+        <mesh key={`t${i}`} position={p} castShadow>
           <boxGeometry args={s} />
           <meshStandardMaterial color={woodColor} roughness={0.75} />
         </mesh>
       ))}
+      {/* Corner posts */}
+      {[[-fw/2,-fd/2],[fw/2,-fd/2],[-fw/2,fd/2],[fw/2,fd/2]].map(([x,z], i) => (
+        <mesh key={`p${i}`} position={[x, railH/2, z]} castShadow>
+          <boxGeometry args={[postT, railH, postT]} />
+          <meshStandardMaterial color={railColor} roughness={0.7} />
+        </mesh>
+      ))}
+      {/* Top rails on 3 sides */}
+      {rails.map(({ from, to }, i) => {
+        const len = Math.sqrt((to[0]-from[0])**2 + (to[1]-from[1])**2)
+        const mx = (from[0]+to[0])/2, mz = (from[1]+to[1])/2
+        const horiz = Math.abs(to[0]-from[0]) > Math.abs(to[1]-from[1])
+        return (
+          <mesh key={`r${i}`} position={[mx, railH, mz]} castShadow>
+            <boxGeometry args={horiz ? [len, railT, railT] : [railT, railT, len]} />
+            <meshStandardMaterial color={railColor} roughness={0.7} />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
