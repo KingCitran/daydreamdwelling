@@ -121,17 +121,37 @@ export default function WallDrawPanel({
     return { col, row, fx: (px / cellSize) - col, fy: (py / cellSize) - row }
   }
 
+  // Wider hit zone for walls — 40% of cell on each side
   const getEdge = (col, row, fx, fy) => {
     const edges = [
       { dir: 'N', dist: fy }, { dir: 'S', dist: 1 - fy },
       { dir: 'W', dist: fx }, { dir: 'E', dist: 1 - fx },
     ]
     const nearest = edges.reduce((a, b) => a.dist < b.dist ? a : b)
-    if (nearest.dist > 0.3) return null
+    if (nearest.dist > 0.4) return null
     const nb = nearest.dir === 'N' ? `${col},${row-1}` : nearest.dir === 'S' ? `${col},${row+1}` :
                nearest.dir === 'W' ? `${col-1},${row}` : `${col+1},${row}`
     if (!cells.has(`${col},${row}`) || !cells.has(nb)) return null
     return { col, row, dir: nearest.dir }
+  }
+
+  // Interpolate between two cell positions to fill gaps during fast drags
+  const lastCellRef = useRef(null)
+  const interpolateCells = (col, row) => {
+    const last = lastCellRef.current
+    lastCellRef.current = { col, row }
+    if (!last || !paintRef.current) return
+    const dc = col - last.col, dr = row - last.row
+    const steps = Math.max(Math.abs(dc), Math.abs(dr))
+    if (steps <= 1) return  // adjacent, no gap
+    for (let i = 1; i < steps; i++) {
+      const ic = last.col + Math.round(dc * i / steps)
+      const ir = last.row + Math.round(dr * i / steps)
+      if (ic < 0 || ic >= gridW || ir < 0 || ir >= gridD) continue
+      const key = `${ic},${ir}`
+      if (paintRef.current.action === 'add' && !cells.has(key)) onToggleCell(ic, ir)
+      if (paintRef.current.action === 'remove' && cells.has(key)) onToggleCell(ic, ir)
+    }
   }
 
   const handleDown = (e) => {
@@ -140,12 +160,13 @@ export default function WallDrawPanel({
     if (mode === 'shape') {
       const key = `${info.col},${info.row}`
       paintRef.current = { action: cells.has(key) ? 'remove' : 'add' }
+      lastCellRef.current = { col: info.col, row: info.row }
       onToggleCell(info.col, info.row)
     } else {
       const edge = getEdge(info.col, info.row, info.fx, info.fy)
       if (!edge) return
       const key = `${edge.col},${edge.row}:${edge.dir}`
-      wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]) }
+      wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]), axis: (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v' }
       onToggleWall(key)
     }
   }
@@ -156,14 +177,18 @@ export default function WallDrawPanel({
     if (mode === 'shape') {
       setHoverInfo({ col: info.col, row: info.row })
       if (paintRef.current) {
+        interpolateCells(info.col, info.row)
         const key = `${info.col},${info.row}`
         if (paintRef.current.action === 'add' && !cells.has(key)) onToggleCell(info.col, info.row)
         if (paintRef.current.action === 'remove' && cells.has(key)) onToggleCell(info.col, info.row)
       }
     } else {
       const edge = getEdge(info.col, info.row, info.fx, info.fy)
-      setHoverInfo(edge ? { edge } : { col: info.col, row: info.row })
+      setHoverInfo(edge ? { edge } : null)
       if (wallDragRef.current && edge) {
+        // Lock to initial axis so wall lines are straight
+        const edgeAxis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
+        if (edgeAxis !== wallDragRef.current.axis) return
         const key = `${edge.col},${edge.row}:${edge.dir}`
         if (wallDragRef.current.placed.has(key)) return
         wallDragRef.current.placed.add(key)
@@ -173,7 +198,7 @@ export default function WallDrawPanel({
     }
   }
 
-  const handleUp = () => { paintRef.current = null; wallDragRef.current = null }
+  const handleUp = () => { paintRef.current = null; wallDragRef.current = null; lastCellRef.current = null }
 
   const btnS = { padding: '5px 10px', borderRadius: 6, border: '1px solid #3a3a5a', background: '#1e1e30', color: '#a0a0c0', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
 
