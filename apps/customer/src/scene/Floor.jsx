@@ -24,7 +24,7 @@ export default function Floor({
 }) {
   const activeCells = useMemo(
     () => [...cells].map(key => key.split(',').map(Number)).filter(([c, r]) => !floorCutouts?.has(`${c},${r}`)),
-    [cells]
+    [cells, floorCutouts]
   )
 
   // Global default texture (used for cells with no override)
