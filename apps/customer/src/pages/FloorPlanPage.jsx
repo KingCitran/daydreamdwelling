@@ -197,13 +197,17 @@ export default function FloorPlanPage({
     return { col, row, fx: (px / cellSize) - col, fy: (py / cellSize) - row }
   }
 
-  const getEdge = (col, row, fx, fy) => {
-    const edges = [
-      { dir: 'N', dist: fy }, { dir: 'S', dist: 1 - fy },
-      { dir: 'W', dist: fx }, { dir: 'E', dist: 1 - fx },
+  // lockedAxis: during a wall drag, only detect edges on the locked axis
+  const getEdge = (col, row, fx, fy, lockedAxis) => {
+    // Filter edges to only the locked axis if dragging
+    let edges = [
+      { dir: 'N', dist: fy, axis: 'h' }, { dir: 'S', dist: 1 - fy, axis: 'h' },
+      { dir: 'W', dist: fx, axis: 'v' }, { dir: 'E', dist: 1 - fx, axis: 'v' },
     ]
+    if (lockedAxis) edges = edges.filter(e => e.axis === lockedAxis)
+    if (edges.length === 0) return null
     const nearest = edges.reduce((a, b) => a.dist < b.dist ? a : b)
-    if (nearest.dist > 0.4) return null
+    if (nearest.dist > 0.45) return null
     const nb = nearest.dir === 'N' ? `${col},${row-1}` : nearest.dir === 'S' ? `${col},${row+1}` :
                nearest.dir === 'W' ? `${col-1},${row}` : `${col+1},${row}`
     if (!cells.has(`${col},${row}`) || !cells.has(nb)) return null
@@ -219,10 +223,11 @@ export default function FloorPlanPage({
       rectRef.current = { startCol: info.col, startRow: info.row, endCol: info.col, endRow: info.row, action: cells.has(key) ? 'remove' : 'add' }
       setHoverInfo({ rect: rectRef.current })
     } else if (tool === 'walls') {
-      const edge = getEdge(info.col, info.row, info.fx, info.fy)
+      const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
       if (!edge) return
+      const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
       const key = `${edge.col},${edge.row}:${edge.dir}`
-      wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]), axis: (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v' }
+      wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]), axis }
       onToggleWall(key)
     } else if (tool === 'stairs') {
       if (cells.has(`${info.col},${info.row}`)) {
@@ -244,7 +249,8 @@ export default function FloorPlanPage({
         setHoverInfo({ col: info.col, row: info.row })
       }
     } else if (tool === 'walls') {
-      const edge = getEdge(info.col, info.row, info.fx, info.fy)
+      const lockedAxis = wallDragRef.current?.axis ?? null
+      const edge = getEdge(info.col, info.row, info.fx, info.fy, lockedAxis)
       setHoverInfo(edge ? { edge } : null)
       if (wallDragRef.current && edge) {
         const edgeAxis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'

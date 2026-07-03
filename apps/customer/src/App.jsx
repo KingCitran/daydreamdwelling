@@ -1319,7 +1319,13 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         onRotateRight={() => setTarget(r => r + Math.PI / 2)}
         onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15); setZoomDisplay(zoomRef.current) }}
         onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15); setZoomDisplay(zoomRef.current) }}
-        onReset={() => { zoomRef.current = 40; setZoomDisplay(40); setTarget(0); panRef.current = { x: 0, z: 0 } }}
+        onReset={() => {
+          // Fit room to screen — zoom based on room dimensions
+          const maxDim = Math.max(gridW, gridD, 10)
+          const fitZoom = Math.max(15, Math.min(80, 320 / maxDim))
+          zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
+          setTarget(0); panRef.current = { x: 0, z: 0 }
+        }}
         ceilingView={ceilingView}
         onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
         showGrid={showGrid}
