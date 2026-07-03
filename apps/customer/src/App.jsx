@@ -926,33 +926,38 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         })}
         {/* Neighbor rooms on the SAME floor — semi-transparent, clickable */}
         {(() => {
-          const myPos = overviewPositions[currentRoomId]
-          if (!myPos) return null
-          return Object.entries(allRoomsData)
-            .filter(([idStr]) => {
-              const id = Number(idStr)
-              if (id === currentRoomId) return false
-              const rd = allRoomsData[id]
-              const roomLevel = rd?.level ?? 0
-              return roomLevel === activeFloorLevel && overviewPositions[id]
-            })
-            .map(([idStr]) => {
-              const id = Number(idStr)
-              const rd = allRoomsData[id]
-              const pos = overviewPositions[id]
-              return (
-                <NeighborRoom
-                  key={`neighbor-${id}`}
-                  roomData={rd}
-                  xOffset={pos.ox - myPos.ox}
-                  zOffset={pos.oz - myPos.oz}
-                  wallHeight={rd.wallHeight ?? wallHeight}
-                  roomRotationRef={roomRotationRef}
-                  catalogue={catalogue}
-                  onClick={() => jumpToRoom(id)}
-                />
-              )
-            })
+          // Find rooms connected by doors on the same floor
+          const neighbors = []
+          for (const it of items) {
+            if (!it.wall || !it.connectedRoomId) continue
+            const nid = it.connectedRoomId
+            const nd = allRoomsData[nid]
+            if (!nd || (nd.level ?? 0) !== activeFloorLevel) continue
+            // Compute offset based on which wall the door is on
+            let dx = 0, dz = 0
+            if (it.wall === 'N') dz = -(nd.gridD ?? 10)
+            if (it.wall === 'S') dz = (gridD)
+            if (it.wall === 'W') dx = -(nd.gridW ?? 10)
+            if (it.wall === 'E') dx = (gridW)
+            if (!neighbors.find(n => n.id === nid))
+              neighbors.push({ id: nid, dx, dz })
+          }
+          return neighbors.map(({ id, dx, dz }) => {
+            const rd = allRoomsData[id]
+            if (!rd) return null
+            return (
+              <NeighborRoom
+                key={`neighbor-${id}`}
+                roomData={rd}
+                xOffset={dx}
+                zOffset={dz}
+                wallHeight={rd.wallHeight ?? wallHeight}
+                roomRotationRef={roomRotationRef}
+                catalogue={catalogue}
+                onClick={() => jumpToRoom(id)}
+              />
+            )
+          })
         })()}
         <RoomScene
           targetRotation={targetRotation}
