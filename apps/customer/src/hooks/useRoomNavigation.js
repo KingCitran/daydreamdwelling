@@ -405,10 +405,8 @@ export default function useRoomNavigation({
 
     // Stair on THIS floor — points to the new room
     const stairItem = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: newRoomId, rotation, direction, layer: 0, locked: false, bottomCells: [...bottomCells], topCells: [...topCells] }
-    // Return stair in the NEW room — points back to this room
-    const returnCol = Math.min(...[...topCells].map(k => Number(k.split(',')[0])))
-    const returnRow = Math.min(...[...topCells].map(k => Number(k.split(',')[1])))
-    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col: returnCol, row: returnRow, stairW, stairD, stairCount, topFloorRoomId: roomId, rotation, direction: direction === 'up' ? 'down' : 'up', layer: 0, locked: true, bottomCells: [...topCells], topCells: [...bottomCells], returnStair: true }
+    // Return stair in the NEW room — same position as main stair so railing aligns with floor cutout
+    const returnStair = { id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0, stairs: true, col, row, stairW, stairD, stairCount, topFloorRoomId: roomId, rotation, direction: direction === 'up' ? 'down' : 'up', layer: 0, locked: true, returnStair: true }
 
     const newLevel = direction === 'down' ? currentLevel - 1 : currentLevel + 1
     if (roomId === currentRoomId) {
