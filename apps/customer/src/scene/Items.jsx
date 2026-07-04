@@ -633,7 +633,7 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
   if (def.window) {
     const FRAME = 0.08
     const MULL  = FRAME * 0.7   // mullion thickness
-    const frameColor = '#d0c8b8'
+    const frameColor = '#f0e8d8'   // light natural wood window frame
     const glassHex   = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
 
     const cols = Math.max(1, item.paneCols ?? 1)
@@ -734,9 +734,9 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
     const FRAME      = 0.12      // jamb/header thickness (wider = more visible)
     const CASING     = 0.1       // casing width beyond door opening
     const CASING_T   = 0.04      // casing protrusion from wall face
-    const frameColor = '#c8a870'
-    const casingColor = '#b89860'
-    const panelColor = def.swatches?.[item.swatchIndex]?.hex ?? '#c8a870'
+    const frameColor = '#e8dcc8'   // light natural wood frame
+    const casingColor = '#ddd0b8'  // slightly warmer casing
+    const panelColor = def.swatches?.[item.swatchIndex]?.hex ?? '#f0e4d0' // light wood panel default
     const innerW     = fw - 2 * FRAME
 
     const isUnlinked = item.wasLinked === true && !item.connectedRoomId && !def.entryway
