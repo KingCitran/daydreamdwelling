@@ -7,7 +7,7 @@ const TOOLS = [
   { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure' },
   { id: 'addroom',label: 'Add Room',     icon: '⊞', desc: 'Drag a rectangle to add a walled room', group: 'structure' },
   { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls', group: 'structure' },
-  { id: 'door',   label: 'Doors',        icon: '▯', desc: 'Click a wall edge to place a door', group: 'structure' },
+  { id: 'door',   label: 'Openings',      icon: '▯', desc: 'Click an internal wall to create a doorway opening', group: 'structure' },
   { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to mark stair connection', group: 'stairs' },
   { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it', group: 'rooms' },
   { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste', group: 'rooms' },
@@ -569,10 +569,11 @@ export default function FloorPlanPage({
         {/* Floor management */}
         <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Floors</div>
         <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap' }}>
-          {/* Show ALL rooms sorted by level — not just stair-connected */}
+          {/* Show ALL rooms sorted by level — deduplicated by level */}
           {Object.entries(allRoomsData ?? {})
             .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
             .sort((a, b) => a.level - b.level)
+            .filter((f, i, arr) => i === 0 || f.level !== arr[i-1].level)
             .map(f => (
               <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
                 style={{

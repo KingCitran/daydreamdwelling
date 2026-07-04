@@ -197,15 +197,26 @@ function Gate() {
 
 // ── Floor Switcher — Sims-style ▲ Floor N ▼ ───────────────────────
 function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, onSetFloorLevel }) {
-  if (!floorStack || floorStack.length <= 1) return null
+  // Build floor list from ALL rooms by level (not just stair-connected)
+  const allFloors = useMemo(() => {
+    const byLevel = {}
+    for (const [id, r] of Object.entries(allRoomsData ?? {})) {
+      const level = r.level ?? 0
+      if (!byLevel[level]) byLevel[level] = { roomId: Number(id), level }
+    }
+    return Object.values(byLevel).sort((a, b) => a.level - b.level)
+  }, [allRoomsData])
 
-  const currentFloor = floorStack.findIndex(f => f.roomId === currentRoomId)
+  const floors = allFloors.length > 1 ? allFloors : (floorStack?.length > 1 ? floorStack : null)
+  if (!floors) return null
+
+  const currentFloor = floors.findIndex(f => f.roomId === currentRoomId || f.level === (allRoomsData?.[currentRoomId]?.level ?? 0))
   if (currentFloor === -1) return null
-  const canGoUp = currentFloor < floorStack.length - 1
+  const canGoUp = currentFloor < floors.length - 1
   const canGoDown = currentFloor > 0
 
   const go = (targetIdx) => {
-    const target = floorStack[targetIdx]
+    const target = floors[targetIdx]
     onNavigate(target.roomId)
     onSetFloorLevel(target.level)
   }
@@ -234,7 +245,7 @@ function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, on
         title="Go down one floor">▼</button>
       <span style={{ padding: '0 8px', minWidth: 64, textAlign: 'center', fontSize: 12 }}>
         Floor {currentFloor + 1}
-        <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4 }}>/ {floorStack.length}</span>
+        <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4 }}>/ {floors.length}</span>
       </span>
       <button style={btnStyle(canGoUp)} onClick={canGoUp ? () => go(currentFloor + 1) : undefined}
         title="Go up one floor">▲</button>
@@ -476,7 +487,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const cloudSave = useCloudSave({
     user, gridW, gridD, wallHeight, cells, items, cart,
     floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
-    allRooms, currentRoomId,
+    allRooms, currentRoomId, internalWalls,
   })
 
   // Load explore room if exploreRoomId set
@@ -620,6 +631,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     nextItemIdRef, nextRoomIdRef,
     zoomRef,
     getRoomName, setRoomNamesState,
+    internalWalls, setInternalWalls,
   })
 
   // ── Floor plan editing ───────────────────────────────────────────
@@ -1725,7 +1737,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} roomName={getRoomName(currentRoomId)} onClose={() => setCheckoutOpen(false)} />}
       {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
-      {wispyMessage  && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
+      {wispyMessage && !floorPlanOpen && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
       {isExploring && exploreData && (
         <ExploreBanner exploreData={exploreData} waitingCount={waitingInventory.count}
           onExit={() => {

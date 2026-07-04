@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@shared/supabase'
 
-export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId }) {
+export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls }) {
   const [saving,  setSaving]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [rooms,   setRooms]   = useState([])   // list fetched from cloud
@@ -11,16 +11,17 @@ export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, it
     version: 1,
     gridW, gridD, wallHeight,
     cells: [...cells],
+    internalWalls: [...(internalWalls ?? [])],
     items, cart, floorColor, wallColor, bgColor,
     musicStation, lightMood, roomNames,
     allRooms: Object.fromEntries(
       Object.entries(allRooms).map(([id, room]) => [
         id,
-        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))] },
+        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))], internalWalls: [...(room.internalWalls instanceof Set ? room.internalWalls : [])] },
       ])
     ),
     currentRoomId,
-  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId])
+  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls])
 
   const saveRoom = useCallback(async (name) => {
     if (!user) return { error: 'Not signed in' }
