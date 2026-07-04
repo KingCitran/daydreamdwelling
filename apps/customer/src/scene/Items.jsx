@@ -4,6 +4,30 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
 import { findSurfaceAt, isSurfaceItem } from '../utils/roomGeometry'
+import { getTexture } from './textures'
+
+// Shared wood texture for doors and window frames.
+let _woodPBR = null
+function getWoodPBR() {
+  if (!_woodPBR) _woodPBR = getTexture('wood', '#ffffff')
+  return _woodPBR
+}
+
+// Wood-textured material — used for door panels, frames, window frames.
+// color tints the texture (white = natural wood, darker = stained).
+function WoodMaterial({ color, roughness = 0.75 }) {
+  const pbr = getWoodPBR()
+  return (
+    <meshStandardMaterial
+      color={color}
+      map={pbr?.map || undefined}
+      normalMap={pbr?.normalMap || undefined}
+      roughnessMap={pbr?.roughnessMap || undefined}
+      roughness={pbr?.roughnessMap ? 1.0 : roughness}
+      metalness={0}
+    />
+  )
+}
 
 const WALL_T      = 0.28
 const _plane      = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
@@ -33,7 +57,7 @@ const LIGHT_CONFIG = {
 const SHEEN_ROUGHNESS = { flat: 0.95, eggshell: 0.82, satin: 0.65, semiGloss: 0.42, highGloss: 0.18 }
 const BLEND = 0.5 // 50% model's own roughness, 50% seller's target
 
-const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0, materialSheen = null }) {
+export const GlbModel = memo(function GlbModel({ url, fw, fh, fd, scale = 1, rotationDeg = 0, materialSheen = null }) {
   const { scene } = useGLTF(url)
 
   // Clone fresh every time dimensions change so we always measure unscaled geometry
@@ -659,32 +683,38 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
               <meshBasicMaterial color={outlineColor} wireframe />
             </mesh>
           )}
+          {/* Left frame */}
           <mesh position={[-(fw / 2 - FRAME / 2), 0, 0]} castShadow receiveShadow>
             <boxGeometry args={[FRAME, fh, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.85} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
+          {/* Right frame */}
           <mesh position={[fw / 2 - FRAME / 2, 0, 0]} castShadow receiveShadow>
             <boxGeometry args={[FRAME, fh, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.85} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
+          {/* Top frame */}
           <mesh position={[0, fh / 2 - FRAME / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[fw, FRAME, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.85} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
+          {/* Sill */}
           <mesh position={[0, -(fh / 2 - FRAME * 0.75), 0]} castShadow receiveShadow>
             <boxGeometry args={[fw + 0.06, FRAME * 1.5, fd * 1.25]} />
-            <meshStandardMaterial color={frameColor} roughness={0.85} />
+            <WoodMaterial color={frameColor} roughness={0.75} />
           </mesh>
+          {/* Horizontal mullions */}
           {hMulls.map((my, i) => (
             <mesh key={`hm${i}`} position={[0, my, 0]}>
               <boxGeometry args={[gW, MULL, fd * 0.6]} />
-              <meshStandardMaterial color={frameColor} roughness={0.85} />
+              <WoodMaterial color={frameColor} roughness={0.8} />
             </mesh>
           ))}
+          {/* Vertical mullions */}
           {vMulls.map((mx, i) => (
             <mesh key={`vm${i}`} position={[mx, 0, 0]}>
               <boxGeometry args={[MULL, gH, fd * 0.6]} />
-              <meshStandardMaterial color={frameColor} roughness={0.85} />
+              <WoodMaterial color={frameColor} roughness={0.8} />
             </mesh>
           ))}
           {panes.map(({ px, py }, i) => (
@@ -756,22 +786,22 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
           {/* Left jamb */}
           <mesh position={[-(fw / 2 - FRAME / 2), 0, 0]} castShadow receiveShadow>
             <boxGeometry args={[FRAME, fh, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.8} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
           {/* Right jamb */}
           <mesh position={[fw / 2 - FRAME / 2, 0, 0]} castShadow receiveShadow>
             <boxGeometry args={[FRAME, fh, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.8} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
           {/* Header */}
           <mesh position={[0, fh / 2 - FRAME / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[fw, FRAME, fd]} />
-            <meshStandardMaterial color={frameColor} roughness={0.8} />
+            <WoodMaterial color={frameColor} roughness={0.8} />
           </mesh>
           {/* Door panel */}
           <mesh position={[0, -FRAME / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[innerW, fh - FRAME, fd * 0.7]} />
-            <meshStandardMaterial color={panelColor} roughness={0.65} />
+            <WoodMaterial color={panelColor} roughness={0.65} />
           </mesh>
           {/* Handle */}
           <mesh position={[innerW / 2 - 0.14, -fh * 0.1, fd / 2 + 0.02]}>
@@ -783,17 +813,17 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
           {/* Left casing strip */}
           <mesh position={[-(fw / 2 + CASING / 2), 0, fd / 2 + CASING_T / 2]} castShadow>
             <boxGeometry args={[CASING, fh + CASING, CASING_T]} />
-            <meshStandardMaterial color={casingColor} roughness={0.75} />
+            <WoodMaterial color={casingColor} roughness={0.75} />
           </mesh>
           {/* Right casing strip */}
           <mesh position={[fw / 2 + CASING / 2, 0, fd / 2 + CASING_T / 2]} castShadow>
             <boxGeometry args={[CASING, fh + CASING, CASING_T]} />
-            <meshStandardMaterial color={casingColor} roughness={0.75} />
+            <WoodMaterial color={casingColor} roughness={0.75} />
           </mesh>
           {/* Top casing strip */}
           <mesh position={[0, fh / 2 + CASING / 2, fd / 2 + CASING_T / 2]} castShadow>
             <boxGeometry args={[fw + CASING * 2, CASING, CASING_T]} />
-            <meshStandardMaterial color={casingColor} roughness={0.75} />
+            <WoodMaterial color={casingColor} roughness={0.75} />
           </mesh>
         </group>
       </group>
