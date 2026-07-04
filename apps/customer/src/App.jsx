@@ -985,9 +985,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           }}
           onResizeGrid={(newW, newD) => { setGridW(newW); setGridD(newD) }}
           onAddStairs={(col, row) => {
-            // Find the floor above to connect to
-            const floorAbove = floorStack.find(f => f.level === activeFloorLevel + 1)
-            const floorBelow = floorStack.find(f => f.level === activeFloorLevel - 1)
+            // Find floors by level from ALL rooms (not just stair-connected)
+            const allFloors = Object.entries(allRoomsData).map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            const floorAbove = allFloors.find(f => f.level === activeFloorLevel + 1)
+            const floorBelow = allFloors.find(f => f.level === activeFloorLevel - 1)
             if (!floorAbove && !floorBelow) {
               showWispy('Add a floor above or below first, then place stairs to connect.')
               return
@@ -1084,7 +1085,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
 
         {/* Ghost floors — only visible in overview mode (All zones) */}
-        {activeZoneIdx == null && floorStack.filter(f => f.level !== activeFloorLevel).map(f => {
+        {activeZoneIdx == null && Object.entries(allRoomsData)
+          .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+          .filter(f => f.level !== activeFloorLevel && f.roomId !== currentRoomId)
+          .map(f => {
           const rd = allRoomsData[f.roomId]
           if (!rd) return null
           return (
@@ -1464,8 +1468,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           setActiveZoneIdx(null)
           setFloorPlanOpen(false)
           // Show the highest floor so all ghost floors render below
-          if (floorStack.length > 1) {
-            const topFloor = floorStack[floorStack.length - 1]
+          const allFloors = Object.entries(allRoomsData)
+            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            .sort((a, b) => a.level - b.level)
+          if (allFloors.length > 1) {
+            const topFloor = allFloors[allFloors.length - 1]
             jumpToRoom(topFloor.roomId)
             setActiveFloorLevel(topFloor.level)
           }

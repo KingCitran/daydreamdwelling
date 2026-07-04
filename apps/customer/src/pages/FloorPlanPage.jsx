@@ -204,7 +204,7 @@ export default function FloorPlanPage({
       for (const key of zoneCells) { const [c, r] = key.split(',').map(Number); sumC += c; sumR += r }
       const cx = offsetX + (sumC / zoneCells.size + 0.5) * cellSize
       const cy = offsetY + (sumR / zoneCells.size + 0.5) * cellSize
-      const label = roomZoneLabels?.[zoneId] ?? `Room ${zi + 1}`
+      const label = roomZoneLabels?.[`zone_${zoneId}`] ?? `Room ${zi + 1}`
       ctx.fillStyle = '#a0a0b0'
       ctx.font = `bold ${Math.max(9, cellSize * 0.45)}px Outfit, sans-serif`
       ctx.textAlign = 'center'
@@ -776,7 +776,7 @@ export default function FloorPlanPage({
         {editingLabel && (
           <input
             autoFocus
-            defaultValue={roomZoneLabels?.[editingLabel.zoneIdx] ?? ''}
+            defaultValue={roomZoneLabels?.[`zone_${roomZones[editingLabel.zoneIdx]?.id}`] ?? ''}
             onBlur={(e) => { onSetZoneLabel?.(editingLabel.zoneIdx, e.target.value); setEditingLabel(null) }}
             onKeyDown={(e) => { if (e.key === 'Enter') { onSetZoneLabel?.(editingLabel.zoneIdx, e.target.value); setEditingLabel(null) } if (e.key === 'Escape') setEditingLabel(null) }}
             style={{
