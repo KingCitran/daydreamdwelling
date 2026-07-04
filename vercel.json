@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd apps/customer && npx vite build",
+  "outputDirectory": "apps/customer/dist",
+  "framework": "vite",
+  "installCommand": "npm install"
+}
