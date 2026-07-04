@@ -1038,13 +1038,19 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             showWispy('Door opening created — wall removed at that edge.')
           }}
           onAddFloor={(direction) => {
-            // Create empty floor — no stairs, user draws shape then adds stairs
             const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
             const newRoomId = nextRoomIdRef.current++
             const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae'][Math.abs(newRoomId) % 4]
+            // Save current room + create new room in one setAllRooms call
+            const currentSnapshot = {
+              gridW, gridD, cells: new Set(cells), items: [...items],
+              wallHeight, floorColor, wallColor, targetRotation,
+              internalWalls: new Set(internalWalls ?? []),
+              level: activeFloorLevel,
+            }
             const newRoom = {
               gridW, gridD,
-              cells: new Set(),  // empty — user draws the shape
+              cells: new Set(),
               items: [],
               internalWalls: new Set(),
               wallHeight,
@@ -1053,9 +1059,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               targetRotation: 0,
               level: newLevel,
             }
-            setAllRooms(prev => ({ ...prev, [newRoomId]: newRoom }))
-            // Switch to the new floor
-            jumpToRoom(newRoomId)
+            setAllRooms(prev => ({ ...prev, [currentRoomId]: currentSnapshot, [newRoomId]: newRoom }))
+            // Load the new empty floor
+            setCurrentRoomId(newRoomId)
+            setCells(new Set())
+            setItems([])
+            setInternalWalls(new Set())
             setActiveFloorLevel(newLevel)
             showWispy(`${direction === 'below' ? 'Basement' : 'Upper floor'} added. Draw the floor shape, then add stairs to connect.`)
           }}
