@@ -329,6 +329,7 @@ export function DesignStyleContent({
     else onFloorColor(hex)
   }
 
+  const current = tab === 'wall' ? wallColor : floorColor
   const isActive = (v) => currentTex === (v.tex || 'flat')
 
   return (
