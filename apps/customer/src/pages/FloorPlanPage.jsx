@@ -2,6 +2,8 @@
 // Tools: Floor Shape, Walls, Doors, Stairs, Room Labels.
 // Zoom/pan, floor switcher, ghost floor below.
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
+import { exportFloorPlanPNG } from '../utils/exportFloorPlan'
+import { ROOM_TEMPLATES } from '../data/roomTemplates'
 
 const TOOLS = [
   { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure' },
@@ -707,6 +709,33 @@ export default function FloorPlanPage({
             </div>
           </div>
         )}
+
+        {/* Room templates */}
+        <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Templates</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: '0 6px', maxHeight: 100, overflowY: 'auto' }}>
+          {ROOM_TEMPLATES.map(t => (
+            <button key={t.id} onClick={() => {
+              setTool('addroom')
+              // Show a toast/hint about the template
+              alert(`Select Add Room and drag a ${t.w}×${t.d} area. Template: ${t.name}`)
+            }} title={`${t.name}: ${t.desc} (${t.w}×${t.d} ft)`}
+              style={{
+                padding: '4px 8px', borderRadius: 5, border: '1px solid #2a2a40',
+                background: '#12122a', color: '#707090', cursor: 'pointer',
+                fontSize: 10, fontFamily: 'inherit', whiteSpace: 'nowrap',
+              }}>
+              {t.icon} {t.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Export */}
+        <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
+        <button onClick={() => exportFloorPlanPNG(cells, internalWalls, gridW, gridD, roomZones, roomZoneLabels, items)}
+          style={{ margin: '0 6px', padding: '8px', borderRadius: 6, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', width: 'calc(100% - 12px)' }}>
+          📄 Export Floor Plan (PNG)
+        </button>
 
         <div style={{ flex: 1 }} />
 

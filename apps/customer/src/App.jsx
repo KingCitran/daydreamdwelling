@@ -8,6 +8,10 @@ import StylePanel from './ui/StylePanel'
 import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
 import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
+import ShareModal from './ui/ShareModal'
+import WelcomeWizard from './ui/WelcomeWizard'
+import { exportFloorPlanPNG } from './utils/exportFloorPlan'
+import { ROOM_TEMPLATES } from './data/roomTemplates'
 // RoomOverview archived — Floor Plan is the Dwelling Overview now
 import { useBuilderStyles } from './ui/styles/appStyles'
 // MusicPanel removed — replaced by MusicTabPanel in BuilderSheet + DockablePanel
@@ -340,6 +344,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [wallDrawMode, setWallDrawMode] = useState(false)
   const [floorPlanOpen, setFloorPlanOpen] = useState(false)
   const [activeZoneIdx, setActiveZoneIdx] = useState(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('ddd_welcomed'))
   const [doorOpenings, setDoorOpenings] = useState(() => {
     if (initSave?.doorOpenings) return new Set(initSave.doorOpenings)
     return new Set()
@@ -1488,7 +1494,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         canRedo={canRedo}
         onCart={() => { if (shopOpen && drawerTab === 'cart') { closeShop() } else { setDrawerTab('cart'); openShop() } }}
         onScreenshot={() => screenshotRef.current?.()}
-        onShare={() => {}}
+        onShare={() => setShareOpen(true)}
         onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
         onPickRoom={(id) => {
           if (id == null) return
@@ -1675,7 +1681,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             showMeasurements={showMeasurements}
             onMeasure={() => setShowMeasurements(v => !v)}
             onScreenshot={() => screenshotRef.current?.()}
-            onShare={() => {}}
+            onShare={() => setShareOpen(true)}
             onReset={() => { /* TODO: reset room */ }}
             cloudsOn={cloudsOn}
             onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
@@ -1793,6 +1799,27 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
       {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
       {wispyMessage && !floorPlanOpen && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
+
+      {/* Share modal */}
+      {shareOpen && (
+        <ShareModal
+          roomData={allRoomsData}
+          roomName={getRoomName(currentRoomId)}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {/* Welcome wizard — first visit only */}
+      {showWelcome && (
+        <WelcomeWizard
+          onComplete={(type) => {
+            localStorage.setItem('ddd_welcomed', '1')
+            setShowWelcome(false)
+            if (type === 'hotel' || type === 'dungeon') setFloorPlanOpen(true)
+          }}
+          onSkip={() => { localStorage.setItem('ddd_welcomed', '1'); setShowWelcome(false) }}
+        />
+      )}
       {isExploring && exploreData && (
         <ExploreBanner exploreData={exploreData} waitingCount={waitingInventory.count}
           onExit={() => {
