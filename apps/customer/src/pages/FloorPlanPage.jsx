@@ -707,18 +707,15 @@ export default function FloorPlanPage({
 
         <div style={{ flex: 1 }} />
 
-        {/* Grid size */}
-        <div style={{ padding: '6px 10px', fontSize: 11, color: '#505070', display: 'flex', gap: 4, alignItems: 'center' }}>
-          <input type="number" min={4} max={80} value={gridW}
-            onChange={e => onResizeGrid?.(Math.max(4, Math.min(80, Number(e.target.value) || 4)), gridD)}
-            style={{ width: 36, padding: '2px', background: '#12122a', border: '1px solid #2a2a40', borderRadius: 3, color: '#a0a0c0', fontSize: 11, textAlign: 'center' }}
-          />
-          <span>×</span>
-          <input type="number" min={4} max={80} value={gridD}
-            onChange={e => onResizeGrid?.(gridW, Math.max(4, Math.min(80, Number(e.target.value) || 4)))}
-            style={{ width: 36, padding: '2px', background: '#12122a', border: '1px solid #2a2a40', borderRadius: 3, color: '#a0a0c0', fontSize: 11, textAlign: 'center' }}
-          />
-          <span>ft</span>
+        {/* Workspace info */}
+        <div style={{ padding: '6px 10px', fontSize: 10, color: '#404060' }}>
+          Workspace: {gridW}×{gridD} ft
+          {gridW < 100 && (
+            <button onClick={() => onResizeGrid?.(Math.min(200, gridW + 40), Math.min(200, gridD + 40))}
+              style={{ marginLeft: 6, padding: '2px 6px', borderRadius: 3, border: '1px solid #2a2a40', background: '#12122a', color: '#606080', cursor: 'pointer', fontSize: 9, fontFamily: 'inherit' }}>
+              Expand
+            </button>
+          )}
         </div>
 
         {/* Zoom controls */}

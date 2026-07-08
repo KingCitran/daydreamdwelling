@@ -13,11 +13,11 @@ export function roomQuadrant(ry) {
 }
 
 // All occupied cells for an item, in ½-ft integer units
-export function makeGrid(w, d) {
+export function makeGrid(w, d, offsetC = 0, offsetR = 0) {
   const s = new Set()
   for (let c = 0; c < w; c++)
     for (let r = 0; r < d; r++)
-      s.add(`${c},${r}`)
+      s.add(`${c + offsetC},${r + offsetR}`)
   return s
 }
 

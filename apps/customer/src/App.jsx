@@ -317,10 +317,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }
 
   // ── Core room state ──────────────────────────────────────────────
-  const [gridW,      setGridW]      = useState(initSave?.gridW ?? 12)
-  const [gridD,      setGridD]      = useState(initSave?.gridD ?? 12)
+  const [gridW,      setGridW]      = useState(initSave?.gridW ?? 60)
+  const [gridD,      setGridD]      = useState(initSave?.gridD ?? 60)
   const [cells,      setCells]      = useState(() =>
-    initSave?.cells ? new Set(initSave.cells) : makeGrid(initSave?.gridW ?? 12, initSave?.gridD ?? 12)
+    initSave?.cells ? new Set(initSave.cells) : makeGrid(10, 10, 25, 25)
   )
   const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
   const [targetRotation, setTarget] = useState(0)
