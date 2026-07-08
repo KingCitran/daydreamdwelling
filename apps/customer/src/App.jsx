@@ -414,7 +414,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   })
   const [currentRoomId, setCurrentRoomId] = useState(initSave?.currentRoomId ?? 0)
   const [roomStack,     setRoomStack]     = useState([])
-  const nextRoomIdRef = useRef(1)
+  const nextRoomIdRef = useRef(
+    initSave?.allRooms ? Math.max(1, ...Object.keys(initSave.allRooms).map(Number)) + 1 : 1
+  )
   const [roomNames, setRoomNamesState] = useState(initSave?.roomNames ?? {})
   const setRoomName = useCallback((id, name) => {
     setRoomNamesState(prev => ({ ...prev, [id]: name }))
@@ -632,6 +634,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     zoomRef,
     getRoomName, setRoomNamesState,
     internalWalls, setInternalWalls,
+    floorTexture, setFloorTexture,
+    wallTexture, setWallTexture,
+    wallFinish, setWallFinish,
+    activeFloorLevel,
   })
 
   // ── Floor plan editing ───────────────────────────────────────────
@@ -804,9 +810,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── Overview memos ───────────────────────────────────────────────
   const allRoomsData = useMemo(() => {
-    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish }
+    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, level: activeFloorLevel }
     return { ...allRooms, [currentRoomId]: currentSnap }
-  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
+  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, activeFloorLevel])
 
   // Floor stack for multi-floor rendering (ghost floors below active)
   const floorStack = useMemo(
@@ -1045,7 +1051,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             // Save current room + create new room in one setAllRooms call
             const currentSnapshot = {
               gridW, gridD, cells: new Set(cells), items: [...items],
-              wallHeight, floorColor, wallColor, targetRotation,
+              wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
               internalWalls: new Set(internalWalls ?? []),
               level: activeFloorLevel,
             }
@@ -1055,8 +1061,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               items: [],
               internalWalls: new Set(),
               wallHeight,
-              floorColor: palette,
-              wallColor: '#d8d0c6',
+              floorColor: palette, floorTexture: 'flat',
+              wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
               targetRotation: 0,
               level: newLevel,
             }

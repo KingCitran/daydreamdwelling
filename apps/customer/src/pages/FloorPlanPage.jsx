@@ -93,13 +93,14 @@ export default function FloorPlanPage({
   // Auto-detect room zones
   const roomZones = useMemo(() => detectRoomZones(cells, internalWalls), [cells, internalWalls])
 
-  // Ghost floor data (floor below current)
+  // Ghost floor data (floor below current) — uses allRoomsData, not floorStack
   const ghostFloorData = useMemo(() => {
-    if (!floorStack || activeFloorLevel <= 0) return null
-    const belowEntry = floorStack?.find(f => f.level === activeFloorLevel - 1)
-    if (!belowEntry) return null
-    return allRoomsData?.[belowEntry.roomId] ?? null
-  }, [floorStack, activeFloorLevel, allRoomsData])
+    if (!allRoomsData) return null
+    for (const [id, r] of Object.entries(allRoomsData)) {
+      if ((r.level ?? 0) === activeFloorLevel - 1) return r
+    }
+    return null
+  }, [allRoomsData, activeFloorLevel])
 
   // ESC clears clipboard
   useEffect(() => {

@@ -76,7 +76,20 @@ export default function useRoomNavigation({
   zoomRef,
   getRoomName, setRoomNamesState,
   internalWalls, setInternalWalls,
+  floorTexture, setFloorTexture,
+  wallTexture, setWallTexture,
+  wallFinish, setWallFinish,
+  activeFloorLevel,
 }) {
+  // Helper: create a complete room snapshot
+  const makeSnapshot = (overrides = {}) => ({
+    gridW, gridD, cells: new Set(cells), items: [...items],
+    wallHeight, floorColor, wallColor, targetRotation,
+    floorTexture, wallTexture, wallFinish,
+    internalWalls: new Set(internalWalls ?? []),
+    level: activeFloorLevel ?? 0,
+    ...overrides,
+  })
   const enterRoom = useCallback((doorId) => {
     const door = items.find(it => it.id === doorId)
     if (!door) return
@@ -86,7 +99,7 @@ export default function useRoomNavigation({
       const targetId = door.topFloorRoomId
       const targetRoom = allRooms[targetId]
       if (!targetRoom) return
-      const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+      const snapshot = makeSnapshot()
       const sz = zoomRef.current
       zoomRef.current = Math.max(15, sz * 0.72)
       setTimeout(() => { zoomRef.current = sz }, 420)
@@ -139,7 +152,7 @@ export default function useRoomNavigation({
     const targetId   = door.connectedRoomId
     const targetRoom = allRooms[targetId]
     if (!targetRoom) return
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+    const snapshot = makeSnapshot()
     const sz = zoomRef.current
     zoomRef.current = Math.max(15, sz * 0.72)
     setTimeout(() => { zoomRef.current = sz }, 420)
@@ -224,7 +237,7 @@ export default function useRoomNavigation({
         ...(door.customH !== undefined ? { customH: door.customH } : {}),
       }]
     }
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: updatedItems, wallHeight, floorColor, wallColor, targetRotation }
+    const snapshot = makeSnapshot({ items: updatedItems })
     const sz = zoomRef.current
     zoomRef.current = Math.max(15, sz * 0.72)
     setTimeout(() => { zoomRef.current = sz }, 420)
@@ -244,7 +257,7 @@ export default function useRoomNavigation({
     const prevId   = roomStack[roomStack.length - 1]
     const prevRoom = allRooms[prevId]
     if (!prevRoom) return
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+    const snapshot = makeSnapshot()
     const savedZoom = zoomRef.current
     zoomRef.current = Math.max(15, savedZoom * 0.72)
     setTimeout(() => { zoomRef.current = savedZoom }, 420)
@@ -264,7 +277,7 @@ export default function useRoomNavigation({
     if (tid === currentRoomId) return
     const targetRoom = allRooms[tid]
     if (!targetRoom) return
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+    const snapshot = makeSnapshot()
     setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
     setCurrentRoomId(tid)
     setRoomStack(prev => [...prev, currentRoomId])
@@ -273,12 +286,15 @@ export default function useRoomNavigation({
     setItems([...targetRoom.items])
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
-    setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
+    if (setFloorTexture) setFloorTexture(targetRoom.floorTexture ?? 'flat')
+    if (setWallTexture) setWallTexture(targetRoom.wallTexture ?? 'flat')
+    if (setWallFinish) setWallFinish(targetRoom.wallFinish ?? 'eggshell')
     if (setInternalWalls) setInternalWalls(new Set(targetRoom.internalWalls ?? []))
-  }, [currentRoomId, allRooms, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, internalWalls, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setTarget, setSelectedId, setInternalWalls])
+    setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
+  }, [currentRoomId, allRooms, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, floorTexture, wallTexture, wallFinish, targetRotation, internalWalls, activeFloorLevel, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setFloorTexture, setWallTexture, setWallFinish, setTarget, setSelectedId, setInternalWalls])
 
   const unlinkDoors = useCallback((unlinks) => {
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+    const snapshot = makeSnapshot()
     setAllRooms(prev => {
       let updated = { ...prev, [currentRoomId]: snapshot }
       for (const { rid, doorId, connectedRoomId } of unlinks) {
@@ -297,7 +313,7 @@ export default function useRoomNavigation({
     if (roomId === currentRoomId) { window.alert('You are in this room. Navigate to another room before deleting it.'); return }
     const roomName = getRoomName(roomId)
     if (!window.confirm(`Delete "${roomName}"?\nAll doors connecting to it will be unlinked.`)) return
-    const snapshot = { gridW, gridD, cells: new Set(cells), items: [...items], wallHeight, floorColor, wallColor, targetRotation, internalWalls: new Set(internalWalls ?? []) }
+    const snapshot = makeSnapshot()
     setAllRooms(prev => {
       const updated = { ...prev, [currentRoomId]: snapshot }
       delete updated[roomId]
