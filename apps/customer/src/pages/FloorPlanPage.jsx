@@ -16,15 +16,18 @@ const TOOLS = [
 // Flood-fill to detect room zones from internal walls.
 // Returns [{ id: "3,4", cells: Set, seedCell: "3,4" }]
 // ID = smallest cell key in the zone (stable across wall edits).
-export function detectRoomZones(cells, internalWalls) {
+export function detectRoomZones(cells, internalWalls, doorOpenings) {
   const visited = new Set()
   const zones = []
-  const hasWall = (col, row, dir) => {
-    if (internalWalls?.has(`${col},${row}:${dir}`)) return true
+  const hasBarrier = (col, row, dir) => {
+    // Both walls AND doors block zone detection (doors are visual openings, not zone mergers)
+    const key = `${col},${row}:${dir}`
+    if (internalWalls?.has(key) || doorOpenings?.has(key)) return true
     const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }
     const nc = dir === 'W' ? col-1 : dir === 'E' ? col+1 : col
     const nr = dir === 'N' ? row-1 : dir === 'S' ? row+1 : row
-    return internalWalls?.has(`${nc},${nr}:${opp[dir]}`)
+    const altKey = `${nc},${nr}:${opp[dir]}`
+    return internalWalls?.has(altKey) || doorOpenings?.has(altKey)
   }
 
   // Sort cells for deterministic order
@@ -40,10 +43,10 @@ export function detectRoomZones(cells, internalWalls) {
       visited.add(cur)
       zoneCells.add(cur)
       const [c, r] = cur.split(',').map(Number)
-      if (!hasWall(c, r, 'N') && cells.has(`${c},${r-1}`) && !visited.has(`${c},${r-1}`)) queue.push(`${c},${r-1}`)
-      if (!hasWall(c, r, 'S') && cells.has(`${c},${r+1}`) && !visited.has(`${c},${r+1}`)) queue.push(`${c},${r+1}`)
-      if (!hasWall(c, r, 'W') && cells.has(`${c-1},${r}`) && !visited.has(`${c-1},${r}`)) queue.push(`${c-1},${r}`)
-      if (!hasWall(c, r, 'E') && cells.has(`${c+1},${r}`) && !visited.has(`${c+1},${r}`)) queue.push(`${c+1},${r}`)
+      if (!hasBarrier(c, r, 'N') && cells.has(`${c},${r-1}`) && !visited.has(`${c},${r-1}`)) queue.push(`${c},${r-1}`)
+      if (!hasBarrier(c, r, 'S') && cells.has(`${c},${r+1}`) && !visited.has(`${c},${r+1}`)) queue.push(`${c},${r+1}`)
+      if (!hasBarrier(c, r, 'W') && cells.has(`${c-1},${r}`) && !visited.has(`${c-1},${r}`)) queue.push(`${c-1},${r}`)
+      if (!hasBarrier(c, r, 'E') && cells.has(`${c+1},${r}`) && !visited.has(`${c+1},${r}`)) queue.push(`${c+1},${r}`)
     }
     if (zoneCells.size > 0) {
       // Stable ID = smallest cell key in the zone
@@ -58,7 +61,7 @@ export function detectRoomZones(cells, internalWalls) {
 const ZONE_COLORS = ['#3a5a8a40','#8a5a3a40','#3a8a5a40','#8a3a5a40','#5a8a3a40','#5a3a8a40','#8a8a3a40','#3a8a8a40']
 
 export default function FloorPlanPage({
-  gridW, gridD, cells, internalWalls, items,
+  gridW, gridD, cells, internalWalls, doorOpenings, items,
   onToggleCell, onToggleWall, onResizeGrid, onDone,
   onAddStairs, onRemoveStairs, onAddDoor,
   onBulkAddCells,
@@ -91,7 +94,7 @@ export default function FloorPlanPage({
   const roomPlanInputRef = useRef(null)
 
   // Auto-detect room zones
-  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls), [cells, internalWalls])
+  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls, doorOpenings), [cells, internalWalls, doorOpenings])
 
   // Ghost floor data (floor below current) — uses allRoomsData, not floorStack
   const ghostFloorData = useMemo(() => {

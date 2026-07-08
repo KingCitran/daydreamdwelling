@@ -339,7 +339,11 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   })
   const [wallDrawMode, setWallDrawMode] = useState(false)
   const [floorPlanOpen, setFloorPlanOpen] = useState(false)
-  const [activeZoneIdx, setActiveZoneIdx] = useState(null)  // null = show all, number = specific zone
+  const [activeZoneIdx, setActiveZoneIdx] = useState(null)
+  const [doorOpenings, setDoorOpenings] = useState(() => {
+    if (initSave?.doorOpenings) return new Set(initSave.doorOpenings)
+    return new Set()
+  })  // null = show all, number = specific zone
   const [internalWalls, setInternalWalls] = useState(() => {
     if (initSave?.internalWalls) return new Set(initSave.internalWalls)
     return new Set()
@@ -650,6 +654,30 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     })
   }, [])
 
+  // Clean up orphaned internal walls and door openings when cells are deleted
+  useEffect(() => {
+    setInternalWalls(prev => {
+      let changed = false
+      const next = new Set(prev)
+      for (const edgeKey of next) {
+        const sep = edgeKey.lastIndexOf(':')
+        const cellKey = edgeKey.slice(0, sep)
+        if (!cells.has(cellKey)) { next.delete(edgeKey); changed = true }
+      }
+      return changed ? next : prev
+    })
+    setDoorOpenings(prev => {
+      let changed = false
+      const next = new Set(prev)
+      for (const edgeKey of next) {
+        const sep = edgeKey.lastIndexOf(':')
+        const cellKey = edgeKey.slice(0, sep)
+        if (!cells.has(cellKey)) { next.delete(edgeKey); changed = true }
+      }
+      return changed ? next : prev
+    })
+  }, [cells])
+
   useEffect(() => {
     setItems(prev => {
       let changed = false
@@ -867,7 +895,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, layoutOverrides])
 
   // Room zones — auto-detected from internal walls
-  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls), [cells, internalWalls])
+  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls, doorOpenings), [cells, internalWalls, doorOpenings])
 
   // Active zone cells — filter to only show the active zone in the builder
   const activeZoneCells = useMemo(() => {
@@ -969,7 +997,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       {floorPlanOpen && (
         <FloorPlanPage
           gridW={gridW} gridD={gridD} cells={cells}
-          internalWalls={internalWalls} items={items}
+          internalWalls={internalWalls} doorOpenings={doorOpenings} items={items}
           floorColor={floorColor} wallColor={wallColor}
           onToggleCell={toggleCell}
           onToggleWall={(edgeKey) => {
@@ -1030,19 +1058,24 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             showWispy(`Stairs connect to ${direction === 'up' ? 'floor above' : 'floor below'}. Adjust in the panel.`)
           }}
           onAddDoor={(col, row, dir) => {
-            // Place a door-like opening by removing the internal wall at this edge
+            // Add door opening — keeps zones separate but renders as opening in 3D
             const key = `${col},${row}:${dir}`
+            // Remove from walls, add to doorOpenings
             setInternalWalls(prev => {
               const next = new Set(prev)
               next.delete(key)
-              // Also delete the opposite side
               const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }
               const nc = dir === 'W' ? col-1 : dir === 'E' ? col+1 : col
               const nr = dir === 'N' ? row-1 : dir === 'S' ? row+1 : row
               next.delete(`${nc},${nr}:${opp[dir]}`)
               return next
             })
-            showWispy('Door opening created — wall removed at that edge.')
+            setDoorOpenings(prev => {
+              const next = new Set(prev)
+              next.add(key)
+              return next
+            })
+            showWispy('Door opening placed — rooms stay separate for editing.')
           }}
           onAddFloor={(direction) => {
             const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
