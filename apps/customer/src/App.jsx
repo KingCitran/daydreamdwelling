@@ -9,6 +9,7 @@ import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
 import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
 import ShareModal from './ui/ShareModal'
+import DwellingSelector from './ui/DwellingSelector'
 import WelcomeWizard from './ui/WelcomeWizard'
 import { exportFloorPlanPNG } from './utils/exportFloorPlan'
 import { ROOM_TEMPLATES } from './data/roomTemplates'
@@ -1315,7 +1316,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
 
       {/* Room zone picker — shows when zones exist */}
-      {/* Zone picker + Floor Plan button — always visible */}
+      {/* Zone picker + Floor Plan + Dwelling selector — always visible */}
       {!floorPlanOpen && (
         <div style={{
           position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
@@ -1330,6 +1331,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
             background: 'rgba(60,120,200,0.2)', color: '#70a0e0',
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }} title="Open Floor Plan Editor">▦ Plan</button>
+          <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+          <DwellingSelector currentName="My Dwelling" />
           {roomZones.length > 1 && (
             <>
               <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />

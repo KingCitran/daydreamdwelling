@@ -716,9 +716,21 @@ export default function FloorPlanPage({
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: '0 6px', maxHeight: 100, overflowY: 'auto' }}>
           {ROOM_TEMPLATES.map(t => (
             <button key={t.id} onClick={() => {
-              setTool('addroom')
-              // Show a toast/hint about the template
-              alert(`Select Add Room and drag a ${t.w}×${t.d} area. Template: ${t.name}`)
+              // Auto-place template: add cells + walls + queue furniture
+              const baseC = 25, baseR = 25  // center of workspace
+              for (let c = 0; c < t.w; c++)
+                for (let r = 0; r < t.d; r++)
+                  if (!cells.has(`${baseC + c},${baseR + r}`)) onToggleCell(baseC + c, baseR + r)
+              // Add walls around the template room where it borders existing cells
+              const existingBefore = new Set(cells)
+              for (let c = 0; c < t.w; c++) {
+                if (existingBefore.has(`${baseC + c},${baseR - 1}`)) onToggleWall(`${baseC + c},${baseR}:N`)
+                if (existingBefore.has(`${baseC + c},${baseR + t.d}`)) onToggleWall(`${baseC + c},${baseR + t.d - 1}:S`)
+              }
+              for (let r = 0; r < t.d; r++) {
+                if (existingBefore.has(`${baseC - 1},${baseR + r}`)) onToggleWall(`${baseC},${baseR + r}:W`)
+                if (existingBefore.has(`${baseC + t.w},${baseR + r}`)) onToggleWall(`${baseC + t.w - 1},${baseR + r}:E`)
+              }
             }} title={`${t.name}: ${t.desc} (${t.w}×${t.d} ft)`}
               style={{
                 padding: '4px 8px', borderRadius: 5, border: '1px solid #2a2a40',
