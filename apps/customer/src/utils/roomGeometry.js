@@ -168,14 +168,23 @@ export function hasWallOverlap(items, testId, testItem, catalogue = ITEM_CATALOG
 
 // Spiral search for the nearest free grid position near the center.
 // Rotation is always 0 on initial placement, so we use raw footprint.
-export function findFreePosition(existingItems, templateItem, gridW, gridD, catalogue = ITEM_CATALOGUE) {
+export function findFreePosition(existingItems, templateItem, gridW, gridD, catalogue = ITEM_CATALOGUE, cells) {
   const def  = catalogue[templateItem.typeKey] ?? ITEM_CATALOGUE[templateItem.typeKey]
   const size = def?.sizes?.[templateItem.sizeIndex] ?? def?.sizes?.[0]
   const [fw, fd] = size?.footprint ?? [1, 1]
   const maxCol = gridW - fw
   const maxRow = gridD - fd
-  const cx = Math.floor(maxCol / 2)
-  const cy = Math.floor(maxRow / 2)
+  // Center on actual room content (cells), not grid center
+  let cx = Math.floor(maxCol / 2), cy = Math.floor(maxRow / 2)
+  if (cells && cells.size > 0) {
+    let sumC = 0, sumR = 0, count = 0
+    for (const key of cells) {
+      const [c, r] = key.split(',').map(Number)
+      sumC += c; sumR += r; count++
+    }
+    cx = Math.max(0, Math.min(maxCol, Math.floor(sumC / count)))
+    cy = Math.max(0, Math.min(maxRow, Math.floor(sumR / count)))
+  }
 
   for (let dist = 0; dist <= Math.max(gridW, gridD); dist++) {
     for (let dc = -dist; dc <= dist; dc++) {

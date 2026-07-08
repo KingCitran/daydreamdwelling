@@ -60,7 +60,7 @@ export default function useItemActions({
     }
     const cat = catalogueRef.current
     setItems(prev => {
-      const { col, row } = findFreePosition(prev, template, gridW, gridD, cat)
+      const { col, row } = findFreePosition(prev, template, gridW, gridD, cat, cells)
       return [...prev, { ...template, col, row }]
     })
     setSelectedId(id)
