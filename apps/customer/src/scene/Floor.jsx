@@ -111,7 +111,7 @@ export default function Floor({
 
       {showGrid && (
         <Grid
-          args={[gridW, gridD]}
+          args={[Math.min(gridW, 40), Math.min(gridD, 40)]}
           position={[0, 0.002, 0]}
           cellSize={1}
           cellThickness={1.2}

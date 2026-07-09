@@ -396,7 +396,12 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const [ceilingView,      setCeilingView]      = useState(false)
   const [ceilingPicker,    setCeilingPicker]    = useState(null)
   const [showMeasurements, setShowMeasurements] = useState(false)
-  const [showGrid,         _setShowGrid]        = useState(() => localStorage.getItem('ddd_grid') !== '0')
+  const [showGrid,         _setShowGrid]        = useState(() => {
+    const saved = localStorage.getItem('ddd_grid')
+    if (saved !== null) return saved !== '0'
+    // Default grid OFF for large workspaces (60+), ON for small rooms
+    return (initSave?.gridW ?? 60) <= 20
+  })
   const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
   // overviewOpen removed — Floor Plan (floorPlanOpen) is the Dwelling Overview
   const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
