@@ -434,10 +434,37 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }, [])
   const getRoomName = useCallback((id) => roomNames[Number(id)] || `Room ${Number(id) + 1}`, [roomNames])
 
-  const zoomRef       = useRef(32)
+  // Auto-fit zoom to room content, not grid size
+  const initialZoom = useMemo(() => {
+    let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
+    const c = initSave?.cells ? new Set(initSave.cells) : new Set()
+    if (c.size === 0) return 32
+    for (const key of c) {
+      const [col, row] = key.split(',').map(Number)
+      minC = Math.min(minC, col); maxC = Math.max(maxC, col)
+      minR = Math.min(minR, row); maxR = Math.max(maxR, row)
+    }
+    const contentW = maxC - minC + 1 || 10
+    const contentD = maxR - minR + 1 || 10
+    return Math.max(15, Math.min(80, 280 / Math.max(contentW, contentD)))
+  }, [])
+  const zoomRef       = useRef(initialZoom)
   const roomRotationRef = useRef(targetRotation)
-  const [zoomDisplay, setZoomDisplay] = useState(32)
-  const panRef        = useRef({ x: 0, z: 0 })
+  const [zoomDisplay, setZoomDisplay] = useState(initialZoom)
+  const initialPan = useMemo(() => {
+    let sumC = 0, sumR = 0, count = 0
+    const c = initSave?.cells ? new Set(initSave.cells) : new Set()
+    for (const key of c) {
+      const [col, row] = key.split(',').map(Number)
+      sumC += col + 0.5; sumR += row + 0.5; count++
+    }
+    if (count === 0) return { x: 0, z: 0 }
+    const gw = initSave?.gridW ?? 60, gd = initSave?.gridD ?? 60
+    const cx = (sumC / count - gw / 2) * 0.5
+    const cz = (sumR / count - gd / 2) * 0.5
+    return { x: -cx, z: -cz }
+  }, [])
+  const panRef        = useRef(initialPan)
   const screenshotRef = useRef(null)
 
   // ── Viewport width ───────────────────────────────────────────────
