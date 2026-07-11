@@ -322,10 +322,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }
 
   // ── Core room state ──────────────────────────────────────────────
-  const [gridW,      setGridW]      = useState(initSave?.gridW ?? 60)
-  const [gridD,      setGridD]      = useState(initSave?.gridD ?? 60)
+  const [gridW,      setGridW]      = useState(initSave?.gridW ?? 30)
+  const [gridD,      setGridD]      = useState(initSave?.gridD ?? 30)
   const [cells,      setCells]      = useState(() =>
-    initSave?.cells ? new Set(initSave.cells) : makeGrid(10, 10, 25, 25)
+    initSave?.cells ? new Set(initSave.cells) : makeGrid(10, 10, 10, 10)
   )
   const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
   const [targetRotation, setTarget] = useState(0)
@@ -400,7 +400,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     const saved = localStorage.getItem('ddd_grid')
     if (saved !== null) return saved !== '0'
     // Default grid OFF for large workspaces (60+), ON for small rooms
-    return (initSave?.gridW ?? 60) <= 20
+    return (initSave?.gridW ?? 30) <= 20
   })
   const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
   // overviewOpen removed — Floor Plan (floorPlanOpen) is the Dwelling Overview
@@ -439,37 +439,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   }, [])
   const getRoomName = useCallback((id) => roomNames[Number(id)] || `Room ${Number(id) + 1}`, [roomNames])
 
-  // Auto-fit zoom to room content, not grid size
-  const initialZoom = useMemo(() => {
+  // Auto-fit zoom and pan to room content on load
+  // For new users: default 10×10 room at (25,25) → zoom=28, pan centered
+  const defaultContentSize = 10  // new user default room is 10×10
+  const zoomRef       = useRef(() => {
+    if (!initSave?.cells) return Math.max(15, Math.min(80, 280 / defaultContentSize))
     let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
-    const c = initSave?.cells ? new Set(initSave.cells) : new Set()
-    if (c.size === 0) return 32
-    for (const key of c) {
-      const [col, row] = key.split(',').map(Number)
-      minC = Math.min(minC, col); maxC = Math.max(maxC, col)
-      minR = Math.min(minR, row); maxR = Math.max(maxR, row)
-    }
-    const contentW = maxC - minC + 1 || 10
-    const contentD = maxR - minR + 1 || 10
-    return Math.max(15, Math.min(80, 280 / Math.max(contentW, contentD)))
-  }, [])
-  const zoomRef       = useRef(initialZoom)
+    const c = new Set(initSave.cells)
+    for (const key of c) { const [col, row] = key.split(',').map(Number); minC = Math.min(minC, col); maxC = Math.max(maxC, col); minR = Math.min(minR, row); maxR = Math.max(maxR, row) }
+    return Math.max(15, Math.min(80, 280 / Math.max(maxC - minC + 1, maxR - minR + 1, 6)))
+  })
+  if (typeof zoomRef.current === 'function') zoomRef.current = zoomRef.current()
   const roomRotationRef = useRef(targetRotation)
-  const [zoomDisplay, setZoomDisplay] = useState(initialZoom)
-  const initialPan = useMemo(() => {
-    let sumC = 0, sumR = 0, count = 0
-    const c = initSave?.cells ? new Set(initSave.cells) : new Set()
-    for (const key of c) {
-      const [col, row] = key.split(',').map(Number)
-      sumC += col + 0.5; sumR += row + 0.5; count++
-    }
-    if (count === 0) return { x: 0, z: 0 }
-    const gw = initSave?.gridW ?? 60, gd = initSave?.gridD ?? 60
-    const cx = (sumC / count - gw / 2) * 0.5
-    const cz = (sumR / count - gd / 2) * 0.5
-    return { x: -cx, z: -cz }
-  }, [])
-  const panRef        = useRef(initialPan)
+  const [zoomDisplay, setZoomDisplay] = useState(zoomRef.current)
+  const panRef        = useRef({ x: 0, z: 0 })
   const screenshotRef = useRef(null)
 
   // ── Viewport width ───────────────────────────────────────────────
