@@ -1201,6 +1201,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
         <RoomScene
           targetRotation={targetRotation}
           contentCenter={contentCenter}
+          onZoomChange={setZoomDisplay}
           lowerFloorStairs={(() => {
             if (activeFloorLevel <= 0) return null
             const belowEntry = floorStack.find(f => f.level === activeFloorLevel - 1)
@@ -1564,8 +1565,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
       />
       <BuilderViewControls
         zoom={zoomDisplay}
-        onRotateLeft={() => setTarget(r => r - Math.PI / 2)}
-        onRotateRight={() => setTarget(r => r + Math.PI / 2)}
+        onRotateLeft={() => setTarget(r => Math.round(r / (Math.PI / 2)) * (Math.PI / 2) - Math.PI / 2)}
+        onRotateRight={() => setTarget(r => Math.round(r / (Math.PI / 2)) * (Math.PI / 2) + Math.PI / 2)}
         onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15); setZoomDisplay(zoomRef.current) }}
         onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15); setZoomDisplay(zoomRef.current) }}
         onReset={() => {
@@ -1579,13 +1580,10 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
           const contentW = maxC - minC + 1 || gridW
           const contentD = maxR - minR + 1 || gridD
           const maxDim = Math.max(contentW, contentD, 6)
-          const fitZoom = Math.max(15, Math.min(80, 280 / maxDim))
+          const fitZoom = Math.max(20, Math.min(80, 400 / maxDim))
           zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
-          // Center pan on the content
-          const centerX = ((minC + maxC + 1) / 2 - gridW / 2) * 0.5
-          const centerZ = ((minR + maxR + 1) / 2 - gridD / 2) * 0.5
-          panRef.current = { x: -centerX, z: -centerZ }
-          setTarget(0)
+          // Center pan on the content — don't reset rotation
+          panRef.current = { x: 0, z: 0 }
         }}
         ceilingView={ceilingView}
         onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}

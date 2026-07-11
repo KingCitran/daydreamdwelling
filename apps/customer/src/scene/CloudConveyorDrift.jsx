@@ -136,7 +136,7 @@ const MOOD_THEMES = {
 }
 const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
 
-const CLOUD_COUNT = 150
+const CLOUD_COUNT = 40  // was 150 — massive perf improvement
 const EXCLUDED = new Set([37, 49, 51, 59, 68, 104])
 const POOL = Array.from({ length: CLOUD_COUNT }, (_, i) => i + 1).filter(n => !EXCLUDED.has(n))
 

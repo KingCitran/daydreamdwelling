@@ -161,7 +161,7 @@ function ScreenshotTrigger({ triggerRef }) {
   return null
 }
 
-function ZoomController({ zoomRef, panRef }) {
+function ZoomController({ zoomRef, panRef, onZoomChange }) {
   const { camera, gl } = useThree()
   const dragState = useRef({ active: false, startX: 0, startY: 0, startPanX: 0, startPanZ: 0 })
 
@@ -170,6 +170,7 @@ function ZoomController({ zoomRef, panRef }) {
     const onWheel = (e) => {
       e.preventDefault()
       zoomRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomRef.current - e.deltaY * 0.05))
+      onZoomChange?.(zoomRef.current)
     }
     // Desktop pan: middle-click drag or shift+left-click drag.
     // Uses the camera's orthographic frustum to convert screen pixels
@@ -245,6 +246,7 @@ export default function RoomScene({
   yOffset = 0,
   lookAtYOverride,
   contentCenter,
+  onZoomChange,
   lowerFloorStairs,
 }) {
   const { mood: sharedMood } = useMoodControl()
@@ -296,7 +298,7 @@ export default function RoomScene({
     <>
       <IsometricCamera target={camTarget} zoomRef={zoomRef} panRef={panRef} />
       <CameraOrbitController ceilingView={ceilingView} lookAtY={lookAtY} panRef={panRef} />
-      <ZoomController zoomRef={zoomRef} panRef={panRef} />
+      <ZoomController zoomRef={zoomRef} panRef={panRef} onZoomChange={onZoomChange} />
       {onRotate && <TouchController onRotate={onRotate} onSwipeVertical={onSwipeVertical} zoomRef={zoomRef} panRef={panRef} activeDragRef={activeDragRef} />}
       <ScreenshotTrigger triggerRef={screenshotRef} />
 
