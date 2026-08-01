@@ -169,9 +169,9 @@ function Gate() {
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
-  const loadSavedRoomId            = params.get('loadRoom') || null
   const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!loadSavedRoomId || hasVisited)
+  const hasAdminLoad = typeof window !== 'undefined' && !!localStorage.getItem('ddd_admin_load_room')
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasAdminLoad || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
@@ -194,7 +194,7 @@ function Gate() {
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} loadSavedRoomId={loadSavedRoomId} />
+  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
@@ -262,7 +262,7 @@ function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, on
   )
 }
 
-function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedRoomId = null }) {
+function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
   // Shared mood (from ThemeProvider) — drives Wispy's per-mood remark on
@@ -553,14 +553,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
     return () => { cancelled = true }
   }, [exploreRoomId])
 
-  // Load saved room directly by ID (from admin Edit tab)
-  // Fetches directly from Supabase (not via cloudSave.loadRoom which
-  // requires auth + filters by user_id — won't work on localhost).
+  // Load room from admin Edit tab — uses localStorage flag + the builder's
+  // own handleLoadRoom (battle-tested, handles all state correctly).
+  const adminLoadDone = useRef(false)
   useEffect(() => {
-    if (!loadSavedRoomId) return
-    ;(async () => {
+    if (adminLoadDone.current) return
+    const roomId = localStorage.getItem('ddd_admin_load_room')
+    if (!roomId) return
+    adminLoadDone.current = true
+    localStorage.removeItem('ddd_admin_load_room')
+    localStorage.removeItem('ddd_admin_load_type')
+    // Small delay to let the builder fully initialize first
+    setTimeout(async () => {
       const { data: row } = await supabase
-        .from('saved_rooms').select('data, name').eq('id', loadSavedRoomId).maybeSingle()
+        .from('saved_rooms').select('data').eq('id', roomId).maybeSingle()
       if (!row?.data) return
       const data = row.data
       setGridW(data.gridW); setGridD(data.gridD)
@@ -586,9 +592,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
       }
       if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
       setSelectedId(null)
-      setCloudRoomId(loadSavedRoomId)
-    })()
-  }, [loadSavedRoomId])
+      setCloudRoomId(roomId)
+    }, 500)
+  }, [])
 
   // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
   useEffect(() => {

@@ -767,18 +767,17 @@ function RoomEditTab({ config }) {
   const room = config.rooms[sel]
 
   const isDefault = room?.sourceType === 'default'
-  // Saved rooms use ?loadRoom, community rooms use ?exploreRoom
   const savedId = room?.sourceType === 'saved' ? room.sourceId : room?.savedRoomId
   const communityId = room?.sourceType === 'community' ? room.sourceId : null
   const canEdit = savedId || communityId
 
   function openInBuilder() {
     if (!room || !canEdit) return
-    if (savedId) {
-      window.location.search = `?loadRoom=${savedId}`
-    } else if (communityId) {
-      window.location.search = `?exploreRoom=${communityId}`
-    }
+    // Store room ID in localStorage — the builder picks it up on load
+    const id = savedId || communityId
+    localStorage.setItem('ddd_admin_load_room', id)
+    localStorage.setItem('ddd_admin_load_type', savedId ? 'saved' : 'community')
+    window.location.search = savedId ? '' : `?exploreRoom=${communityId}`
   }
 
   if (!room) return <p style={{ color: '#4a6890', fontSize: 14 }}>Add rooms in the Rooms tab first.</p>
