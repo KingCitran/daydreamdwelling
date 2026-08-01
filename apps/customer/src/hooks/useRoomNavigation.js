@@ -76,6 +76,7 @@ export default function useRoomNavigation({
   zoomRef,
   getRoomName, setRoomNamesState,
   internalWalls, setInternalWalls,
+  doorOpenings, setDoorOpenings,
   floorTexture, setFloorTexture,
   wallTexture, setWallTexture,
   wallFinish, setWallFinish,
@@ -87,6 +88,7 @@ export default function useRoomNavigation({
     wallHeight, floorColor, wallColor, targetRotation,
     floorTexture, wallTexture, wallFinish,
     internalWalls: new Set(internalWalls ?? []),
+    doorOpenings: new Set(doorOpenings ?? []),
     level: activeFloorLevel ?? 0,
     ...overrides,
   })
@@ -113,6 +115,7 @@ export default function useRoomNavigation({
       if (targetRoom.floorColor) setFloorColor(targetRoom.floorColor)
       if (targetRoom.wallColor) setWallColor(targetRoom.wallColor)
       if (setInternalWalls) setInternalWalls(new Set(targetRoom.internalWalls ?? []))
+      if (setDoorOpenings) setDoorOpenings(new Set(targetRoom.doorOpenings ?? []))
       setSelectedId(null)
       return
     }
@@ -290,6 +293,7 @@ export default function useRoomNavigation({
     if (setWallTexture) setWallTexture(targetRoom.wallTexture ?? 'flat')
     if (setWallFinish) setWallFinish(targetRoom.wallFinish ?? 'eggshell')
     if (setInternalWalls) setInternalWalls(new Set(targetRoom.internalWalls ?? []))
+    if (setDoorOpenings) setDoorOpenings(new Set(targetRoom.doorOpenings ?? []))
     setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
   }, [currentRoomId, allRooms, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, floorTexture, wallTexture, wallFinish, targetRotation, internalWalls, activeFloorLevel, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setFloorTexture, setWallTexture, setWallFinish, setTarget, setSelectedId, setInternalWalls])
 

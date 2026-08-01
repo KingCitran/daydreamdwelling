@@ -12,16 +12,17 @@ export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, it
     gridW, gridD, wallHeight,
     cells: [...cells],
     internalWalls: [...(internalWalls ?? [])],
+    doorOpenings: [...(doorOpenings ?? [])],
     items, cart, floorColor, wallColor, bgColor,
     musicStation, lightMood, roomNames,
     allRooms: Object.fromEntries(
       Object.entries(allRooms).map(([id, room]) => [
         id,
-        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))], internalWalls: [...(room.internalWalls instanceof Set ? room.internalWalls : [])] },
+        { ...room, cells: [...(room.cells instanceof Set ? room.cells : new Set(room.cells))], internalWalls: [...(room.internalWalls instanceof Set ? room.internalWalls : [])], doorOpenings: [...(room.doorOpenings instanceof Set ? room.doorOpenings : [])] },
       ])
     ),
     currentRoomId,
-  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls])
+  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings])
 
   const saveRoom = useCallback(async (name) => {
     if (!user) return { error: 'Not signed in' }

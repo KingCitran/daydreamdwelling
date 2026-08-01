@@ -75,6 +75,7 @@ import useWaitingInventory from './hooks/useWaitingInventory'
 import useSellerCatalogue from './hooks/useSellerCatalogue'
 import useProductAnalytics from './hooks/useProductAnalytics'
 import LandingPage from './pages/LandingPage'
+import LandingAdminPage from './pages/LandingAdminPage'
 import AboutPage from './pages/AboutPage'
 import HubPage from './pages/HubPage'
 import FloorPlanPage, { detectRoomZones } from './pages/FloorPlanPage'
@@ -182,7 +183,8 @@ function Gate() {
 
   let page
   let isLanding = false
-  if (params.get('hub') === '1') page = <HubPage onBack={() => { window.location.search = '' }} />
+  if (params.get('landing-admin') === '1') page = <LandingAdminPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('hub') === '1') page = <HubPage onBack={() => { window.location.search = '' }} />
   else if (params.get('landing') === '1') { page = <LandingPage onEnter={() => { window.location.search = '' }} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
   else if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
   else if (params.get('privacy') === '1') page = <PrivacyPage onBack={() => { window.location.search = '' }} />
@@ -515,7 +517,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
   const cloudSave = useCloudSave({
     user, gridW, gridD, wallHeight, cells, items, cart,
     floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
-    allRooms, currentRoomId, internalWalls,
+    allRooms, currentRoomId, internalWalls, doorOpenings,
   })
 
   // Load explore room if exploreRoomId set
@@ -660,6 +662,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     zoomRef,
     getRoomName, setRoomNamesState,
     internalWalls, setInternalWalls,
+    doorOpenings, setDoorOpenings,
     floorTexture, setFloorTexture,
     wallTexture, setWallTexture,
     wallFinish, setWallFinish,
@@ -860,7 +863,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
 
   // ── Overview memos ───────────────────────────────────────────────
   const allRoomsData = useMemo(() => {
-    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, level: activeFloorLevel }
+    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, doorOpenings, level: activeFloorLevel }
     return { ...allRooms, [currentRoomId]: currentSnap }
   }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, activeFloorLevel])
 
@@ -1108,6 +1111,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               gridW, gridD, cells: new Set(cells), items: [...items],
               wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
               internalWalls: new Set(internalWalls ?? []),
+              doorOpenings: new Set(doorOpenings ?? []),
               level: activeFloorLevel,
             }
             const newRoom = {
@@ -1115,6 +1119,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
               cells: new Set(),
               items: [],
               internalWalls: new Set(),
+              doorOpenings: new Set(),
               wallHeight,
               floorColor: palette, floorTexture: 'flat',
               wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
