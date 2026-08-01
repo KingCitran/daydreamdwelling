@@ -556,6 +556,8 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
   // Load saved room directly by ID (from admin Edit tab)
   useEffect(() => {
     if (!loadSavedRoomId) return
+    // Set bright background immediately so user doesn't see dark screen while loading
+    setBgColor(null)
     let cancelled = false
     ;(async () => {
       const { data: roomRow } = await supabase
@@ -572,7 +574,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
       if (d.wallColor) setWallColor(d.wallColor)
       if (d.wallTexture) setWallTexture(d.wallTexture)
       if (d.wallFinish) setWallFinish(d.wallFinish)
+      if (d.bgColor) setBgColor(d.bgColor)
       if (d.lightMood) setMood(d.lightMood)
+      if (d.musicStation) setMusicStation(d.musicStation)
       setCloudRoomId(roomRow.id)
     })()
     return () => { cancelled = true }
