@@ -754,11 +754,18 @@ function RoomEditTab({ config }) {
   const room = config.rooms[sel]
 
   const isDefault = room?.sourceType === 'default'
-  const canEdit = !isDefault && room?.sourceId
+  // Saved rooms use ?loadRoom, community rooms use ?exploreRoom
+  const savedId = room?.sourceType === 'saved' ? room.sourceId : room?.savedRoomId
+  const communityId = room?.sourceType === 'community' ? room.sourceId : null
+  const canEdit = savedId || communityId
 
   function openInBuilder() {
     if (!room || !canEdit) return
-    window.location.search = `?exploreRoom=${room.sourceId}&returnTo=landing-admin`
+    if (savedId) {
+      window.location.search = `?loadRoom=${savedId}`
+    } else if (communityId) {
+      window.location.search = `?exploreRoom=${communityId}`
+    }
   }
 
   if (!room) return <p style={{ color: '#4a6890', fontSize: 14 }}>Add rooms in the Rooms tab first.</p>

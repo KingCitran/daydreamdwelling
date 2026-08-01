@@ -169,8 +169,9 @@ function Gate() {
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
+  const loadSavedRoomId            = params.get('loadRoom') || null
   const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasVisited)
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!loadSavedRoomId || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
@@ -193,7 +194,7 @@ function Gate() {
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
+  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} loadSavedRoomId={loadSavedRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
@@ -261,7 +262,7 @@ function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, on
   )
 }
 
-function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
+function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
   // Shared mood (from ThemeProvider) — drives Wispy's per-mood remark on
@@ -551,6 +552,32 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     })()
     return () => { cancelled = true }
   }, [exploreRoomId])
+
+  // Load saved room directly by ID (from admin Edit tab)
+  useEffect(() => {
+    if (!loadSavedRoomId) return
+    let cancelled = false
+    ;(async () => {
+      const { data: roomRow } = await supabase
+        .from('saved_rooms').select('id, name, data').eq('id', loadSavedRoomId).maybeSingle()
+      if (cancelled || !roomRow?.data) return
+      const d = roomRow.data
+      if (d.gridW) setGridW(d.gridW)
+      if (d.gridD) setGridD(d.gridD)
+      if (d.wallHeight) setWallHeight(d.wallHeight)
+      if (d.cells) setCells(new Set(d.cells))
+      if (d.items) setItems(d.items)
+      if (d.floorColor) setFloorColor(d.floorColor)
+      if (d.floorTexture) setFloorTexture(d.floorTexture)
+      if (d.wallColor) setWallColor(d.wallColor)
+      if (d.wallTexture) setWallTexture(d.wallTexture)
+      if (d.wallFinish) setWallFinish(d.wallFinish)
+      if (d.lightMood) setMood(d.lightMood)
+      setCloudRoomId(roomRow.id)
+      setCloudRoomName(roomRow.name)
+    })()
+    return () => { cancelled = true }
+  }, [loadSavedRoomId])
 
   // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
   useEffect(() => {
