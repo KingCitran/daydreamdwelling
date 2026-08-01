@@ -1,6 +1,27 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '@shared/supabase'
 
+// Capture the 3D canvas as a PNG blob for use as a room thumbnail
+async function captureCanvasThumbnail() {
+  const canvas = document.querySelector('canvas')
+  if (!canvas) return null
+  return new Promise(resolve => {
+    canvas.toBlob(blob => resolve(blob), 'image/png')
+  })
+}
+
+// Upload a thumbnail blob to Supabase storage, return the public URL
+async function uploadThumbnail(userId, blob) {
+  if (!blob) return null
+  const path = `${userId}/room-${Date.now()}.png`
+  const { error } = await supabase.storage.from('community-screenshots').upload(path, blob, {
+    contentType: 'image/png', upsert: false,
+  })
+  if (error) return null
+  const { data } = supabase.storage.from('community-screenshots').getPublicUrl(path)
+  return data?.publicUrl || null
+}
+
 export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls }) {
   const [saving,  setSaving]  = useState(false)
   const [loading, setLoading] = useState(false)
@@ -28,22 +49,32 @@ export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, it
     if (!user) return { error: 'Not signed in' }
     setSaving(true); setError(null)
     const data = buildRoomData()
-    const { error } = await supabase.from('saved_rooms').insert({
+    // Capture thumbnail from the live canvas
+    const thumbBlob = await captureCanvasThumbnail()
+    const thumbnailUrl = await uploadThumbnail(user.id, thumbBlob)
+    const { data: inserted, error } = await supabase.from('saved_rooms').insert({
       user_id: user.id,
       name:    name || 'My Room',
       data,
-    })
+      ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
+    }).select('id').single()
     setSaving(false)
     if (error) setError(error.message)
-    return { error }
+    return { error, id: inserted?.id }
   }, [user, buildRoomData])
 
   const updateRoom = useCallback(async (roomId, name) => {
     if (!user) return { error: 'Not signed in' }
     setSaving(true); setError(null)
     const data = buildRoomData()
+    // Refresh thumbnail on every save
+    const thumbBlob = await captureCanvasThumbnail()
+    const thumbnailUrl = await uploadThumbnail(user.id, thumbBlob)
     const { error } = await supabase.from('saved_rooms')
-      .update({ data, name, updated_at: new Date().toISOString() })
+      .update({
+        data, name, updated_at: new Date().toISOString(),
+        ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
+      })
       .eq('id', roomId)
       .eq('user_id', user.id)
     setSaving(false)

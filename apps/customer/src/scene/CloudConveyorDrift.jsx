@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { shouldDrapeAt, drapeForShape, drapeImgStyle, canDrapeOnCloud, DRAPE_WRAPPER_STYLE } from './cloudDrapes'
 import { CLOUD_SHAPES, availableShapes, shapeUrl, shapeNoFlip, shapeClearanceVw } from './cloudShapes'
+import { preParseThemes, interpolateTheme, DEFAULT_GLOW_MASK as SHARED_GLOW_MASK } from './cloudTransition'
 
 // Dev cycle constants — see CloudConveyorPuffs.jsx for rationale.
 const EE_SLOT_COUNT = 3
@@ -136,6 +137,16 @@ const MOOD_THEMES = {
 }
 const DEFAULT_GLOW_MASK = 'linear-gradient(180deg, #fff 0%, #fff 38%, transparent 78%)'
 
+const NEUTRAL_THEME = {
+  tintGradient: 'linear-gradient(180deg, #ffffff 0%, #f0f8ff 15%, #c8dcf0 38%, #88b0d8 60%, #5080b8 82%, #2858a0 100%)',
+  tintShadow:   'drop-shadow(0 14px 28px rgba(40,88,160,0.32))',
+  shadeOpacity: 0.72,
+  shadeFilter:  'contrast(1.3) brightness(1.05)',
+  glowOpacity:  0.55,
+  glowFilter:   'brightness(1.5) contrast(0.9) saturate(0.85)',
+}
+const PARSED = preParseThemes(MOOD_THEMES, NEUTRAL_THEME)
+
 const CLOUD_COUNT = 40  // was 150 — massive perf improvement
 const EXCLUDED = new Set([37, 49, 51, 59, 68, 104])
 const POOL = Array.from({ length: CLOUD_COUNT }, (_, i) => i + 1).filter(n => !EXCLUDED.has(n))
@@ -161,6 +172,36 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   const { mood } = useMoodControl()
   const theme = MOOD_THEMES[mood]
   const isThemed = !!theme
+
+  // ── Smooth theme transition state ──
+  const activeThemeRef = useRef(theme || NEUTRAL_THEME)
+  const activeMoodRef = useRef(mood)
+  const fromThemeRef = useRef(null)
+  const fromStopsRef = useRef(null); const toStopsRef = useRef(null)
+  const fromShadeF = useRef(null); const toShadeF = useRef(null)
+  const fromGlowF = useRef(null); const toGlowF = useRef(null)
+  const fromShadowsRef = useRef(null); const toShadowsRef = useRef(null)
+  const transStartRef = useRef(0)
+  const transActiveRef = useRef(false)
+
+  useEffect(() => {
+    if (mood === activeMoodRef.current) return
+    const newTheme = MOOD_THEMES[mood] || NEUTRAL_THEME
+    const oldMood = activeMoodRef.current
+    fromThemeRef.current = activeThemeRef.current
+    fromStopsRef.current = PARSED.stops[oldMood] || PARSED.stops['__neutral']
+    toStopsRef.current = PARSED.stops[mood] || PARSED.stops['__neutral']
+    fromShadeF.current = PARSED.shadeF[oldMood] || PARSED.shadeF['__neutral']
+    toShadeF.current = PARSED.shadeF[mood] || PARSED.shadeF['__neutral']
+    fromGlowF.current = PARSED.glowF[oldMood] || PARSED.glowF['__neutral']
+    toGlowF.current = PARSED.glowF[mood] || PARSED.glowF['__neutral']
+    fromShadowsRef.current = PARSED.shadows[oldMood] || PARSED.shadows['__neutral']
+    toShadowsRef.current = PARSED.shadows[mood] || PARSED.shadows['__neutral']
+    transStartRef.current = performance.now()
+    transActiveRef.current = true
+    activeThemeRef.current = newTheme
+    activeMoodRef.current = mood
+  }, [mood])
 
   // EE slots: in dev cycle mode there are 3 slots cycling through the shape
   // pool every EE_TICK_MS; in normal (production) mode there's just ONE
@@ -282,6 +323,19 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
       const nodes = cloudsRef.current
       const vw = window.innerWidth
       const vh = window.innerHeight
+      const now = performance.now()
+
+      // ── Theme interpolation (smooth mood transitions) ──
+      const curT = activeThemeRef.current
+      const interp = interpolateTheme({
+        transActive: transActiveRef.current, transStart: transStartRef.current, now,
+        fromTheme: fromThemeRef.current, curTheme: curT,
+        fromStops: fromStopsRef.current, toStops: toStopsRef.current,
+        fromShadows: fromShadowsRef.current, toShadows: toShadowsRef.current,
+        fromShadeF: fromShadeF.current, toShadeF: toShadeF.current,
+        fromGlowF: fromGlowF.current, toGlowF: toGlowF.current,
+      })
+      if (interp?.done) transActiveRef.current = false
 
       // Pre-pass: live EE slot screen positions + per-shape clearance radii.
       // Reads from refs so a cycle-tick changing the shape doesn't tear down
@@ -341,6 +395,27 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
           node.style.opacity = String(opacity)
           lastOpacity[i] = opacity
         }
+
+        // Apply interpolated theme styles during transitions (or first frame)
+        if (interp || tick === 1) {
+          const tint = tintRefs.current[i]
+          const shade = shadeRefs.current[i]
+          const glow = glowRefs.current[i]
+          if (tint) {
+            tint.style.background = interp?.gradient ?? curT.tintGradient
+            tint.style.filter = isEe ? 'none' : (interp?.shadow ?? curT.tintShadow)
+          }
+          if (shade) {
+            shade.style.opacity = interp?.shadeOp ?? curT.shadeOpacity
+            shade.style.filter = interp?.shadeFilter ?? curT.shadeFilter
+          }
+          if (glow) {
+            glow.style.opacity = interp?.glowOp ?? curT.glowOpacity
+            glow.style.filter = interp?.glowFilter ?? curT.glowFilter
+            glow.style.webkitMaskImage = interp?.glowMask ?? (curT.glowMask || DEFAULT_GLOW_MASK)
+            glow.style.maskImage = interp?.glowMask ?? (curT.glowMask || DEFAULT_GLOW_MASK)
+          }
+        }
       }
       raf = requestAnimationFrame(animate)
     }
@@ -366,38 +441,14 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
           ? shapeUrl(visibleShapes[eeSlot])
           : `/clouds/cloud-${pad(c.shape)}.webp`
         const url = `url("${u}")`
-        const tintGradient = isEeSlot && theme?.eggTintGradient
-          ? theme.eggTintGradient
-          : theme?.tintGradient
+        const initTheme = theme || NEUTRAL_THEME
+        const tintGradient = isEeSlot && initTheme.eggTintGradient
+          ? initTheme.eggTintGradient
+          : initTheme.tintGradient
         const layer = { position: 'absolute', inset: 0, backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain', userSelect: 'none' }
 
-        if (!isThemed) {
-          // Raw photographic — natural look for non-themed moods.
-          return (
-            <img
-              key={idx}
-              ref={el => { cloudsRef.current[idx] = el }}
-              src={u}
-              alt=""
-              decoding="async"
-              draggable={false}
-              style={{
-                position: 'absolute',
-                top: 0, left: 0,
-                width: 240,
-                height: 'auto',
-                opacity: c.opacity,
-                transformOrigin: 'center center',
-                willChange: 'transform',
-                filter: 'drop-shadow(0 10px 28px rgba(60,90,140,0.22))',
-                userSelect: 'none',
-                pointerEvents: 'none',
-              }}
-            />
-          )
-        }
-
-        // Dream State: 3-layer themed rendering.
+        // Always render 3-layer structure so React never destroys/recreates
+        // elements on mood change. Unthemed moods use NEUTRAL_THEME.
         return (
           <div
             key={idx}
@@ -434,21 +485,16 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
               WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat',
               WebkitMaskPosition: 'center', maskPosition: 'center',
               background: tintGradient,
-              // EE clouds skip the tint drop-shadow — the colored aura
-              // above already provides their soft outer glow, so applying
-              // the shadow on top reads as a double halo.
-              filter: isEeSlot ? 'none' : theme.tintShadow,
+              filter: isEeSlot ? 'none' : initTheme.tintShadow,
             }} />
             <div ref={el => { shadeRefs.current[idx] = el }} style={{
               ...layer,
               backgroundImage: url,
               mixBlendMode: 'multiply',
-              // EE shade defaults to half the realistic strength.
-              // Per-mood `eggShadeOpacity` overrides when needed.
               opacity: isEeSlot
-                ? (typeof theme.eggShadeOpacity === 'number' ? theme.eggShadeOpacity : theme.shadeOpacity * 0.5)
-                : theme.shadeOpacity,
-              filter: theme.shadeFilter,
+                ? (typeof initTheme.eggShadeOpacity === 'number' ? initTheme.eggShadeOpacity : initTheme.shadeOpacity * 0.5)
+                : initTheme.shadeOpacity,
+              filter: initTheme.shadeFilter,
             }} />
             {/* Realistic clouds: full glow. EE clouds: skip glow unless
                 the mood ships an `eggGlow` override (softer params,
@@ -459,22 +505,32 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
                 ...layer,
                 backgroundImage: url,
                 mixBlendMode: 'screen',
-                opacity: theme.glowOpacity,
-                filter: theme.glowFilter,
-                WebkitMaskImage: theme.glowMask || DEFAULT_GLOW_MASK,
-                maskImage: theme.glowMask || DEFAULT_GLOW_MASK,
+                opacity: initTheme.glowOpacity,
+                filter: initTheme.glowFilter,
+                WebkitMaskImage: initTheme.glowMask || DEFAULT_GLOW_MASK,
+                maskImage: initTheme.glowMask || DEFAULT_GLOW_MASK,
               }} />
-            ) : theme.eggGlow ? (
+            ) : initTheme.eggGlow ? (
               <div style={{
                 ...layer,
                 backgroundImage: url,
                 mixBlendMode: 'screen',
-                opacity: theme.eggGlow.opacity,
-                filter: theme.eggGlow.filter,
-                WebkitMaskImage: theme.eggGlow.mask,
-                maskImage: theme.eggGlow.mask,
+                opacity: initTheme.eggGlow.opacity,
+                filter: initTheme.eggGlow.filter,
+                WebkitMaskImage: initTheme.eggGlow.mask,
+                maskImage: initTheme.eggGlow.mask,
               }} />
-            ) : null}
+            ) : (
+              <div ref={el => { glowRefs.current[idx] = el }} style={{
+                ...layer,
+                backgroundImage: url,
+                mixBlendMode: 'screen',
+                opacity: initTheme.glowOpacity,
+                filter: initTheme.glowFilter,
+                WebkitMaskImage: initTheme.glowMask || DEFAULT_GLOW_MASK,
+                maskImage: initTheme.glowMask || DEFAULT_GLOW_MASK,
+              }} />
+            )}
           </div>
         )
       })}

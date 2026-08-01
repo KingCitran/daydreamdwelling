@@ -176,6 +176,7 @@ function Gate() {
   const { mood, setMood }          = useMoodControl()
   const { user }                   = useAuth()
 
+
   if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
   // Unknown path (not / and not /community) → 404

@@ -4,6 +4,7 @@ import { useMoodControl } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 import CloudField from './landing/CloudField'
 import RotatingRoom from './landing/RotatingRoom'
+import { ROOMS_WITH_BRAND as ENDLESS_ROOMS } from './landing/endlessRooms'
 import MoodSwatch from './landing/MoodSwatch'
 import WispyArt from '@shared/wispy/art'
 
@@ -59,7 +60,15 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [submitting, setSubmitting]         = useState(false)
   const [waitlistErr, setWaitlistErr]       = useState('')
   const [waitlistCount, setWaitlistCount]   = useState(null)
-  const [currentScene, setCurrentScene]     = useState(null)
+  const [roomState, setRoomState]            = useState(() => ({
+    caption: ENDLESS_ROOMS[0], dark: ENDLESS_ROOMS[0].dark,
+    sky: ENDLESS_ROOMS[0].sky, prevSky: ENDLESS_ROOMS[0].sky, skyKey: -1,
+  }))
+
+  // Sync mood to CloudField when the sky transitions
+  useEffect(() => {
+    if (roomState?.skyMood) setMood(roomState.skyMood)
+  }, [roomState?.skyMood])
 
   useEffect(() => {
     supabase.rpc('get_waitlist_count').then(({ data }) => {
@@ -91,14 +100,24 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const showDreamerCount = waitlistCount != null && waitlistCount >= 25
   const dreamerCount = showDreamerCount ? waitlistCount.toLocaleString() : null
 
+  // Hero text colors — flip to warm white for dark rooms
+  const heroInk = roomState.dark ? '#f4eee2' : '#1a2a48'
+  const heroAccent = '#ff9b5c'
+
   return (
     <div className="ddd-landing" style={{
       minHeight: '100vh', position: 'relative', overflow: 'hidden',
-      background: skyBg, color: sky.ink, fontFamily: FONTS.body,
-      transition: 'background 1.6s ease',
+      color: sky.ink, fontFamily: FONTS.body,
     }}>
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: moodGlow, transition: 'background 1.6s ease' }} />
-      <CloudField />
+      {/* Sky cross-fade — driven by the rotating room */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, background: roomState.prevSky }} />
+        <div key={roomState.skyKey} style={{
+          position: 'absolute', inset: 0, background: roomState.sky,
+          animation: 'ddd-skyfade 8s ease-out both',
+        }} />
+      </div>
+      <CloudField lite />
 
       {/* ── Nav ── */}
       <header className="ddd-blur" style={{
@@ -108,7 +127,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         borderBottom: '1px solid rgba(255,255,255,0.6)',
       }}>
         <div style={{
-          maxWidth: 1240, margin: '0 auto', padding: '18px 40px',
+          maxWidth: 1240, margin: '0 auto', padding: '12px 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -150,67 +169,68 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         </div>
       </header>
 
-      {/* ── Hero ── */}
-      <section style={{ position: 'relative', maxWidth: 1240, margin: '0 auto', padding: '80px 40px 40px', zIndex: 10 }}>
-        <div className="ddd-landing-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 60, alignItems: 'center' }}>
-          <div>
-            <div style={{
-              fontSize: 12, color: sky.accent, letterSpacing: '2.5px',
-              textTransform: 'uppercase', fontWeight: 600, marginBottom: 24,
-            }}>
-              ✦ free 3D room builder
-            </div>
-            <h1 className="ddd-hero-h1" style={{
-              fontFamily: FONTS.display, fontSize: 'clamp(40px, 7vw, 88px)', lineHeight: 0.95,
-              fontWeight: 300, letterSpacing: '-2.5px', margin: '0 0 28px', color: sky.ink,
-            }}>
-              Design the<br/>
-              <span style={{ fontStyle: 'italic', fontWeight: 400 }}>room</span> you've<br/>
-              been <span style={{
-                fontStyle: 'italic', fontWeight: 400,
-                background: `linear-gradient(180deg, transparent 60%, ${sky.accent}44 60%, ${sky.accent}44 90%, transparent 90%)`,
-              }}>dreaming</span> of.
-            </h1>
-            <p style={{
-              fontSize: 18, lineHeight: 1.65, color: sky.inkSoft, maxWidth: 480,
-              margin: '0 0 36px', fontWeight: 400,
-            }}>
-              A 3D room builder where every piece is real — handmade by independent makers.
-              Build your space. Set the light. Bring it home.
-            </p>
-            <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-              <button onClick={onEnter} style={{
-                padding: '16px 32px', border: 'none', cursor: 'pointer',
-                background: sky.accent, color: sky.accentText,
-                fontSize: 15, fontWeight: 600, borderRadius: 999,
-                letterSpacing: '0.3px', boxShadow: `0 8px 24px ${sky.accent}66`,
-              }}>start building — it's free →</button>
-              <button onClick={onBrowseShop} style={{
-                padding: '16px 28px',
-                border: `1.5px solid ${sky.ink}33`,
-                background: 'rgba(255,255,255,0.4)', color: sky.ink, cursor: 'pointer',
-                fontSize: 15, fontWeight: 500, borderRadius: 999, backdropFilter: 'blur(6px)',
-              }}>browse the shop</button>
-            </div>
-            <div style={{ marginTop: 32, fontSize: 13, color: sky.inkSoft, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-              <span>✦ no signup</span>
-              <span>⚡ real items, real makers</span>
-            </div>
-          </div>
+      {/* ── Hero — fits exactly in one viewport ── */}
+      <section className="ddd-hero" style={{
+        position: 'relative', zIndex: 10,
+        maxWidth: 1000, margin: '0 auto',
+        padding: '0 24px',
+        height: 'calc(100vh - 56px)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'flex-start',
+        textAlign: 'center',
+        gap: 0,
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '2.5px', textTransform: 'uppercase',
+          color: heroAccent, fontWeight: 600, marginTop: 20, marginBottom: 4,
+          position: 'relative', zIndex: 20,
+        }}>
+          ✦ &nbsp;every room, in every light
+        </div>
+        <h1 className="ddd-hero-h1" style={{
+          fontFamily: FONTS.display, fontSize: 'clamp(40px, 7vw, 72px)',
+          fontWeight: 300, letterSpacing: '-3px', lineHeight: 0.9,
+          margin: '0 0 8px', color: heroInk,
+          transition: 'color 1.4s cubic-bezier(0.4,0,0.2,1)',
+          position: 'relative', zIndex: 20,
+        }}>
+          The room that never<br /><em style={{ fontWeight: 400 }}>stops dreaming.</em>
+        </h1>
 
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, position: 'relative' }}>
-            <RotatingRoom size={420} onSceneChange={setCurrentScene} />
-            {currentScene && (
-              <div style={{ marginTop: 24, textAlign: 'center', transition: 'all 0.5s ease' }}>
-                <div style={{ fontFamily: FONTS.display, fontSize: 24, fontStyle: 'italic', fontWeight: 400, color: sky.ink }}>
-                  {currentScene.label}
-                </div>
-                <div style={{ fontSize: 13, color: sky.inkSoft, letterSpacing: '1px', textTransform: 'uppercase', marginTop: 4 }}>
-                  {currentScene.mood} · {currentScene.desc}
-                </div>
-              </div>
-            )}
+        {/* Room — fills available space, camera zoom handles visual size */}
+        <div style={{ width: '100%', height: 'clamp(220px, 52vh, 480px)', position: 'relative', zIndex: 10 }}>
+          <RotatingRoom onStateChange={setRoomState} />
+        </div>
+
+        {/* Foreground cloud removed — it drifted in front of the room and looked bad */}
+
+        <div key={roomState.caption.name} style={{
+          marginTop: 2, position: 'relative', zIndex: 20,
+          animation: 'ddd-fadeup 0.9s cubic-bezier(0.4,0,0.2,1) both',
+        }}>
+          <div style={{
+            fontFamily: FONTS.display, fontStyle: 'italic',
+            fontSize: 'clamp(22px, 3.2vw, 32px)', color: heroInk, lineHeight: 1.1,
+            transition: 'color 1.4s cubic-bezier(0.4,0,0.2,1)',
+          }}>
+            {roomState.caption.name}
           </div>
+          <div style={{
+            fontSize: 11, letterSpacing: '2px', textTransform: 'uppercase',
+            fontWeight: 600, marginTop: 2, color: roomState.caption.accent,
+          }}>
+            {roomState.caption.mood} palette
+          </div>
+        </div>
+
+        <div style={{ marginTop: 8, position: 'relative', zIndex: 20 }}>
+          <button onClick={onEnter} style={{
+            padding: '14px 28px', border: 'none', cursor: 'pointer',
+            background: heroAccent, color: '#fff',
+            fontSize: 15, fontWeight: 600, borderRadius: 999,
+            letterSpacing: '0.3px',
+            boxShadow: '0 8px 24px rgba(255,155,92,0.40)',
+          }}>start building — it's free →</button>
         </div>
       </section>
 
@@ -450,8 +470,19 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
       {/* Mobile responsiveness — typography uses clamp() inline; this handles layout/padding/hover */}
       <style>{`
+        /* Sky cross-fade + hero animations */
+        @keyframes ddd-skyfade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ddd-drift   { from { transform: translateX(-30vw); } to { transform: translateX(130vw); } }
+        @keyframes ddd-cloudveil { 0% { opacity: 0.7; } 100% { opacity: 0; } }
+        @keyframes ddd-fadeup  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+        /* Short viewports: shrink the 3D stage so the box clears the headline */
+        @media (max-height: 620px) {
+          .ddd-hero > div:nth-child(3) { zoom: 0.6; }
+          .ddd-hero > div:nth-child(5) { margin-top: 52px !important; }
+        }
+
         @media (max-width: 900px) {
-          .ddd-landing-hero-grid { grid-template-columns: 1fr !important; }
           .ddd-landing-wispy     { grid-template-columns: 1fr !important; gap: 24px !important; padding: 40px 28px !important; }
           .ddd-landing > section { padding-left: 28px !important; padding-right: 28px !important; }
           /* Lighter blur on smaller devices — backdrop-filter at 20px chugs on iOS Safari */
