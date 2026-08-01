@@ -359,6 +359,14 @@ function RoomPickerTab({ config, setConfig, user }) {
     })
   }
 
+  async function deleteSavedRoom(roomId) {
+    if (!confirm('Delete this saved room permanently?')) return
+    await supabase.from('saved_rooms').delete().eq('id', roomId)
+    setSavedRooms(prev => prev.filter(r => r.id !== roomId))
+    // Also remove from lineup if it's there
+    setConfig(c => ({ ...c, rooms: c.rooms.filter(r => r.sourceId !== roomId) }))
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
       <div>
@@ -422,6 +430,11 @@ function RoomPickerTab({ config, setConfig, user }) {
                       <span style={{ fontSize: 11, color: '#4a6890' }}>added</span>
                     ) : (
                       <span style={{ fontSize: 18, color: '#ff9b5c' }}>+</span>
+                    )}
+                    {source === 'saved' && (
+                      <span onClick={e => { e.stopPropagation(); deleteSavedRoom(room.id) }}
+                        style={{ fontSize: 13, color: '#c03838', cursor: 'pointer', padding: '2px 6px', marginLeft: 4 }}
+                        title="Delete this saved room">🗑</span>
                     )}
                   </button>
                 )
