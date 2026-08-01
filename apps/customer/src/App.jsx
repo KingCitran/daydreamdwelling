@@ -574,7 +574,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
       if (d.wallFinish) setWallFinish(d.wallFinish)
       if (d.lightMood) setMood(d.lightMood)
       setCloudRoomId(roomRow.id)
-      setCloudRoomName(roomRow.name)
     })()
     return () => { cancelled = true }
   }, [loadSavedRoomId])
