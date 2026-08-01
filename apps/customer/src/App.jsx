@@ -554,12 +554,15 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
   }, [exploreRoomId])
 
   // Load saved room directly by ID (from admin Edit tab)
-  // Uses the same code path as the builder's load dialog — battle-tested.
+  // Fetches directly from Supabase (not via cloudSave.loadRoom which
+  // requires auth + filters by user_id — won't work on localhost).
   useEffect(() => {
     if (!loadSavedRoomId) return
     ;(async () => {
-      const { data, error } = await cloudSave.loadRoom(loadSavedRoomId)
-      if (error || !data) return
+      const { data: row } = await supabase
+        .from('saved_rooms').select('data, name').eq('id', loadSavedRoomId).maybeSingle()
+      if (!row?.data) return
+      const data = row.data
       setGridW(data.gridW); setGridD(data.gridD)
       if (data.wallHeight) setWallHeight(data.wallHeight)
       setCells(new Set(data.cells))
