@@ -554,32 +554,37 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
   }, [exploreRoomId])
 
   // Load saved room directly by ID (from admin Edit tab)
+  // Uses the same code path as the builder's load dialog — battle-tested.
   useEffect(() => {
     if (!loadSavedRoomId) return
-    // Set bright background immediately so user doesn't see dark screen while loading
-    setBgColor(null)
-    let cancelled = false
     ;(async () => {
-      const { data: roomRow } = await supabase
-        .from('saved_rooms').select('id, name, data').eq('id', loadSavedRoomId).maybeSingle()
-      if (cancelled || !roomRow?.data) return
-      const d = roomRow.data
-      if (d.gridW) setGridW(d.gridW)
-      if (d.gridD) setGridD(d.gridD)
-      if (d.wallHeight) setWallHeight(d.wallHeight)
-      if (d.cells) setCells(new Set(d.cells))
-      if (d.items) setItems(d.items)
-      if (d.floorColor) setFloorColor(d.floorColor)
-      if (d.floorTexture) setFloorTexture(d.floorTexture)
-      if (d.wallColor) setWallColor(d.wallColor)
-      if (d.wallTexture) setWallTexture(d.wallTexture)
-      if (d.wallFinish) setWallFinish(d.wallFinish)
-      if (d.bgColor) setBgColor(d.bgColor)
-      if (d.lightMood) setMood(d.lightMood)
-      if (d.musicStation) setMusicStation(d.musicStation)
-      setCloudRoomId(roomRow.id)
+      const { data, error } = await cloudSave.loadRoom(loadSavedRoomId)
+      if (error || !data) return
+      setGridW(data.gridW); setGridD(data.gridD)
+      if (data.wallHeight) setWallHeight(data.wallHeight)
+      setCells(new Set(data.cells))
+      setItems(data.items ?? [])
+      setCart(data.cart ?? [])
+      if (data.floorColor) setFloorColor(data.floorColor)
+      if (data.floorTexture) setFloorTexture(data.floorTexture)
+      if (data.wallColor) setWallColor(data.wallColor)
+      if (data.wallTexture) setWallTexture(data.wallTexture)
+      if (data.wallFinish) setWallFinish(data.wallFinish)
+      if (data.bgColor) setBgColor(data.bgColor)
+      if (data.musicStation !== undefined) setMusicStation(data.musicStation)
+      if (data.lightMood) setLightMood(data.lightMood)
+      if (data.moonId !== undefined) setMoonId(data.moonId)
+      if (data.roomNames) setRoomNamesState(data.roomNames)
+      if (data.allRooms) {
+        const restored = Object.fromEntries(
+          Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+        )
+        setAllRooms(restored)
+      }
+      if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
+      setSelectedId(null)
+      setCloudRoomId(loadSavedRoomId)
     })()
-    return () => { cancelled = true }
   }, [loadSavedRoomId])
 
   // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
