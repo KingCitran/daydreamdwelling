@@ -268,7 +268,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, loadSavedR
   // Shared mood (from ThemeProvider) — drives Wispy's per-mood remark on
   // mood change. Must be read here in AppInner; the outer App component has
   // its own useMoodControl, but that scope isn't visible inside the builder.
-  const { mood } = useMoodControl()
+  const { mood, setMood } = useMoodControl()
 
   // Builder mounts the music player inside the Music side-tab (M8). Hide the
   // global TopMusicButton + floating widget so we don't duplicate controls.
