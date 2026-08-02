@@ -176,8 +176,7 @@ function Gate() {
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
   const adminRoomId                = params.get('room') || null
-  const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!adminRoomId || hasVisited)
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!adminRoomId)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
