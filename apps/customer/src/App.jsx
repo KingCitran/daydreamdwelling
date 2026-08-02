@@ -594,7 +594,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
     setGridW(data.gridW); setGridD(data.gridD)
     if (data.wallHeight) setWallHeight(data.wallHeight)
     setCells(new Set(data.cells))
-    setItems(data.items ?? [])
+    setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
     setCart(data.cart ?? [])
     if (data.floorColor) setFloorColor(data.floorColor)
     if (data.floorTexture) setFloorTexture(data.floorTexture)
@@ -612,7 +612,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
       )
       setAllRooms(restored)
     }
-    if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id)) + 1
+    if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
     setSelectedId(null)
     setCloudRoomId(roomId)
     setLoadModalOpen(false)
@@ -630,7 +630,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
         setGridW(data.gridW); setGridD(data.gridD)
         if (data.wallHeight) setWallHeight(data.wallHeight)
         setCells(new Set(data.cells))
-        setItems(data.items ?? [])
+        setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
         setCart(data.cart ?? [])
         if (data.floorColor) setFloorColor(data.floorColor)
         if (data.floorTexture) setFloorTexture(data.floorTexture)
