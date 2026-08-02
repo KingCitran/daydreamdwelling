@@ -1482,27 +1482,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
           onRename={setRoomName}
         />
       </div>
-      {/* Lights toggle — top-right, icon-only. Only visible when a lamp
-          is placed so it never blocks the viewport for empty rooms. */}
-      {hasLightFixtures && (
-        <button
-          onClick={() => setLightsOff(v => !v)}
-          title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
-          className="ember-clear"
-          style={{
-            position: 'absolute', top: 18, right: 24, zIndex: 22,
-            width: 36, height: 36, borderRadius: '50%',
-            border: `1px solid ${lightsOff ? '#ffc87a55' : `${t.accent}40`}`,
-            background: lightsOff ? 'rgba(255,200,122,0.18)' : 'rgba(15,12,30,0.6)',
-            color: lightsOff ? '#ffc87a' : '#f0eaff',
-            cursor: 'pointer',
-            backdropFilter: 'blur(10px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          {lightsOff ? <LightbulbOff size={16} strokeWidth={2.2} /> : <Lightbulb size={16} strokeWidth={2.2} />}
-        </button>
-      )}
+      {/* Lights toggle moved to bottomBar below */}
 
       <TopRightCluster
         shopOpen={shopOpen}
@@ -2022,10 +2002,17 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
           )}
           {roomStack.length > 0 && <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>←</button>}
 
-          {/* All builder controls (panels, music, view, room) moved to side
-              tabs / top buttons. Bottom bar keeps only context-specific
-              utilities below: nested-room back, explore-mode save, waiting
-              inventory, cart. */}
+          {/* Lights toggle */}
+          {hasLightFixtures && (
+            <button
+              style={{ ...s.bottomBtn, borderColor: lightsOff ? '#ffc87a55' : `${t.accent}40`, color: lightsOff ? '#ffc87a' : '#f0eaff', background: lightsOff ? 'rgba(255,200,122,0.18)' : s.bottomBtn.background }}
+              onClick={() => setLightsOff(v => !v)}
+              title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
+            >
+              {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
+              {compact ? '' : (lightsOff ? ' Lights Off' : ' Lights On')}
+            </button>
+          )}
 
           {/* Explore-mode save button */}
           {isExploring && selectedItem && (
@@ -2060,8 +2047,14 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
             </button>
           )}
 
-          {/* Social/account/notifications moved to Social tab + bottom-left cluster.
-              Shop / Wishlist / Cart / Marketplace moved to TopRightCluster. */}
+          {/* My Rooms — always visible for signed-in users */}
+          {user && !shopBuilderSellerId && !isExploring && (
+            <button
+              style={{ ...s.bottomBtn, borderColor: `${t.accent}40`, color: '#e0d9ff' }}
+              onClick={() => { window.location.href = '/?rooms=1' }}
+              title="View all saved rooms"
+            >🏠{compact ? '' : ' My Rooms'}</button>
+          )}
         </div>
       </div>
       </div>

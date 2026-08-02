@@ -96,7 +96,13 @@ export default function HubPanel({
           ☁ {isSignedIn ? 'Save' : 'Save (sign in)'}
         </button>
         <button style={s.hubBtn} onClick={onCloudLoad} title={isSignedIn ? 'Load from cloud' : 'Sign in to load'}>
-          📂 My Rooms
+          📂 Load Room
+        </button>
+      </div>
+      <div style={s.hubBtnRow}>
+        <button style={{ ...s.hubBtn, background: `${t.accent}15`, borderColor: `${t.accent}40` }}
+          onClick={() => { window.location.href = '/?rooms=1' }}>
+          🏠 My Rooms Page
         </button>
       </div>
 
