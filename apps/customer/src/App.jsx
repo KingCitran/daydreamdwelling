@@ -165,6 +165,12 @@ function GlobalMusicWidgets() {
 }
 
 function Gate() {
+  // Clean up stale admin flags that caused dark screens
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('ddd_admin_load_room')
+    localStorage.removeItem('ddd_admin_load_type')
+    localStorage.removeItem('ddd_return_to')
+  }
   const params                     = new URLSearchParams(window.location.search)
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
