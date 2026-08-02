@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
 import RoomScene from './scene/RoomScene'
 // CloudConveyorPuffs archived — drift-across is the only cloud variant now
@@ -164,6 +164,22 @@ function GlobalMusicWidgets() {
   )
 }
 
+// Error boundary — shows the error instead of a dark screen
+class BuilderErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  render() {
+    if (this.state.error) return (
+      <div style={{ padding: 40, fontFamily: 'system-ui', color: '#1a2a48', background: '#f8f6f2', minHeight: '100vh' }}>
+        <h2 style={{ color: '#c03838' }}>Something went wrong</h2>
+        <pre style={{ background: '#fff', padding: 16, borderRadius: 8, overflow: 'auto', fontSize: 13 }}>{this.state.error.message}{'\n'}{this.state.error.stack}</pre>
+        <a href="/?landing=1" style={{ color: '#ff9b5c', fontSize: 14 }}>← go to landing page</a>
+      </div>
+    )
+    return this.props.children
+  }
+}
+
 function Gate() {
   // Clean up stale admin flags that caused dark screens
   if (typeof window !== 'undefined') {
@@ -199,7 +215,7 @@ function Gate() {
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} adminRoomId={adminRoomId} />
+  else if (inBuilder) page = <BuilderErrorBoundary><AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} adminRoomId={adminRoomId} /></BuilderErrorBoundary>
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
