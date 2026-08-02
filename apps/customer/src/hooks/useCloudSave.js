@@ -22,7 +22,7 @@ async function uploadThumbnail(userId, blob) {
   return data?.publicUrl || null
 }
 
-export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls }) {
+export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings }) {
   const [saving,  setSaving]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [rooms,   setRooms]   = useState([])   // list fetched from cloud
