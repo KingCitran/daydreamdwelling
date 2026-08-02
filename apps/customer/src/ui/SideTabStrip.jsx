@@ -18,7 +18,7 @@ const GAP_HEIGHT = 18
 // Memoized — strip takes no props, so re-renders only when its context
 // (tab order / panel open state) changes. Skips re-render when AppInner
 // re-renders for unrelated state (item moves, etc.).
-function SideTabStripImpl() {
+function SideTabStripImpl({ children }) {
   const t = useTheme()
   const { tabOrder, panelStates, tabDefs, togglePanel } = useSideTab()
 
@@ -91,10 +91,16 @@ function SideTabStripImpl() {
             </button>
           )
         })}
+        {children && <>
+          <div style={{ height: 3 }} />
+          {children}
+        </>}
       </aside>
     </>
   )
 }
 
-const SideTabStrip = memo(SideTabStripImpl)
+const SideTabStrip = memo(SideTabStripImpl, (prev, next) =>
+  prev.children === next.children
+)
 export default SideTabStrip

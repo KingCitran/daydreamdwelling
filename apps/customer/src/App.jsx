@@ -1986,18 +1986,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
           )}
           {roomStack.length > 0 && <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>←</button>}
 
-          {/* Lights toggle */}
-          {hasLightFixtures && (
-            <button
-              style={{ ...s.bottomBtn, borderColor: lightsOff ? '#ffc87a55' : `${t.accent}40`, color: lightsOff ? '#ffc87a' : '#f0eaff', background: lightsOff ? 'rgba(255,200,122,0.18)' : s.bottomBtn.background }}
-              onClick={() => setLightsOff(v => !v)}
-              title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
-            >
-              {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
-              {compact ? '' : (lightsOff ? ' Lights Off' : ' Lights On')}
-            </button>
-          )}
-
           {/* Edit mode: save & cancel when room opened via ?room= */}
           {adminRoomId && (
             <>
@@ -2054,14 +2042,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
             </button>
           )}
 
-          {/* My Rooms — always visible for signed-in users */}
-          {user && !shopBuilderSellerId && !isExploring && (
-            <button
-              style={{ ...s.bottomBtn, borderColor: `${t.accent}40`, color: '#e0d9ff' }}
-              onClick={() => { window.location.href = '/?rooms=1' }}
-              title="View all saved rooms"
-            >🏠{compact ? '' : ' My Rooms'}</button>
-          )}
         </div>
       </div>
       </div>
@@ -2102,7 +2082,26 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
       </div>
     </div>
     {/* M8 strip + dockable panels (Music / Build / Place / Style / Plan / View / Social) */}
-    <SideTabStrip />
+    <SideTabStrip>
+      {hasLightFixtures && (
+        <button
+          className="ddd-side-tab"
+          onClick={() => setLightsOff(v => !v)}
+          title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 30, height: 30, borderRadius: 7, cursor: 'pointer',
+            border: `1.5px solid ${lightsOff ? '#ffc87a' : 'transparent'}`,
+            background: lightsOff ? '#ffc87a30' : 'transparent',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span style={{ color: lightsOff ? '#ffc87a' : 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
+          </span>
+        </button>
+      )}
+    </SideTabStrip>
     <DockablePanel tabId="music"><MusicTabPanel /></DockablePanel>
     <DockablePanel tabId="build">
       <BuildTabPanel
