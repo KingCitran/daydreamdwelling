@@ -1972,8 +1972,26 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
           />
         )}
 
-        <div style={s.bottomBar}>
-          {/* ── Shop builder mode ── */}
+      </div>
+      {/* ── Centered bottom bar ── */}
+      <div style={{
+        position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 30, display: 'flex', gap: 6, alignItems: 'center',
+        background: 'rgba(15,12,30,0.75)', backdropFilter: 'blur(10px)',
+        border: `1px solid rgba(255,255,255,0.10)`, borderRadius: 12,
+        padding: '6px 10px',
+      }}>
+          {/* Lights toggle */}
+          {hasLightFixtures && (
+            <button
+              style={{ ...s.bottomBtn, padding: '8px 14px', borderColor: lightsOff ? '#ffc87a' : `${t.accent}40`, color: lightsOff ? '#ffc87a' : '#f0eaff', background: lightsOff ? 'rgba(255,200,122,0.18)' : 'transparent', display: 'flex', alignItems: 'center', gap: 5 }}
+              onClick={() => setLightsOff(v => !v)}
+              title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
+            >
+              {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
+            </button>
+          )}
+          {/* Shop builder mode */}
           {shopBuilderSellerId && (
             <button style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }} onClick={saveShopLayout}>
               {shopSaving ? '…' : '💾'}{compact ? '' : (shopSaving ? ' Saving' : ' Save')}
@@ -2041,8 +2059,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
               </span>
             </button>
           )}
-
-        </div>
       </div>
       </div>
       {/* Static Shop right-rail. Slides in from the right with the same
@@ -2082,26 +2098,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
       </div>
     </div>
     {/* M8 strip + dockable panels (Music / Build / Place / Style / Plan / View / Social) */}
-    <SideTabStrip>
-      {hasLightFixtures && (
-        <button
-          className="ddd-side-tab"
-          onClick={() => setLightsOff(v => !v)}
-          title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 30, height: 30, borderRadius: 7, cursor: 'pointer',
-            border: `1.5px solid ${lightsOff ? '#ffc87a' : 'transparent'}`,
-            background: lightsOff ? '#ffc87a30' : 'transparent',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <span style={{ color: lightsOff ? '#ffc87a' : 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
-          </span>
-        </button>
-      )}
-    </SideTabStrip>
+    <SideTabStrip />
     <DockablePanel tabId="music"><MusicTabPanel /></DockablePanel>
     <DockablePanel tabId="build">
       <BuildTabPanel
