@@ -170,8 +170,7 @@ function Gate() {
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
   const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
-  const hasAdminLoad = typeof window !== 'undefined' && !!localStorage.getItem('ddd_admin_load_room')
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasAdminLoad || hasVisited)
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
@@ -553,48 +552,6 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     return () => { cancelled = true }
   }, [exploreRoomId])
 
-  // Load room from admin Edit tab — uses localStorage flag + the builder's
-  // own handleLoadRoom (battle-tested, handles all state correctly).
-  const adminLoadDone = useRef(false)
-  useEffect(() => {
-    if (adminLoadDone.current) return
-    const roomId = localStorage.getItem('ddd_admin_load_room')
-    if (!roomId) return
-    adminLoadDone.current = true
-    localStorage.removeItem('ddd_admin_load_room')
-    localStorage.removeItem('ddd_admin_load_type')
-    // Small delay to let the builder fully initialize first
-    setTimeout(async () => {
-      const { data: row } = await supabase
-        .from('saved_rooms').select('data').eq('id', roomId).maybeSingle()
-      if (!row?.data) return
-      const data = row.data
-      setGridW(data.gridW); setGridD(data.gridD)
-      if (data.wallHeight) setWallHeight(data.wallHeight)
-      setCells(new Set(data.cells))
-      setItems(data.items ?? [])
-      setCart(data.cart ?? [])
-      if (data.floorColor) setFloorColor(data.floorColor)
-      if (data.floorTexture) setFloorTexture(data.floorTexture)
-      if (data.wallColor) setWallColor(data.wallColor)
-      if (data.wallTexture) setWallTexture(data.wallTexture)
-      if (data.wallFinish) setWallFinish(data.wallFinish)
-      if (data.bgColor) setBgColor(data.bgColor)
-      if (data.musicStation !== undefined) setMusicStation(data.musicStation)
-      if (data.lightMood) setLightMood(data.lightMood)
-      if (data.moonId !== undefined) setMoonId(data.moonId)
-      if (data.roomNames) setRoomNamesState(data.roomNames)
-      if (data.allRooms) {
-        const restored = Object.fromEntries(
-          Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
-        )
-        setAllRooms(restored)
-      }
-      if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
-      setSelectedId(null)
-      setCloudRoomId(roomId)
-    }, 500)
-  }, [])
 
   // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
   useEffect(() => {

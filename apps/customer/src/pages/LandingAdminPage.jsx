@@ -767,18 +767,7 @@ function RoomEditTab({ config }) {
   const room = config.rooms[sel]
 
   const isDefault = room?.sourceType === 'default'
-  const savedId = room?.sourceType === 'saved' ? room.sourceId : room?.savedRoomId
-  const communityId = room?.sourceType === 'community' ? room.sourceId : null
-  const canEdit = savedId || communityId
-
-  function openInBuilder() {
-    if (!room || !canEdit) return
-    // Store room ID in localStorage — the builder picks it up on load
-    const id = savedId || communityId
-    localStorage.setItem('ddd_admin_load_room', id)
-    localStorage.setItem('ddd_admin_load_type', savedId ? 'saved' : 'community')
-    window.location.search = savedId ? '' : `?exploreRoom=${communityId}`
-  }
+  const canEdit = !isDefault
 
   if (!room) return <p style={{ color: '#4a6890', fontSize: 14 }}>Add rooms in the Rooms tab first.</p>
 
@@ -851,19 +840,16 @@ function RoomEditTab({ config }) {
               </div>
             </div>
           )}
-          {canEdit ? (
-            <button onClick={openInBuilder} style={{
-              padding: '14px 28px', border: 'none', cursor: 'pointer',
-              background: '#ff9b5c', color: '#fff', borderRadius: 999,
-              fontSize: 14, fontWeight: 600, boxShadow: '0 6px 18px rgba(255,155,92,0.4)',
-            }}>open in builder →</button>
-          ) : (
-            <p style={{ fontSize: 13, color: '#4a6890', margin: 0, padding: '12px 16px', background: '#f8f6f2', borderRadius: 8, border: '1px solid #e8e4de' }}>
-              {isDefault
-                ? 'Built-in default — to customize, build a new version in the room builder, save it, then swap it in from the Rooms tab.'
-                : 'No linked source room.'}
-            </p>
-          )}
+          <div style={{ padding: '16px 20px', background: '#f8f6f2', borderRadius: 10, border: '1px solid #e8e4de' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2a48', marginBottom: 8 }}>To edit this room:</div>
+            <ol style={{ fontSize: 13, color: '#4a6890', margin: 0, paddingLeft: 20, lineHeight: 1.8 }}>
+              <li>Open the <a href="/" style={{ color: '#ff9b5c', fontWeight: 500 }}>room builder</a></li>
+              <li>Click the <strong>folder icon</strong> (load room) in the toolbar</li>
+              <li>Select <strong>"{room.name}"</strong> from your saved rooms</li>
+              <li>Make your changes, then <strong>save</strong> — a thumbnail captures automatically</li>
+              <li>Come back here with <a href="/?landing-admin=1" style={{ color: '#ff9b5c', fontWeight: 500 }}>?landing-admin=1</a></li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>
