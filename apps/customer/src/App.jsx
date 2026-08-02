@@ -175,8 +175,9 @@ function Gate() {
   const isCheckoutRedirect         = params.get('checkout') != null
   const shopBuilderSellerId        = params.get('shopBuilder') === 'true' ? params.get('sellerId') : null
   const exploreRoomId              = params.get('exploreRoom') || null
+  const adminRoomId                = params.get('room') || null
   const hasVisited = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || hasVisited)
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!adminRoomId || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
@@ -199,7 +200,7 @@ function Gate() {
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} />
+  else if (inBuilder) page = <AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} adminRoomId={adminRoomId} />
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
@@ -267,7 +268,7 @@ function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, on
   )
 }
 
-function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
+function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomId = null }) {
   const t = useTheme()
   const s = useBuilderStyles()
   // Shared mood (from ThemeProvider) — drives Wispy's per-mood remark on
@@ -601,6 +602,43 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null }) {
     setCloudRoomId(roomId)
     setLoadModalOpen(false)
   }, [cloudSave]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Admin room load — same as handleLoadRoom but auto-triggered ──
+  const adminLoaded = useRef(false)
+  useEffect(() => {
+    if (!adminRoomId || adminLoaded.current || !user) return
+    adminLoaded.current = true
+    ;(async () => {
+      try {
+        const { data, error } = await cloudSave.loadRoom(adminRoomId)
+        if (error || !data) return
+        setGridW(data.gridW); setGridD(data.gridD)
+        if (data.wallHeight) setWallHeight(data.wallHeight)
+        setCells(new Set(data.cells))
+        setItems(data.items ?? [])
+        setCart(data.cart ?? [])
+        if (data.floorColor) setFloorColor(data.floorColor)
+        if (data.floorTexture) setFloorTexture(data.floorTexture)
+        if (data.wallColor) setWallColor(data.wallColor)
+        if (data.wallTexture) setWallTexture(data.wallTexture)
+        if (data.wallFinish) setWallFinish(data.wallFinish)
+        if (data.bgColor) setBgColor(data.bgColor)
+        if (data.musicStation !== undefined) setMusicStation(data.musicStation)
+        if (data.lightMood) setLightMood(data.lightMood)
+        if (data.moonId !== undefined) setMoonId(data.moonId)
+        if (data.roomNames) setRoomNamesState(data.roomNames)
+        if (data.allRooms) {
+          const restored = Object.fromEntries(
+            Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+          )
+          setAllRooms(restored)
+        }
+        if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
+        setSelectedId(null)
+        setCloudRoomId(adminRoomId)
+      } catch (e) { /* fail silently — builder stays on default room */ }
+    })()
+  }, [adminRoomId, user, cloudSave])
 
   // ── Shop builder mode: load existing layout + save helpers ───────
   const [shopSaving,   setShopSaving]   = useState(false)
