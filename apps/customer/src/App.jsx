@@ -96,7 +96,6 @@ import MoonOverlay from './scene/MoonOverlay'
 // GreenhouseIslands archived — needs background-removed PNGs first
 import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
-import EditBanner from './ui/EditBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
 import ShareToCommunityModal from './ui/ShareToCommunityModal'
 import CommunityApp from './pages/CommunityApp'
@@ -1889,22 +1888,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
             window.location.href = from ? `/community/room/${exploreData.post.id}` : window.location.pathname
           }} />
       )}
-      {adminRoomId && !isExploring && (
-        <EditBanner
-          roomName={adminRoomName}
-          saving={cloudSave.saving}
-          onSave={async () => {
-            const { error } = await cloudSave.updateRoom(adminRoomId, adminRoomName)
-            if (error) return
-            const from = new URLSearchParams(window.location.search).get('from')
-            window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
-          }}
-          onCancel={() => {
-            const from = new URLSearchParams(window.location.search).get('from')
-            window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
-          }}
-        />
-      )}
+      {/* Edit controls moved into bottomBar below */}
       {showWaitingAlert && !isExploring && (
         <WaitingInventoryAlert items={waitingInventory.items}
           onClose={() => { setShowWaitingAlert(false); waitingInventory.markSeen() }}
@@ -2012,6 +1996,29 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
               {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
               {compact ? '' : (lightsOff ? ' Lights Off' : ' Lights On')}
             </button>
+          )}
+
+          {/* Edit mode: save & cancel when room opened via ?room= */}
+          {adminRoomId && (
+            <>
+              <button
+                style={{ ...s.bottomBtn, background: '#3a8a5a30', borderColor: '#3a8a5a', color: '#a0ffcc', fontWeight: 700 }}
+                disabled={cloudSave.saving}
+                onClick={async () => {
+                  const { error } = await cloudSave.updateRoom(adminRoomId, adminRoomName)
+                  if (error) return
+                  const from = new URLSearchParams(window.location.search).get('from')
+                  window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+                }}
+              >{cloudSave.saving ? '…' : '💾'}{compact ? '' : (cloudSave.saving ? ' Saving' : ' Save')}</button>
+              <button
+                style={{ ...s.bottomBtn, borderColor: '#ff6b6b50', color: '#ff9a9a' }}
+                onClick={() => {
+                  const from = new URLSearchParams(window.location.search).get('from')
+                  window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+                }}
+              >✕{compact ? '' : ' Cancel'}</button>
+            </>
           )}
 
           {/* Explore-mode save button */}
