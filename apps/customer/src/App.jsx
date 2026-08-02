@@ -84,6 +84,7 @@ import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
 import LandingPageV1 from './pages/_archive/LandingPageV1'
 import OrderHistoryPage from './pages/OrderHistoryPage'
+import SavedRoomsPage from './pages/SavedRoomsPage'
 import MessagesPage from './pages/MessagesPage'
 import CommunityFeed from './pages/CommunityFeed'
 import ContestsPage from './pages/ContestsPage'
@@ -95,6 +96,7 @@ import MoonOverlay from './scene/MoonOverlay'
 // GreenhouseIslands archived — needs background-removed PNGs first
 import FeedbackButton from './ui/FeedbackButton'
 import ExploreBanner from './ui/ExploreBanner'
+import EditBanner from './ui/EditBanner'
 import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
 import ShareToCommunityModal from './ui/ShareToCommunityModal'
 import CommunityApp from './pages/CommunityApp'
@@ -212,6 +214,7 @@ function Gate() {
   else if (params.get('about') === '1') page = <AboutPage onBack={() => { window.location.search = '' }} />
   else if (params.get('privacy') === '1') page = <PrivacyPage onBack={() => { window.location.search = '' }} />
   else if (params.get('terms') === '1') page = <TermsPage onBack={() => { window.location.search = '' }} />
+  else if (params.get('rooms') === '1') page = <SavedRoomsPage onBack={() => { window.location.search = '' }} />
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
@@ -440,6 +443,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
   const [saveModalOpen,   setSaveModalOpen]   = useState(false)
   const [loadModalOpen,   setLoadModalOpen]   = useState(false)
   const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
+  const [adminRoomName,   setAdminRoomName]   = useState(null) // name of room loaded via ?room=<id>
   const [checkoutOpen,    setCheckoutOpen]    = useState(false)
   const [shareToCommunityOpen, setShareToCommunityOpen] = useState(false)
   const [orderSuccess,    setOrderSuccess]    = useState(false)
@@ -625,8 +629,9 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
     adminLoaded.current = true
     ;(async () => {
       try {
-        const { data, error } = await cloudSave.loadRoom(adminRoomId)
+        const { data, error, name } = await cloudSave.loadRoom(adminRoomId)
         if (error || !data) return
+        setAdminRoomName(name || 'Untitled Room')
         setGridW(data.gridW); setGridD(data.gridD)
         if (data.wallHeight) setWallHeight(data.wallHeight)
         setCells(new Set(data.cells))
@@ -1477,32 +1482,27 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
           onRename={setRoomName}
         />
       </div>
-      {/* Lights — centered beneath the RoomBanner. Acts as the room's
-          lightswitch; disabled until a lamp is placed. */}
-      <button
-        onClick={() => hasLightFixtures && setLightsOff(v => !v)}
-        disabled={!hasLightFixtures}
-        title={!hasLightFixtures ? 'Place a lamp to enable' : (lightsOff ? 'Turn lights on' : 'Turn lights off')}
-        className="ember-clear"
-        style={{
-          position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 22,
-          padding: '7px 14px', borderRadius: 18,
-          border: `1px solid ${lightsOff ? '#ffc87a55' : `${t.accent}40`}`,
-          background: lightsOff ? 'rgba(255,200,122,0.18)' : 'rgba(15,12,30,0.6)',
-          color: '#f0eaff',
-          cursor: hasLightFixtures ? 'pointer' : 'default',
-          opacity: hasLightFixtures ? 1 : 0.5,
-          fontSize: 12, fontWeight: 700,
-          fontFamily: "'Outfit', system-ui, sans-serif",
-          letterSpacing: '0.3px',
-          backdropFilter: 'blur(10px)',
-          display: 'flex', alignItems: 'center', gap: 6,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {lightsOff ? <LightbulbOff size={15} strokeWidth={2.2} /> : <Lightbulb size={15} strokeWidth={2.2} />}
-        {lightsOff ? 'Lights Off' : 'Lights On'}
-      </button>
+      {/* Lights toggle — top-right, icon-only. Only visible when a lamp
+          is placed so it never blocks the viewport for empty rooms. */}
+      {hasLightFixtures && (
+        <button
+          onClick={() => setLightsOff(v => !v)}
+          title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
+          className="ember-clear"
+          style={{
+            position: 'absolute', top: 18, right: 24, zIndex: 22,
+            width: 36, height: 36, borderRadius: '50%',
+            border: `1px solid ${lightsOff ? '#ffc87a55' : `${t.accent}40`}`,
+            background: lightsOff ? 'rgba(255,200,122,0.18)' : 'rgba(15,12,30,0.6)',
+            color: lightsOff ? '#ffc87a' : '#f0eaff',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          {lightsOff ? <LightbulbOff size={16} strokeWidth={2.2} /> : <Lightbulb size={16} strokeWidth={2.2} />}
+        </button>
+      )}
 
       <TopRightCluster
         shopOpen={shopOpen}
@@ -1908,6 +1908,22 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
             const from = new URLSearchParams(window.location.search).get('fromCommunity')
             window.location.href = from ? `/community/room/${exploreData.post.id}` : window.location.pathname
           }} />
+      )}
+      {adminRoomId && !isExploring && (
+        <EditBanner
+          roomName={adminRoomName}
+          saving={cloudSave.saving}
+          onSave={async () => {
+            const { error } = await cloudSave.updateRoom(adminRoomId, adminRoomName)
+            if (error) return
+            const from = new URLSearchParams(window.location.search).get('from')
+            window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+          }}
+          onCancel={() => {
+            const from = new URLSearchParams(window.location.search).get('from')
+            window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+          }}
+        />
       )}
       {showWaitingAlert && !isExploring && (
         <WaitingInventoryAlert items={waitingInventory.items}

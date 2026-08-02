@@ -842,7 +842,7 @@ function RoomEditTab({ config }) {
             </div>
           )}
           {canEdit ? (
-            <a href={`/?room=${roomDbId}`} style={{
+            <a href={`/?room=${roomDbId}&from=admin`} style={{
               display: 'inline-block', padding: '14px 28px', border: 'none', cursor: 'pointer',
               background: '#ff9b5c', color: '#fff', borderRadius: 999,
               fontSize: 14, fontWeight: 600, boxShadow: '0 6px 18px rgba(255,155,92,0.4)',
