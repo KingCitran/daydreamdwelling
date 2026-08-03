@@ -22,7 +22,7 @@ async function uploadThumbnail(userId, blob) {
   return data?.publicUrl || null
 }
 
-export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings }) {
+export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, mood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings }) {
   const [saving,  setSaving]  = useState(false)
   const [loading, setLoading] = useState(false)
   const [rooms,   setRooms]   = useState([])   // list fetched from cloud
@@ -34,8 +34,8 @@ export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, it
     cells: [...cells],
     internalWalls: [...(internalWalls ?? [])],
     doorOpenings: [...(doorOpenings ?? [])],
-    items, cart, floorColor, wallColor, bgColor,
-    musicStation, lightMood, roomNames,
+    items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor,
+    musicStation, lightMood, moonId, mood, roomNames,
     allRooms: Object.fromEntries(
       Object.entries(allRooms).map(([id, room]) => [
         id,
@@ -43,7 +43,7 @@ export default function useCloudSave({ user, gridW, gridD, wallHeight, cells, it
       ])
     ),
     currentRoomId,
-  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, wallColor, bgColor, musicStation, lightMood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings])
+  }), [gridW, gridD, wallHeight, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, mood, roomNames, allRooms, currentRoomId, internalWalls, doorOpenings])
 
   const saveRoom = useCallback(async (name) => {
     if (!user) return { error: 'Not signed in' }

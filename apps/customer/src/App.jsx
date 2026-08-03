@@ -542,7 +542,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
 
   const cloudSave = useCloudSave({
     user, gridW, gridD, wallHeight, cells, items, cart,
-    floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
+    floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, mood, roomNames,
     allRooms, currentRoomId, internalWalls, doorOpenings,
   })
 
@@ -608,6 +608,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
     if (data.musicStation !== undefined) setMusicStation(data.musicStation)
     if (data.lightMood)  setLightMood(data.lightMood)
     if (data.moonId !== undefined) setMoonId(data.moonId)
+    if (data.mood) setMood(data.mood)
     if (data.roomNames)  setRoomNamesState(data.roomNames)
     if (data.allRooms) {
       const restored = Object.fromEntries(
@@ -645,6 +646,7 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
         if (data.musicStation !== undefined) setMusicStation(data.musicStation)
         if (data.lightMood) setLightMood(data.lightMood)
         if (data.moonId !== undefined) setMoonId(data.moonId)
+        if (data.mood) setMood(data.mood)
         if (data.roomNames) setRoomNamesState(data.roomNames)
         if (data.allRooms) {
           const restored = Object.fromEntries(
