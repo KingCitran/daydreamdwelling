@@ -281,6 +281,7 @@ function SaveDefaultsButton({ user }) {
         wallColor: r.wall?.match?.(/#[0-9a-f]{6}/i)?.[0] || '#f0ece4',
         wallTexture: r.wallTex || 'plaster',
         lightMood: r.mood,
+        mood: r.mood,
         cart: [], musicStation: null, roomNames: {},
         allRooms: {}, currentRoomId: null,
       }
