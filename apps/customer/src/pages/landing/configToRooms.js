@@ -1,9 +1,10 @@
 // Convert landing_hero_config rooms (admin format) → endlessRooms format
 // so RotatingRoom + LandingRoomScene can render them identically.
 
+import { supabase } from '@shared/supabase'
+
 const DARK_MOODS = new Set(['Neon Nights', 'Moonlight'])
 
-// Mood → sky gradient (matches LandingPage.jsx SKY_BY_MOOD)
 const SKY_GRADIENTS = {
   'Golden Hour':     'linear-gradient(180deg,#b85a55,#e88a3e 55%,#ffe39a)',
   'Coastal Morning': 'linear-gradient(180deg,#5a8cb8,#a8c4d8 55%,#ffd896)',
@@ -33,14 +34,10 @@ function darken(hex, amt = 20) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
-/**
- * Convert one admin config room → endlessRooms format
- * @param {object} adminRoom - from config.rooms[] (has sourceId, name, data, palette, mood)
- * @returns {object} room in endlessRooms format
- */
-export function convertRoom(adminRoom) {
-  const d = adminRoom.data ? (typeof adminRoom.data === 'string' ? JSON.parse(adminRoom.data) : adminRoom.data) : {}
-  const mood = adminRoom.mood || d.mood || d.lightMood || 'Bright Day'
+function convertRoom(adminRoom, liveData) {
+  // Use live data from saved_rooms if available, fall back to config snapshot
+  const d = liveData || (adminRoom.data ? (typeof adminRoom.data === 'string' ? JSON.parse(adminRoom.data) : adminRoom.data) : {})
+  const mood = d.mood || d.lightMood || adminRoom.mood || 'Bright Day'
   const isDark = DARK_MOODS.has(mood)
   const accent = MOOD_ACCENTS[mood] || '#a9744a'
   const wc = d.wallColor || '#f0ece4'
@@ -68,7 +65,6 @@ export function convertRoom(adminRoom) {
   }
 }
 
-// Brand room — kept as the default DaydreamDwelling signature room
 const BRAND_ROOM = {
   name: 'DaydreamDwelling', mood: 'Bright Day', accent: '#a9744a', dark: false, brand: true,
   gridW: 10, gridD: 10, wallHeight: 10, floorTex: 'woodDark', wallTex: 'plaster',
@@ -87,13 +83,44 @@ const BRAND_ROOM = {
 }
 
 /**
- * Convert full admin config → rooms array with brand room inserted
- * @param {object} config - landing_hero_config row
- * @returns {object[]} rooms in endlessRooms format, with brand room interleaved
+ * Fetch published config and convert to endlessRooms format.
+ * Fetches LIVE room data from saved_rooms (not stale config snapshots).
+ * Returns null if no published config.
  */
-export function configToRooms(config) {
-  const rooms = (config.rooms || []).map(convertRoom)
-  const brandInterval = config.brand_interval || config.brandInterval || 2
+export async function fetchPublishedRooms() {
+  const { data: configs } = await supabase
+    .from('landing_hero_config')
+    .select('*')
+    .not('published_at', 'is', null)
+    .order('published_at', { ascending: false })
+    .limit(1)
+
+  const config = configs?.[0]
+  if (!config?.rooms?.length) return null
+
+  // Fetch live room data for all saved sourceIds
+  const sourceIds = config.rooms
+    .filter(r => r.sourceType === 'saved' && r.sourceId)
+    .map(r => r.sourceId)
+
+  let liveDataMap = {}
+  if (sourceIds.length > 0) {
+    const { data: liveRows } = await supabase
+      .from('saved_rooms')
+      .select('id, data')
+      .in('id', sourceIds)
+    if (liveRows) {
+      liveDataMap = Object.fromEntries(liveRows.map(r => [r.id, r.data]))
+    }
+  }
+
+  // Convert each room using live data
+  const rooms = config.rooms.map(adminRoom => {
+    const liveData = adminRoom.sourceId ? liveDataMap[adminRoom.sourceId] : null
+    return convertRoom(adminRoom, liveData)
+  })
+
+  const brandInterval = config.brand_interval || 2
   const result = []
   for (let i = 0; i < rooms.length; i++) {
     result.push(rooms[i])

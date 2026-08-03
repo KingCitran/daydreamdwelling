@@ -5,7 +5,7 @@ import { supabase } from '@shared/supabase'
 import CloudField from './landing/CloudField'
 import RotatingRoom from './landing/RotatingRoom'
 import { ROOMS_WITH_BRAND as ENDLESS_ROOMS } from './landing/endlessRooms'
-import { configToRooms } from './landing/configToRooms'
+import { fetchPublishedRooms } from './landing/configToRooms'
 import MoodSwatch from './landing/MoodSwatch'
 import WispyArt from '@shared/wispy/art'
 
@@ -68,18 +68,11 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
     sky: activeRooms[0].sky, prevSky: activeRooms[0].sky, skyKey: -1,
   }))
 
-  // Fetch published admin config — fall back to hardcoded rooms
+  // Fetch published admin config with live room data — fall back to hardcoded rooms
   useEffect(() => {
-    supabase.from('landing_hero_config')
-      .select('*')
-      .not('published_at', 'is', null)
-      .order('published_at', { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        if (data?.[0]?.rooms?.length > 0) {
-          setLiveRooms(configToRooms(data[0]))
-        }
-      })
+    fetchPublishedRooms().then(rooms => {
+      if (rooms?.length > 0) setLiveRooms(rooms)
+    })
   }, [])
 
   // Sync mood to CloudField when the sky transitions
