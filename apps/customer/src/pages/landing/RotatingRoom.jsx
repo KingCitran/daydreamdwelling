@@ -3,10 +3,11 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { ROOMS_WITH_BRAND as ROOMS } from './endlessRooms'
+import { ROOMS_WITH_BRAND as DEFAULT_ROOMS } from './endlessRooms'
 import LandingRoomScene from './LandingRoomScene'
 
-export default function RotatingRoom({ onStateChange }) {
+export default function RotatingRoom({ onStateChange, rooms: roomsProp }) {
+  const ROOMS = roomsProp || DEFAULT_ROOMS
   const [sky, setSky] = useState({ cur: 0, prev: 0, seq: 0 })
   const [captionIdx, setCaptionIdx] = useState(0)
   const tickRef = useRef()
@@ -35,7 +36,7 @@ export default function RotatingRoom({ onStateChange }) {
         style={{ background: 'transparent' }}
       >
         <Suspense fallback={null}>
-          <LandingRoomScene tickRef={tickRef} />
+          <LandingRoomScene tickRef={tickRef} rooms={ROOMS} />
         </Suspense>
       </Canvas>
     </div>

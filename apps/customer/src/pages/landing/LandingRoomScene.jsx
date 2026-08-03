@@ -4,13 +4,13 @@
 import { useRef, useState, useMemo, memo, Suspense } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { ROOMS_WITH_BRAND as ROOMS } from './endlessRooms'
+import { ROOMS_WITH_BRAND as DEFAULT_ROOMS } from './endlessRooms'
 import { MOOD_SCENE_PRESETS } from '../../scene/RoomScene'
 import { GlbModel } from '../../scene/Items'
 import { ITEM_CATALOGUE } from '../../data/items'
 import { getTexture } from '../../scene/textures'
 
-const L = ROOMS.length, DUR = 30
+const DUR = 30
 const CAM_OFFSET = 18 // same as builder
 const WALL_T = 0.28   // same as builder
 const EXT_C = '#eaf0f6' // cloud-white exterior
@@ -800,7 +800,8 @@ const HEMI_BOOST = 1.6, KEY_BOOST = 1.4, FILL_BOOST = 1.5
 const HEMI_MIN = 0.5, KEY_MIN = 0.85, FILL_MIN = 0.35
 function moodVal(base, boost, min) { return Math.max(base * boost, min) }
 
-export default function LandingRoomScene({ tickRef }) {
+export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS }) {
+  const L = ROOMS.length
   const groupRef = useRef()
   const itemsRef = useRef()
   const boardBackRef = useRef()  // back wall palette group
