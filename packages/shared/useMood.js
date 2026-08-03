@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useAuth } from './auth/AuthContext'
 import { supabase } from './supabase'
 
@@ -77,9 +77,12 @@ export function useMood(appKey = 'customer') {
   const effectiveMood = appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day'
 
   const [mood, setMoodLocal] = useState(effectiveMood)
+  const profileSynced = useRef(false)
 
-  // Sync when profile loads
+  // Sync once when profile first loads — don't override explicit setMood calls
   useEffect(() => {
+    if (!profile || profileSynced.current) return
+    profileSynced.current = true
     setMoodLocal(appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day')
   }, [profile])
 
