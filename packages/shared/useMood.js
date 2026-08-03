@@ -77,16 +77,17 @@ export function useMood(appKey = 'customer') {
   const effectiveMood = appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day'
 
   const [mood, setMoodLocal] = useState(effectiveMood)
-  const profileSynced = useRef(false)
+  const moodSetExplicitly = useRef(false)
 
-  // Sync once when profile first loads — don't override explicit setMood calls
+  // Sync when profile first loads — skip if mood was already set explicitly
+  // (e.g. by loading a room that carries its own mood)
   useEffect(() => {
-    if (!profile || profileSynced.current) return
-    profileSynced.current = true
+    if (!profile || moodSetExplicitly.current) return
     setMoodLocal(appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day')
   }, [profile])
 
   const setMood = useCallback(async (newMood) => {
+    moodSetExplicitly.current = true
     setMoodLocal(newMood)
     if (!user) return
     await supabase
