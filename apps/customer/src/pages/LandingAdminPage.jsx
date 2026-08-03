@@ -591,8 +591,19 @@ function slotsToPalette(slots) {
 
 function PaletteDesignerTab({ config, setConfig }) {
   const [sel, setSel] = useState(0)
+  const [liveThumb, setLiveThumb] = useState(null)
   const room = config.rooms[sel]
   const pal = room?.palette
+
+  // Fetch latest thumbnail from DB
+  const palRoomDbId = room?.sourceType === 'saved' ? room.sourceId : room?.savedRoomId
+  useEffect(() => {
+    setLiveThumb(null)
+    if (!palRoomDbId) return
+    supabase.from('saved_rooms').select('thumbnail_url').eq('id', palRoomDbId).single()
+      .then(({ data }) => { if (data?.thumbnail_url) setLiveThumb(data.thumbnail_url) })
+  }, [palRoomDbId])
+  const palThumb = liveThumb || room?.thumbnail
   const slots = paletteToSlots(pal)
 
   function updatePalette(newSlots) {
@@ -651,8 +662,8 @@ function PaletteDesignerTab({ config, setConfig }) {
             }
             return (
               <div style={{ display: 'flex', gap: 16, marginBottom: 16, padding: 16, background: '#fff', borderRadius: 10, border: '1px solid #e8e4de' }}>
-                {room.thumbnail ? (
-                  <img src={room.thumbnail} alt="" style={{ width: 120, height: 90, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                {palThumb ? (
+                  <img src={palThumb} alt="" style={{ width: 120, height: 90, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 120, height: 90, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: d?.wallColor || '#f0ece4', border: '1px solid #e8e4de', position: 'relative', overflow: 'hidden' }}>
@@ -765,11 +776,22 @@ function RoomPreview({ room, width = 220, height = 165 }) {
 // ── Tab 3: Room Edit Mode ───────────────────────────────────
 function RoomEditTab({ config }) {
   const [sel, setSel] = useState(0)
+  const [liveThumb, setLiveThumb] = useState(null)
   const room = config.rooms[sel]
 
   const isDefault = room?.sourceType === 'default'
   const roomDbId = room?.sourceType === 'saved' ? room.sourceId : room?.savedRoomId
   const canEdit = !!roomDbId
+
+  // Fetch latest thumbnail from DB (config snapshot may be stale)
+  useEffect(() => {
+    setLiveThumb(null)
+    if (!roomDbId) return
+    supabase.from('saved_rooms').select('thumbnail_url').eq('id', roomDbId).single()
+      .then(({ data }) => { if (data?.thumbnail_url) setLiveThumb(data.thumbnail_url) })
+  }, [roomDbId])
+
+  const thumb = liveThumb || room?.thumbnail
 
   if (!room) return <p style={{ color: '#4a6890', fontSize: 14 }}>Add rooms in the Rooms tab first.</p>
 
@@ -792,8 +814,8 @@ function RoomEditTab({ config }) {
         </div>
         <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e8e4de', padding: 24 }}>
           <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
-            {room.thumbnail ? (
-              <img src={room.thumbnail} alt="" style={{ width: 220, height: 165, borderRadius: 10, objectFit: 'cover' }} />
+            {thumb ? (
+              <img src={thumb} alt="" style={{ width: 220, height: 165, borderRadius: 10, objectFit: 'cover' }} />
             ) : (
               <RoomPreview room={room} width={220} height={165} />
             )}
