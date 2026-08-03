@@ -27,15 +27,31 @@ export default function SavedRoomsPage({ onBack }) {
     setRooms(prev => prev.filter(r => r.id !== roomId))
   }
 
+  // Chain through all rooms missing thumbnails via auto-save
+  function captureAllThumbnails() {
+    const missing = rooms.filter(r => !r.thumbnail_url)
+    if (missing.length === 0) return
+    // Store the queue in sessionStorage so each auto-save leg can pop the next
+    sessionStorage.setItem('ddd_thumb_queue', JSON.stringify(missing.slice(1).map(r => r.id)))
+    window.location.href = `/?room=${missing[0].id}&auto-save=1`
+  }
+
   function fmt(iso) {
     return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
   }
+
+  const missingThumbs = rooms.filter(r => !r.thumbnail_url).length
 
   return (
     <div style={st.page}>
       <div style={st.header}>
         <button onClick={onBack} style={st.backBtn}>← Back</button>
         <h1 style={st.title}>My Rooms</h1>
+        {missingThumbs > 0 && (
+          <button onClick={captureAllThumbnails} style={st.captureBtn}>
+            📷 Capture Thumbnails ({missingThumbs})
+          </button>
+        )}
       </div>
 
       {!user && (
@@ -95,6 +111,7 @@ const st = {
     padding: '24px 0 20px',
     borderBottom: '1px solid #2a2a3a',
     marginBottom: 32,
+    flexWrap: 'wrap',
   },
   backBtn: {
     background: 'transparent', border: '1px solid #3a3a5a', borderRadius: 8,
@@ -103,7 +120,12 @@ const st = {
   },
   title: {
     margin: 0, fontSize: 22, fontWeight: 700, color: '#e0d9ff',
-    letterSpacing: '0.3px',
+    letterSpacing: '0.3px', flex: 1,
+  },
+  captureBtn: {
+    background: '#3a5a8a30', border: '1px solid #6090ff', borderRadius: 8,
+    color: '#a0c0ff', cursor: 'pointer', padding: '8px 16px',
+    fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
   },
   empty: {
     textAlign: 'center', color: '#7878aa', fontSize: 14, marginTop: 60,

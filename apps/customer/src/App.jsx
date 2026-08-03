@@ -661,6 +661,31 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
     })()
   }, [adminRoomId, user, cloudSave])
 
+  // ── Auto-save: capture thumbnail + save, then continue queue ──
+  const autoSaveTriggered = useRef(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('auto-save') !== '1' || !adminRoomId || !cloudRoomId || autoSaveTriggered.current) return
+    autoSaveTriggered.current = true
+    // Wait for canvas to render before capturing
+    const timer = setTimeout(async () => {
+      await cloudSave.updateRoom(adminRoomId, adminRoomName || 'My Room')
+      // Pop next room from queue, or go back to rooms page
+      try {
+        const queue = JSON.parse(sessionStorage.getItem('ddd_thumb_queue') || '[]')
+        if (queue.length > 0) {
+          const nextId = queue.shift()
+          sessionStorage.setItem('ddd_thumb_queue', JSON.stringify(queue))
+          window.location.href = `/?room=${nextId}&auto-save=1`
+          return
+        }
+      } catch {}
+      sessionStorage.removeItem('ddd_thumb_queue')
+      window.location.href = '/?rooms=1'
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [adminRoomId, cloudRoomId, adminRoomName, cloudSave])
+
   // ── Shop builder mode: load existing layout + save helpers ───────
   const [shopSaving,   setShopSaving]   = useState(false)
   const [wispyGreeting, setWispyGreeting] = useState(null) // null = use DB default
