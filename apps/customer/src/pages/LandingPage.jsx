@@ -61,18 +61,18 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [submitting, setSubmitting]         = useState(false)
   const [waitlistErr, setWaitlistErr]       = useState('')
   const [waitlistCount, setWaitlistCount]   = useState(null)
-  const [liveRooms, setLiveRooms]           = useState(null)
-  const activeRooms = liveRooms || ENDLESS_ROOMS
+  const [activeRooms, setActiveRooms]        = useState(null)
+  const rooms = activeRooms || ENDLESS_ROOMS
   const [roomState, setRoomState]            = useState(() => ({
-    caption: activeRooms[0], dark: activeRooms[0].dark,
-    sky: activeRooms[0].sky, prevSky: activeRooms[0].sky, skyKey: -1,
+    caption: ENDLESS_ROOMS[0], dark: ENDLESS_ROOMS[0].dark,
+    sky: ENDLESS_ROOMS[0].sky, prevSky: ENDLESS_ROOMS[0].sky, skyKey: -1,
   }))
 
   // Fetch published admin config with live room data — fall back to hardcoded rooms
   useEffect(() => {
     fetchPublishedRooms()
-      .then(rooms => { if (rooms?.length > 0) setLiveRooms(rooms) })
-      .catch(() => {}) // fall back to hardcoded rooms on any error
+      .then(r => setActiveRooms(r?.length > 0 ? r : ENDLESS_ROOMS))
+      .catch(() => setActiveRooms(ENDLESS_ROOMS))
   }, [])
 
   // Sync mood to CloudField when the sky transitions
@@ -209,7 +209,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
         {/* Room — fills available space, camera zoom handles visual size */}
         <div style={{ width: '100%', height: 'clamp(220px, 52vh, 480px)', position: 'relative', zIndex: 10 }}>
-          <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} />
+          {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} />}
         </div>
 
         {/* Foreground cloud removed — it drifted in front of the room and looked bad */}
