@@ -336,16 +336,16 @@ function RoomPickerTab({ config, setConfig, user }) {
       const snapshot = { sourceType: 'saved', sourceId: room.id, name: room.name || 'Untitled', thumbnail: room.thumbnail_url, data: room.data }
       setConfig(c => ({ ...c, rooms: [...c.rooms, snapshot] }))
     } else {
-      // Community room — fetch the linked saved_room data so palette/edit tabs work
-      let data = null
-      if (room.room_id) {
-        const { data: saved } = await supabase.from('saved_rooms').select('data').eq('id', room.room_id).single()
-        if (saved) data = saved.data
+      // Community room — needs a linked saved_room to work on the landing page
+      if (!room.room_id) {
+        alert('This community room has no linked room data (shared before room linking was added). It can\'t be used on the landing page.')
+        return
       }
+      const { data: saved } = await supabase.from('saved_rooms').select('data').eq('id', room.room_id).single()
       const snapshot = {
         sourceType: 'community', sourceId: room.id, savedRoomId: room.room_id,
         name: room.title || 'Untitled', thumbnail: room.screenshot_url,
-        mood: room.mood, roomId: room.room_id, data,
+        mood: room.mood, roomId: room.room_id, data: saved?.data || null,
       }
       setConfig(c => ({ ...c, rooms: [...c.rooms, snapshot] }))
     }
@@ -873,7 +873,9 @@ function RoomEditTab({ config }) {
             }}>open in builder →</a>
           ) : (
             <p style={{ fontSize: 13, color: '#4a6890', margin: 0, padding: '12px 16px', background: '#f8f6f2', borderRadius: 8, border: '1px solid #e8e4de' }}>
-              Built-in default — save it to My Rooms first to edit.
+              {room.sourceType === 'community' && !room.roomId
+                ? '⚠ This community room has no linked room data — it was shared before room linking was added. It won\'t appear on the landing page.'
+                : 'Built-in default — save it to My Rooms first to edit.'}
             </p>
           )}
         </div>

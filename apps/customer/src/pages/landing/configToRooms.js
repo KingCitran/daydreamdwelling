@@ -98,27 +98,36 @@ export async function fetchPublishedRooms() {
   const config = configs?.[0]
   if (!config?.rooms?.length) return null
 
-  // Fetch live room data for all saved sourceIds
-  const sourceIds = config.rooms
+  // Collect all room IDs that need live data from saved_rooms
+  const savedIds = config.rooms
     .filter(r => r.sourceType === 'saved' && r.sourceId)
     .map(r => r.sourceId)
+  const communityRoomIds = config.rooms
+    .filter(r => r.sourceType === 'community' && r.roomId)
+    .map(r => r.roomId)
+  const allIds = [...new Set([...savedIds, ...communityRoomIds])]
 
   let liveDataMap = {}
-  if (sourceIds.length > 0) {
+  if (allIds.length > 0) {
     const { data: liveRows } = await supabase
       .from('saved_rooms')
       .select('id, data')
-      .in('id', sourceIds)
+      .in('id', allIds)
     if (liveRows) {
       liveDataMap = Object.fromEntries(liveRows.map(r => [r.id, r.data]))
     }
   }
 
-  // Convert each room using live data
-  const rooms = config.rooms.map(adminRoom => {
-    const liveData = adminRoom.sourceId ? liveDataMap[adminRoom.sourceId] : null
-    return convertRoom(adminRoom, liveData)
-  })
+  // Convert each room using live data — skip rooms with no usable data
+  const rooms = config.rooms
+    .map(adminRoom => {
+      const fetchId = adminRoom.sourceType === 'saved' ? adminRoom.sourceId : adminRoom.roomId
+      const liveData = fetchId ? liveDataMap[fetchId] : null
+      // Skip community rooms with no linked room data
+      if (!liveData && !adminRoom.data) return null
+      return convertRoom(adminRoom, liveData)
+    })
+    .filter(Boolean)
 
   const brandInterval = config.brand_interval || 2
   const result = []

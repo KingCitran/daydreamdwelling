@@ -70,9 +70,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
 
   // Fetch published admin config with live room data — fall back to hardcoded rooms
   useEffect(() => {
-    fetchPublishedRooms().then(rooms => {
-      if (rooms?.length > 0) setLiveRooms(rooms)
-    })
+    fetchPublishedRooms()
+      .then(rooms => { if (rooms?.length > 0) setLiveRooms(rooms) })
+      .catch(() => {}) // fall back to hardcoded rooms on any error
   }, [])
 
   // Sync mood to CloudField when the sky transitions
