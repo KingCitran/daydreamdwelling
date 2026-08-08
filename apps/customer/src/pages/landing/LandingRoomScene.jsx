@@ -846,8 +846,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // 0.85: Caption flips
     // 0.92+: Room swings back into view with new room
 
-    // Content opacity — furniture
-    const co = p < 0.40 ? 1 : p < 0.48 ? 1 - (p - 0.40) / 0.08 : p < 0.62 ? 0 : p < 0.70 ? (p - 0.62) / 0.08 : 1
+    // Content opacity — furniture (fade out before swap, fade in well after)
+    const co = p < 0.42 ? 1 : p < 0.50 ? 1 - (p - 0.42) / 0.08 : p < 0.68 ? 0 : p < 0.78 ? (p - 0.68) / 0.10 : 1
     coRef.current = co
     if (itemsRef.current) {
       itemsRef.current.traverse(c => {
@@ -857,9 +857,9 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // Palette boards stay at full opacity — backface culling handles visibility
 
     // Swap indices
-    const interior = (p >= 0.50 ? i + 1 : i) % L  // swap at 180° — dead center behind walls
-    const caption  = (p >= 0.50 ? i + 1 : i) % L  // sync with interior swap
-    const front    = (p >= 0.50 ? i + 1 : i) % L  // sky transitions while room is hidden
+    const interior = (p >= 0.56 ? i + 1 : i) % L  // swap at ~200° visual (with -40° offset) — deep behind walls
+    const caption  = (p >= 0.56 ? i + 1 : i) % L  // sync with interior swap
+    const front    = (p >= 0.56 ? i + 1 : i) % L  // sky transitions while room is hidden
 
     if (interior !== idx) setIdx(interior)
 
