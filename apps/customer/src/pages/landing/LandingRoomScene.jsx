@@ -863,10 +863,16 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     const caption  = (p >= 0.61 ? i + 1 : i) % L
     const front    = (p >= 0.61 ? i + 1 : i) % L
 
-    // Hide palette boards when a brand room is showing (open windows let boards peek through)
-    const isBrand = !!ROOMS[interior]?.brand
-    if (boardBackRef.current) boardBackRef.current.visible = !isBrand
-    if (boardSideRef.current) boardSideRef.current.visible = !isBrand
+    // ── Per-wall palette board visibility ──
+    // Each board shows when its wall's EXTERIOR faces the camera (palette side),
+    // and hides when the INTERIOR faces the camera (window/room side).
+    // Snap at the exact edge-on moment — neither side visible during the swap.
+    //
+    // With -40° offset, camera at 45° isometric:
+    // Back wall exterior visible: visual θ ∈ (135°, 315°) → p ∈ (0.486, 0.986)
+    // Side wall exterior visible: visual θ ∈ (45°, 225°)  → p ∈ (0.236, 0.736)
+    if (boardBackRef.current) boardBackRef.current.visible = p >= 0.486 && p <= 0.986
+    if (boardSideRef.current) boardSideRef.current.visible = p >= 0.236 && p <= 0.736
 
     if (interior !== idx) {
       // Save current colors before swap for lerping
