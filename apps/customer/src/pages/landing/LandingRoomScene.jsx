@@ -805,6 +805,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const L = ROOMS.length
   const groupRef = useRef()
   const itemsRef = useRef()
+  const wallGroupRef = useRef()   // for wall/floor color lerping
   const boardBackRef = useRef()  // back wall palette group
   const boardSideRef = useRef()  // side wall palette group
   const hemiRef = useRef()
@@ -812,6 +813,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const fillRef = useRef()
   const [idx, setIdx] = useState(0)
   const coRef = useRef(1)
+  const prevColors = useRef(null)  // colors before transition
   const boardBackRoom = useRef(0)  // which room the back palette currently shows
   const boardSideRoom = useRef(0)  // which room the side palette currently shows
   const lastKey = useRef('')
@@ -856,12 +858,43 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     }
     // Palette boards stay at full opacity — backface culling handles visibility
 
-    // Swap indices
-    const interior = (p >= 0.56 ? i + 1 : i) % L  // swap at ~200° visual (with -40° offset) — deep behind walls
-    const caption  = (p >= 0.56 ? i + 1 : i) % L  // sync with interior swap
-    const front    = (p >= 0.56 ? i + 1 : i) % L  // sky transitions while room is hidden
+    // Swap indices — interior changes at center of hidden window
+    const interior = (p >= 0.61 ? i + 1 : i) % L
+    const caption  = (p >= 0.61 ? i + 1 : i) % L
+    const front    = (p >= 0.61 ? i + 1 : i) % L
 
-    if (interior !== idx) setIdx(interior)
+    if (interior !== idx) {
+      // Save current colors before swap for lerping
+      prevColors.current = {
+        wall: hex(ROOMS[idx]?.wall), side: hex(ROOMS[idx]?.side),
+        floor: hex(ROOMS[idx]?.floor),
+      }
+      setIdx(interior)
+    }
+
+    // ── Wall/floor color lerp — smooth cross-fade during hidden window ──
+    // Both interiors hidden: visual θ ∈ (135°, 225°) → p ∈ (0.486, 0.736)
+    // Lerp all interior mesh colors from current room to next room.
+    // By the time walls reappear, colors are fully transitioned.
+    const fromIdx = (i) % L, toIdx = (i + 1) % L
+    if (p >= 0.49 && p <= 0.73 && wallGroupRef.current) {
+      const blend = Math.min(1, (p - 0.49) / 0.24)
+      const fromC = new THREE.Color(hex(ROOMS[fromIdx].wall))
+      const toC = new THREE.Color(hex(ROOMS[toIdx].wall))
+      const lerped = fromC.lerp(toC, blend)
+      const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
+      const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
+      const lerpedF = fromF.lerp(toF, blend)
+      wallGroupRef.current.traverse(c => {
+        if (c.isMesh && c.material && !c.material.metalness) {
+          // Floor meshes are horizontal (rotation-x = -PI/2), walls are vertical
+          if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
+          else c.material.color.copy(lerped)
+        }
+      })
+    }
+
+    // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
 
     // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
     // With the -40° initialAngle offset, palette boards are fully hidden
@@ -947,10 +980,12 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
       <group ref={groupRef}
         rotation={reduced ? [0, -Math.PI / 5, 0] : [0, 0, 0]}>
-        <LandingFloor gridW={gridW} gridD={gridD} color={hex(room.floor)} texType={room.floorTex} />
-        <LandingWalls gridW={gridW} gridD={gridD} wallHeight={wallHeight}
-          wallColor={hex(room.wall)} sideColor={hex(room.side)} wallTexType={room.wallTex}
-          skipInteriorFaces={!!room.brand} />
+        <group ref={wallGroupRef}>
+          <LandingFloor gridW={gridW} gridD={gridD} color={hex(room.floor)} texType={room.floorTex} />
+          <LandingWalls gridW={gridW} gridD={gridD} wallHeight={wallHeight}
+            wallColor={hex(room.wall)} sideColor={hex(room.side)} wallTexType={room.wallTex}
+            skipInteriorFaces={!!room.brand} />
+        </group>
 
         {/* Wall decor — window + art (inside the items group so they fade with furniture) */}
         <group ref={itemsRef}>
