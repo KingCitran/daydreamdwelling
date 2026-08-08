@@ -82,18 +82,18 @@ function convertRoom(adminRoom, liveData) {
 }
 
 const BRAND_ROOM = {
-  name: 'DaydreamDwelling', mood: 'Bright Day', accent: '#a9744a', dark: false, brand: true,
+  name: 'DaydreamDwelling', mood: 'Dream State', accent: '#9870c0', dark: false, brand: true,
   gridW: 10, gridD: 10, wallHeight: 10, floorTex: 'woodDark', wallTex: 'plaster',
-  sky: 'linear-gradient(180deg,#3a6fb8,#a8c8e4 55%,#ffe4c0)',
-  wall: 'linear-gradient(160deg,#f6efe2,#ede1cc)', side: 'linear-gradient(160deg,#f0e6d4,#e4d5bc)',
-  floor: 'linear-gradient(160deg,#bd8a52,#96683a)',
-  seat: 'linear-gradient(180deg,#c08a4e,#96662f)', seatType: 'none', feature: 'dWindows',
-  table: 'linear-gradient(180deg,#bd8a52,#8a5f34)', shade: 'radial-gradient(ellipse at 50% 30%,#fff6e0,#f0d9ac)',
-  art: 'linear-gradient(160deg,#c89a62,#a9744a)', plant: '#8aa06a',
+  sky: 'linear-gradient(180deg,#ffe8d0,#ffd8d0 35%,#e8c8e0 65%,#a890d4)',
+  wall: 'linear-gradient(160deg,#f0e8f4,#e4d8ee)', side: 'linear-gradient(160deg,#ece0f0,#d8c8e4)',
+  floor: 'linear-gradient(160deg,#d8c4b0,#b8a490)',
+  seat: 'linear-gradient(180deg,#c8a8d0,#a880b8)', seatType: 'none', feature: 'dWindows',
+  table: 'linear-gradient(180deg,#d8c8b8,#b8a898)', shade: 'radial-gradient(ellipse at 50% 30%,#f8e8ff,#d8c0e8)',
+  art: 'linear-gradient(160deg,#c8a0d8,#9868b0)', plant: '#88a878',
   items: [],
-  palette: { chips: ['#f6efe2','#e6d0ae','#bd8a52','#7a5a34'],
-    fab: [['#dcb98a','rgba(150,105,60,0.28)'],['#c89a62','rgba(120,80,40,0.28)'],['#efe2cc','rgba(150,120,80,0.22)']],
-    lamp: 'radial-gradient(circle at 35% 30%,#fff6e0,#f0d9ac)', wood: ['#bd8a52','#8a5f34'], dot: 'linear-gradient(135deg,#dcb98a,#bd8a52)' },
+  palette: { chips: ['#f0e8f4','#d8c4b0','#9870c0','#88a878'],
+    fab: [['#c8a8d0','rgba(120,80,150,0.22)'],['#b898c4','rgba(100,60,130,0.25)'],['#d8c8b8','rgba(140,120,100,0.20)']],
+    lamp: 'radial-gradient(circle at 35% 30%,#f8e8ff,#d8c0e8)', wood: ['#d8c8b8','#b8a898'], dot: 'linear-gradient(135deg,#c8a0d8,#9868b0)' },
   brandBack: 'Daydream Dwelling',
   brandSide: '✦ every room, in every light',
 }
@@ -145,8 +145,9 @@ export async function fetchPublishedRooms() {
     })
     .filter(Boolean)
 
+  // Always start with brand room, then interleave after every N rooms
   const brandInterval = config.brand_interval || 2
-  const result = []
+  const result = [BRAND_ROOM]
   for (let i = 0; i < rooms.length; i++) {
     result.push(rooms[i])
     if ((i + 1) % brandInterval === 0) result.push(BRAND_ROOM)
