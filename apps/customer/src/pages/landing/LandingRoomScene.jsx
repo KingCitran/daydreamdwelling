@@ -796,7 +796,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const L = ROOMS.length
   const groupRef = useRef()
   const itemsRef = useRef()
-  const wallGroupRef = useRef()   // for wall/floor color lerping
+  const wallGroupRef = useRef()   // LandingWalls + Floor — for color lerping
+  const wallDecorRef = useRef()   // WallDecor (D-walls, window frames) — also lerped
   const boardBackRef = useRef()  // back wall palette group
   const boardSideRef = useRef()  // side wall palette group
   const hemiRef = useRef()
@@ -839,14 +840,14 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // 0.85: Caption flips
     // 0.92+: Room swings back into view with new room
 
-    // Content opacity — furniture (fade out before swap, fade in well after)
+    // Content opacity — furniture + wall decor (fade out before swap, fade in well after)
     const co = p < 0.42 ? 1 : p < 0.50 ? 1 - (p - 0.42) / 0.08 : p < 0.68 ? 0 : p < 0.78 ? (p - 0.68) / 0.10 : 1
     coRef.current = co
-    if (itemsRef.current) {
-      itemsRef.current.traverse(c => {
-        if (c.isMesh && c.material) { c.material.opacity = co; c.material.transparent = co < 1 }
-      })
-    }
+    const fadeContent = (ref) => ref?.current?.traverse(c => {
+      if (c.isMesh && c.material) { c.material.opacity = co; c.material.transparent = co < 1 }
+    })
+    fadeContent(itemsRef)
+    fadeContent(wallDecorRef)
     // Palette boards stay at full opacity — backface culling handles visibility
 
     // Swap indices — interior changes at center of hidden window
@@ -887,13 +888,15 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
       const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
       const lerpedF = fromF.clone().lerp(toF, blend)
-      // Lerp wallGroup only (LandingWalls + Floor) — NOT itemsRef which has furniture
-      wallGroupRef.current?.traverse(c => {
+      // Lerp walls + floor + wall decor (D-walls, window frames) — NOT furniture
+      const lerpSurface = (ref) => ref?.current?.traverse(c => {
         if (c.isMesh && c.material && !c.material.metalness) {
           if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
           else c.material.color.copy(lerped)
         }
       })
+      lerpSurface(wallGroupRef)
+      lerpSurface(wallDecorRef)
     }
 
     // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
@@ -989,9 +992,13 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
             skipInteriorFaces={!!room.brand} />
         </group>
 
-        {/* Wall decor — window + art (inside the items group so they fade with furniture) */}
-        <group ref={itemsRef}>
+        {/* Wall decor — separate ref so wall color lerp can target it without hitting furniture */}
+        <group ref={wallDecorRef}>
           <WallDecor room={room} />
+        </group>
+
+        {/* Furniture items — fades independently, never color-lerped */}
+        <group ref={itemsRef}>
           {room.items.map((item, i) => (
             <LandingItem key={`${idx}-${i}`} {...item} gridW={gridW} gridD={gridD} />
           ))}
