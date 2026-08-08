@@ -118,7 +118,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       {/* Back wall — always renders a solid exterior box so it never disappears
           during transitions. Brand rooms layer D-hole walls on top via WallDecor.
           Regular rooms add window cutout pieces + interior faces. */}
-      <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow>
+      <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
         <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
@@ -192,7 +192,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       })()}
 
       {/* Left wall — box always renders, interior face only for regular rooms */}
-      <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow>
+      <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow userData={{ wallBox: 'side' }}>
         <boxGeometry args={[WALL_T, wallHeight, gridD]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
@@ -870,6 +870,15 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // Side wall exterior visible: visual θ ∈ (45°, 225°)  → p ∈ (0.236, 0.736)
     if (boardBackRef.current) boardBackRef.current.visible = p >= 0.486 && p <= 0.986
     if (boardSideRef.current) boardSideRef.current.visible = p >= 0.236 && p <= 0.736
+
+    // ── Wall box visibility — INVERSE of palette boards ──
+    // Wall boxes hide when interior faces camera (so windows/D-holes show sky),
+    // and show when exterior faces camera (backing for palette boards).
+    // Geometry stays mounted — only visibility toggles, no React unmounting.
+    wallGroupRef.current?.traverse(c => {
+      if (c.userData?.wallBox === 'back') c.visible = p >= 0.486 && p <= 0.986
+      else if (c.userData?.wallBox === 'side') c.visible = p >= 0.236 && p <= 0.736
+    })
 
     if (interior !== idx) {
       // Save current colors before swap for lerping
