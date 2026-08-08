@@ -208,7 +208,11 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         </h1>
 
         {/* Room — fills available space, camera zoom handles visual size */}
-        <div style={{ width: '100%', height: 'clamp(220px, 52vh, 480px)', position: 'relative', zIndex: 10 }}>
+        <div style={{
+          width: '100%', height: 'clamp(220px, 52vh, 480px)', position: 'relative', zIndex: 10,
+          opacity: activeRooms ? 1 : 0,
+          transition: 'opacity 1.2s ease-in',
+        }}>
           {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} />}
         </div>
 
