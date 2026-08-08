@@ -858,8 +858,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
     // Swap indices
     const interior = (p >= 0.50 ? i + 1 : i) % L  // swap at 180° — dead center behind walls
-    const caption  = (p >= 0.85 ? i + 1 : i) % L  // sync with sky transition
-    const front    = (p >= 0.85 ? i + 1 : i) % L
+    const caption  = (p >= 0.50 ? i + 1 : i) % L  // sync with interior swap
+    const front    = (p >= 0.50 ? i + 1 : i) % L  // sky transitions while room is hidden
 
     if (interior !== idx) setIdx(interior)
 
