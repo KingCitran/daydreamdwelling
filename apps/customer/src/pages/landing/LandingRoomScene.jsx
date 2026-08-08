@@ -902,9 +902,9 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
       const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
       const lerpedF = fromF.clone().lerp(toF, blend)
-      // Lerp walls + floor + wall decor (D-walls, window frames) — NOT furniture
+      // Lerp interior walls + floor + wall decor — skip exterior wall boxes (tagged wallBox)
       const lerpSurface = (ref) => ref?.current?.traverse(c => {
-        if (c.isMesh && c.material && !c.material.metalness) {
+        if (c.isMesh && c.material && !c.material.metalness && !c.userData?.wallBox) {
           if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
           else c.material.color.copy(lerped)
         }
