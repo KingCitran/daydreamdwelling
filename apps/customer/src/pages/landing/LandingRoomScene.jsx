@@ -835,18 +835,18 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // All swaps happen at p≈0.50 (180°) when the L-walls maximally block
     // the interior from the isometric camera. Nothing changes while visible.
     //
-    // 0.00-0.36: Room faces viewer — fully visible, enjoy the scene
-    // 0.36-0.40: Items fade out (walls starting to occlude)
-    // 0.40-0.60: HIDDEN WINDOW — walls block interior, all swaps here
-    //   0.45: interior items + wall colors swap
-    //   0.50: (boards still showing current room's palette — recap)
-    // 0.56-0.64: Items fade back in (still behind walls)
-    // 0.62-0.88: Sky + lighting cross-fade (slow, dreamy)
-    // 0.82: Caption flips (sky is mid-fade, room not yet visible)
-    // 0.88+: Room swings back into view with new room
+    // ── Timeline (pushed late — L-walls stay visible longer than a box) ──
+    // 0.00-0.40: Room faces viewer — fully visible, enjoy the scene
+    // 0.40-0.48: Items fade out (walls occluding interior)
+    // 0.48-0.68: HIDDEN WINDOW — walls fully block interior
+    //   0.50: interior items + wall colors swap (dead center, 180°)
+    // 0.62-0.70: Items fade back in (still behind walls)
+    // 0.70-0.92: Sky + lighting cross-fade
+    // 0.85: Caption flips
+    // 0.92+: Room swings back into view with new room
 
     // Content opacity — furniture
-    const co = p < 0.30 ? 1 : p < 0.38 ? 1 - (p - 0.30) / 0.08 : p < 0.50 ? 0 : p < 0.60 ? (p - 0.50) / 0.10 : 1
+    const co = p < 0.40 ? 1 : p < 0.48 ? 1 - (p - 0.40) / 0.08 : p < 0.62 ? 0 : p < 0.70 ? (p - 0.62) / 0.08 : 1
     coRef.current = co
     if (itemsRef.current) {
       itemsRef.current.traverse(c => {
@@ -855,11 +855,10 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     }
     // Palette boards stay at full opacity — backface culling handles visibility
 
-    // Swap indices — pushed later than the CSS spec to account for
-    // the L-shaped room being visible longer than a closed box
-    const interior = (p >= 0.42 ? i + 1 : i) % L  // swap after items fully hidden
-    const caption  = (p >= 0.82 ? i + 1 : i) % L  // sync with sky transition
-    const front    = (p >= 0.82 ? i + 1 : i) % L
+    // Swap indices
+    const interior = (p >= 0.50 ? i + 1 : i) % L  // swap at 180° — dead center behind walls
+    const caption  = (p >= 0.85 ? i + 1 : i) % L  // sync with sky transition
+    const front    = (p >= 0.85 ? i + 1 : i) % L
 
     if (interior !== idx) setIdx(interior)
 
@@ -890,11 +889,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       }
     }
 
-    // Lighting lerp — cross-fade during the hidden window (0.40-0.60)
-    // so lighting is already set for the new room when it swings into view
-    if (p < 0.40) { lightFrom.current = i % L; lightTo.current = i % L }
+    // Lighting lerp — cross-fade during hidden window (0.48-0.70)
+    // so new room's lighting is set when it swings back into view
+    if (p < 0.48) { lightFrom.current = i % L; lightTo.current = i % L }
     else { lightFrom.current = i % L; lightTo.current = (i + 1) % L }
-    const lb = p < 0.40 ? 0 : p > 0.60 ? 1 : (p - 0.40) / 0.20
+    const lb = p < 0.48 ? 0 : p > 0.70 ? 1 : (p - 0.48) / 0.22
     if (lb > 0 && lb < 1) {
       // Only lerp during the active transition
       const mA = MOOD_SCENE_PRESETS[ROOMS[lightFrom.current].mood] || MOOD_SCENE_PRESETS['Bright Day']
