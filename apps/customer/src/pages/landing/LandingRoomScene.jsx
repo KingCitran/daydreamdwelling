@@ -913,32 +913,30 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       lerpSurface(wallDecorRef)
     }
 
-    // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
-
-    // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
-    // With the -40° initialAngle offset, palette boards are fully hidden
-    // when the room faces forward. Swap early in the cycle while the
-    // interior is on display and boards are backface-culled.
+    // ── Palette colors — enforced EVERY frame ──
+    // React re-renders can reset material colors at any time (R3F reconciliation).
+    // Instead of snapping once at a trigger point, we enforce the correct palette
+    // colors every single frame. The palTarget index updates at p=0.15 (when
+    // boards are hidden), but colors are continuously applied so any React
+    // re-render is immediately overwritten.
     const palTarget = (p >= 0.15 ? i : (i + L - 1) % L) % L
-    if (palTarget !== boardBackRoom.current) {
-      boardBackRoom.current = palTarget
-      boardSideRoom.current = palTarget
-      const pal = ROOMS[palTarget]?.palette
-      if (pal) {
-        const snap = (ref) => ref?.current?.traverse(c => {
-          if (!c.isMesh || !c.userData?.pt) return
-          const { pt, idx: ci, which } = c.userData
-          if (pt === 'chip' && ci < 4) c.material.color.set(pal.chips[ci] || '#888')
-          else if (pt === 'chip' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
-          else if (pt === 'fab' && ci < 4) c.material.color.set(pal.fab[ci]?.[0] || '#888')
-          else if (pt === 'fab' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
-          else if (pt === 'dot') c.material.color.set(which === 'lamp' ? hex(pal.lamp) : hex(pal.dot))
-          else if (pt === 'wood') c.material.color.set(pal.wood[0])
-          else if (pt === 'paper' || pt === 'paper_side') c.material.color.set(pal.chips[0])
-        })
-        snap(boardBackRef)
-        snap(boardSideRef)
-      }
+    boardBackRoom.current = palTarget
+    boardSideRoom.current = palTarget
+    const pal = ROOMS[palTarget]?.palette
+    if (pal) {
+      const enforce = (ref) => ref?.current?.traverse(c => {
+        if (!c.isMesh || !c.userData?.pt) return
+        const { pt, idx: ci, which } = c.userData
+        if (pt === 'chip' && ci < 4) c.material.color.set(pal.chips[ci] || '#888')
+        else if (pt === 'chip' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
+        else if (pt === 'fab' && ci < 4) c.material.color.set(pal.fab[ci]?.[0] || '#888')
+        else if (pt === 'fab' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
+        else if (pt === 'dot') c.material.color.set(which === 'lamp' ? hex(pal.lamp) : hex(pal.dot))
+        else if (pt === 'wood') c.material.color.set(pal.wood[0])
+        else if (pt === 'paper' || pt === 'paper_side') c.material.color.set(pal.chips[0])
+      })
+      enforce(boardBackRef)
+      enforce(boardSideRef)
     }
 
     // Lighting lerp — cross-fade during hidden window (0.48-0.70)
