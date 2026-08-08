@@ -6,7 +6,7 @@ import { Canvas } from '@react-three/fiber'
 import { ROOMS_WITH_BRAND as DEFAULT_ROOMS } from './endlessRooms'
 import LandingRoomScene from './LandingRoomScene'
 
-export default function RotatingRoom({ onStateChange, rooms: roomsProp }) {
+export default function RotatingRoom({ onStateChange, rooms: roomsProp, startDelay = 0 }) {
   const ROOMS = roomsProp || DEFAULT_ROOMS
   const [sky, setSky] = useState({ cur: 0, prev: 0, seq: 0 })
   const [captionIdx, setCaptionIdx] = useState(0)
@@ -36,7 +36,7 @@ export default function RotatingRoom({ onStateChange, rooms: roomsProp }) {
         style={{ background: 'transparent' }}
       >
         <Suspense fallback={null}>
-          <LandingRoomScene tickRef={tickRef} rooms={ROOMS} />
+          <LandingRoomScene tickRef={tickRef} rooms={ROOMS} startDelay={startDelay} />
         </Suspense>
       </Canvas>
     </div>

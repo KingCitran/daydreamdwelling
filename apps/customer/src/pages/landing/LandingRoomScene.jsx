@@ -800,7 +800,7 @@ const HEMI_BOOST = 1.6, KEY_BOOST = 1.4, FILL_BOOST = 1.5
 const HEMI_MIN = 0.5, KEY_MIN = 0.85, FILL_MIN = 0.35
 function moodVal(base, boost, min) { return Math.max(base * boost, min) }
 
-export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS }) {
+export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS, startDelay = 0 }) {
   const L = ROOMS.length
   const groupRef = useRef()
   const itemsRef = useRef()
@@ -824,7 +824,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
   useFrame(({ clock }) => {
     if (reduced) return
-    const t = clock.getElapsedTime()
+    const raw = clock.getElapsedTime()
+    const t = Math.max(0, raw - startDelay)
     const i = Math.floor(t / DUR), p = (t % DUR) / DUR
 
     // Spin
