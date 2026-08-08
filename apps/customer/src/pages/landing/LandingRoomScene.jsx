@@ -887,15 +887,13 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
       const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
       const lerpedF = fromF.clone().lerp(toF, blend)
-      // Lerp both wallGroup (LandingWalls + Floor) and itemsGroup (WallDecor D-walls)
-      const lerpMeshes = (ref) => ref?.current?.traverse(c => {
+      // Lerp wallGroup only (LandingWalls + Floor) — NOT itemsRef which has furniture
+      wallGroupRef.current?.traverse(c => {
         if (c.isMesh && c.material && !c.material.metalness) {
           if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
           else c.material.color.copy(lerped)
         }
       })
-      lerpMeshes(wallGroupRef)
-      lerpMeshes(itemsRef)
     }
 
     // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
