@@ -227,7 +227,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           opacity: roomVisible ? 1 : 0,
           transition: 'opacity 2s ease-in-out',
         }}>
-          {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} startDelay={2.5} />}
+          {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} startDelay={1.8} />}
         </div>
 
         {/* Foreground cloud removed — it drifted in front of the room and looked bad */}
