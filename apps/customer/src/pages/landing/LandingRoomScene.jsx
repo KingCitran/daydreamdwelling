@@ -115,9 +115,15 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
   }
   return (
     <group>
-      {/* Back wall — window cutout for regular rooms, skipped entirely for brand
-          rooms (WallDecor renders D-hole walls, solid box here would block them). */}
-      {skipInteriorFaces ? null : (() => {
+      {/* Back wall — always renders a solid exterior box so it never disappears
+          during transitions. Brand rooms layer D-hole walls on top via WallDecor.
+          Regular rooms add window cutout pieces + interior faces. */}
+      <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow>
+        <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
+        <meshStandardMaterial {...extProps}
+          {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
+      </mesh>
+      {!skipInteriorFaces && (() => {
         const winY = wallHeight * WIN_Y_FRAC
         // Wall bounds — LEFT extends to -hw-WALL_T to fully cover the left wall edge (no spine)
         const wallL = -hw - WALL_T, wallR = hw
@@ -185,18 +191,17 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
         </>)
       })()}
 
-      {/* Left wall — skipped for brand rooms (WallDecor renders D-hole walls) */}
+      {/* Left wall — box always renders, interior face only for regular rooms */}
+      <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow>
+        <boxGeometry args={[WALL_T, wallHeight, gridD]} />
+        <meshStandardMaterial {...extProps}
+          {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
+      </mesh>
       {!skipInteriorFaces && (
-        <>
-          <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow>
-            <boxGeometry args={[WALL_T, wallHeight, gridD]} />
-            <meshStandardMaterial {...extProps} />
-          </mesh>
-          <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
-            <planeGeometry args={[gridD, wallHeight]} />
-            <meshStandardMaterial {...intProps} color={intProps.color || sideColor} />
-          </mesh>
-        </>
+        <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
+          <planeGeometry args={[gridD, wallHeight]} />
+          <meshStandardMaterial {...intProps} color={intProps.color || sideColor} />
+        </mesh>
       )}
 
       {/* ── Brass gilding — 45° mitered corners ── */}
