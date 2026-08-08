@@ -1,7 +1,7 @@
 // Landing room scene — uses the ACTUAL builder rendering (same orthographic
 // camera, same lighting, same GlbModel) so it looks identical to the product.
 
-import { useRef, useState, useMemo, memo, Suspense } from 'react'
+import { useRef, useState, useMemo, memo, Suspense, forwardRef, useImperativeHandle } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ROOMS_WITH_BRAND as DEFAULT_ROOMS } from './endlessRooms'
@@ -746,6 +746,27 @@ const PaletteSide3D = memo(function PaletteSide3D({ room, gridW, gridD, wallHeig
   )
 })
 
+// ── Isolated palette board container ──────────────────────────
+// Rendered once, never re-renders. Parent's useFrame accesses the
+// board group refs via imperative handle to toggle visibility and
+// enforce palette colors. React re-renders from idx state changes
+// cannot touch these boards.
+const PaletteBoards = memo(forwardRef(function PaletteBoards({ initialRoom, gridW, gridD, wallHeight }, ref) {
+  const backRef = useRef()
+  const sideRef = useRef()
+  useImperativeHandle(ref, () => ({ back: backRef, side: sideRef }), [])
+  return (
+    <>
+      <group ref={backRef}>
+        <PaletteBack3D room={initialRoom} gridW={gridW} wallHeight={wallHeight} />
+      </group>
+      <group ref={sideRef}>
+        <PaletteSide3D room={initialRoom} gridW={gridW} gridD={gridD} wallHeight={wallHeight} />
+      </group>
+    </>
+  )
+}), () => true) // always return true = never re-render
+
 // ── Single item — reuses the builder's GlbModel ─────────────
 // Lamp items also emit a warm point light for mood lighting.
 const LAMP_TYPES = new Set(['floorLamp', 'tableLamp', 'deskLamp'])
@@ -803,16 +824,14 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const itemsRef = useRef()
   const wallGroupRef = useRef()   // LandingWalls + Floor — for color lerping
   const wallDecorRef = useRef()   // WallDecor (D-walls, window frames) — also lerped
-  const boardBackRef = useRef()  // back wall palette group
-  const boardSideRef = useRef()  // side wall palette group
+  const paletteBoardsRef = useRef() // isolated palette boards (never re-renders)
   const hemiRef = useRef()
   const keyRef = useRef()
   const fillRef = useRef()
   const [idx, setIdx] = useState(0)
   const coRef = useRef(1)
   const prevColors = useRef(null)  // colors before transition
-  const boardBackRoom = useRef(0)  // which room the back palette currently shows
-  const boardSideRoom = useRef(0)  // which room the side palette currently shows
+  // boardBackRoom/boardSideRoom refs removed — palette colors are enforced every frame
   const lastKey = useRef('')
   const lightFrom = useRef(0)
   const lightTo = useRef(0)
@@ -868,8 +887,9 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // With -40° offset, camera at 45° isometric:
     // Back wall exterior visible: visual θ ∈ (135°, 315°) → p ∈ (0.486, 0.986)
     // Side wall exterior visible: visual θ ∈ (45°, 225°)  → p ∈ (0.236, 0.736)
-    if (boardBackRef.current) boardBackRef.current.visible = p >= 0.486 && p <= 0.986
-    if (boardSideRef.current) boardSideRef.current.visible = p >= 0.236 && p <= 0.736
+    const boards = paletteBoardsRef.current
+    if (boards?.back?.current) boards.back.current.visible = p >= 0.486 && p <= 0.986
+    if (boards?.side?.current) boards.side.current.visible = p >= 0.236 && p <= 0.736
 
     // ── Wall box visibility — INVERSE of palette boards ──
     // Wall boxes hide when interior faces camera (so windows/D-holes show sky),
@@ -920,8 +940,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // boards are hidden), but colors are continuously applied so any React
     // re-render is immediately overwritten.
     const palTarget = (p >= 0.15 ? i : (i + L - 1) % L) % L
-    boardBackRoom.current = palTarget
-    boardSideRoom.current = palTarget
+    // palTarget tracked per-frame, no need for separate refs
     const pal = ROOMS[palTarget]?.palette
     if (pal) {
       const enforce = (ref) => ref?.current?.traverse(c => {
@@ -935,8 +954,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
         else if (pt === 'wood') c.material.color.set(pal.wood[0])
         else if (pt === 'paper' || pt === 'paper_side') c.material.color.set(pal.chips[0])
       })
-      enforce(boardBackRef)
-      enforce(boardSideRef)
+      if (boards?.back) enforce(boards.back)
+      if (boards?.side) enforce(boards.side)
     }
 
     // Lighting lerp — cross-fade during hidden window (0.48-0.70)
@@ -1016,13 +1035,9 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
           ))}
         </group>
 
-        {/* Palette boards — each wall swaps independently when backface-culled */}
-        <group ref={boardBackRef}>
-          <PaletteBack3D room={ROOMS[0]} gridW={gridW} wallHeight={wallHeight} />
-        </group>
-        <group ref={boardSideRef}>
-          <PaletteSide3D room={ROOMS[0]} gridW={gridW} gridD={gridD} wallHeight={wallHeight} />
-        </group>
+        {/* Palette boards — isolated from parent re-renders */}
+        <PaletteBoards ref={paletteBoardsRef}
+          initialRoom={ROOMS[0]} gridW={gridW} gridD={gridD} wallHeight={wallHeight} />
       </group>
     </>
   )
