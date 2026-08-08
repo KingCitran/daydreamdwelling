@@ -874,14 +874,10 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     fadeContent(wallDecorRef)
     // Palette boards stay at full opacity — backface culling handles visibility
 
-    // Swap indices:
-    // - interior: changes at p=0.61 (behind walls, items hidden)
-    // - caption/front: changes at p=0.15 (room front-facing, boards hidden)
-    //   This ensures the caption never snaps while palette boards are visible.
-    //   By the time boards appear (~p=0.33), caption already matches new palette.
+    // Swap indices
     const interior = (p >= 0.61 ? i + 1 : i) % L
-    const caption  = (p >= 0.15 ? i : (i + L - 1) % L) % L
-    const front    = (p >= 0.15 ? i : (i + L - 1) % L) % L
+    const caption  = (p >= 0.61 ? i + 1 : i) % L
+    const front    = (p >= 0.61 ? i + 1 : i) % L
 
     // ── Per-wall palette board visibility ──
     // Each board shows when its wall's EXTERIOR faces the camera (palette side),
@@ -938,13 +934,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     }
 
     // ── Palette colors — enforced EVERY frame ──
-    // React re-renders can reset material colors at any time (R3F reconciliation).
-    // Instead of snapping once at a trigger point, we enforce the correct palette
-    // colors every single frame. The palTarget index updates at p=0.15 (when
-    // boards are hidden), but colors are continuously applied so any React
-    // re-render is immediately overwritten.
-    const palTarget = (p >= 0.15 ? i : (i + L - 1) % L) % L
-    // palTarget tracked per-frame, no need for separate refs
+    // Palette colors enforced every frame. palTarget changes at p=0.03 —
+    // room is dead center front-facing, boards are fully behind walls.
+    // Board overhang extends past wall edges so they peek into view earlier
+    // than the wall normal angle suggests — p=0.03 is safe.
+    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
     const pal = ROOMS[palTarget]?.palette
     if (pal) {
       const enforce = (ref) => ref?.current?.traverse(c => {
