@@ -863,6 +863,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     const caption  = (p >= 0.61 ? i + 1 : i) % L
     const front    = (p >= 0.61 ? i + 1 : i) % L
 
+    // Hide palette boards when a brand room is showing (open windows let boards peek through)
+    const isBrand = !!ROOMS[interior]?.brand
+    if (boardBackRef.current) boardBackRef.current.visible = !isBrand
+    if (boardSideRef.current) boardSideRef.current.visible = !isBrand
+
     if (interior !== idx) {
       // Save current colors before swap for lerping
       prevColors.current = {
