@@ -987,12 +987,9 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
         rotation={reduced ? [0, -Math.PI / 5, 0] : [0, 0, 0]}>
         <group ref={wallGroupRef}>
           <LandingFloor gridW={gridW} gridD={gridD} color={hex(room.floor)} texType={room.floorTex} />
-          {/* Brand room renders its own walls with D-holes in WallDecor — skip LandingWalls
-              so the solid exterior box doesn't block the open windows */}
-          {!room.brand && (
-            <LandingWalls gridW={gridW} gridD={gridD} wallHeight={wallHeight}
-              wallColor={hex(room.wall)} sideColor={hex(room.side)} wallTexType={room.wallTex} />
-          )}
+          <LandingWalls gridW={gridW} gridD={gridD} wallHeight={wallHeight}
+            wallColor={hex(room.wall)} sideColor={hex(room.side)} wallTexType={room.wallTex}
+            skipInteriorFaces={!!room.brand} />
         </group>
 
         {/* Wall decor — window + art (inside the items group so they fade with furniture) */}
