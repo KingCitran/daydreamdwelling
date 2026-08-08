@@ -858,16 +858,17 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // Swap indices — pushed later than the CSS spec to account for
     // the L-shaped room being visible longer than a closed box
     const interior = (p >= 0.42 ? i + 1 : i) % L  // swap after items fully hidden
-    const caption  = (p >= 0.75 ? i + 1 : i) % L  // sync with palette snap + sky
-    const front    = (p >= 0.75 ? i + 1 : i) % L
+    const caption  = (p >= 0.82 ? i + 1 : i) % L  // sync with sky transition
+    const front    = (p >= 0.82 ? i + 1 : i) % L
 
     if (interior !== idx) setIdx(interior)
 
-    // ── Palette swap — both walls at p=0.75 ──
-    // At p=0.75 (270° rotation), BOTH palette walls are backface-culled
-    // simultaneously (both normals point away from the 45° isometric camera).
-    // Snap all colors in one frame — no lerp, no visible change.
-    const palTarget = (p >= 0.75 ? i + 1 : i) % L
+    // ── Palette swap — both walls at p=0.92 ──
+    // At p=0.92 (~330° rotation), the interior is facing the camera and
+    // BOTH palette walls are fully backface-culled — swap is invisible.
+    // Pushed from 0.75 to 0.92 because boards were still partially
+    // visible at 270° in the isometric view.
+    const palTarget = (p >= 0.92 ? i + 1 : i) % L
     if (palTarget !== boardBackRoom.current) {
       boardBackRoom.current = palTarget
       boardSideRoom.current = palTarget
@@ -889,10 +890,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       }
     }
 
-    // Lighting lerp — only update lights during the transition window
-    if (p < 0.75) { lightFrom.current = i % L; lightTo.current = i % L }
+    // Lighting lerp — cross-fade during the hidden window (0.40-0.60)
+    // so lighting is already set for the new room when it swings into view
+    if (p < 0.40) { lightFrom.current = i % L; lightTo.current = i % L }
     else { lightFrom.current = i % L; lightTo.current = (i + 1) % L }
-    const lb = p < 0.75 ? 0 : p > 0.95 ? 1 : (p - 0.75) / 0.20
+    const lb = p < 0.40 ? 0 : p > 0.60 ? 1 : (p - 0.40) / 0.20
     if (lb > 0 && lb < 1) {
       // Only lerp during the active transition
       const mA = MOOD_SCENE_PRESETS[ROOMS[lightFrom.current].mood] || MOOD_SCENE_PRESETS['Bright Day']

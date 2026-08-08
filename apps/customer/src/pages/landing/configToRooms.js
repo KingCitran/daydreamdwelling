@@ -34,6 +34,19 @@ function darken(hex, amt = 20) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
+// Auto-generate palette from room data (wall/floor colors + accent)
+function autoPalette(d, accent) {
+  const wc = d.wallColor || '#f0ece4'
+  const fc = d.floorColor || '#d8c4a8'
+  return {
+    chips: [wc, fc, accent, darken(fc, 40)],
+    fab: [[darken(wc, 30), 'rgba(120,100,70,0.25)'], [accent, 'rgba(100,80,50,0.25)'], [fc, 'rgba(110,90,60,0.25)']],
+    lamp: `radial-gradient(circle at 35% 30%,${wc},${fc})`,
+    wood: [fc, darken(fc, 30)],
+    dot: `linear-gradient(135deg,${fc},${accent})`,
+  }
+}
+
 function convertRoom(adminRoom, liveData) {
   // Use live data from saved_rooms if available, fall back to config snapshot
   const d = liveData || (adminRoom.data ? (typeof adminRoom.data === 'string' ? JSON.parse(adminRoom.data) : adminRoom.data) : {})
@@ -42,6 +55,9 @@ function convertRoom(adminRoom, liveData) {
   const accent = MOOD_ACCENTS[mood] || '#a9744a'
   const wc = d.wallColor || '#f0ece4'
   const fc = d.floorColor || '#d8c4a8'
+
+  // Use custom palette if set, otherwise auto-generate from room colors
+  const palette = adminRoom.palette || autoPalette(d, accent)
 
   return {
     name: adminRoom.name || 'Untitled',
@@ -61,7 +77,7 @@ function convertRoom(adminRoom, liveData) {
     seat: grad(darken(wc, 30)),
     feature: 'window',
     items: d.items || [],
-    palette: adminRoom.palette || null,
+    palette,
   }
 }
 
