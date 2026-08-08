@@ -62,17 +62,29 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
   const [waitlistErr, setWaitlistErr]       = useState('')
   const [waitlistCount, setWaitlistCount]   = useState(null)
   const [activeRooms, setActiveRooms]        = useState(null)
+  const [cloudsReady, setCloudsReady]        = useState(false)
+  const [roomVisible, setRoomVisible]        = useState(false)
   const rooms = activeRooms || ENDLESS_ROOMS
   const [roomState, setRoomState]            = useState(() => ({
     caption: ENDLESS_ROOMS[0], dark: ENDLESS_ROOMS[0].dark,
     sky: ENDLESS_ROOMS[0].sky, prevSky: ENDLESS_ROOMS[0].sky, skyKey: -1,
   }))
 
-  // Fetch published admin config with live room data — fall back to hardcoded rooms
+  // Staged reveal: background (instant) → clouds (0.8s) → room (2.5s)
   useEffect(() => {
+    // Stage 1: clouds fade in
+    setTimeout(() => setCloudsReady(true), 800)
+    // Stage 2: fetch config + mount room after clouds
     fetchPublishedRooms()
-      .then(r => setActiveRooms(r?.length > 0 ? r : ENDLESS_ROOMS))
-      .catch(() => setActiveRooms(ENDLESS_ROOMS))
+      .then(r => {
+        setActiveRooms(r?.length > 0 ? r : ENDLESS_ROOMS)
+        // Stage 3: fade room in after 3D scene has time to render
+        setTimeout(() => setRoomVisible(true), 2500)
+      })
+      .catch(() => {
+        setActiveRooms(ENDLESS_ROOMS)
+        setTimeout(() => setRoomVisible(true), 2500)
+      })
   }, [])
 
   // Sync mood to CloudField when the sky transitions
@@ -127,7 +139,9 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           animation: 'ddd-skyfade 8s ease-out both',
         }} />
       </div>
-      <CloudField lite />
+      <div style={{ opacity: cloudsReady ? 1 : 0, transition: 'opacity 2s ease-in-out' }}>
+        <CloudField lite />
+      </div>
 
       {/* ── Nav ── */}
       <header className="ddd-blur" style={{
@@ -210,8 +224,8 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         {/* Room — fills available space, camera zoom handles visual size */}
         <div style={{
           width: '100%', height: 'clamp(220px, 52vh, 480px)', position: 'relative', zIndex: 10,
-          opacity: activeRooms ? 1 : 0,
-          transition: 'opacity 1.2s ease-in',
+          opacity: roomVisible ? 1 : 0,
+          transition: 'opacity 2s ease-in-out',
         }}>
           {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} />}
         </div>
