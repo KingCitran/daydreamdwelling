@@ -370,30 +370,34 @@ function WallDecor({ room }) {
   const dCenterY = wallHeight * 0.55
 
   // Extruded walls with D holes (full thickness — sky visible through the hole)
+  // Inset D-hole walls slightly so edges don't touch the wall box — prevents z-fighting
+  const DI = 0.03 // inset amount on each edge
   const backWallGeo = useMemo(() => {
     if (!room.brand) return null
+    const hw2 = (gridW + WALL_T) / 2 - DI
     const s = new THREE.Shape()
-    s.moveTo(-(gridW + WALL_T) / 2, 0)
-    s.lineTo((gridW + WALL_T) / 2, 0)
-    s.lineTo((gridW + WALL_T) / 2, wallHeight)
-    s.lineTo(-(gridW + WALL_T) / 2, wallHeight)
+    s.moveTo(-hw2, DI)
+    s.lineTo(hw2, DI)
+    s.lineTo(hw2, wallHeight - DI)
+    s.lineTo(-hw2, wallHeight - DI)
     s.closePath()
     s.holes.push(makeDHole(0, dCenterY, dw, dh))
-    const g = new THREE.ExtrudeGeometry(s, { depth: WALL_T, bevelEnabled: false })
+    const g = new THREE.ExtrudeGeometry(s, { depth: WALL_T - DI * 2, bevelEnabled: false })
     g.computeVertexNormals()
     return g
   }, [room.brand, gridW, wallHeight])
 
   const sideWallGeo = useMemo(() => {
     if (!room.brand) return null
+    const hd2 = gridD / 2 - DI
     const s = new THREE.Shape()
-    s.moveTo(-gridD / 2, 0)
-    s.lineTo(gridD / 2, 0)
-    s.lineTo(gridD / 2, wallHeight)
-    s.lineTo(-gridD / 2, wallHeight)
+    s.moveTo(-hd2, DI)
+    s.lineTo(hd2, DI)
+    s.lineTo(hd2, wallHeight - DI)
+    s.lineTo(-hd2, wallHeight - DI)
     s.closePath()
     s.holes.push(makeDHole(0, dCenterY, dw, dh))
-    const g = new THREE.ExtrudeGeometry(s, { depth: WALL_T, bevelEnabled: false })
+    const g = new THREE.ExtrudeGeometry(s, { depth: WALL_T - DI * 2, bevelEnabled: false })
     g.computeVertexNormals()
     return g
   }, [room.brand, gridD, wallHeight])
@@ -415,8 +419,8 @@ function WallDecor({ room }) {
     const wc = hex(room.wall), sc = hex(room.side)
     return (
       <group>
-        {/* ── Back wall with D hole ── */}
-        <mesh position={[0, 0, -hd - WALL_T]} geometry={backWallGeo}>
+        {/* ── Back wall with D hole — inset by DI so edges don't touch wall box ── */}
+        <mesh position={[0, 0, -hd - WALL_T + DI]} geometry={backWallGeo}>
           <meshStandardMaterial color={wc} roughness={0.8} side={THREE.DoubleSide} />
         </mesh>
         {/* Wooden D frame ring around the hole */}
@@ -425,8 +429,8 @@ function WallDecor({ room }) {
             emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide} />
         </mesh>
 
-        {/* ── Left wall with D hole ── */}
-        <mesh position={[-hw - WALL_T, 0, 0]} rotation-y={Math.PI / 2} geometry={sideWallGeo}>
+        {/* ── Left wall with D hole — inset by DI ── */}
+        <mesh position={[-hw - WALL_T + DI, 0, 0]} rotation-y={Math.PI / 2} geometry={sideWallGeo}>
           <meshStandardMaterial color={sc} roughness={0.8} side={THREE.DoubleSide} />
         </mesh>
         {/* Wooden D frame ring on left wall */}
