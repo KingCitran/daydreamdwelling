@@ -874,10 +874,14 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     fadeContent(wallDecorRef)
     // Palette boards stay at full opacity — backface culling handles visibility
 
-    // Swap indices — interior changes at center of hidden window
+    // Swap indices:
+    // - interior: changes at p=0.61 (behind walls, items hidden)
+    // - caption/front: changes at p=0.15 (room front-facing, boards hidden)
+    //   This ensures the caption never snaps while palette boards are visible.
+    //   By the time boards appear (~p=0.33), caption already matches new palette.
     const interior = (p >= 0.61 ? i + 1 : i) % L
-    const caption  = (p >= 0.61 ? i + 1 : i) % L
-    const front    = (p >= 0.61 ? i + 1 : i) % L
+    const caption  = (p >= 0.15 ? i : (i + L - 1) % L) % L
+    const front    = (p >= 0.15 ? i : (i + L - 1) % L) % L
 
     // ── Per-wall palette board visibility ──
     // Each board shows when its wall's EXTERIOR faces the camera (palette side),
