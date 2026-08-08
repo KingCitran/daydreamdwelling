@@ -115,17 +115,9 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
   }
   return (
     <group>
-      {/* Back wall — window cutout for regular rooms, plain box for brand rooms.
-          Brand rooms need the box here (outside itemsRef) so the wall persists
-          during item fade transitions. polygonOffset pushes the box behind the
-          extruded D-hole wall from WallDecor to prevent z-fighting. */}
-      {skipInteriorFaces ? (
-        <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow>
-          <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
-          <meshStandardMaterial {...extProps}
-            polygonOffsetFactor={3} polygonOffsetUnits={3} />
-        </mesh>
-      ) : (() => {
+      {/* Back wall — window cutout for regular rooms, skipped entirely for brand
+          rooms (WallDecor renders D-hole walls, solid box here would block them). */}
+      {skipInteriorFaces ? null : (() => {
         const winY = wallHeight * WIN_Y_FRAC
         // Wall bounds — LEFT extends to -hw-WALL_T to fully cover the left wall edge (no spine)
         const wallL = -hw - WALL_T, wallR = hw
@@ -193,19 +185,18 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
         </>)
       })()}
 
-      {/* Left wall — box always renders (brand rooms need it to persist during
-          item fade). polygonOffset on brand rooms prevents z-fighting with the
-          extruded D-hole wall from WallDecor. */}
-      <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow>
-        <boxGeometry args={[WALL_T, wallHeight, gridD]} />
-        <meshStandardMaterial {...extProps}
-          {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
-      </mesh>
+      {/* Left wall — skipped for brand rooms (WallDecor renders D-hole walls) */}
       {!skipInteriorFaces && (
-        <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
-          <planeGeometry args={[gridD, wallHeight]} />
-          <meshStandardMaterial {...intProps} color={intProps.color || sideColor} />
-        </mesh>
+        <>
+          <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow>
+            <boxGeometry args={[WALL_T, wallHeight, gridD]} />
+            <meshStandardMaterial {...extProps} />
+          </mesh>
+          <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
+            <planeGeometry args={[gridD, wallHeight]} />
+            <meshStandardMaterial {...intProps} color={intProps.color || sideColor} />
+          </mesh>
+        </>
       )}
 
       {/* ── Brass gilding — 45° mitered corners ── */}
@@ -888,21 +879,23 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // Lerp all interior mesh colors from current room to next room.
     // By the time walls reappear, colors are fully transitioned.
     const fromIdx = (i) % L, toIdx = (i + 1) % L
-    if (p >= 0.49 && p <= 0.73 && wallGroupRef.current) {
+    if (p >= 0.49 && p <= 0.73) {
       const blend = Math.min(1, (p - 0.49) / 0.24)
       const fromC = new THREE.Color(hex(ROOMS[fromIdx].wall))
       const toC = new THREE.Color(hex(ROOMS[toIdx].wall))
-      const lerped = fromC.lerp(toC, blend)
+      const lerped = fromC.clone().lerp(toC, blend)
       const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
       const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
-      const lerpedF = fromF.lerp(toF, blend)
-      wallGroupRef.current.traverse(c => {
+      const lerpedF = fromF.clone().lerp(toF, blend)
+      // Lerp both wallGroup (LandingWalls + Floor) and itemsGroup (WallDecor D-walls)
+      const lerpMeshes = (ref) => ref?.current?.traverse(c => {
         if (c.isMesh && c.material && !c.material.metalness) {
-          // Floor meshes are horizontal (rotation-x = -PI/2), walls are vertical
           if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
           else c.material.color.copy(lerped)
         }
       })
+      lerpMeshes(wallGroupRef)
+      lerpMeshes(itemsRef)
     }
 
     // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
