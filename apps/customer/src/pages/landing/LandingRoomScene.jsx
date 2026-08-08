@@ -415,25 +415,29 @@ function WallDecor({ room }) {
     const wc = hex(room.wall), sc = hex(room.side)
     return (
       <group>
-        {/* ── Back wall with D hole — FrontSide only (interior face) ──
-            DoubleSide caused z-fighting with the wall box on the palette side */}
+        {/* ── Back wall with D hole ──
+            polygonOffset pulls D-wall IN FRONT of wall box to prevent z-fighting */}
         <mesh position={[0, 0, -hd - WALL_T]} geometry={backWallGeo}>
-          <meshStandardMaterial color={wc} roughness={0.8} side={THREE.FrontSide} />
+          <meshStandardMaterial color={wc} roughness={0.8} side={THREE.DoubleSide}
+            polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
         </mesh>
-        {/* Wooden D frame ring around the hole */}
+        {/* Wooden D frame ring — DoubleSide for inner edge visibility */}
         <mesh position={[0, dCenterY, -hd]} geometry={dFrameGeo}>
           <meshStandardMaterial color="#c08a4e" roughness={0.6}
-            emissive="#604020" emissiveIntensity={0.1} side={THREE.FrontSide} />
+            emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide}
+            polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
         </mesh>
 
-        {/* ── Left wall with D hole — FrontSide only ── */}
+        {/* ── Left wall with D hole ── */}
         <mesh position={[-hw - WALL_T, 0, 0]} rotation-y={Math.PI / 2} geometry={sideWallGeo}>
-          <meshStandardMaterial color={sc} roughness={0.8} side={THREE.FrontSide} />
+          <meshStandardMaterial color={sc} roughness={0.8} side={THREE.DoubleSide}
+            polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
         </mesh>
         {/* Wooden D frame ring on left wall */}
         <mesh position={[-hw, dCenterY, 0]} rotation-y={Math.PI / 2} geometry={dFrameGeo}>
           <meshStandardMaterial color="#c08a4e" roughness={0.6}
-            emissive="#604020" emissiveIntensity={0.1} side={THREE.FrontSide} />
+            emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide}
+            polygonOffset polygonOffsetFactor={-3} polygonOffsetUnits={-3} />
         </mesh>
 
         {/* ── D-shaped woven rug ── */}
