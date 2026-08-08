@@ -657,7 +657,7 @@ function WallpaperSheet3D({ x, y, z, w, h, tex, rot }) {
 // ── Palette boards — vision board / designer file feel ───────
 // Warm paper backing tinted to the room's mood, with curated swatches.
 
-function PaletteBack3D({ room, gridW, wallHeight }) {
+const PaletteBack3D = memo(function PaletteBack3D({ room, gridW, wallHeight }) {
   const p = room.palette, hd = room.gridD / 2, hw = gridW / 2
   const z = -hd - WALL_T - 0.06, rot = Math.PI
   // Board dimensions (inset 7% from wall edges)
@@ -700,9 +700,9 @@ function PaletteBack3D({ room, gridW, wallHeight }) {
         r={sw * 0.4} gradient={p.lamp} rot={rot} dotId="lamp" />
     </group>
   )
-}
+})
 
-function PaletteSide3D({ room, gridW, gridD, wallHeight }) {
+const PaletteSide3D = memo(function PaletteSide3D({ room, gridW, gridD, wallHeight }) {
   const p = room.palette, hw = gridW / 2, hdd = gridD / 2
   const x = -hw - WALL_T - 0.06, rot = -Math.PI / 2
   const inset = 0.07
@@ -739,7 +739,7 @@ function PaletteSide3D({ room, gridW, gridD, wallHeight }) {
       ))}
     </group>
   )
-}
+})
 
 // ── Single item — reuses the builder's GlbModel ─────────────
 // Lamp items also emit a warm point light for mood lighting.
