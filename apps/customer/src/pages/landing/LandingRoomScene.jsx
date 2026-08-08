@@ -863,12 +863,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
     if (interior !== idx) setIdx(interior)
 
-    // ── Palette swap — both walls at p=0.92 ──
-    // At p=0.92 (~330° rotation), the interior is facing the camera and
-    // BOTH palette walls are fully backface-culled — swap is invisible.
-    // Pushed from 0.75 to 0.92 because boards were still partially
-    // visible at 270° in the isometric view.
-    const palTarget = (p >= 0.92 ? i + 1 : i) % L
+    // ── Palette swap — at p=0.15 (early in cycle, room front-facing) ──
+    // With the -40° initialAngle offset, palette boards are fully hidden
+    // when the room faces forward. Swap early in the cycle while the
+    // interior is on display and boards are backface-culled.
+    const palTarget = (p >= 0.15 ? i : (i + L - 1) % L) % L
     if (palTarget !== boardBackRoom.current) {
       boardBackRoom.current = palTarget
       boardSideRoom.current = palTarget
