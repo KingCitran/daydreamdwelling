@@ -85,7 +85,7 @@ const BRAND_ROOM = {
   name: 'DaydreamDwelling', mood: 'Dream State', accent: '#9870c0', dark: false, brand: true,
   gridW: 10, gridD: 10, wallHeight: 10, floorTex: 'woodDark', wallTex: 'plaster',
   sky: 'linear-gradient(180deg,#ffe8d0,#ffd8d0 35%,#e8c8e0 65%,#a890d4)',
-  wall: 'linear-gradient(160deg,#f0e8f4,#e4d8ee)', side: 'linear-gradient(160deg,#ece0f0,#d8c8e4)',
+  wall: 'linear-gradient(160deg,#c8b0d8,#b898c8)', side: 'linear-gradient(160deg,#bca4cc,#a890bc)',
   floor: 'linear-gradient(160deg,#d8c4b0,#b8a490)',
   seat: 'linear-gradient(180deg,#c8a8d0,#a880b8)', seatType: 'none', feature: 'dWindows',
   table: 'linear-gradient(180deg,#d8c8b8,#b8a898)', shade: 'radial-gradient(ellipse at 50% 30%,#f8e8ff,#d8c0e8)',
