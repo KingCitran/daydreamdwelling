@@ -13,6 +13,7 @@ import { getTexture } from '../../scene/textures'
 const DUR = 30
 const CAM_OFFSET = 18 // same as builder
 const WALL_T = 0.28   // same as builder
+const DI = 0.03       // inset to prevent z-fighting between overlapping surfaces
 const EXT_C = '#eaf0f6' // cloud-white exterior
 // Window cutout on back wall — position & size shared between wall + decor
 const WIN_X = -2, WIN_Y_FRAC = 0.55, WIN_W = 3, WIN_H = 4
@@ -370,8 +371,8 @@ function WallDecor({ room }) {
   const dCenterY = wallHeight * 0.55
 
   // Extruded walls with D holes (full thickness — sky visible through the hole)
+  // DI defined at module scope (line ~16)
   // Inset D-hole walls slightly so edges don't touch the wall box — prevents z-fighting
-  const DI = 0.03 // inset amount on each edge
   const backWallGeo = useMemo(() => {
     if (!room.brand) return null
     const hw2 = (gridW + WALL_T) / 2 - DI
