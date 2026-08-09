@@ -655,9 +655,14 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
     const FRAME_W = 0.25  // frame ring width
     const frameColor = '#c08a4e'
     const glassHex = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
-    // D-shaped frame ring: outer D edge matches window size, inner hole is inset by FRAME_W
+    // D-window frame: rectangular outer (fills the wall opening), D-shaped inner hole
     const dFrameGeo = useMemo(() => {
-      const outer = _makeDShape(fw, fh)
+      const outer = new THREE.Shape()
+      outer.moveTo(-fw / 2, -fh / 2)
+      outer.lineTo(fw / 2, -fh / 2)
+      outer.lineTo(fw / 2, fh / 2)
+      outer.lineTo(-fw / 2, fh / 2)
+      outer.closePath()
       const iw = fw - FRAME_W * 2, ih = fh - FRAME_W * 2
       const inner = new THREE.Path()
       inner.moveTo(-iw / 2, -ih / 2)
