@@ -939,11 +939,10 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     }
 
     // ── Palette colors — enforced EVERY frame ──
-    // Palette colors enforced every frame. palTarget changes at p=0.03 —
-    // room is dead center front-facing, boards are fully behind walls.
-    // Board overhang extends past wall edges so they peek into view earlier
-    // than the wall normal angle suggests — p=0.03 is safe.
-    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
+    // Palette = current revolution's room. Changes when i increments (p=0.00,
+    // visual angle -40°, room front-facing, boards fully behind walls).
+    // One clean change per cycle — no intermediate steps.
+    const palTarget = i % L
     const pal = ROOMS[palTarget]?.palette
     if (pal) {
       const enforce = (ref) => ref?.current?.traverse(c => {
