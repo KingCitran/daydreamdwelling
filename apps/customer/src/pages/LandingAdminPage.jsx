@@ -483,6 +483,26 @@ function RoomPickerTab({ config, setConfig, user }) {
             rooms
           </label>
         </div>
+        <div style={{ marginBottom: 12, padding: 12, background: '#f8f6f2', borderRadius: 8, border: '1px solid #e8e4de' }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#4a6890', display: 'block', marginBottom: 6 }}>
+            Brand Room (appears first + every {config.brandInterval} rooms)
+          </label>
+          <select
+            value={config.brandRoom || ''}
+            onChange={e => setConfig(c => ({ ...c, brandRoom: e.target.value || null }))}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #e8e4de', fontSize: 13, background: '#fff' }}
+          >
+            <option value="">Default (Dream State brand room)</option>
+            {savedRooms.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+          {config.brandRoom && (
+            <p style={{ margin: '6px 0 0', fontSize: 11, color: '#7a8a6a' }}>
+              This room will get D-shaped windows and "Daydream Dwelling" branding overlaid.
+            </p>
+          )}
+        </div>
         <div style={{ background: '#fff', borderRadius: 12, padding: 12, border: '1px solid #e8e4de', minHeight: 400 }}>
           {config.rooms.length === 0 ? (
             <div style={{ color: '#4a6890', fontSize: 13, textAlign: 'center', padding: 40 }}>

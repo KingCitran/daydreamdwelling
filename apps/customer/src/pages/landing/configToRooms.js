@@ -114,14 +114,15 @@ export async function fetchPublishedRooms() {
   const config = configs?.[0]
   if (!config?.rooms?.length) return null
 
-  // Collect all room IDs that need live data from saved_rooms
+  // Collect all room IDs that need live data — including brand room
   const savedIds = config.rooms
     .filter(r => r.sourceType === 'saved' && r.sourceId)
     .map(r => r.sourceId)
   const communityRoomIds = config.rooms
     .filter(r => r.sourceType === 'community' && r.roomId)
     .map(r => r.roomId)
-  const allIds = [...new Set([...savedIds, ...communityRoomIds])]
+  const brandRoomId = config.brand_room || null
+  const allIds = [...new Set([...savedIds, ...communityRoomIds, ...(brandRoomId ? [brandRoomId] : [])])]
 
   let liveDataMap = {}
   if (allIds.length > 0) {
@@ -145,12 +146,27 @@ export async function fetchPublishedRooms() {
     })
     .filter(Boolean)
 
+  // Build brand room — from saved room data if set, otherwise hardcoded default
+  let brandRoom = BRAND_ROOM
+  if (brandRoomId && liveDataMap[brandRoomId]) {
+    const bd = liveDataMap[brandRoomId]
+    const converted = convertRoom({ name: 'DaydreamDwelling', data: bd, palette: null }, bd)
+    brandRoom = {
+      ...converted,
+      brand: true, feature: 'dWindows', seatType: 'none',
+      brandBack: 'Daydream Dwelling',
+      brandSide: '✦ every room, in every light',
+      // Keep auto-generated palette from room data
+      palette: converted.palette || BRAND_ROOM.palette,
+    }
+  }
+
   // Always start with brand room, then interleave after every N rooms
   const brandInterval = config.brand_interval || 2
-  const result = [BRAND_ROOM]
+  const result = [brandRoom]
   for (let i = 0; i < rooms.length; i++) {
     result.push(rooms[i])
-    if ((i + 1) % brandInterval === 0) result.push(BRAND_ROOM)
+    if ((i + 1) % brandInterval === 0) result.push(brandRoom)
   }
   return result
 }

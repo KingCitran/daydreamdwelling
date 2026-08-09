@@ -945,22 +945,18 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
     if (interior !== idx) setIdx(interior)
 
-    // ── Lock wallDecor colors during palette view ──
-    // The brand room D-hole wall extrusion edges are visible from the palette
-    // side. When React re-renders at p=0.61, their color changes (brand purple
-    // → next room color). Force them to stay the current palette room's color
-    // so the palette side never shows a color change.
-    const backBoardVisible = p >= 0.486 && p <= 0.986
-    if (backBoardVisible && wallDecorRef.current) {
-      const palRoom = ROOMS[(p >= 0.03 ? i : (i + L - 1) % L) % L]
-      if (palRoom) {
-        const lockColor = new THREE.Color(hex(palRoom.wall))
-        wallDecorRef.current.traverse(c => {
-          if (c.isMesh && c.material && !c.material.metalness) {
-            c.material.color.copy(lockColor)
-          }
-        })
-      }
+    // ── Lock brand room D-wall colors during palette view ──
+    // Only for brand rooms: the D-hole extrusion edges are visible from the
+    // palette side and change color at p=0.61. Lock them to the brand color.
+    const palRoomIdx = (p >= 0.03 ? i : (i + L - 1) % L) % L
+    const palRoom = ROOMS[palRoomIdx]
+    if (p >= 0.486 && p <= 0.986 && palRoom?.brand && wallDecorRef.current) {
+      const lockColor = new THREE.Color(hex(palRoom.wall))
+      wallDecorRef.current.traverse(c => {
+        if (c.isMesh && c.material && !c.material.metalness) {
+          c.material.color.copy(lockColor)
+        }
+      })
     }
 
     // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
