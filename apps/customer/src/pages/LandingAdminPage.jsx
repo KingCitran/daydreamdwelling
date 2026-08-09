@@ -487,20 +487,41 @@ function RoomPickerTab({ config, setConfig, user }) {
           <label style={{ fontSize: 12, fontWeight: 600, color: '#4a6890', display: 'block', marginBottom: 6 }}>
             Brand Room (appears first + every {config.brandInterval} rooms)
           </label>
-          <select
-            value={config.brandRoom || ''}
-            onChange={e => setConfig(c => ({ ...c, brandRoom: e.target.value || null }))}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #e8e4de', fontSize: 13, background: '#fff' }}
-          >
-            <option value="">Default (Dream State brand room)</option>
-            {savedRooms.map(r => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {savedRooms.map(r => {
+              const selected = config.brandRoom === r.id
+              return (
+                <button key={r.id}
+                  onClick={() => setConfig(c => ({ ...c, brandRoom: selected ? null : r.id }))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                    borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                    border: selected ? '2px solid #9870c0' : '1px solid #e8e4de',
+                    background: selected ? '#f0e8f4' : '#fff',
+                    fontSize: 13, color: '#1a2a48',
+                  }}
+                >
+                  {r.thumbnail_url
+                    ? <img src={r.thumbnail_url} alt="" style={{ width: 40, height: 30, borderRadius: 4, objectFit: 'cover' }} />
+                    : <div style={{ width: 40, height: 30, borderRadius: 4, background: '#e8e4de' }} />
+                  }
+                  <span style={{ flex: 1 }}>{r.name}</span>
+                  {selected && <span style={{ fontSize: 11, color: '#9870c0', fontWeight: 600 }}>Brand Room ✦</span>}
+                </button>
+              )
+            })}
+          </div>
           {config.brandRoom && (
-            <p style={{ margin: '6px 0 0', fontSize: 11, color: '#7a8a6a' }}>
-              This room will get D-shaped windows and "Daydream Dwelling" branding overlaid.
-            </p>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <a href={`/?room=${config.brandRoom}&from=admin`} style={{
+                padding: '6px 14px', borderRadius: 8, background: '#9870c0', color: '#fff',
+                fontSize: 12, fontWeight: 600, textDecoration: 'none',
+              }}>Edit brand room in builder →</a>
+              <button onClick={() => setConfig(c => ({ ...c, brandRoom: null }))} style={{
+                padding: '6px 14px', borderRadius: 8, border: '1px solid #e8e4de',
+                background: '#fff', fontSize: 12, color: '#4a6890', cursor: 'pointer',
+              }}>Use default</button>
+            </div>
           )}
         </div>
         <div style={{ background: '#fff', borderRadius: 12, padding: 12, border: '1px solid #e8e4de', minHeight: 400 }}>
