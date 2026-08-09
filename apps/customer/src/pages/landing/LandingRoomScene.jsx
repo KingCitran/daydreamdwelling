@@ -123,7 +123,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
         <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
         <meshStandardMaterial {...extProps}
-          polygonOffset polygonOffsetFactor={skipInteriorFaces ? 3 : 1} polygonOffsetUnits={1} />
+          {...(skipInteriorFaces ? { polygonOffset: true, polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
       {!skipInteriorFaces && (() => {
         const winY = wallHeight * WIN_Y_FRAC
@@ -197,7 +197,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow userData={{ wallBox: 'side' }}>
         <boxGeometry args={[WALL_T, wallHeight, gridD]} />
         <meshStandardMaterial {...extProps}
-          polygonOffset polygonOffsetFactor={skipInteriorFaces ? 3 : 1} polygonOffsetUnits={1} />
+          {...(skipInteriorFaces ? { polygonOffset: true, polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
       {!skipInteriorFaces && (
         <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
@@ -671,7 +671,7 @@ function WallpaperSheet3D({ x, y, z, w, h, tex, rot }) {
 
 const PaletteBack3D = memo(function PaletteBack3D({ room, gridW, wallHeight }) {
   const p = room.palette, hd = room.gridD / 2, hw = gridW / 2
-  const z = -hd - WALL_T - 0.06, rot = Math.PI
+  const z = -hd - WALL_T - 0.20, rot = Math.PI
   // Board dimensions (inset 7% from wall edges)
   const inset = 0.07
   const bw = gridW * (1 - inset * 2), bh = wallHeight * (1 - inset * 2)
@@ -716,7 +716,7 @@ const PaletteBack3D = memo(function PaletteBack3D({ room, gridW, wallHeight }) {
 
 const PaletteSide3D = memo(function PaletteSide3D({ room, gridW, gridD, wallHeight }) {
   const p = room.palette, hw = gridW / 2, hdd = gridD / 2
-  const x = -hw - WALL_T - 0.06, rot = -Math.PI / 2
+  const x = -hw - WALL_T - 0.20, rot = -Math.PI / 2
   const inset = 0.07
   const bw = gridD * (1 - inset * 2), bh = wallHeight * (1 - inset * 2)
   const bcy = wallHeight / 2, bcz = 0
