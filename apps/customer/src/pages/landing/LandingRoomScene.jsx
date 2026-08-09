@@ -119,7 +119,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
           during transitions. Brand rooms layer D-hole walls on top via WallDecor.
           Regular rooms add window cutout pieces + interior faces. */}
       <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
-        <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
+        <boxGeometry args={[gridW + WALL_T - DI * 2, wallHeight - DI, WALL_T - DI * 2]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
@@ -193,7 +193,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
 
       {/* Left wall — box always renders, interior face only for regular rooms */}
       <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow userData={{ wallBox: 'side' }}>
-        <boxGeometry args={[WALL_T, wallHeight, gridD]} />
+        <boxGeometry args={[WALL_T - DI * 2, wallHeight - DI, gridD - DI * 2]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
