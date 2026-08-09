@@ -13,7 +13,7 @@ import { getTexture } from '../../scene/textures'
 const DUR = 30
 const CAM_OFFSET = 18 // same as builder
 const WALL_T = 0.28   // same as builder
-const DI = 0.06       // inset to prevent z-fighting — must clear gilding shadow lines (0.03 thick)
+const DI = 0.04       // inset to prevent z-fighting — small enough to hide under gilding
 const EXT_C = '#eaf0f6' // cloud-white exterior
 // Window cutout on back wall — position & size shared between wall + decor
 const WIN_X = -2, WIN_Y_FRAC = 0.55, WIN_W = 3, WIN_H = 4
