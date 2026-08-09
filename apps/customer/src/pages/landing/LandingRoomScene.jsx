@@ -875,7 +875,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const fillRef = useRef()
   const [idx, setIdx] = useState(0)
   const coRef = useRef(1)
-  const prevColors = useRef(null)  // colors before transition
+  // prevColors ref removed — wall colors managed by React re-render only
   // boardBackRoom/boardSideRoom refs removed — palette colors are enforced every frame
   const lastKey = useRef('')
   const lightFrom = useRef(0)
@@ -943,33 +943,11 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       else if (c.userData?.wallBox === 'side') c.visible = p >= 0.236 && p <= 0.736
     })
 
-    if (interior !== idx) {
-      // Save current colors before swap for lerping
-      prevColors.current = {
-        wall: hex(ROOMS[idx]?.wall), side: hex(ROOMS[idx]?.side),
-        floor: hex(ROOMS[idx]?.floor),
-      }
-      setIdx(interior)
-    }
+    if (interior !== idx) setIdx(interior)
 
-    // ── Wall/floor color snap — at p=0.50 when everything is most hidden ──
-    // Items faded out by p=0.50, palette boards not yet visible (appear ~p=0.486
-    // but wall box hides behind palette). Single-frame snap, no gradual lerp.
-    // Interior swap also at p=0.61 handles React-level color update.
-    const toIdx = (i + 1) % L
-    if (p >= 0.48 && p <= 0.52 && prevColors.current) {
-      const newC = new THREE.Color(hex(ROOMS[toIdx].wall))
-      const newF = new THREE.Color(hex(ROOMS[toIdx].floor))
-      const snapSurface = (ref) => ref?.current?.traverse(c => {
-        if (c.isMesh && c.material && !c.material.metalness && !c.userData?.wallBox) {
-          if (c.rotation?.x < -1) c.material.color.copy(newF)
-          else c.material.color.copy(newC)
-        }
-      })
-      snapSurface(wallGroupRef)
-      snapSurface(wallDecorRef)
-      prevColors.current = null
-    }
+    // Wall/floor colors handled by React re-render at p=0.61 (interior swap).
+    // Wall box exterior is always cloud-white — no manual color management needed.
+    // Interior pieces change behind the walls, not visible from palette side.
 
     // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
 
