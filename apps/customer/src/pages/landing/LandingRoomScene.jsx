@@ -13,7 +13,7 @@ import { getTexture } from '../../scene/textures'
 const DUR = 30
 const CAM_OFFSET = 18 // same as builder
 const WALL_T = 0.28   // same as builder
-const DI = 0.02       // inset to prevent z-fighting at gilding edges
+const DI = 0          // wall box inset disabled — FrontSide on D-walls handles brand z-fighting
 const EXT_C = '#eaf0f6' // cloud-white exterior
 // Window cutout on back wall — position & size shared between wall + decor
 const WIN_X = -2, WIN_Y_FRAC = 0.55, WIN_W = 3, WIN_H = 4
@@ -66,7 +66,8 @@ function LandingFloor({ gridW, gridD, color, texType }) {
 // ── Walls — white box body + textured interior face ──────────
 // Polished white gold — with darker edges for contrast/depth
 const BRASS = { color: '#e8e0d0', emissive: '#a09078', emissiveIntensity: 0.25, roughness: 0.25, metalness: 0.75 }
-const BRASS_SHADOW = { color: '#8a8070', roughness: 0.5, metalness: 0.6 } // inner shadow strip
+const BRASS_SHADOW = { color: '#8a8070', roughness: 0.5, metalness: 0.6,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } // inner shadow strip — pulled forward to avoid z-fighting with wall box edges
 
 // Miter geometries — created once at module level, reused by all instances
 let _geoWallMiter = null, _geoTrimMiter = null
@@ -119,8 +120,8 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       {/* Back wall — always renders a solid exterior box so it never disappears
           during transitions. Brand rooms layer D-hole walls on top via WallDecor.
           Regular rooms add window cutout pieces + interior faces. */}
-      <mesh position={[-WALL_T / 2, hh - DI / 2, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
-        <boxGeometry args={[gridW + WALL_T, wallHeight - DI, WALL_T]} />
+      <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
+        <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
@@ -193,8 +194,8 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       })()}
 
       {/* Left wall — box always renders, interior face only for regular rooms */}
-      <mesh position={[-hw - WALL_T / 2, hh - DI / 2, 0]} castShadow userData={{ wallBox: 'side' }}>
-        <boxGeometry args={[WALL_T, wallHeight - DI, gridD]} />
+      <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow userData={{ wallBox: 'side' }}>
+        <boxGeometry args={[WALL_T, wallHeight, gridD]} />
         <meshStandardMaterial {...extProps}
           {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
       </mesh>
