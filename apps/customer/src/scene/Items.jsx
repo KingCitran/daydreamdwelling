@@ -652,14 +652,14 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
 
   // ── D-Window rendering ──────────────────────────────────────────────
   if (def.window && def.dShape) {
-    const FRAME_T = 0.15
+    const FRAME_W = 0.25  // frame ring width
     const frameColor = '#c08a4e'
     const glassHex = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
-    // D-shaped frame ring: outer D minus inner D hole
+    // D-shaped frame ring: outer D edge matches window size, inner hole is inset by FRAME_W
     const dFrameGeo = useMemo(() => {
-      const outer = _makeDShape(fw + 0.5, fh + 0.5)
+      const outer = _makeDShape(fw, fh)
+      const iw = fw - FRAME_W * 2, ih = fh - FRAME_W * 2
       const inner = new THREE.Path()
-      const iw = fw - 0.3, ih = fh - 0.3
       inner.moveTo(-iw / 2, -ih / 2)
       inner.lineTo(-iw / 2, ih / 2)
       inner.lineTo(-iw * 0.05, ih / 2)
@@ -670,8 +670,9 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
       g.translate(0, 0, -fd * 0.75)
       return g
     }, [fw, fh, fd])
-    // D-shaped glass pane
-    const dGlassGeo = useMemo(() => new THREE.ShapeGeometry(_makeDShape(fw - 0.4, fh - 0.4)), [fw, fh])
+    // D-shaped glass pane — matches inner hole exactly
+    const iw = fw - FRAME_W * 2, ih = fh - FRAME_W * 2
+    const dGlassGeo = useMemo(() => new THREE.ShapeGeometry(_makeDShape(iw, ih)), [iw, ih])
 
     return (
       <group visible={wallVisible !== false}>
