@@ -1188,6 +1188,30 @@ export const ITEM_CATALOGUE = {
     guarantee: '2-year warranty',
   },
 
+  dRug: {
+    label: 'D-Shaped Rug', category: 'Textiles', subcategory: 'Rugs',
+    color: '#d4b880', layer: 0, footprint: [5, 5.5], height: 0.05,
+    dShape: true,
+    gradient: 'linear-gradient(135deg, #d4b880 0%, #8a6848 50%, #c4a880 100%)',
+    brand: 'Threadwork', price: 399, priceMax: 799,
+    rating: 4.6, reviewCount: 156,
+    swatches: [
+      { name: 'Desert Sand', hex: '#d4b880', family: 'Beige'  },
+      { name: 'Deep Teal',   hex: '#2a7070', family: 'Green'  },
+      { name: 'Lavender',    hex: '#b898c4', family: 'Purple' },
+    ],
+    styles: ['Modern', 'Art Deco', 'Bohemian'], rooms: ['Living Room', 'Bedroom', 'Office'],
+    themes: ['Cozy', 'Glam', 'Zen'],
+    sizes: [
+      { label: "Standard 5'×5.5'", footprint: [5, 5.5], height: 0.05, price: 399 },
+      { label: "Large 6'×6.5'",    footprint: [6, 6.5], height: 0.05, price: 599 },
+      { label: "Extra Large 7'×7.5'", footprint: [7, 7.5], height: 0.05, price: 799 },
+    ],
+    description: 'Artisan-crafted D-shaped rug with hand-knotted woven texture. The signature DaydreamDwelling silhouette for your floor.',
+    materials: ['100% wool pile', 'Cotton warp', 'Non-slip latex backing'],
+    guarantee: '3-year warranty',
+  },
+
   throwPillow: {
     label: 'Throw Pillow', category: 'Textiles', subcategory: 'Pillows',
     color: '#c8a8a8', layer: 0, footprint: [1, 1], height: 0.2,
@@ -1377,6 +1401,31 @@ export const ITEM_CATALOGUE = {
     ],
     description: 'Single-hung window with insulated double-pane glass and wood-composite frame. Compatible with interior trim kits.',
     materials: ['Wood-composite frame', 'Argon-filled double-pane glass', 'Weather stripping included'],
+    guarantee: '25-year warranty on glass seal',
+  },
+
+  dWindow: {
+    label: 'D-Shaped Window', category: 'Windows', subcategory: 'Arched',
+    color: '#a8d0f0', layer: 0, footprint: [4.5, 0.28], height: 5.5,
+    window: true, dShape: true,
+    gradient: 'linear-gradient(135deg, #c8b0d8 0%, #9870c0 100%)',
+    brand: 'FrameWorks', price: 599, priceMax: 1199,
+    rating: 4.7, reviewCount: 87,
+    swatches: [
+      { name: 'Clear',   hex: '#c0e8ff', family: 'Blue'   },
+      { name: 'Frosted', hex: '#dceef5', family: 'Gray'   },
+      { name: 'Tinted',  hex: '#b8a0d0', family: 'Purple' },
+    ],
+    styles: ['Modern', 'Art Deco', 'Contemporary'],
+    rooms: ['Living Room', 'Bedroom', 'Office'],
+    themes: ['Zen', 'Glam', 'Modern'],
+    sizes: [
+      { label: "Standard 4.5'×5.5'", footprint: [4.5, 0.28], height: 5.5, price: 599 },
+      { label: "Large 5.5'×6.5'",    footprint: [5.5, 0.28], height: 6.5, price: 899 },
+      { label: "Extra Large 6'×7'",  footprint: [6, 0.28], height: 7, price: 1199 },
+    ],
+    description: 'The signature DaydreamDwelling D-shaped arch window. Elegant curved silhouette with wooden frame and dual-pane glass.',
+    materials: ['Wood-composite frame', 'Argon-filled double-pane glass', 'Precision-bent sill'],
     guarantee: '25-year warranty on glass seal',
   },
 

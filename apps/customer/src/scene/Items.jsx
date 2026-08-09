@@ -13,6 +13,14 @@ function getWoodPBR() {
   return _woodPBR
 }
 
+// D-shape geometry for D-rug and D-window items
+import { makeDShape as _makeDShape, weaveRugTexture } from './dShapes'
+let _dRugTex = null
+// Lazy-init so texture is only created when a D-rug exists
+if (typeof window !== 'undefined') {
+  try { _dRugTex = weaveRugTexture() } catch {}
+}
+
 // Wood-textured material — used for door panels, frames, window frames.
 // color tints the texture (white = natural wood, darker = stained).
 function WoodMaterial({ color, roughness = 0.75 }) {
@@ -373,6 +381,19 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
             <GlbModel url={modelUrl} fw={fw} fh={fh} fd={fd} scale={modelScale} rotationDeg={modelRotation} materialSheen={def.materialSheen} />
           </Suspense>
         </group>
+      ) : def.dShape && !def.window ? (
+        /* D-shaped floor item (D-rug) — woven texture on D-shaped flat mesh */
+        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+          <mesh rotation-x={-Math.PI / 2} position-y={-fh / 2 + 0.01} receiveShadow>
+            <shapeGeometry args={[_makeDShape(fw, fd)]} />
+            <meshStandardMaterial
+              map={_dRugTex}
+              color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#d4b880'}
+              roughness={0.92}
+              polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2}
+            />
+          </mesh>
+        </group>
       ) : (
         <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
           <mesh castShadow receiveShadow>
@@ -627,6 +648,48 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
     if (def.door && onEnterRoom) { onEnterRoom(item.id); return }
     if (item.stairs && onEnterRoom) { onEnterRoom(item.id); return }
     onDoubleClick(item.typeKey)
+  }
+
+  // ── D-Window rendering ──────────────────────────────────────────────
+  if (def.window && def.dShape) {
+    const FRAME_T = 0.15
+    const frameColor = '#c08a4e'
+    const glassHex = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
+    // D-shaped frame ring: outer D minus inner D hole
+    const dFrameGeo = useMemo(() => {
+      const outer = _makeDShape(fw + 0.5, fh + 0.5)
+      const inner = new THREE.Path()
+      const iw = fw - 0.3, ih = fh - 0.3
+      inner.moveTo(-iw / 2, -ih / 2)
+      inner.lineTo(-iw / 2, ih / 2)
+      inner.lineTo(-iw * 0.05, ih / 2)
+      inner.bezierCurveTo(iw * 0.5, ih * 0.48, iw * 0.5, -ih * 0.48, -iw * 0.05, -ih / 2)
+      inner.closePath()
+      outer.holes.push(inner)
+      const g = new THREE.ExtrudeGeometry(outer, { depth: fd * 1.5, bevelEnabled: false })
+      g.translate(0, 0, -fd * 0.75)
+      return g
+    }, [fw, fh, fd])
+    // D-shaped glass pane
+    const dGlassGeo = useMemo(() => new THREE.ShapeGeometry(_makeDShape(fw - 0.4, fh - 0.4)), [fw, fh])
+
+    return (
+      <group visible={wallVisible !== false}>
+        <group position={[wx, wy, wz]} rotation={[0, rotY, 0]}
+          onPointerDown={onPointerDown} onClick={e => e.stopPropagation()} onDoubleClick={handleDoubleClick}>
+          {isSelected && <mesh><boxGeometry args={[fw + 0.3, fh + 0.3, fd + 0.3]} /><meshBasicMaterial color={outlineColor} wireframe /></mesh>}
+          {/* Wooden D-frame ring */}
+          <mesh geometry={dFrameGeo} castShadow>
+            <meshStandardMaterial color={frameColor} roughness={0.6} emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide} />
+          </mesh>
+          {/* Glass pane */}
+          <mesh geometry={dGlassGeo}>
+            <meshStandardMaterial color={glassHex} transparent opacity={0.12}
+              roughness={0.05} metalness={0.15} side={THREE.DoubleSide} depthWrite={false} />
+          </mesh>
+        </group>
+      </group>
+    )
   }
 
   // ── Window rendering ────────────────────────────────────────────────
