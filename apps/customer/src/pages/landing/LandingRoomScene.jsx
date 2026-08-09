@@ -123,7 +123,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       <mesh position={[-WALL_T / 2, hh, -hd - WALL_T / 2]} castShadow userData={{ wallBox: 'back' }}>
         <boxGeometry args={[gridW + WALL_T, wallHeight, WALL_T]} />
         <meshStandardMaterial {...extProps}
-          {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
+          polygonOffset polygonOffsetFactor={skipInteriorFaces ? 3 : 1} polygonOffsetUnits={1} />
       </mesh>
       {!skipInteriorFaces && (() => {
         const winY = wallHeight * WIN_Y_FRAC
@@ -197,7 +197,7 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
       <mesh position={[-hw - WALL_T / 2, hh, 0]} castShadow userData={{ wallBox: 'side' }}>
         <boxGeometry args={[WALL_T, wallHeight, gridD]} />
         <meshStandardMaterial {...extProps}
-          {...(skipInteriorFaces ? { polygonOffsetFactor: 3, polygonOffsetUnits: 3 } : {})} />
+          polygonOffset polygonOffsetFactor={skipInteriorFaces ? 3 : 1} polygonOffsetUnits={1} />
       </mesh>
       {!skipInteriorFaces && (
         <mesh position={[-hw + 0.005, hh, 0]} rotation-y={Math.PI / 2} receiveShadow>
