@@ -945,9 +945,23 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
     if (interior !== idx) setIdx(interior)
 
-    // Wall/floor colors handled by React re-render at p=0.61 (interior swap).
-    // Wall box exterior is always cloud-white — no manual color management needed.
-    // Interior pieces change behind the walls, not visible from palette side.
+    // ── Lock wallDecor colors during palette view ──
+    // The brand room D-hole wall extrusion edges are visible from the palette
+    // side. When React re-renders at p=0.61, their color changes (brand purple
+    // → next room color). Force them to stay the current palette room's color
+    // so the palette side never shows a color change.
+    const backBoardVisible = p >= 0.486 && p <= 0.986
+    if (backBoardVisible && wallDecorRef.current) {
+      const palRoom = ROOMS[(p >= 0.03 ? i : (i + L - 1) % L) % L]
+      if (palRoom) {
+        const lockColor = new THREE.Color(hex(palRoom.wall))
+        wallDecorRef.current.traverse(c => {
+          if (c.isMesh && c.material && !c.material.metalness) {
+            c.material.color.copy(lockColor)
+          }
+        })
+      }
+    }
 
     // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
 
