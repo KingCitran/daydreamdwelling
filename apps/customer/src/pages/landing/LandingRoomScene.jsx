@@ -758,10 +758,45 @@ const PaletteSide3D = memo(function PaletteSide3D({ room, gridW, gridD, wallHeig
 // board group refs via imperative handle to toggle visibility and
 // enforce palette colors. React re-renders from idx state changes
 // cannot touch these boards.
-const PaletteBoards = memo(forwardRef(function PaletteBoards({ initialRoom, gridW, gridD, wallHeight }, ref) {
+const PaletteBoards = memo(forwardRef(function PaletteBoards({ initialRoom, gridW, gridD, wallHeight, roomsRef, startDelay, angleOffset: _ao }, ref) {
   const backRef = useRef()
   const sideRef = useRef()
   useImperativeHandle(ref, () => ({ back: backRef, side: sideRef }), [])
+
+  // Self-contained palette management — runs in its own useFrame,
+  // completely independent of the parent's React re-renders.
+  useFrame(({ clock }) => {
+    const rooms = roomsRef.current
+    if (!rooms?.length) return
+    const L = rooms.length
+    const raw = clock.getElapsedTime()
+    const t = Math.max(0, raw - (startDelay || 0))
+    const i = Math.floor(t / DUR)
+    const p = (t % DUR) / DUR
+
+    // Visibility — show when wall exterior faces camera
+    if (backRef.current) backRef.current.visible = p >= 0.486 && p <= 0.986
+    if (sideRef.current) sideRef.current.visible = p >= 0.236 && p <= 0.736
+
+    // Enforce palette colors every frame
+    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
+    const pal = rooms[palTarget]?.palette
+    if (!pal) return
+    const apply = (groupRef) => groupRef?.current?.traverse(c => {
+      if (!c.isMesh || !c.userData?.pt) return
+      const { pt, idx: ci, which } = c.userData
+      if (pt === 'chip' && ci < 4) c.material.color.set(pal.chips[ci] || '#888')
+      else if (pt === 'chip' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
+      else if (pt === 'fab' && ci < 4) c.material.color.set(pal.fab[ci]?.[0] || '#888')
+      else if (pt === 'fab' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
+      else if (pt === 'dot') c.material.color.set(which === 'lamp' ? hex(pal.lamp) : hex(pal.dot))
+      else if (pt === 'wood') c.material.color.set(pal.wood[0])
+      else if (pt === 'paper' || pt === 'paper_side') c.material.color.set(pal.chips[0])
+    })
+    apply(backRef)
+    apply(sideRef)
+  })
+
   return (
     <>
       <group ref={backRef}>
@@ -772,7 +807,7 @@ const PaletteBoards = memo(forwardRef(function PaletteBoards({ initialRoom, grid
       </group>
     </>
   )
-}), () => true) // always return true = never re-render
+}), () => true)
 
 // ── Single item — reuses the builder's GlbModel ─────────────
 // Lamp items also emit a warm point light for mood lighting.
@@ -827,6 +862,8 @@ function moodVal(base, boost, min) { return Math.max(base * boost, min) }
 export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS, startDelay = 0, initialAngle = 0 }) {
   const angleOffset = (initialAngle * Math.PI) / 180
   const L = ROOMS.length
+  const roomsRef = useRef(ROOMS)
+  roomsRef.current = ROOMS  // always up to date, stable ref for PaletteBoards
   const groupRef = useRef()
   const itemsRef = useRef()
   const wallGroupRef = useRef()   // LandingWalls + Floor — for color lerping
@@ -894,9 +931,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     // With -40° offset, camera at 45° isometric:
     // Back wall exterior visible: visual θ ∈ (135°, 315°) → p ∈ (0.486, 0.986)
     // Side wall exterior visible: visual θ ∈ (45°, 225°)  → p ∈ (0.236, 0.736)
-    const boards = paletteBoardsRef.current
-    if (boards?.back?.current) boards.back.current.visible = p >= 0.486 && p <= 0.986
-    if (boards?.side?.current) boards.side.current.visible = p >= 0.236 && p <= 0.736
+    // Palette board visibility + colors handled by PaletteBoards' own useFrame
 
     // ── Wall box visibility — INVERSE of palette boards ──
     // Wall boxes hide when interior faces camera (so windows/D-holes show sky),
@@ -940,25 +975,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       lerpSurface(wallDecorRef)
     }
 
-    // ── Palette colors — enforced EVERY frame ──
-    // Palette colors enforced every frame to prevent React resets.
-    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
-    const pal = ROOMS[palTarget]?.palette
-    if (pal) {
-      const enforce = (ref) => ref?.current?.traverse(c => {
-        if (!c.isMesh || !c.userData?.pt) return
-        const { pt, idx: ci, which } = c.userData
-        if (pt === 'chip' && ci < 4) c.material.color.set(pal.chips[ci] || '#888')
-        else if (pt === 'chip' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
-        else if (pt === 'fab' && ci < 4) c.material.color.set(pal.fab[ci]?.[0] || '#888')
-        else if (pt === 'fab' && ci >= 10) c.material.color.set(pal.fab[ci-10]?.[0] || '#888')
-        else if (pt === 'dot') c.material.color.set(which === 'lamp' ? hex(pal.lamp) : hex(pal.dot))
-        else if (pt === 'wood') c.material.color.set(pal.wood[0])
-        else if (pt === 'paper' || pt === 'paper_side') c.material.color.set(pal.chips[0])
-      })
-      if (boards?.back) enforce(boards.back)
-      if (boards?.side) enforce(boards.side)
-    }
+    // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
 
     // Lighting lerp — cross-fade during hidden window (0.48-0.70)
     // so new room's lighting is set when it swings back into view
@@ -1039,7 +1056,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
 
         {/* Palette boards — isolated from parent re-renders */}
         <PaletteBoards ref={paletteBoardsRef}
-          initialRoom={ROOMS[0]} gridW={gridW} gridD={gridD} wallHeight={wallHeight} />
+          initialRoom={ROOMS[0]} gridW={gridW} gridD={gridD} wallHeight={wallHeight}
+          roomsRef={roomsRef} startDelay={startDelay} />
       </group>
     </>
   )
