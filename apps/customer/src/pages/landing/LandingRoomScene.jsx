@@ -952,28 +952,23 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       setIdx(interior)
     }
 
-    // ── Wall/floor color lerp — runs BEFORE palette side becomes visible ──
-    // Completes by p=0.48 so the palette-side wall color is already set
-    // when the wall box appears at p=0.486. Runs while room interior
-    // is still partially visible but walls are already blocking the view.
-    const fromIdx = (i) % L, toIdx = (i + 1) % L
-    if (p >= 0.33 && p <= 0.48) {
-      const blend = Math.min(1, (p - 0.33) / 0.15)
-      const fromC = new THREE.Color(hex(ROOMS[fromIdx].wall))
-      const toC = new THREE.Color(hex(ROOMS[toIdx].wall))
-      const lerped = fromC.clone().lerp(toC, blend)
-      const fromF = new THREE.Color(hex(ROOMS[fromIdx].floor))
-      const toF = new THREE.Color(hex(ROOMS[toIdx].floor))
-      const lerpedF = fromF.clone().lerp(toF, blend)
-      // Lerp interior walls + floor + wall decor — skip exterior wall boxes (tagged wallBox)
-      const lerpSurface = (ref) => ref?.current?.traverse(c => {
+    // ── Wall/floor color snap — at p=0.50 when everything is most hidden ──
+    // Items faded out by p=0.50, palette boards not yet visible (appear ~p=0.486
+    // but wall box hides behind palette). Single-frame snap, no gradual lerp.
+    // Interior swap also at p=0.61 handles React-level color update.
+    const toIdx = (i + 1) % L
+    if (p >= 0.48 && p <= 0.52 && prevColors.current) {
+      const newC = new THREE.Color(hex(ROOMS[toIdx].wall))
+      const newF = new THREE.Color(hex(ROOMS[toIdx].floor))
+      const snapSurface = (ref) => ref?.current?.traverse(c => {
         if (c.isMesh && c.material && !c.material.metalness && !c.userData?.wallBox) {
-          if (c.rotation?.x < -1) c.material.color.copy(lerpedF)
-          else c.material.color.copy(lerped)
+          if (c.rotation?.x < -1) c.material.color.copy(newF)
+          else c.material.color.copy(newC)
         }
       })
-      lerpSurface(wallGroupRef)
-      lerpSurface(wallDecorRef)
+      snapSurface(wallGroupRef)
+      snapSurface(wallDecorRef)
+      prevColors.current = null
     }
 
     // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
