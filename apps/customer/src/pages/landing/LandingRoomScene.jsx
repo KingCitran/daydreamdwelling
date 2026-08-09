@@ -420,9 +420,10 @@ function WallDecor({ room }) {
     const wc = hex(room.wall), sc = hex(room.side)
     return (
       <group>
-        {/* ── Back wall with D hole — inset by DI so edges don't touch wall box ── */}
+        {/* ── Back wall with D hole — FrontSide so exterior face doesn't
+            z-fight with palette board behind it ── */}
         <mesh position={[0, 0, -hd - WALL_T + DI]} geometry={backWallGeo}>
-          <meshStandardMaterial color={wc} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={wc} roughness={0.8} side={THREE.FrontSide} />
         </mesh>
         {/* Wooden D frame ring around the hole */}
         <mesh position={[0, dCenterY, -hd]} geometry={dFrameGeo}>
@@ -430,9 +431,9 @@ function WallDecor({ room }) {
             emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide} />
         </mesh>
 
-        {/* ── Left wall with D hole — inset by DI ── */}
+        {/* ── Left wall with D hole — FrontSide, same reason ── */}
         <mesh position={[-hw - WALL_T + DI, 0, 0]} rotation-y={Math.PI / 2} geometry={sideWallGeo}>
-          <meshStandardMaterial color={sc} roughness={0.8} side={THREE.DoubleSide} />
+          <meshStandardMaterial color={sc} roughness={0.8} side={THREE.FrontSide} />
         </mesh>
         {/* Wooden D frame ring on left wall */}
         <mesh position={[-hw, dCenterY, 0]} rotation-y={Math.PI / 2} geometry={dFrameGeo}>
@@ -939,10 +940,8 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     }
 
     // ── Palette colors — enforced EVERY frame ──
-    // Palette = current revolution's room. Changes when i increments (p=0.00,
-    // visual angle -40°, room front-facing, boards fully behind walls).
-    // One clean change per cycle — no intermediate steps.
-    const palTarget = i % L
+    // Palette colors enforced every frame to prevent React resets.
+    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
     const pal = ROOMS[palTarget]?.palette
     if (pal) {
       const enforce = (ref) => ref?.current?.traverse(c => {
