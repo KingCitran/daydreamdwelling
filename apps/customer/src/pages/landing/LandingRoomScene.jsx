@@ -65,7 +65,8 @@ function LandingFloor({ gridW, gridD, color, texType }) {
 
 // ── Walls — white box body + textured interior face ──────────
 // Polished white gold — with darker edges for contrast/depth
-const BRASS = { color: '#e8e0d0', emissive: '#a09078', emissiveIntensity: 0.25, roughness: 0.25, metalness: 0.75 }
+const BRASS = { color: '#e8e0d0', emissive: '#a09078', emissiveIntensity: 0.25, roughness: 0.25, metalness: 0.75,
+  polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }
 const BRASS_SHADOW = { color: '#8a8070', roughness: 0.5, metalness: 0.6,
   polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 } // inner shadow strip — pulled forward to avoid z-fighting with wall box edges
 
@@ -951,13 +952,13 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       setIdx(interior)
     }
 
-    // ── Wall/floor color lerp — smooth cross-fade during hidden window ──
-    // Both interiors hidden: visual θ ∈ (135°, 225°) → p ∈ (0.486, 0.736)
-    // Lerp all interior mesh colors from current room to next room.
-    // By the time walls reappear, colors are fully transitioned.
+    // ── Wall/floor color lerp — runs BEFORE palette side becomes visible ──
+    // Completes by p=0.48 so the palette-side wall color is already set
+    // when the wall box appears at p=0.486. Runs while room interior
+    // is still partially visible but walls are already blocking the view.
     const fromIdx = (i) % L, toIdx = (i + 1) % L
-    if (p >= 0.49 && p <= 0.73) {
-      const blend = Math.min(1, (p - 0.49) / 0.24)
+    if (p >= 0.33 && p <= 0.48) {
+      const blend = Math.min(1, (p - 0.33) / 0.15)
       const fromC = new THREE.Color(hex(ROOMS[fromIdx].wall))
       const toC = new THREE.Color(hex(ROOMS[toIdx].wall))
       const lerped = fromC.clone().lerp(toC, blend)
