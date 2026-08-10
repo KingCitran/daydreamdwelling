@@ -465,7 +465,7 @@ function getWallFaceBounds(wall, wallAnchor, wallU, cells, gridW, gridD) {
 
 // ── Wall item ──────────────────────────────────────────────────────
 const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
-                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE }) {
+                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE, wallColor }) {
   const def      = catalogue[item.typeKey]
   if (!def || !def.sizes) return null
   const size     = def.sizes[item.sizeIndex] ?? def.sizes[0]
@@ -652,18 +652,37 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
 
   // ── D-Window rendering ──────────────────────────────────────────────
   if (def.window && def.dShape) {
-    const FRAME_W = 0.25  // frame ring width
+    const FRAME_W = 0.15  // thin wooden frame ring
     const frameColor = '#c08a4e'
     const glassHex = def.swatches?.[item.swatchIndex]?.hex ?? '#c0e8ff'
-    // D-window frame: rectangular outer (fills the wall opening), D-shaped inner hole
+
+    // Wall fill: rectangle with D-hole — fills rectangular corners with wall material
+    const wallFillGeo = useMemo(() => {
+      const rect = new THREE.Shape()
+      rect.moveTo(-fw / 2, -fh / 2)
+      rect.lineTo(fw / 2, -fh / 2)
+      rect.lineTo(fw / 2, fh / 2)
+      rect.lineTo(-fw / 2, fh / 2)
+      rect.closePath()
+      // Punch D-hole matching the window opening
+      const dw = fw - 0.1, dh = fh - 0.1
+      const hole = new THREE.Path()
+      hole.moveTo(-dw / 2, -dh / 2)
+      hole.lineTo(-dw / 2, dh / 2)
+      hole.lineTo(-dw * 0.05, dh / 2)
+      hole.bezierCurveTo(dw * 0.5, dh * 0.48, dw * 0.5, -dh * 0.48, -dw * 0.05, -dh / 2)
+      hole.closePath()
+      rect.holes.push(hole)
+      const g = new THREE.ExtrudeGeometry(rect, { depth: fd, bevelEnabled: false })
+      g.translate(0, 0, -fd / 2)
+      return g
+    }, [fw, fh, fd])
+
+    // D-frame ring: thin wooden trim around the D-opening
     const dFrameGeo = useMemo(() => {
-      const outer = new THREE.Shape()
-      outer.moveTo(-fw / 2, -fh / 2)
-      outer.lineTo(fw / 2, -fh / 2)
-      outer.lineTo(fw / 2, fh / 2)
-      outer.lineTo(-fw / 2, fh / 2)
-      outer.closePath()
-      const iw = fw - FRAME_W * 2, ih = fh - FRAME_W * 2
+      const dw = fw - 0.1, dh = fh - 0.1
+      const outer = _makeDShape(dw, dh)
+      const iw = dw - FRAME_W * 2, ih = dh - FRAME_W * 2
       const inner = new THREE.Path()
       inner.moveTo(-iw / 2, -ih / 2)
       inner.lineTo(-iw / 2, ih / 2)
@@ -671,12 +690,13 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
       inner.bezierCurveTo(iw * 0.5, ih * 0.48, iw * 0.5, -ih * 0.48, -iw * 0.05, -ih / 2)
       inner.closePath()
       outer.holes.push(inner)
-      const g = new THREE.ExtrudeGeometry(outer, { depth: fd * 1.5, bevelEnabled: false })
-      g.translate(0, 0, -fd * 0.75)
+      const g = new THREE.ExtrudeGeometry(outer, { depth: fd * 1.2, bevelEnabled: false })
+      g.translate(0, 0, -fd * 0.6)
       return g
     }, [fw, fh, fd])
-    // D-shaped glass pane — matches inner hole exactly
-    const iw = fw - FRAME_W * 2, ih = fh - FRAME_W * 2
+
+    // Glass pane
+    const iw = fw - 0.1 - FRAME_W * 2, ih = fh - 0.1 - FRAME_W * 2
     const dGlassGeo = useMemo(() => new THREE.ShapeGeometry(_makeDShape(iw, ih)), [iw, ih])
 
     return (
@@ -684,6 +704,10 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
         <group position={[wx, wy, wz]} rotation={[0, rotY, 0]}
           onPointerDown={onPointerDown} onClick={e => e.stopPropagation()} onDoubleClick={handleDoubleClick}>
           {isSelected && <mesh><boxGeometry args={[fw + 0.3, fh + 0.3, fd + 0.3]} /><meshBasicMaterial color={outlineColor} wireframe /></mesh>}
+          {/* Wall fill — covers rectangular corners */}
+          <mesh geometry={wallFillGeo}>
+            <meshStandardMaterial color={wallColor || '#f0ece4'} roughness={0.8} side={THREE.DoubleSide} />
+          </mesh>
           {/* Wooden D-frame ring */}
           <mesh geometry={dFrameGeo} castShadow>
             <meshStandardMaterial color={frameColor} roughness={0.6} emissive="#604020" emissiveIntensity={0.1} side={THREE.DoubleSide} />
@@ -1011,6 +1035,7 @@ export default function Items({
   lightsOff = false,
   catalogue = ITEM_CATALOGUE,
   activeDragRef: externalDragRef,
+  wallColor,
 }) {
   const internalDragRef = useRef(null)
   const activeDragRef = externalDragRef || internalDragRef
@@ -1075,6 +1100,7 @@ export default function Items({
               onMoveWall={onMoveWallItem}
               wallVisible={visibleWalls.has(item.wall)}
               onEnterRoom={onEnterRoom}
+              wallColor={wallColor}
             />
           )
         }
