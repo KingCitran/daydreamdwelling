@@ -401,6 +401,7 @@ export default function RoomScene({
           catalogue={catalogue}
           activeDragRef={activeDragRef}
           wallColor={wallColor}
+          wallTexture={wallTexture}
         />
         {ghostPlacement && (
           <GhostPreview

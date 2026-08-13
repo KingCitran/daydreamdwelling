@@ -37,6 +37,26 @@ function WoodMaterial({ color, roughness = 0.75 }) {
   )
 }
 
+// Wall-textured fill material for D-window — matches the room's wall texture
+function WallFillMaterial({ wallColor, wallTexture, fw, fh }) {
+  const tex = useMemo(() => {
+    const t = getTexture(wallTexture || 'plaster', wallColor || '#f0ece4')
+    if (t?.map) { t.map.repeat.set(fw / 4, fh / 4) }
+    return t
+  }, [wallTexture, wallColor, fw, fh])
+  return (
+    <meshStandardMaterial
+      color={tex ? '#fff' : (wallColor || '#f0ece4')}
+      map={tex?.map || undefined}
+      normalMap={tex?.normalMap || undefined}
+      roughnessMap={tex?.roughnessMap || undefined}
+      roughness={tex ? 1.0 : 0.8}
+      normalScale={tex?.normalMap ? new THREE.Vector2(1.2, 1.2) : undefined}
+      side={THREE.DoubleSide}
+    />
+  )
+}
+
 const WALL_T      = 0.28
 const _plane      = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const _ray        = new THREE.Raycaster()
@@ -465,7 +485,7 @@ function getWallFaceBounds(wall, wallAnchor, wallU, cells, gridW, gridD) {
 
 // ── Wall item ──────────────────────────────────────────────────────
 const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighlighted, gridW, gridD, wallHeight, colBounds, rowBounds, cells, wallVisible, onSelect, onMoveWall,
-                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE, wallColor }) {
+                        onDoubleClick, onDragStart, onDragEnd, roomRotationRef, activeDragRef, onEnterRoom, lightsOff = false, catalogue = ITEM_CATALOGUE, wallColor, wallTexture }) {
   const def      = catalogue[item.typeKey]
   if (!def || !def.sizes) return null
   const size     = def.sizes[item.sizeIndex] ?? def.sizes[0]
@@ -704,9 +724,9 @@ const WallItemMesh = memo(function WallItemMesh({ item, isSelected, isCartHighli
         <group position={[wx, wy, wz]} rotation={[0, rotY, 0]}
           onPointerDown={onPointerDown} onClick={e => e.stopPropagation()} onDoubleClick={handleDoubleClick}>
           {isSelected && <mesh><boxGeometry args={[fw + 0.3, fh + 0.3, fd + 0.3]} /><meshBasicMaterial color={outlineColor} wireframe /></mesh>}
-          {/* Wall fill — covers rectangular corners */}
+          {/* Wall fill — covers rectangular corners, matches wall texture */}
           <mesh geometry={wallFillGeo}>
-            <meshStandardMaterial color={wallColor || '#f0ece4'} roughness={0.8} side={THREE.DoubleSide} />
+            <WallFillMaterial wallColor={wallColor} wallTexture={wallTexture} fw={fw} fh={fh} />
           </mesh>
           {/* Wooden D-frame ring */}
           <mesh geometry={dFrameGeo} castShadow>
@@ -1036,6 +1056,7 @@ export default function Items({
   catalogue = ITEM_CATALOGUE,
   activeDragRef: externalDragRef,
   wallColor,
+  wallTexture,
 }) {
   const internalDragRef = useRef(null)
   const activeDragRef = externalDragRef || internalDragRef
@@ -1101,6 +1122,7 @@ export default function Items({
               wallVisible={visibleWalls.has(item.wall)}
               onEnterRoom={onEnterRoom}
               wallColor={wallColor}
+              wallTexture={wallTexture}
             />
           )
         }
