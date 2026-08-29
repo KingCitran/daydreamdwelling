@@ -237,8 +237,8 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
           <mesh position={[-hw - WALL_T / 2, wallHeight + T / 2, 0]}>
             <boxGeometry args={[WALL_T, T, gridD]} />
             <meshStandardMaterial {...B} /></mesh>
-          {/* Back wall right vertical — full height */}
-          <mesh position={[hw + T / 2, hh, -hd - WALL_T / 2]}>
+          {/* Back wall right vertical — full height (nudged 0.01 outward to avoid z-fighting with wall box edge) */}
+          <mesh position={[hw + T / 2 + 0.01, hh, -hd - WALL_T / 2]}>
             <boxGeometry args={[T, wallHeight, WALL_T]} />
             <meshStandardMaterial {...B} /></mesh>
           {/* Left wall front vertical — full height */}
@@ -260,8 +260,8 @@ function LandingWalls({ gridW, gridD, wallHeight, wallColor, sideColor, wallTexT
               <mesh position={[-hw - WALL_T / 2, wallHeight - S / 2, 0]}>
                 <boxGeometry args={[WALL_T + 0.01, S, gridD]} />
                 <meshStandardMaterial {...SH} /></mesh>
-              {/* Left of back wall right vertical */}
-              <mesh position={[hw - S / 2, hh, -hd - WALL_T / 2]}>
+              {/* Left of back wall right vertical (nudged to match strip) */}
+              <mesh position={[hw - S / 2 + 0.01, hh, -hd - WALL_T / 2]}>
                 <boxGeometry args={[S, wallHeight, WALL_T + 0.01]} />
                 <meshStandardMaterial {...SH} /></mesh>
               {/* Right of left wall front vertical */}
@@ -672,7 +672,7 @@ function WallpaperSheet3D({ x, y, z, w, h, tex, rot }) {
 
 const PaletteBack3D = memo(function PaletteBack3D({ room, gridW, wallHeight }) {
   const p = room.palette, hd = room.gridD / 2, hw = gridW / 2
-  const z = -hd - WALL_T - 0.20, rot = Math.PI
+  const z = -hd - WALL_T - 0.08, rot = Math.PI
   // Board dimensions (inset 7% from wall edges)
   const inset = 0.07
   const bw = gridW * (1 - inset * 2), bh = wallHeight * (1 - inset * 2)
@@ -717,7 +717,7 @@ const PaletteBack3D = memo(function PaletteBack3D({ room, gridW, wallHeight }) {
 
 const PaletteSide3D = memo(function PaletteSide3D({ room, gridW, gridD, wallHeight }) {
   const p = room.palette, hw = gridW / 2, hdd = gridD / 2
-  const x = -hw - WALL_T - 0.20, rot = -Math.PI / 2
+  const x = -hw - WALL_T - 0.08, rot = -Math.PI / 2
   const inset = 0.07
   const bw = gridD * (1 - inset * 2), bh = wallHeight * (1 - inset * 2)
   const bcy = wallHeight / 2, bcz = 0
@@ -779,8 +779,8 @@ const PaletteBoards = memo(forwardRef(function PaletteBoards({ initialRoom, grid
     if (backRef.current) backRef.current.visible = p >= 0.486 && p <= 0.986
     if (sideRef.current) sideRef.current.visible = p >= 0.236 && p <= 0.736
 
-    // Enforce palette colors every frame
-    const palTarget = (p >= 0.03 ? i : (i + L - 1) % L) % L
+    // Enforce palette colors every frame — room i owns the whole cycle
+    const palTarget = i % L
     const pal = rooms[palTarget]?.palette
     if (!pal) return
     const apply = (groupRef) => groupRef?.current?.traverse(c => {
@@ -875,8 +875,7 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
   const fillRef = useRef()
   const [idx, setIdx] = useState(0)
   const coRef = useRef(1)
-  // prevColors ref removed — wall colors managed by React re-render only
-  // boardBackRoom/boardSideRoom refs removed — palette colors are enforced every frame
+  const coverColorRoom = useRef(0) // which room's wall color the covers show
   const lastKey = useRef('')
   const lightFrom = useRef(0)
   const lightTo = useRef(0)
@@ -919,10 +918,10 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
     fadeContent(wallDecorRef)
     // Palette boards stay at full opacity — backface culling handles visibility
 
-    // Swap indices
-    const interior = (p >= 0.61 ? i + 1 : i) % L
-    const caption  = (p >= 0.61 ? i + 1 : i) % L
-    const front    = (p >= 0.61 ? i + 1 : i) % L
+    // Swap indices — interior at p=0.50 (behind walls), caption at reveal
+    const interior = (p >= 0.50 ? i + 1 : i) % L
+    const caption  = (p >= 0.86 ? i + 1 : i) % L
+    const front    = (p >= 0.86 ? i + 1 : i) % L
 
     // ── Per-wall palette board visibility ──
     // Each board shows when its wall's EXTERIOR faces the camera (palette side),
@@ -942,30 +941,50 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
       if (c.userData?.wallBox === 'back') c.visible = p >= 0.486 && p <= 0.986
       else if (c.userData?.wallBox === 'side') c.visible = p >= 0.236 && p <= 0.736
     })
+    // Cover planes same timing as wall boxes
+    groupRef.current?.traverse(c => {
+      if (c.userData?.wallCover === 'back') c.visible = p >= 0.486 && p <= 0.986
+      else if (c.userData?.wallCover === 'side') c.visible = p >= 0.236 && p <= 0.736
+    })
 
-    if (interior !== idx) setIdx(interior)
-
-    // ── Lock brand room D-wall colors during palette view ──
-    // Only for brand rooms: the D-hole extrusion edges are visible from the
-    // palette side and change color at p=0.61. Lock them to the brand color.
-    const palRoomIdx = (p >= 0.03 ? i : (i + L - 1) % L) % L
-    const palRoom = ROOMS[palRoomIdx]
-    if (p >= 0.486 && p <= 0.986 && palRoom?.brand && wallDecorRef.current) {
-      const lockColor = new THREE.Color(hex(palRoom.wall))
-      wallDecorRef.current.traverse(c => {
-        if (c.isMesh && c.material && !c.material.metalness) {
-          c.material.color.copy(lockColor)
+    // ── Cover plane color — matches the room just displayed ──
+    // Changes when covers are HIDDEN (front-facing view, p < 0.236 or p > 0.986)
+    // so the transition is invisible. During palette view, covers stay locked.
+    const coversHidden = p < 0.236 || p > 0.986
+    if (coversHidden) {
+      // Update to current cycle's room
+      coverColorRoom.current = i % L
+    }
+    // Apply the locked room's wall color to covers every frame
+    const coverRoom = ROOMS[coverColorRoom.current]
+    if (coverRoom) {
+      const coverWallColor = new THREE.Color(hex(coverRoom.wall))
+      groupRef.current?.traverse(c => {
+        if (c.userData?.wallCover && c.isMesh && c.material) {
+          c.material.color.copy(coverWallColor)
         }
       })
     }
 
+    if (interior !== idx) setIdx(interior)
+
     // Palette colors + visibility now fully managed by PaletteBoards' own useFrame
 
-    // Lighting lerp — cross-fade during hidden window (0.48-0.70)
-    // so new room's lighting is set when it swings back into view
-    if (p < 0.48) { lightFrom.current = i % L; lightTo.current = i % L }
-    else { lightFrom.current = i % L; lightTo.current = (i + 1) % L }
-    const lb = p < 0.48 ? 0 : p > 0.70 ? 1 : (p - 0.48) / 0.22
+    // Lighting lerp — very gradual ease after clouds start (p=0.92 to p=0.25 of next cycle)
+    // Wraps across cycle boundary for a long ~10s transition window
+    const lightProgress = p >= 0.92 ? (p - 0.92) / 0.33   // 0→0.24 in this cycle
+                        : p < 0.25 ? (0.08 + p) / 0.33     // continues 0.24→1.0 in next cycle
+                        : 1                                  // done
+    if (lightProgress < 1 && lightProgress > 0) {
+      lightFrom.current = (p >= 0.92 ? i : (i - 1 + L)) % L
+      lightTo.current = (p >= 0.92 ? (i + 1) : i) % L
+    } else if (lightProgress <= 0) {
+      lightFrom.current = i % L; lightTo.current = i % L
+    } else {
+      lightFrom.current = i % L; lightTo.current = i % L
+    }
+    const lbRaw = Math.max(0, Math.min(1, lightProgress))
+    const lb = lbRaw <= 0 ? 0 : lbRaw >= 1 ? 1 : lbRaw * lbRaw * (3 - 2 * lbRaw)
     if (lb > 0 && lb < 1) {
       // Only lerp during the active transition
       const mA = MOOD_SCENE_PRESETS[ROOMS[lightFrom.current].mood] || MOOD_SCENE_PRESETS['Bright Day']
@@ -1025,6 +1044,20 @@ export default function LandingRoomScene({ tickRef, rooms: ROOMS = DEFAULT_ROOMS
             wallColor={hex(room.wall)} sideColor={hex(room.side)} wallTexType={room.wallTex}
             skipInteriorFaces={!!room.brand} />
         </group>
+
+        {/* Cover boxes — thin opaque slabs that hide interior wall color changes.
+            Slightly larger than wall box, 0.01ft behind. Thin box (0.06ft) blocks
+            grazing angle views that flat planes miss. */}
+        <mesh position={[-WALL_T / 2, wallHeight / 2, -gridD / 2 - WALL_T - 0.01]}
+          userData={{ wallCover: 'back' }}>
+          <boxGeometry args={[gridW + WALL_T + 0.02, wallHeight + 0.02, 0.06]} />
+          <meshStandardMaterial color={EXT_C} roughness={0.5} />
+        </mesh>
+        <mesh position={[-gridW / 2 - WALL_T - 0.01, wallHeight / 2, 0]}
+          userData={{ wallCover: 'side' }}>
+          <boxGeometry args={[0.06, wallHeight + 0.02, gridD + 0.02]} />
+          <meshStandardMaterial color={EXT_C} roughness={0.5} />
+        </mesh>
 
         {/* Wall decor — separate ref so wall color lerp can target it without hitting furniture */}
         <group ref={wallDecorRef}>
