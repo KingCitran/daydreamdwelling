@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { MOOD_THEMES } from '@shared/themes'
 import { useMoodControl } from '@shared/ThemeProvider'
 import { supabase } from '@shared/supabase'
 import CloudField from './landing/CloudField'
-import RotatingRoom from './landing/RotatingRoom'
+const RotatingRoom = lazy(() => import('./landing/RotatingRoom'))
 import { ROOMS_WITH_BRAND as ENDLESS_ROOMS } from './landing/endlessRooms'
 import { fetchPublishedRooms } from './landing/configToRooms'
 import MoodSwatch from './landing/MoodSwatch'
@@ -70,21 +70,32 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
     sky: ENDLESS_ROOMS[0].sky, prevSky: ENDLESS_ROOMS[0].sky, skyKey: -1,
   }))
 
-  // Staged reveal: background (instant) → clouds (0.8s) → room (2.5s)
+  // Staged reveal: background (instant) → clouds (0.6s) → room (when 3D ready)
   useEffect(() => {
-    // Stage 1: clouds fade in
-    setTimeout(() => setCloudsReady(true), 800)
-    // Stage 2: fetch config + mount room after clouds
+    // Preload first 10 cloud images so they're ready when clouds fade in
+    for (let i = 1; i <= 10; i++) {
+      const img = new Image()
+      img.src = `/clouds/cloud-${String(i).padStart(3, '0')}.webp`
+    }
+    // Stage 1: clouds fade in quickly
+    setTimeout(() => setCloudsReady(true), 600)
+
+    // Try cached config first for instant display, then fetch fresh
+    let cached = null
+    try { cached = JSON.parse(localStorage.getItem('ddd_landing_rooms')) } catch {}
+    if (cached?.length > 0) setActiveRooms(cached)
+
+    // Fetch fresh config (updates cache for next visit)
     fetchPublishedRooms()
       .then(r => {
-        setActiveRooms(r?.length > 0 ? r : ENDLESS_ROOMS)
-        // Stage 3: fade room in after 3D scene has time to render
-        setTimeout(() => setRoomVisible(true), 2500)
+        const rooms = r?.length > 0 ? r : ENDLESS_ROOMS
+        setActiveRooms(rooms)
+        try { localStorage.setItem('ddd_landing_rooms', JSON.stringify(rooms)) } catch {}
       })
       .catch(() => {
-        setActiveRooms(ENDLESS_ROOMS)
-        setTimeout(() => setRoomVisible(true), 2500)
+        if (!cached) setActiveRooms(ENDLESS_ROOMS)
       })
+    // Stage 3: roomVisible set by onReady callback from RotatingRoom (first frame rendered)
   }, [])
 
   // Sync mood to CloudField when the sky transitions
@@ -227,7 +238,12 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           opacity: roomVisible ? 1 : 0,
           transition: 'opacity 2s ease-in-out',
         }}>
-          {activeRooms && <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} startDelay={0} initialAngle={-40} />}
+          {activeRooms && (
+            <Suspense fallback={null}>
+              <RotatingRoom onStateChange={setRoomState} rooms={activeRooms} startDelay={0} initialAngle={-40}
+                onReady={() => { if (!roomVisible) setTimeout(() => setRoomVisible(true), 300) }} />
+            </Suspense>
+          )}
         </div>
 
         {/* Foreground cloud removed — it drifted in front of the room and looked bad */}

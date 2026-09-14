@@ -2,11 +2,20 @@
 // Uses LandingRoomScene for the 3D rendering.
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { ROOMS_WITH_BRAND as DEFAULT_ROOMS } from './endlessRooms'
 import LandingRoomScene from './LandingRoomScene'
 
-export default function RotatingRoom({ onStateChange, rooms: roomsProp, startDelay = 0, initialAngle = 0 }) {
+// Fires onReady once the 3D scene has rendered its first frame
+function ReadySignal({ onReady }) {
+  const fired = useRef(false)
+  useFrame(() => {
+    if (!fired.current) { fired.current = true; onReady() }
+  })
+  return null
+}
+
+export default function RotatingRoom({ onStateChange, onReady, rooms: roomsProp, startDelay = 0, initialAngle = 0 }) {
   const ROOMS = roomsProp || DEFAULT_ROOMS
   const [sky, setSky] = useState({ cur: 0, prev: 0, seq: 0 })
   const [captionIdx, setCaptionIdx] = useState(0)
@@ -37,6 +46,7 @@ export default function RotatingRoom({ onStateChange, rooms: roomsProp, startDel
       >
         <Suspense fallback={null}>
           <LandingRoomScene tickRef={tickRef} rooms={ROOMS} startDelay={startDelay} initialAngle={initialAngle} />
+          {onReady && <ReadySignal onReady={onReady} />}
         </Suspense>
       </Canvas>
     </div>
