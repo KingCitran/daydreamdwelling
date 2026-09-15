@@ -2090,13 +2090,20 @@ function AppInner({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomI
       </div>
       {/* Static Shop right-rail. Slides in from the right with the same
           transition the legacy drawer used. Width is 0 when closed. */}
-      <div style={{
+      <div style={compact ? {
+        // Mobile: overlay on top of canvas, full width
+        position: 'fixed', top: 52, bottom: 58, right: 0, zIndex: 55,
+        width: shopOpen ? '100%' : 0,
+        overflow: shopOpen ? 'visible' : 'hidden',
+        transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
+      } : {
+        // Desktop/tablet: inline right rail
         width: shopOpen ? drawerWidth : 0,
         flexShrink: 0, height: '100%',
         overflow: shopOpen ? 'visible' : 'hidden',
         transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
       }}>
-        <div style={{ width: drawerWidth, height: '100%', transition: 'width 0.22s ease' }}>
+        <div style={{ width: compact ? '100%' : drawerWidth, height: '100%', transition: 'width 0.22s ease' }}>
           <ShopDrawer
             open={shopOpen}
             activeTab={drawerTab}

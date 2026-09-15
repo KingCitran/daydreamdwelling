@@ -1,3 +1,9 @@
+/* ── Mobile touch optimizations ── */
+button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+@media (max-width: 768px) {
+  * { -webkit-overflow-scrolling: touch; }
+}
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;

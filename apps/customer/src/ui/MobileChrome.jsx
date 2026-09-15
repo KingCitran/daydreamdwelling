@@ -86,6 +86,7 @@ function IconBtn({ icon: LucideIcon, onClick, label, badge, active, size = 38, u
       background: active ? u.accent + '1c' : u.card,
       color: active ? u.accent : u.text,
       opacity: disabled ? 0.35 : 1,
+      touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
     }}>
       <LucideIcon size={Math.round(size * 0.5)} />
       {badge > 0 && (
@@ -309,6 +310,7 @@ export function BuilderToolDock({ active, onPick, displacedCount = 0 }) {
               justifyContent: 'center', gap: 3, border: 'none', background: 'transparent',
               cursor: 'pointer', fontFamily: 'inherit', minWidth: 0, padding: 0,
               position: 'relative',
+              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
             }}>
               <span style={{
                 width: 46, height: 32, borderRadius: 11,
@@ -497,8 +499,10 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
   const isBottom = mode === 'mobile'
 
   const wrap = isBottom ? {
-    position: 'fixed', left: 0, right: 0, bottom: geom.dockH, zIndex: 60,
-    top: geom.topH + 4,
+    position: 'fixed', left: 0, right: 0, zIndex: 60,
+    bottom: geom.dockH,
+    top: geom.topH,
+    maxHeight: `calc(100vh - ${geom.topH}px - ${geom.dockH}px - env(safe-area-inset-bottom, 0px))`,
     borderRadius: '22px 22px 0 0',
     boxShadow: '0 -10px 40px rgba(0,0,0,0.28)',
   } : {
@@ -517,9 +521,9 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
       fontFamily: "'Outfit',system-ui,sans-serif", color: u.text,
     }}>
       {isBottom && (
-        <div onClick={onClose} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 2px', cursor: 'pointer', flexShrink: 0 }}>
+        <button onClick={onClose} style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 2px', cursor: 'pointer', flexShrink: 0, border: 'none', background: 'transparent', width: '100%', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}>
           <div style={{ width: 38, height: 4, borderRadius: 2, background: u.soft, opacity: 0.5 }} />
-        </div>
+        </button>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: isBottom ? '6px 16px 10px' : '15px 16px 11px', flexShrink: 0 }}>
         {accentDot && <span style={{ width: 9, height: 9, borderRadius: '50%', background: accentDot, flexShrink: 0 }} />}
@@ -528,6 +532,7 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
           width: 32, height: 32, borderRadius: 9, border: `1px solid ${u.line}`,
           background: u.card, color: u.soft, cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
         }}>✕</button>
       </div>
       <div className="ddd-sheet-body" style={{ overflow: noPad ? 'hidden' : 'auto', overflowX: 'hidden', padding: noPad ? 0 : '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch', display: noPad ? 'flex' : 'block', flexDirection: 'column', minHeight: 0 }}>
