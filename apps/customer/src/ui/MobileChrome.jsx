@@ -535,7 +535,7 @@ export function BuilderSheet({ title, accentDot, onClose, children, footer, heig
           touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
         }}>✕</button>
       </div>
-      <div className="ddd-sheet-body" style={{ overflow: noPad ? 'hidden' : 'auto', overflowX: 'hidden', padding: noPad ? 0 : '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch', display: noPad ? 'flex' : 'block', flexDirection: 'column', minHeight: 0 }}>
+      <div className="ddd-sheet-body" style={{ overflow: noPad ? 'hidden' : 'auto', overflowX: 'hidden', padding: noPad ? 0 : '0 16px 16px', flex: 1, WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', display: noPad ? 'flex' : 'block', flexDirection: 'column', minHeight: 0 }}>
         {children}
       </div>
       {footer && (

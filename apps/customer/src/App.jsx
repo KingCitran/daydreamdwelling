@@ -217,7 +217,13 @@ function Gate() {
   else if (params.get('orders') === '1') page = <OrderHistoryPage onBack={() => { window.location.search = '' }} />
   else if (params.get('messages') === '1') page = <MessagesPage onBack={() => { window.location.search = '' }} />
   else if (params.get('profile')) page = <ProfilePage userId={params.get('profile')} onEnterBuilder={() => setInBuilder(true)} />
-  else if (inBuilder) page = <BuilderErrorBoundary><AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} adminRoomId={adminRoomId} /></BuilderErrorBoundary>
+  else if (inBuilder) page = <BuilderErrorBoundary><React.Suspense fallback={
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0f0c1e', color: '#e0d9ff', fontFamily: "'Outfit',system-ui,sans-serif", gap: 16 }}>
+      <div style={{ width: 40, height: 40, border: '3px solid #9870c020', borderTopColor: '#9870c0', borderRadius: '50%', animation: 'ddd-spin 0.8s linear infinite' }} />
+      <p style={{ fontSize: 14, opacity: 0.6, margin: 0 }}>Loading your room...</p>
+      <style>{`@keyframes ddd-spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  }><AppInner shopBuilderSellerId={shopBuilderSellerId} exploreRoomId={exploreRoomId} adminRoomId={adminRoomId} /></React.Suspense></BuilderErrorBoundary>
   else if (inMarketplace) page = <MarketplacePage onEnterBuilder={() => { setInMarketplace(false); setInBuilder(true) }} onBack={() => setInMarketplace(false)} />
   else { page = <LandingPage onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />; isLanding = true }
 
