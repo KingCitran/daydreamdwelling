@@ -1,0 +1,2118 @@
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { Canvas } from '@react-three/fiber'
+import RoomScene from './scene/RoomScene'
+// CloudConveyorPuffs archived — drift-across is the only cloud variant now
+import CloudConveyorDrift from './scene/CloudConveyorDrift'
+import Panel from './ui/Panel'
+import StylePanel from './ui/StylePanel'
+import ShopDrawer, { ProductModal } from './ui/ShopDrawer'
+import { ITEM_CATALOGUE } from './data/items'
+import { computeRoomLayout } from './overview/layout'
+import ShareModal from './ui/ShareModal'
+import DwellingSelector from './ui/DwellingSelector'
+import WelcomeWizard from './ui/WelcomeWizard'
+import { exportFloorPlanPNG } from './utils/exportFloorPlan'
+import { ROOM_TEMPLATES } from './data/roomTemplates'
+// RoomOverview archived — Floor Plan is the Dwelling Overview now
+import { useBuilderStyles } from './ui/styles/appStyles'
+// MusicPanel removed — replaced by MusicTabPanel in BuilderSheet + DockablePanel
+import WallPicker from './ui/WallPicker'
+import WindowSizePicker from './ui/WindowSizePicker'
+import DoorLinkPicker from './ui/DoorLinkPicker'
+import ArchSizePicker from './ui/ArchSizePicker'
+import SelectedControls from './ui/SelectedControls'
+import HubPanel from './ui/HubPanel'
+import RoomPanel from './ui/RoomPanel'
+import RoomBanner from './ui/RoomBanner'
+import { makeGrid, getParallelWallFaces } from './utils/roomGeometry'
+import useHistoryUndo from './hooks/useHistoryUndo'
+import usePersistence from './hooks/usePersistence'
+import useCartWishlist from './hooks/useCartWishlist'
+import useItemActions from './hooks/useItemActions'
+import useRoomNavigation, { getFloorStack } from './hooks/useRoomNavigation'
+import GhostFloor from './scene/GhostFloor'
+import NeighborRoom from './scene/NeighborRoom'
+import useShopProducts from './hooks/useShopProducts'
+import useOwnedItems from './hooks/useOwnedItems'
+import { useAuth } from '@shared/auth/AuthContext'
+import { useTheme } from '@shared/ThemeProvider'
+import { useMusicPlayer } from './contexts/MusicPlayerContext'
+import { SideTabProvider, dispatchTogglePanel, dispatchOpenPanel } from './contexts/SideTabContext'
+import SideTabStrip from './ui/SideTabStrip'
+import DockablePanel from './ui/DockablePanel'
+import MusicTabPanel from './ui/MusicTabPanel'
+import PlaceTabPanel from './ui/PlaceTabPanel'
+import SocialTabPanel from './ui/SocialTabPanel'
+import PlanTabPanel from './ui/PlanTabPanel'
+import ViewTabPanel from './ui/ViewTabPanel'
+import BuildTabPanel from './ui/BuildTabPanel'
+import WallDrawPanel from './ui/WallDrawPanel'
+import BottomTabCluster from './ui/BottomTabCluster'
+import TopRightCluster from './ui/TopRightCluster'
+import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode, TOOL_SETS } from './ui/MobileChrome'
+import { DesignStyleContent, DesignBuildContent, DesignPlanContent, DesignMoreContent } from './ui/BuilderPanels'
+import BrowseTab from './ui/shop/BrowseTab'
+import { useIsDragging } from './contexts/dragSignal'
+import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
+import { Lightbulb, LightbulbOff } from 'lucide-react'
+import AuthModal from './ui/AuthModal'
+import AccountModal from './ui/AccountModal'
+import SaveRoomModal from './ui/SaveRoomModal'
+import LoadRoomModal from './ui/LoadRoomModal'
+import useCloudSave from './hooks/useCloudSave'
+import CheckoutModal from './ui/CheckoutModal'
+import OrderSuccessBanner from './ui/OrderSuccessBanner'
+import Wispy from './ui/Wispy'
+import useWispy from './hooks/useWispy'
+import useWaitingInventory from './hooks/useWaitingInventory'
+// WispyCashier + WispyPreview moved to _archive_wispy_legacy/ — they used
+// the OG inline-SVG character. The shared @shared/wispy mascot replaces
+// them everywhere; shop greeting is piped via useWispy().say().
+import useSellerCatalogue from './hooks/useSellerCatalogue'
+import useProductAnalytics from './hooks/useProductAnalytics'
+import FloorPlanPage, { detectRoomZones } from './pages/FloorPlanPage'
+import BuilderMoodPicker from './ui/BuilderMoodPicker'
+import SkyBackdrop from './scene/SkyBackdrop'
+import MoonOverlay from './scene/MoonOverlay'
+// GreenhouseIslands archived — needs background-removed PNGs first
+import ExploreBanner from './ui/ExploreBanner'
+import WaitingInventoryAlert from './ui/WaitingInventoryAlert'
+import ShareToCommunityModal from './ui/ShareToCommunityModal'
+import CommunityFeed from './pages/CommunityFeed'
+import ContestsPage from './pages/ContestsPage'
+import NotificationBell from './ui/NotificationBell'
+import { useMoodControl } from '@shared/ThemeProvider'
+import Logo from '@shared/Logo'
+import { supabase } from '@shared/supabase'
+import useSharedWispy from '@shared/wispy/useWispy'
+
+const DEFAULT_wallHeight = 8
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const isUUID = (s) => typeof s === 'string' && UUID_RE.test(s)
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem('room-builder-v1')
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    return data.version === 1 ? data : null
+  } catch { return null }
+}
+
+// ── Floor Switcher — Sims-style ▲ Floor N ▼ ───────────────────────
+function FloorSwitcher({ currentRoomId, allRoomsData, floorStack, onNavigate, onSetFloorLevel }) {
+  // Build floor list from ALL rooms by level (not just stair-connected)
+  const allFloors = useMemo(() => {
+    const byLevel = {}
+    for (const [id, r] of Object.entries(allRoomsData ?? {})) {
+      const level = r.level ?? 0
+      if (!byLevel[level]) byLevel[level] = { roomId: Number(id), level }
+    }
+    return Object.values(byLevel).sort((a, b) => a.level - b.level)
+  }, [allRoomsData])
+
+  const floors = allFloors.length > 1 ? allFloors : (floorStack?.length > 1 ? floorStack : null)
+  if (!floors) return null
+
+  const currentFloor = floors.findIndex(f => f.roomId === currentRoomId || f.level === (allRoomsData?.[currentRoomId]?.level ?? 0))
+  if (currentFloor === -1) return null
+  const canGoUp = currentFloor < floors.length - 1
+  const canGoDown = currentFloor > 0
+
+  const go = (targetIdx) => {
+    const target = floors[targetIdx]
+    onNavigate(target.roomId)
+    onSetFloorLevel(target.level)
+  }
+
+  const btnStyle = (enabled) => ({
+    width: 32, height: 32, borderRadius: 8, border: 'none',
+    background: enabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+    color: enabled ? '#fff' : 'rgba(255,255,255,0.3)',
+    cursor: enabled ? 'pointer' : 'default',
+    fontSize: 14, fontWeight: 800,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontFamily: "'Outfit', system-ui, sans-serif",
+  })
+
+  return (
+    <div style={{
+      position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
+      zIndex: 20, display: 'flex', alignItems: 'center', gap: 6,
+      padding: '4px 6px', borderRadius: 12,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(12px)',
+      color: '#fff', fontSize: 13, fontWeight: 700,
+      fontFamily: "'Outfit', system-ui, sans-serif",
+      pointerEvents: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+    }}>
+      <button style={btnStyle(canGoDown)} onClick={canGoDown ? () => go(currentFloor - 1) : undefined}
+        title="Go down one floor">▼</button>
+      <span style={{ padding: '0 8px', minWidth: 64, textAlign: 'center', fontSize: 12 }}>
+        Floor {currentFloor + 1}
+        <span style={{ fontSize: 9, opacity: 0.5, marginLeft: 4 }}>/ {floors.length}</span>
+      </span>
+      <button style={btnStyle(canGoUp)} onClick={canGoUp ? () => go(currentFloor + 1) : undefined}
+        title="Go up one floor">▲</button>
+    </div>
+  )
+}
+
+export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId = null, adminRoomId = null }) {
+  const t = useTheme()
+  const s = useBuilderStyles()
+  // Shared mood (from ThemeProvider) — drives Wispy's per-mood remark on
+  // mood change. Must be read here in AppInner; the outer App component has
+  // its own useMoodControl, but that scope isn't visible inside the builder.
+  const { mood, setMood } = useMoodControl()
+
+  // Builder mounts the music player inside the Music side-tab (M8). Hide the
+  // global TopMusicButton + floating widget so we don't duplicate controls.
+  const { setWidgetVariant } = useMusicPlayer()
+  useEffect(() => {
+    setWidgetVariant('none')
+    return () => setWidgetVariant('bar')
+  }, [setWidgetVariant])
+
+  // Pause the 3D scene's render loop while a panel is being dragged. The
+  // canvas keeps showing the last frame; raindrops / clouds freeze briefly.
+  // This frees the GPU so panel transforms hit the display refresh cleanly.
+  const isDragging = useIsDragging()
+
+  // Shop is a static right-rail (not a dockable panel) — opened from the
+  // Place tab's "Open Shop" button or the bottom-bar shortcuts.
+  const shopOpen = useShopRail()
+  const catalogue       = useShopProducts()
+  const sellerCatalogue = useSellerCatalogue(shopBuilderSellerId)
+  const { trackInterest, trackIntent } = useProductAnalytics()
+  // In shop builder mode the shop panel shows only the seller's products.
+  // Room rendering (Items, SelectedControls) uses the full catalogue so any
+  // static items already in the layout still render correctly.
+  const shopPanelCatalogue = shopBuilderSellerId ? (sellerCatalogue ?? {}) : catalogue
+  const [initSave] = useState(loadSaved)
+  const [lightsOff, setLightsOff] = useState(false)
+  const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
+  // cloudVariant archived — drift-across is the only cloud style now
+  // Dev: cycle every cloud through the Easter-egg shape pool so the user can
+  // audit + tune cloudShapes.js manifest. Off by default.
+  const [forceEasterEggs, setForceEasterEggs] = useState(false)
+
+  // Defer cloud rendering until after the room canvas + items have a chance
+  // to render and settle. Clouds are visually secondary; loading them first
+  // would steal GPU/CPU from the room geometry which the user actually
+  // interacts with. Wait for browser idle (or 800ms fallback).
+  const [cloudsReady, setCloudsReady] = useState(false)
+  useEffect(() => {
+    const onIdle = () => setCloudsReady(true)
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(onIdle, { timeout: 1500 })
+      return () => window.cancelIdleCallback?.(handle)
+    }
+    const t = setTimeout(onIdle, 800)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Shift+C cloud toggle removed — drift-only now
+
+  const nextItemIdRef = useRef(null)
+  if (nextItemIdRef.current === null) {
+    nextItemIdRef.current = initSave?.items?.length > 0
+      ? Math.max(...initSave.items.map(it => it.id)) + 1
+      : 1
+  }
+
+  // ── Core room state ──────────────────────────────────────────────
+  const [gridW,      setGridW]      = useState(initSave?.gridW ?? 30)
+  const [gridD,      setGridD]      = useState(initSave?.gridD ?? 30)
+  const [cells,      setCells]      = useState(() =>
+    initSave?.cells ? new Set(initSave.cells) : makeGrid(10, 10, 10, 10)
+  )
+  const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
+  const [targetRotation, setTarget] = useState(0)
+  const [floorColor,   setFloorColor]   = useState(initSave?.floorColor ?? '#cec5b8')
+  const [floorTexture, setFloorTexture] = useState(initSave?.floorTexture ?? 'flat')
+  const [wallColor,    setWallColor]    = useState(initSave?.wallColor  ?? '#d8d0c6')
+  const [wallTexture,  setWallTexture]  = useState(initSave?.wallTexture ?? 'flat')
+  const [wallFinish,   setWallFinish]   = useState(initSave?.wallFinish ?? 'eggshell')
+  const [floorOverrides, setFloorOverrides] = useState(() => {
+    if (initSave?.floorOverrides) return new Map(Object.entries(initSave.floorOverrides))
+    return new Map()
+  })
+  const [wallOverrides, setWallOverrides] = useState(() => {
+    if (initSave?.wallOverrides) return new Map(Object.entries(initSave.wallOverrides))
+    return new Map()
+  })
+  const [wallDrawMode, setWallDrawMode] = useState(false)
+  const [floorPlanOpen, setFloorPlanOpen] = useState(false)
+  const [activeZoneIdx, setActiveZoneIdx] = useState(null)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('ddd_welcomed'))
+  const [doorOpenings, setDoorOpenings] = useState(() => {
+    if (initSave?.doorOpenings) return new Set(initSave.doorOpenings)
+    return new Set()
+  })  // null = show all, number = specific zone
+  const [internalWalls, setInternalWalls] = useState(() => {
+    if (initSave?.internalWalls) return new Set(initSave.internalWalls)
+    return new Set()
+  })
+  const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
+  const [lightMood,  setLightMood]  = useState(initSave?.lightMood  ?? 'day')
+  const [moonId,     setMoonId]     = useState(initSave?.moonId ?? null)
+  const [items,      setItems]      = useState(initSave?.items ?? [])
+  const [selectedId, setSelectedId] = useState(null)
+  const roomItemKeys = useMemo(() => new Set(items.map(i => i.typeKey)), [items])
+  useEffect(() => { roomRotationRef.current = targetRotation }, [targetRotation])
+
+  // Explore mode + waiting inventory
+  const [exploreData, setExploreData] = useState(null) // { post, designer } when exploring
+  const isExploring = !!exploreRoomId
+  const waitingInventory = useWaitingInventory()
+  const [showWaitingAlert, setShowWaitingAlert] = useState(false)
+
+  // ── UI state ─────────────────────────────────────────────────────
+  const [panelOpen,        setPanelOpen]        = useState(false)
+  const [drawerOpen,       setDrawerOpen]       = useState(() => {
+    if (localStorage.getItem('ddd_open_shop')) { localStorage.removeItem('ddd_open_shop'); return true }
+    return true
+  })
+  const [drawerTab,        setDrawerTab]        = useState('shop')
+  const { wispyMessage, dismissWispy, showWispy, nudgeOnSave, nudgeOnFirstWishlist } =
+    useWispy({ itemCount: items.length, mood, drawerOpen })
+  const [roomPanelOpen,    setRoomPanelOpen]    = useState(false)
+  const [hubOpen,          setHubOpen]          = useState(false)
+  const [styleOpen,        setStyleOpen]        = useState(false)
+  const [activeTool,       setActiveTool]       = useState(null) // 'place'|'build'|'style'|'music'|'plan'|'social'|'more'|null
+  const paintMode = activeTool === 'style'
+  const [displacedCount,   setDisplacedCount]   = useState(0)
+  const [ghostPlacement,   setGhostPlacement]   = useState(null)  // { typeKey, stairW, stairD, stairCount, ... }
+  const [activeFloorLevel, setActiveFloorLevel] = useState(0)
+  const [activeModal,      setActiveModal]      = useState(null)
+  const [cartHighlight,    setCartHighlight]    = useState(null)
+  const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
+  const [wallPicker,       setWallPicker]       = useState(null)
+  const [windowPickerOpen, setWindowPickerOpen] = useState(false)
+  const [doorPickerOpen,   setDoorPickerOpen]   = useState(false)
+  const [doorLinkPicker,   setDoorLinkPicker]   = useState(null)
+  const [ceilingView,      setCeilingView]      = useState(false)
+  const [ceilingPicker,    setCeilingPicker]    = useState(null)
+  const [showMeasurements, setShowMeasurements] = useState(false)
+  const [showGrid,         _setShowGrid]        = useState(() => {
+    const saved = localStorage.getItem('ddd_grid')
+    if (saved !== null) return saved !== '0'
+    // Default grid OFF for large workspaces (60+), ON for small rooms
+    return (initSave?.gridW ?? 30) <= 20
+  })
+  const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
+  // overviewOpen removed — Floor Plan (floorPlanOpen) is the Dwelling Overview
+  const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
+  const [layoutOverrides,     setLayoutOverrides]     = useState({})
+  const [bookmark,        setBookmark]        = useState(null)
+  const [authModalOpen,    setAuthModalOpen]    = useState(false)
+  const [accountModalOpen, setAccountModalOpen] = useState(false)
+  const [accountModalTab,  setAccountModalTab]  = useState('Rooms')
+  const [communityOpen,    setCommunityOpen]    = useState(false)
+  const [contestsOpen,     setContestsOpen]     = useState(false)
+  const [saveModalOpen,   setSaveModalOpen]   = useState(false)
+  const [loadModalOpen,   setLoadModalOpen]   = useState(false)
+  const [cloudRoomId,     setCloudRoomId]     = useState(null) // id of the last saved cloud room (for overwrite)
+  const [adminRoomName,   setAdminRoomName]   = useState(null) // name of room loaded via ?room=<id>
+  const [checkoutOpen,    setCheckoutOpen]    = useState(false)
+  const [shareToCommunityOpen, setShareToCommunityOpen] = useState(false)
+  const [orderSuccess,    setOrderSuccess]    = useState(false)
+  const { user } = useAuth()
+  const ownedKeys = useOwnedItems(user?.id)
+
+  // ── Multi-room state ─────────────────────────────────────────────
+  const [allRooms,      setAllRooms]      = useState(() => {
+    if (!initSave?.allRooms) return {}
+    return Object.fromEntries(
+      Object.entries(initSave.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+    )
+  })
+  const [currentRoomId, setCurrentRoomId] = useState(initSave?.currentRoomId ?? 0)
+  const [roomStack,     setRoomStack]     = useState([])
+  const nextRoomIdRef = useRef(
+    initSave?.allRooms ? Math.max(1, ...Object.keys(initSave.allRooms).map(Number)) + 1 : 1
+  )
+  const [roomNames, setRoomNamesState] = useState(initSave?.roomNames ?? {})
+  const setRoomName = useCallback((id, name) => {
+    setRoomNamesState(prev => ({ ...prev, [id]: name }))
+  }, [])
+  const getRoomName = useCallback((id) => roomNames[Number(id)] || `Room ${Number(id) + 1}`, [roomNames])
+
+  // Auto-fit zoom and pan to room content on load
+  // For new users: default 10×10 room at (25,25) → zoom=28, pan centered
+  const defaultContentSize = 10  // new user default room is 10×10
+  const zoomRef       = useRef(() => {
+    if (!initSave?.cells) return Math.max(15, Math.min(80, 280 / defaultContentSize))
+    let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
+    const c = new Set(initSave.cells)
+    for (const key of c) { const [col, row] = key.split(',').map(Number); minC = Math.min(minC, col); maxC = Math.max(maxC, col); minR = Math.min(minR, row); maxR = Math.max(maxR, row) }
+    return Math.max(15, Math.min(80, 280 / Math.max(maxC - minC + 1, maxR - minR + 1, 6)))
+  })
+  if (typeof zoomRef.current === 'function') zoomRef.current = zoomRef.current()
+  const roomRotationRef = useRef(targetRotation)
+  const [zoomDisplay, setZoomDisplay] = useState(zoomRef.current)
+  const panRef        = useRef({ x: 0, z: 0 })
+  const screenshotRef = useRef(null)
+
+  // ── Viewport width ───────────────────────────────────────────────
+  const [vw, setVw] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const h = () => setVw(window.innerWidth)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  const compact     = vw < 700
+  const [shopFilterActive, setShopFilterActive] = useState(false)
+  const drawerBase  = compact ? Math.min(vw - 100, 320) : 360
+  const drawerWidth = shopFilterActive && !compact ? drawerBase + 52 : drawerBase
+
+  // ── Hooks ────────────────────────────────────────────────────────
+  const { undo, redo, onDragStart, onDragEnd, canUndo, canRedo } = useHistoryUndo({
+    gridW, gridD, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
+    setGridW, setGridD, setCells, setItems, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
+  })
+
+  // cart must come before usePersistence so importRoom can call setCart
+  const { cart, setCart, cartCount, addToCart, decrementCart, removeFromCart, toggleWishlist, wishlistedItems } =
+    useCartWishlist({ initSave, items, setItems })
+
+  const { importRef, exportRoom, importRoom } = usePersistence({
+    gridW, gridD, wallHeight, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, roomNames,
+    allRooms, currentRoomId,
+    nextItemIdRef,
+    setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
+  })
+
+  const {
+    placeItem, placeItemOnWall, placeCeilingItem,
+    moveItem, moveCeilingItem, adjustDropLength,
+    moveWallItem, changeItemWall, swapWallFace,
+    rotateItem, resizeItem, recolorItem,
+    setPaneConfig, adjustWindowSize,
+    toggleOwned, toggleLocked, deleteItem, updateStairConfig,
+  } = useItemActions({
+    items, setItems,
+    gridW, gridD, cells, wallHeight,
+    floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, currentRoomId,
+    allRooms, setAllRooms,
+    setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish,
+    setSelectedId,
+    wallPicker, setWallPicker,
+    ceilingPicker, setCeilingPicker, setCeilingView,
+    nextItemIdRef,
+    selectedId,
+    getRoomName,
+    catalogue,
+    onItemsDisplaced: (count, labels) => {
+      const names = labels.slice(0, 3).join(', ')
+      const suffix = count > 3 ? ` +${count - 3} more` : ''
+      showWispy(`${count} ${count === 1 ? 'item' : 'items'} moved to inventory: ${names}${suffix}`)
+      setDisplacedCount(prev => prev + count)
+    },
+  })
+
+  const cloudSave = useCloudSave({
+    user, gridW, gridD, wallHeight, cells, items, cart,
+    floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, musicStation, lightMood, moonId, mood, roomNames,
+    allRooms, currentRoomId, internalWalls, doorOpenings,
+  })
+
+  // Load explore room if exploreRoomId set
+  useEffect(() => {
+    if (!exploreRoomId) return
+    let cancelled = false
+    ;(async () => {
+      const { data: post } = await supabase
+        .from('community_posts')
+        .select('id, title, room_id, mood, music_station, profiles(display_name)')
+        .eq('id', exploreRoomId).maybeSingle()
+      if (cancelled || !post) return
+      setExploreData({ post, designer: post.profiles?.display_name ?? 'Designer' })
+      if (post.room_id) {
+        const { data: roomRow } = await supabase
+          .from('saved_rooms').select('data').eq('id', post.room_id).maybeSingle()
+        if (cancelled || !roomRow?.data) return
+        const d = roomRow.data
+        if (d.gridW)  setGridW(d.gridW)
+        if (d.gridD)  setGridD(d.gridD)
+        if (d.wallHeight) setWallHeight(d.wallHeight)
+        if (d.cells)  setCells(new Set(d.cells))
+        if (d.items)  setItems(d.items)
+        if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.floorTexture) setFloorTexture(d.floorTexture)
+        if (d.wallColor)  setWallColor(d.wallColor)
+        if (d.wallTexture) setWallTexture(d.wallTexture)
+        if (d.wallFinish) setWallFinish(d.wallFinish)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [exploreRoomId])
+
+
+  // Show waiting inventory alert if user has unseen items and is in their own builder (not exploring)
+  useEffect(() => {
+    if (isExploring || shopBuilderSellerId) return
+    if (waitingInventory.unseenCount > 0) setShowWaitingAlert(true)
+  }, [isExploring, shopBuilderSellerId, waitingInventory.unseenCount])
+
+  const handleLoadRoom = useCallback(async (roomId) => {
+    // Guard against silently destroying unsaved work. Confirm before loading.
+    const proceed = window.confirm(
+      'Loading will replace your current room. ' +
+      'If you haven\'t saved your current room yet, please save it first.\n\n' +
+      'Click OK to load and discard the current room, or Cancel to go back.'
+    )
+    if (!proceed) return
+    const { data, error } = await cloudSave.loadRoom(roomId)
+    if (error || !data) return
+    setGridW(data.gridW); setGridD(data.gridD)
+    if (data.wallHeight) setWallHeight(data.wallHeight)
+    setCells(new Set(data.cells))
+    setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
+    setCart(data.cart ?? [])
+    if (data.floorColor) setFloorColor(data.floorColor)
+    if (data.floorTexture) setFloorTexture(data.floorTexture)
+    if (data.wallColor)  setWallColor(data.wallColor)
+    if (data.wallTexture) setWallTexture(data.wallTexture)
+    if (data.wallFinish) setWallFinish(data.wallFinish)
+    if (data.bgColor)    setBgColor(data.bgColor)
+    if (data.musicStation !== undefined) setMusicStation(data.musicStation)
+    if (data.lightMood)  setLightMood(data.lightMood)
+    if (data.moonId !== undefined) setMoonId(data.moonId)
+    if (data.mood) setMood(data.mood)
+    if (data.roomNames)  setRoomNamesState(data.roomNames)
+    if (data.allRooms) {
+      const restored = Object.fromEntries(
+        Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+      )
+      setAllRooms(restored)
+    }
+    if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
+    setSelectedId(null)
+    setCloudRoomId(roomId)
+    setLoadModalOpen(false)
+  }, [cloudSave]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Admin room load — same as handleLoadRoom but auto-triggered ──
+  const adminLoaded = useRef(false)
+  useEffect(() => {
+    if (!adminRoomId || adminLoaded.current || !user) return
+    adminLoaded.current = true
+    ;(async () => {
+      try {
+        const { data, error, name } = await cloudSave.loadRoom(adminRoomId)
+        if (error || !data) return
+        setAdminRoomName(name || 'Untitled Room')
+        setGridW(data.gridW); setGridD(data.gridD)
+        if (data.wallHeight) setWallHeight(data.wallHeight)
+        setCells(new Set(data.cells))
+        setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
+        setCart(data.cart ?? [])
+        if (data.floorColor) setFloorColor(data.floorColor)
+        if (data.floorTexture) setFloorTexture(data.floorTexture)
+        if (data.wallColor) setWallColor(data.wallColor)
+        if (data.wallTexture) setWallTexture(data.wallTexture)
+        if (data.wallFinish) setWallFinish(data.wallFinish)
+        if (data.bgColor) setBgColor(data.bgColor)
+        if (data.musicStation !== undefined) setMusicStation(data.musicStation)
+        if (data.lightMood) setLightMood(data.lightMood)
+        if (data.moonId !== undefined) setMoonId(data.moonId)
+        if (data.mood) setMood(data.mood)
+        if (data.roomNames) setRoomNamesState(data.roomNames)
+        if (data.allRooms) {
+          const restored = Object.fromEntries(
+            Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+          )
+          setAllRooms(restored)
+        }
+        if (data.items?.length > 0) nextItemIdRef.current = Math.max(...data.items.map(it => it.id ?? 0)) + 1
+        setSelectedId(null)
+        setCloudRoomId(adminRoomId)
+      } catch (e) { /* fail silently — builder stays on default room */ }
+    })()
+  }, [adminRoomId, user, cloudSave])
+
+  // ── Auto-save: capture thumbnail + save, then continue queue ──
+  const autoSaveTriggered = useRef(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('auto-save') !== '1' || !adminRoomId || !cloudRoomId || autoSaveTriggered.current) return
+    autoSaveTriggered.current = true
+    // Wait for canvas to render before capturing
+    const timer = setTimeout(async () => {
+      await cloudSave.updateRoom(adminRoomId, adminRoomName || 'My Room')
+      // Pop next room from queue, or go back to rooms page
+      try {
+        const queue = JSON.parse(sessionStorage.getItem('ddd_thumb_queue') || '[]')
+        if (queue.length > 0) {
+          const nextId = queue.shift()
+          sessionStorage.setItem('ddd_thumb_queue', JSON.stringify(queue))
+          window.location.href = `/?room=${nextId}&auto-save=1`
+          return
+        }
+      } catch {}
+      sessionStorage.removeItem('ddd_thumb_queue')
+      window.location.href = '/?rooms=1'
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [adminRoomId, cloudRoomId, adminRoomName, cloudSave])
+
+  // ── Shop builder mode: load existing layout + save helpers ───────
+  const [shopSaving,   setShopSaving]   = useState(false)
+  const [wispyGreeting, setWispyGreeting] = useState(null) // null = use DB default
+
+  useEffect(() => {
+    if (!shopBuilderSellerId) return
+    supabase
+      .from('seller_shops')
+      .select('layout, wispy_greeting')
+      .eq('seller_id', shopBuilderSellerId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        if (data.wispy_greeting) setWispyGreeting(data.wispy_greeting)
+        const d = data.layout
+        if (!d) return
+        if (d.gridW)  setGridW(d.gridW)
+        if (d.gridD)  setGridD(d.gridD)
+        if (d.wallHeight) setWallHeight(d.wallHeight)
+        if (d.cells)  setCells(new Set(d.cells))
+        if (d.items)  setItems(d.items)
+        if (d.floorColor) setFloorColor(d.floorColor)
+        if (d.floorTexture) setFloorTexture(d.floorTexture)
+        if (d.wallColor)  setWallColor(d.wallColor)
+        if (d.wallTexture) setWallTexture(d.wallTexture)
+        if (d.wallFinish) setWallFinish(d.wallFinish)
+        if (d.bgColor)    setBgColor(d.bgColor)
+        if (d.lightMood)  setLightMood(d.lightMood)
+        if (d.items?.length > 0)
+          nextItemIdRef.current = Math.max(...d.items.map(it => it.id)) + 1
+        setSelectedId(null)
+      })
+  }, [shopBuilderSellerId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const saveShopLayout = useCallback(async () => {
+    if (!shopBuilderSellerId || shopSaving) return
+    setShopSaving(true)
+    const layout = {
+      version: 1, gridW, gridD, wallHeight,
+      cells: [...cells], items, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, lightMood,
+    }
+    await supabase.from('seller_shops').upsert({
+      seller_id: shopBuilderSellerId, layout,
+      updated_at: new Date().toISOString(),
+    })
+    setShopSaving(false)
+  }, [shopBuilderSellerId, shopSaving, gridW, gridD, wallHeight, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish, bgColor, lightMood])
+
+  const {
+    enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, placeStairsQuick,
+    unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs,
+  } = useRoomNavigation({
+    items, setItems,
+    gridW, gridD, cells, setCells,
+    wallHeight, setWallHeight,
+    floorColor, setFloorColor,
+    wallColor, setWallColor,
+    targetRotation,
+    currentRoomId, setCurrentRoomId,
+    allRooms, setAllRooms,
+    setGridW, setGridD,
+    setRoomStack, roomStack,
+    setTarget, setSelectedId,
+    setDoorLinkPicker,
+    nextItemIdRef, nextRoomIdRef,
+    zoomRef,
+    getRoomName, setRoomNamesState,
+    internalWalls, setInternalWalls,
+    doorOpenings, setDoorOpenings,
+    floorTexture, setFloorTexture,
+    wallTexture, setWallTexture,
+    wallFinish, setWallFinish,
+    activeFloorLevel,
+  })
+
+  // ── Floor plan editing ───────────────────────────────────────────
+  const toggleCell = useCallback((col, row) => {
+    const key = `${col},${row}`
+    setCells(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }, [])
+
+  // Clean up orphaned internal walls and door openings when cells are deleted
+  useEffect(() => {
+    setInternalWalls(prev => {
+      let changed = false
+      const next = new Set(prev)
+      for (const edgeKey of next) {
+        const sep = edgeKey.lastIndexOf(':')
+        const cellKey = edgeKey.slice(0, sep)
+        if (!cells.has(cellKey)) { next.delete(edgeKey); changed = true }
+      }
+      return changed ? next : prev
+    })
+    setDoorOpenings(prev => {
+      let changed = false
+      const next = new Set(prev)
+      for (const edgeKey of next) {
+        const sep = edgeKey.lastIndexOf(':')
+        const cellKey = edgeKey.slice(0, sep)
+        if (!cells.has(cellKey)) { next.delete(edgeKey); changed = true }
+      }
+      return changed ? next : prev
+    })
+  }, [cells])
+
+  useEffect(() => {
+    setItems(prev => {
+      let changed = false
+      const next = prev.map(item => {
+        if (!item.wall) return item
+        const faces = getParallelWallFaces(item.wall, item.wallU, cells, gridW, gridD)
+        if (faces.length === 0) return item
+        if (item.wallAnchor !== undefined && !faces.includes(item.wallAnchor)) {
+          changed = true
+          return { ...item, wallAnchor: faces[0] }
+        }
+        return item
+      })
+      return changed ? next : prev
+    })
+  }, [cells, gridW, gridD]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const applyGrid = useCallback((w, d) => {
+    setGridW(w); setGridD(d); setCells(makeGrid(w, d))
+    setItems(prev => prev.map(it => {
+      if (!it.wall) return it
+      const def     = catalogue[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
+      const size    = def?.sizes?.[it.sizeIndex] ?? def?.sizes?.[0]
+      const fw      = size?.footprint?.[0] ?? 1
+      const wallLen = (it.wall === 'N' || it.wall === 'S') ? w : d
+      const wallU   = Math.max(fw / 2, Math.min(wallLen - fw / 2, it.wallU ?? wallLen / 2))
+      const anchor  = it.wall === 'N' ? 0 : it.wall === 'S' ? d - 1 : it.wall === 'W' ? 0 : w - 1
+      return { ...it, wallU, wallAnchor: anchor }
+    }))
+  }, [])
+
+  // ── History bookmark (in-memory, not persisted) ──────────────────
+  const saveBookmark = useCallback(() => {
+    setBookmark({ gridW, gridD, cells: new Set(cells), items: [...items], cart: [...cart], floorColor, floorTexture, wallColor, wallTexture, wallFinish })
+  }, [gridW, gridD, cells, items, cart, floorColor, floorTexture, wallColor, wallTexture, wallFinish])
+
+  const restoreBookmark = useCallback(() => {
+    if (!bookmark) return
+    setGridW(bookmark.gridW); setGridD(bookmark.gridD)
+    setCells(new Set(bookmark.cells)); setItems([...bookmark.items])
+    setCart([...bookmark.cart])
+    setFloorColor(bookmark.floorColor); setFloorTexture(bookmark.floorTexture ?? 'flat')
+    setWallColor(bookmark.wallColor); setWallTexture(bookmark.wallTexture ?? 'flat'); setWallFinish(bookmark.wallFinish ?? 'eggshell')
+    setSelectedId(null)
+  }, [bookmark, setCart])
+
+  // ── Stripe redirect handler ──────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('checkout')
+    if (status === 'success') {
+      setCart([])
+      setDrawerTab('shop')
+      setOrderSuccess(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (status === 'cancelled') {
+      setDrawerTab('cart')
+      openShop()
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Drawer zoom nudge ────────────────────────────────────────────
+  useEffect(() => {
+    const target = drawerOpen
+      ? Math.max(15, zoomRef.current * 0.88)
+      : Math.min(120, zoomRef.current / 0.88)
+    const prev = zoomRef.current
+    zoomRef.current = target
+    const t = setTimeout(() => { zoomRef.current = prev }, 600)
+    return () => clearTimeout(t)
+  }, [drawerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Selection-dependent helpers ──────────────────────────────────
+  const selectedItem = items.find(it => it.id === selectedId) ?? null
+
+  // Analytics: track when product detail modal opens (intent level 2)
+  const openProductModal = useCallback((typeKey) => {
+    setActiveModal(typeKey)
+    if (typeKey && isUUID(typeKey)) trackInterest(typeKey)
+  }, [trackInterest])
+
+  const placeAndWishlist = useCallback((typeKey, sizeIndex = 0, swatchIndex = 0) => {
+    placeItem(typeKey, sizeIndex, swatchIndex, true)
+    if (isUUID(typeKey)) trackIntent('add_to_wishlist', typeKey)
+  }, [placeItem, trackIntent])
+
+  const handleModalAddToCart = useCallback((typeKey, sizeIndex, swatchIndex) => {
+    addToCart(typeKey, sizeIndex, swatchIndex)
+    if (isUUID(typeKey)) trackIntent('add_to_cart', typeKey)
+    const inRoom = items.some(
+      it => it.typeKey === typeKey && it.sizeIndex === sizeIndex && it.swatchIndex === swatchIndex
+    )
+    if (!inRoom || window.confirm(`You already have a ${ITEM_CATALOGUE[typeKey]?.label} in your room. Add another copy to the room?`)) {
+      placeItem(typeKey, sizeIndex, swatchIndex)
+    }
+  }, [items, addToCart, placeItem])
+
+  const resizeSelectedItem = useCallback((newSizeIndex) => {
+    if (!selectedItem || newSizeIndex === selectedItem.sizeIndex) return
+    const cartMatch = cart.find(
+      c => c.typeKey === selectedItem.typeKey && c.swatchIndex === selectedItem.swatchIndex
+    )
+    if (cartMatch && cartMatch.sizeIndex !== newSizeIndex) {
+      const def  = catalogue[selectedItem.typeKey] ?? ITEM_CATALOGUE[selectedItem.typeKey]
+      const from = def?.sizes?.[cartMatch.sizeIndex]?.label ?? ''
+      const to   = def?.sizes?.[newSizeIndex]?.label ?? ''
+      if (!window.confirm(`Changing from "${from}" to "${to}" will also update this item in your cart.\n\nAdditional charges may apply. Continue?`)) return
+      setCart(prev => prev.map(c =>
+        c.typeKey === selectedItem.typeKey && c.swatchIndex === selectedItem.swatchIndex
+          ? { ...c, sizeIndex: newSizeIndex } : c
+      ))
+    }
+    resizeItem(selectedItem.id, newSizeIndex)
+  }, [selectedItem, cart, setCart, resizeItem, catalogue])
+
+  const recolorSelectedItem = useCallback((newSwatchIndex) => {
+    if (!selectedItem || newSwatchIndex === selectedItem.swatchIndex) return
+    const cartMatch = cart.find(
+      c => c.typeKey === selectedItem.typeKey && c.sizeIndex === selectedItem.sizeIndex
+    )
+    if (cartMatch && cartMatch.swatchIndex !== newSwatchIndex) {
+      const def  = catalogue[selectedItem.typeKey] ?? ITEM_CATALOGUE[selectedItem.typeKey]
+      const from = def.swatches[cartMatch.swatchIndex].name
+      const to   = def.swatches[newSwatchIndex].name
+      if (!window.confirm(`Changing color from "${from}" to "${to}" will also update this item in your cart.\n\nAdditional charges may apply. Continue?`)) return
+      setCart(prev => prev.map(c =>
+        c.typeKey === selectedItem.typeKey && c.sizeIndex === selectedItem.sizeIndex
+          ? { ...c, swatchIndex: newSwatchIndex } : c
+      ))
+    }
+    recolorItem(selectedItem.id, newSwatchIndex)
+  }, [selectedItem, cart, setCart, recolorItem])
+
+  const selectedGroupQty = selectedItem
+    ? items.filter(it =>
+        it.typeKey    === selectedItem.typeKey &&
+        it.sizeIndex  === selectedItem.sizeIndex &&
+        it.swatchIndex === selectedItem.swatchIndex
+      ).length
+    : 0
+
+  const incrementGroupQty = useCallback(() => {
+    if (!selectedItem) return
+    placeItem(selectedItem.typeKey, selectedItem.sizeIndex, selectedItem.swatchIndex)
+  }, [selectedItem, placeItem])
+
+  const decrementGroupQty = useCallback(() => {
+    if (!selectedItem || selectedGroupQty <= 0) return
+    const group = items.filter(it =>
+      it.typeKey    === selectedItem.typeKey &&
+      it.sizeIndex  === selectedItem.sizeIndex &&
+      it.swatchIndex === selectedItem.swatchIndex
+    )
+    const last = group.reduce((max, it) => it.id > max.id ? it : max)
+    deleteItem(last.id)
+  }, [selectedItem, selectedGroupQty, items, deleteItem])
+
+  // ── Overview memos ───────────────────────────────────────────────
+  const allRoomsData = useMemo(() => {
+    const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, doorOpenings, level: activeFloorLevel }
+    return { ...allRooms, [currentRoomId]: currentSnap }
+  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, activeFloorLevel])
+
+  // Floor stack for multi-floor rendering (ghost floors below active)
+  const floorStack = useMemo(
+    () => getFloorStack(currentRoomId, allRoomsData),
+    [currentRoomId, allRoomsData]
+  )
+
+  // Build floor labels for stair-connected rooms: "Living Room · Floor 1"
+  const floorLabels = useMemo(() => {
+    const labels = {}
+    const upLinks = {}, downLinks = {}
+    for (const [ridStr, room] of Object.entries(allRoomsData)) {
+      const rid = Number(ridStr)
+      for (const it of (room.items ?? [])) {
+        if (!it.stairs || it.topFloorRoomId == null) continue
+        if (it.returnStair) { downLinks[rid] = it.topFloorRoomId; upLinks[it.topFloorRoomId] = rid }
+        else { upLinks[rid] = it.topFloorRoomId; downLinks[it.topFloorRoomId] = rid }
+      }
+    }
+    // Find each ground floor and walk up (with cycle protection)
+    const visited = new Set()
+    for (const ridStr of Object.keys(allRoomsData)) {
+      let rid = Number(ridStr)
+      if (visited.has(rid)) continue
+      const downSeen = new Set()
+      while (downLinks[rid] != null && !downSeen.has(rid)) { downSeen.add(rid); rid = downLinks[rid] }
+      if (visited.has(rid)) continue
+      const stack = [rid]
+      let cur = rid
+      const upSeen = new Set([rid])
+      while (upLinks[cur] != null && !upSeen.has(upLinks[cur])) { cur = upLinks[cur]; upSeen.add(cur); stack.push(cur) }
+      if (stack.length > 1) {
+        stack.forEach((id, i) => { labels[id] = `Floor ${i + 1}`; visited.add(id) })
+      }
+    }
+    return labels
+  }, [allRoomsData])
+
+  const overviewPositions = useMemo(() => {
+    const snap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation }
+    const allData = { ...allRooms, [currentRoomId]: snap }
+    const { positions, totalW, totalH } = computeRoomLayout(allData, 1, 0)
+    const result = {}
+    for (const [idStr, pos] of Object.entries(positions)) {
+      const rid = Number(idStr)
+      result[rid] = layoutOverrides[rid] ?? {
+        ox: pos.x - totalW / 2 + pos.w / 2,
+        oz: pos.y - totalH / 2 + pos.h / 2,
+      }
+    }
+    return result
+  }, [allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation, layoutOverrides])
+
+  // Room zones — auto-detected from internal walls
+  const roomZones = useMemo(() => detectRoomZones(cells, internalWalls, doorOpenings), [cells, internalWalls, doorOpenings])
+
+  // Active zone cells — filter to only show the active zone in the builder
+  const activeZoneCells = useMemo(() => {
+    if (activeZoneIdx == null || !roomZones[activeZoneIdx]) return cells
+    return roomZones[activeZoneIdx].cells
+  }, [activeZoneIdx, roomZones, cells])
+
+  // Content center offset — so rotation pivots around the house, not grid origin
+  const contentCenter = useMemo(() => {
+    let sumC = 0, sumR = 0, count = 0
+    for (const key of activeZoneCells) {
+      const [c, r] = key.split(',').map(Number)
+      sumC += c + 0.5; sumR += r + 0.5; count++
+    }
+    if (count === 0) return { x: 0, z: 0 }
+    return { x: sumC / count - gridW / 2, z: sumR / count - gridD / 2 }
+  }, [activeZoneCells, gridW, gridD])
+
+  // Filter items to only those within the active zone
+  const activeZoneItems = useMemo(() => {
+    if (activeZoneIdx == null) return items
+    const zoneCells = roomZones[activeZoneIdx]?.cells
+    if (!zoneCells) return items
+    return items.filter(it => {
+      if (it.wall) return true  // wall items always show
+      const key = `${Math.floor(it.col)},${Math.floor(it.row)}`
+      return zoneCells.has(key)
+    })
+  }, [activeZoneIdx, roomZones, items])
+
+  const neighborCells = useMemo(() => {
+    const blocked = new Set()
+    const myPos = overviewPositions[currentRoomId]
+    if (!myPos) return blocked
+    for (const [ridStr, room] of Object.entries(allRooms)) {
+      const rid = Number(ridStr)
+      if (rid === currentRoomId) continue
+      const pos = overviewPositions[rid]
+      if (!pos) continue
+      const bCells = room.cells instanceof Set ? room.cells : new Set(room.cells)
+      for (const key of bCells) {
+        const [col_B, row_B] = key.split(',').map(Number)
+        const worldX = pos.ox - room.gridW / 2 + col_B + 0.5
+        const worldZ = pos.oz - room.gridD / 2 + row_B + 0.5
+        const col_A_f = worldX - (myPos.ox - gridW / 2) - 0.5
+        const row_A_f = worldZ - (myPos.oz - gridD / 2) - 0.5
+        const col_A = Math.round(col_A_f)
+        const row_A = Math.round(row_A_f)
+        if (col_A >= 0 && col_A < gridW && row_A >= 0 && row_A < gridD &&
+            Math.abs(col_A_f - col_A) < 0.15 && Math.abs(row_A_f - row_A) < 0.15) {
+          blocked.add(`${col_A},${row_A}`)
+        }
+      }
+    }
+    return blocked
+  }, [overviewPositions, allRooms, currentRoomId, gridW, gridD])
+
+  const hasLightFixtures = items.some(it => ITEM_CATALOGUE[it.typeKey]?.category === 'Lighting')
+
+  // ── Render ───────────────────────────────────────────────────────
+  return (
+    <SideTabProvider>
+    <div className="ember-clear" style={{ ...s.app, display: 'flex', flexDirection: 'row', overflow: 'hidden', height: '100vh', position: 'fixed', inset: 0 }}>
+      <div style={{ flex: 1, position: 'relative', height: '100%', minWidth: 0, overflow: 'hidden' }}>
+      {/* Hide old chrome at ALL breakpoints — replaced by BuilderChrome */}
+      <style>{`
+        .ddd-side-strip,
+        .ddd-top-right-strip,
+        .ddd-bottom-cluster,
+        .ddd-builder-logo,
+        .ddd-desktop-only { display: none !important; visibility: hidden !important; height: 0 !important; overflow: hidden !important; position: absolute !important; pointer-events: none !important; }
+      `}</style>
+      {/* Hide toolbar during drag on mobile for more room */}
+      {isDragging && (
+        <style>{`
+          @media (max-width: 768px) {
+            .ddd-side-strip, .ddd-bottom-tab { opacity: 0.15 !important; pointer-events: none !important; transition: opacity 0.15s !important; }
+          }
+        `}</style>
+      )}
+      {/* Sky backdrop — behind the transparent canvas */}
+      <SkyBackdrop />
+
+      {cloudsOn && cloudsReady && (
+        <CloudConveyorDrift key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
+      )}
+
+
+      {/* Brand logo — top left. Hidden on mobile to save space. */}
+      <div className="ddd-builder-logo" style={{ position: 'absolute', top: 10, left: 14, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, pointerEvents: 'none', opacity: 0.95 }}>
+        <Logo size={52} color={t.accent} />
+        <span style={{ fontSize: 22, fontWeight: 700, color: t.panelText, letterSpacing: '0.3px', fontFamily: "'Outfit', system-ui, sans-serif", textShadow: 'none', WebkitTextStroke: 0 }}>DaydreamDwelling</span>
+      </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .ddd-builder-logo { display: none !important; }
+        }
+      `}</style>
+      {floorPlanOpen && (
+        <FloorPlanPage
+          gridW={gridW} gridD={gridD} cells={cells}
+          internalWalls={internalWalls} doorOpenings={doorOpenings} items={items}
+          floorColor={floorColor} wallColor={wallColor}
+          onToggleCell={toggleCell}
+          onToggleWall={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              // Compute opposite key (e.g., "3,4:E" ↔ "4,4:W")
+              const sep = edgeKey.lastIndexOf(':')
+              const [c, r] = edgeKey.slice(0, sep).split(',').map(Number)
+              const dir = edgeKey.slice(sep + 1)
+              const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }[dir]
+              const nc = dir === 'W' ? c-1 : dir === 'E' ? c+1 : c
+              const nr = dir === 'N' ? r-1 : dir === 'S' ? r+1 : r
+              const altKey = `${nc},${nr}:${opp}`
+              if (next.has(edgeKey)) { next.delete(edgeKey); next.delete(altKey) }
+              else if (next.has(altKey)) { next.delete(altKey) }
+              else next.add(edgeKey)
+              return next
+            })
+          }}
+          onResizeGrid={(newW, newD) => { setGridW(newW); setGridD(newD) }}
+          onAddStairs={(col, row) => {
+            // Find floors by level from ALL rooms (not just stair-connected)
+            const allFloors = Object.entries(allRoomsData).map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            const floorAbove = allFloors.find(f => f.level === activeFloorLevel + 1)
+            const floorBelow = allFloors.find(f => f.level === activeFloorLevel - 1)
+            if (!floorAbove && !floorBelow) {
+              showWispy('Add a floor above or below first, then place stairs to connect.')
+              return
+            }
+            const targetFloor = floorAbove ?? floorBelow
+            const direction = floorAbove ? 'up' : 'down'
+            const sw = 3, sd = 5
+            // Place stair item on current floor
+            const stairItem = {
+              id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
+              stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
+              topFloorRoomId: targetFloor.roomId, rotation: 0, direction,
+              layer: 0, locked: false,
+            }
+            setItems(prev => [...prev, stairItem])
+            // Place return stair on the target floor
+            const returnStair = {
+              id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
+              stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
+              topFloorRoomId: currentRoomId, rotation: 0,
+              direction: direction === 'up' ? 'down' : 'up',
+              layer: 0, locked: true, returnStair: true,
+            }
+            setAllRooms(prev => {
+              const targetRoom = prev[targetFloor.roomId]
+              if (!targetRoom) return prev
+              return { ...prev, [targetFloor.roomId]: {
+                ...targetRoom,
+                items: [...(targetRoom.items || []), returnStair],
+              }}
+            })
+            setSelectedId(stairItem.id)
+            showWispy(`Stairs connect to ${direction === 'up' ? 'floor above' : 'floor below'}. Adjust in the panel.`)
+          }}
+          onAddDoor={(col, row, dir) => {
+            // Add door opening — keeps zones separate but renders as opening in 3D
+            const key = `${col},${row}:${dir}`
+            // Remove from walls, add to doorOpenings
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              next.delete(key)
+              const opp = { N: 'S', S: 'N', W: 'E', E: 'W' }
+              const nc = dir === 'W' ? col-1 : dir === 'E' ? col+1 : col
+              const nr = dir === 'N' ? row-1 : dir === 'S' ? row+1 : row
+              next.delete(`${nc},${nr}:${opp[dir]}`)
+              return next
+            })
+            setDoorOpenings(prev => {
+              const next = new Set(prev)
+              next.add(key)
+              return next
+            })
+            showWispy('Door opening placed — rooms stay separate for editing.')
+          }}
+          onAddFloor={(direction) => {
+            const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
+            const newRoomId = nextRoomIdRef.current++
+            const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae'][Math.abs(newRoomId) % 4]
+            // Save current room + create new room in one setAllRooms call
+            const currentSnapshot = {
+              gridW, gridD, cells: new Set(cells), items: [...items],
+              wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
+              internalWalls: new Set(internalWalls ?? []),
+              doorOpenings: new Set(doorOpenings ?? []),
+              level: activeFloorLevel,
+            }
+            const newRoom = {
+              gridW, gridD,
+              cells: new Set(),
+              items: [],
+              internalWalls: new Set(),
+              doorOpenings: new Set(),
+              wallHeight,
+              floorColor: palette, floorTexture: 'flat',
+              wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
+              targetRotation: 0,
+              level: newLevel,
+            }
+            setAllRooms(prev => ({ ...prev, [currentRoomId]: currentSnapshot, [newRoomId]: newRoom }))
+            // Load the new empty floor
+            setCurrentRoomId(newRoomId)
+            setCells(new Set())
+            setItems([])
+            setInternalWalls(new Set())
+            setActiveFloorLevel(newLevel)
+            showWispy(`${direction === 'below' ? 'Basement' : 'Upper floor'} added. Draw the floor shape, then add stairs to connect.`)
+          }}
+          activeFloorLevel={activeFloorLevel}
+          floorStack={floorStack}
+          allRoomsData={allRoomsData}
+          onSwitchFloor={(roomId, level) => { jumpToRoom(roomId); setActiveFloorLevel(level) }}
+          roomZoneLabels={roomNames}
+          onSetZoneLabel={(zoneIdx, label) => {
+            const zone = roomZones[zoneIdx]
+            if (zone) setRoomNamesState(prev => ({ ...prev, [`zone_${zone.id}`]: label }))
+          }}
+          onEditZone={(zoneIdx) => { setActiveZoneIdx(zoneIdx); setFloorPlanOpen(false) }}
+          onDone={() => setFloorPlanOpen(false)}
+        />
+      )}
+      {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
+
+        {/* Ghost floors — only visible in overview mode (All zones) */}
+        {activeZoneIdx == null && Object.entries(allRoomsData)
+          .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+          .filter(f => f.level !== activeFloorLevel && f.roomId !== currentRoomId)
+          .map(f => {
+          const rd = allRoomsData[f.roomId]
+          if (!rd) return null
+          return (
+            <GhostFloor
+              key={`ghost-${f.roomId}`}
+              roomData={rd}
+              yOffset={(f.level - activeFloorLevel) * wallHeight}
+              wallHeight={rd.wallHeight ?? wallHeight}
+              roomRotationRef={roomRotationRef}
+              catalogue={catalogue}
+            />
+          )
+        })}
+        {/* Neighbor rooms on the SAME floor — semi-transparent, clickable */}
+        {(() => {
+          // Find rooms connected by doors on the same floor
+          const neighbors = []
+          for (const it of items) {
+            if (!it.wall || !it.connectedRoomId) continue
+            const nid = it.connectedRoomId
+            const nd = allRoomsData[nid]
+            if (!nd || (nd.level ?? 0) !== activeFloorLevel) continue
+            // Compute offset based on which wall the door is on
+            let dx = 0, dz = 0
+            if (it.wall === 'N') dz = -(nd.gridD ?? 10)
+            if (it.wall === 'S') dz = (gridD)
+            if (it.wall === 'W') dx = -(nd.gridW ?? 10)
+            if (it.wall === 'E') dx = (gridW)
+            if (!neighbors.find(n => n.id === nid))
+              neighbors.push({ id: nid, dx, dz })
+          }
+          return neighbors.map(({ id, dx, dz }) => {
+            const rd = allRoomsData[id]
+            if (!rd) return null
+            return (
+              <NeighborRoom
+                key={`neighbor-${id}`}
+                roomData={rd}
+                xOffset={dx}
+                zOffset={dz}
+                wallHeight={rd.wallHeight ?? wallHeight}
+                roomRotationRef={roomRotationRef}
+                catalogue={catalogue}
+                onClick={() => jumpToRoom(id)}
+              />
+            )
+          })
+        })()}
+        <RoomScene
+          targetRotation={targetRotation}
+          contentCenter={contentCenter}
+          onZoomChange={setZoomDisplay}
+          lowerFloorStairs={(() => {
+            if (activeFloorLevel <= 0) return null
+            const belowEntry = floorStack.find(f => f.level === activeFloorLevel - 1)
+            if (!belowEntry) return null
+            const belowRoom = allRoomsData[belowEntry.roomId]
+            return belowRoom?.items?.filter(it => it.stairs && !it.returnStair) ?? null
+          })()}
+          cells={activeZoneCells}
+          gridW={gridW}
+          gridD={gridD}
+          wallHeight={wallHeight}
+          floorColor={floorColor}
+          floorTexture={floorTexture}
+          floorOverrides={floorOverrides}
+          wallColor={wallColor}
+          wallTexture={wallTexture}
+          wallFinish={wallFinish}
+          wallOverrides={wallOverrides}
+          paintMode={paintMode}
+          wallDrawMode={wallDrawMode}
+          internalWalls={internalWalls}
+          onToggleWallEdge={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              if (next.has(edgeKey)) next.delete(edgeKey)
+              else next.add(edgeKey)
+              return next
+            })
+          }}
+          onClickCell={(col, row) => {
+            setFloorOverrides(prev => {
+              const next = new Map(prev)
+              next.set(`${col},${row}`, { color: floorColor, texture: floorTexture })
+              return next
+            })
+          }}
+          onClickWall={(wallId) => {
+            setWallOverrides(prev => {
+              const next = new Map(prev)
+              next.set(wallId, { color: wallColor, texture: wallTexture, finish: wallFinish })
+              return next
+            })
+          }}
+          zoomRef={zoomRef}
+          panRef={panRef}
+          items={activeZoneItems}
+          selectedId={selectedId}
+          onSelectItem={setSelectedId}
+          onMoveItem={moveItem}
+          onMoveWallItem={moveWallItem}
+          onDoubleClickItem={openProductModal}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          screenshotRef={screenshotRef}
+          showMeasurements={showMeasurements}
+          showGrid={showGrid}
+          lightMood={lightMood}
+          ceilingView={ceilingView}
+          ceilingPicker={ceilingPicker}
+          onPlaceCeilingItem={placeCeilingItem}
+          onMoveCeilingItem={moveCeilingItem}
+          onEnterRoom={(doorId) => {
+            enterRoom(doorId)
+            // After entering, find the target room's floor level
+            const door = items.find(it => it.id === doorId)
+            if (door?.stairs && door.topFloorRoomId != null) {
+              const targetEntry = floorStack.find(f => f.roomId === door.topFloorRoomId)
+              if (targetEntry) setActiveFloorLevel(targetEntry.level)
+            }
+          }}
+          cartHighlight={cartHighlight}
+          lightsOff={lightsOff}
+          catalogue={catalogue}
+          cloudsOn={cloudsOn}
+          ghostPlacement={ghostPlacement}
+          onGhostPlace={(col, row, rotation) => {
+            if (!ghostPlacement) return
+            const g = ghostPlacement
+            if (g.typeKey === 'stairs') {
+              const rawW = g.stairW ?? 3, rawD = g.stairD ?? 5
+              const rot = rotation ?? 0
+              const dir = g.direction ?? 'up'
+              const sw = (rot === 90 || rot === 270) ? rawD : rawW
+              const sd = (rot === 90 || rot === 270) ? rawW : rawD
+              const stairCells = new Set()
+              for (let dc = 0; dc < sw; dc++)
+                for (let dr = 0; dr < sd; dr++)
+                  stairCells.add(`${col + dc},${row + dr}`)
+              const newW = Math.max(gridW, sw + 2)
+              const newD = Math.max(gridD, sd + 2)
+              const newRoomCells = new Set()
+              for (let c = 0; c < newW; c++)
+                for (let r = 0; r < newD; r++)
+                  newRoomCells.add(`${c},${r}`)
+              const stairItemId = nextItemIdRef.current
+              addStairs(currentRoomId, {
+                bottomCells: stairCells, stairCount: g.stairCount ?? 14,
+                topCells: newRoomCells, topW: newW, topD: newD,
+                rotation: rot, rawW, rawD, direction: dir,
+              })
+              setSelectedId(stairItemId)
+              if (dir === 'down') {
+                showWispy('Basement stairs placed! Use the floor switcher to go down.')
+              } else {
+                showWispy('Stairs placed! Adjust in the panel. Double-click to go upstairs.')
+              }
+            } else {
+              placeItem(g.typeKey, g.sizeIndex ?? 0, g.swatchIndex ?? 0)
+            }
+            setGhostPlacement(null)
+          }}
+          onGhostCancel={() => { setGhostPlacement(null); showWispy('Placement cancelled.') }}
+          onRotate={delta => setTarget(r => r + delta)}
+          onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
+        />
+      </Canvas>}
+
+      {/* FX overlays render AFTER canvas so they layer on top */}
+      <MoonOverlay />
+
+      {/* Floor level switcher — Sims-style ▲ Floor N ▼ */}
+      <FloorSwitcher
+        currentRoomId={currentRoomId}
+        allRoomsData={allRoomsData}
+        floorStack={floorStack}
+        onNavigate={jumpToRoom}
+        onSetFloorLevel={setActiveFloorLevel}
+      />
+
+      {/* Room zone picker — shows when zones exist */}
+      {/* Zone picker + Floor Plan + Dwelling selector — always visible */}
+      {!floorPlanOpen && (
+        <div style={{
+          position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 20, display: 'flex', alignItems: 'center', gap: 3,
+          padding: '3px 4px', borderRadius: 10,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
+          fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
+          maxWidth: '80vw', overflowX: 'auto',
+        }}>
+          <button onClick={() => setFloorPlanOpen(true)} style={{
+            padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+            background: 'rgba(60,120,200,0.2)', color: '#70a0e0',
+            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          }} title="Open Floor Plan Editor">▦ Plan</button>
+          <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+          <DwellingSelector currentName="My Dwelling" />
+          {roomZones.length > 1 && (
+            <>
+              <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+              <button onClick={() => setActiveZoneIdx(null)} style={{
+                padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+                background: activeZoneIdx == null ? 'rgba(80,200,120,0.3)' : 'transparent',
+                color: activeZoneIdx == null ? '#50c878' : '#a0a0b0',
+                cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+              }}>All</button>
+              {roomZones.map((zone, i) => (
+                <button key={zone.id} onClick={() => setActiveZoneIdx(i)} style={{
+                  padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
+                  background: activeZoneIdx === i ? 'rgba(80,200,120,0.3)' : 'transparent',
+                  color: activeZoneIdx === i ? '#50c878' : '#a0a0b0',
+                  cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap',
+                }}>{roomNames[`zone_${zone.id}`] || `Room ${i + 1}`}</button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {wallDrawMode && (
+        <WallDrawPanel
+          gridW={gridW}
+          gridD={gridD}
+          cells={cells}
+          internalWalls={internalWalls}
+          onToggleCell={toggleCell}
+          onToggleWall={(edgeKey) => {
+            setInternalWalls(prev => {
+              const next = new Set(prev)
+              if (next.has(edgeKey)) next.delete(edgeKey)
+              else next.add(edgeKey)
+              return next
+            })
+          }}
+          onResizeGrid={(newW, newD) => {
+            setGridW(newW)
+            setGridD(newD)
+            // Expand cells to fill the new grid area (keep existing, add new)
+            setCells(prev => {
+              const next = new Set(prev)
+              // Don't remove existing cells, just allow the grid to be bigger
+              return next
+            })
+          }}
+          onDone={() => setWallDrawMode(false)}
+        />
+      )}
+
+      <div className="ddd-desktop-only">
+        <RoomBanner
+          currentRoomId={currentRoomId}
+          roomName={getRoomName(currentRoomId)}
+          allRoomsData={allRoomsData}
+          roomNames={roomNames}
+          onOpenOverview={() => setFloorPlanOpen(true)}
+          onNavigate={jumpToRoom}
+          onRename={setRoomName}
+        />
+      </div>
+      {/* Lights toggle moved to bottomBar below */}
+
+      <TopRightCluster
+        shopOpen={shopOpen}
+        cartCount={cartCount}
+        onShop={() => { setDrawerTab('shop'); shopOpen ? closeShop() : openShop() }}
+        onWishlist={() => { setDrawerTab('wishlist'); openShop() }}
+        onCart={() => { setDrawerTab('cart'); openShop() }}
+        onMarketplace={() => { window.location.href = '/?shop=1' }}
+      />
+
+      {/* Old RoomOverview archived — Floor Plan is now the Dwelling Overview */}
+
+      {panelOpen && (
+        <Panel
+          gridW={gridW}
+          gridD={gridD}
+          cells={cells}
+          onCellToggle={toggleCell}
+          onApplyGrid={applyGrid}
+          wallHeight={wallHeight}
+          onSetWallHeight={setWallHeight}
+          neighborCells={neighborCells}
+        />
+      )}
+
+      {styleOpen && (
+        <StylePanel
+          floorColor={floorColor}
+          floorTexture={floorTexture}
+          wallColor={wallColor}
+          wallTexture={wallTexture}
+          wallFinish={wallFinish}
+          onFloorColor={setFloorColor}
+          onFloorTexture={setFloorTexture}
+          onWallColor={setWallColor}
+          onWallTexture={setWallTexture}
+          onWallFinish={setWallFinish}
+          onClearOverrides={(target) => {
+            if (target === 'floor') setFloorOverrides(new Map())
+            else setWallOverrides(new Map())
+          }}
+        />
+      )}
+
+      {activeModal && (
+        <ProductModal
+          typeKey={activeModal}
+          catalogue={catalogue}
+          onPlace={placeItem}
+          onAddToCart={handleModalAddToCart}
+          onWishlist={placeAndWishlist}
+          onClose={() => setActiveModal(null)}
+          onOpenModal={openProductModal}
+        />
+      )}
+
+      {/* ── Builder Chrome (Claude Design — all breakpoints) ── */}
+      <BuilderTopBar
+        onBrandClick={() => { window.location.search = '?hub=1' }}
+        roomName={activeZoneIdx != null && roomZones[activeZoneIdx]
+          ? (roomNames[`zone_${roomZones[activeZoneIdx]?.id}`] || `Room ${activeZoneIdx + 1}`)
+          : floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
+        roomIds={Object.keys(allRoomsData || {}).map(Number)}
+        rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}
+        budget={items.reduce((s, it) => {
+          const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
+          return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
+        }, 0)}
+        itemCount={items.length}
+        cartCount={cartCount}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onCart={() => { if (shopOpen && drawerTab === 'cart') { closeShop() } else { setDrawerTab('cart'); openShop() } }}
+        onScreenshot={() => screenshotRef.current?.()}
+        onShare={() => setShareOpen(true)}
+        onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+        onPickRoom={(id) => {
+          if (id == null) return
+          jumpToRoom(id)
+          const entry = floorStack.find(f => f.roomId === Number(id))
+          setActiveFloorLevel(entry?.level ?? 0)
+        }}
+        onNewRoom={() => {
+          const rW = 10, rD = 10
+          const rCells = new Set()
+          for (let c = 0; c < rW; c++) for (let r = 0; r < rD; r++) rCells.add(`${c},${r}`)
+          addRoom({ gridW: rW, gridD: rD, cells: rCells })
+        }}
+        onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
+        onOverview={() => {
+          setActiveZoneIdx(null)
+          setFloorPlanOpen(false)
+          // Show the highest floor so all ghost floors render below
+          const allFloors = Object.entries(allRoomsData)
+            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            .sort((a, b) => a.level - b.level)
+          if (allFloors.length > 1) {
+            const topFloor = allFloors[allFloors.length - 1]
+            jumpToRoom(topFloor.roomId)
+            setActiveFloorLevel(topFloor.level)
+          }
+          // Fit to content
+          let minC = gridW, maxC = 0, minR = gridD, maxR = 0
+          for (const key of cells) {
+            const [c, r] = key.split(',').map(Number)
+            minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+            minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+          }
+          const contentW = maxC - minC + 1 || gridW
+          const contentD = maxR - minR + 1 || gridD
+          const maxDim = Math.max(contentW, contentD, 6)
+          // Zoom out more to see stacked floors
+          const floorCount = floorStack.length || 1
+          const fitZoom = Math.max(10, Math.min(60, 240 / (maxDim + floorCount * 4)))
+          zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
+          setTarget(0); panRef.current = { x: 0, z: 0 }
+        }}
+        onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
+      />
+      <BuilderToolDock
+        active={activeTool}
+        displacedCount={displacedCount}
+        onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null); if (id === 'place') setDisplacedCount(0) }}
+      />
+      <BuilderViewControls
+        zoom={zoomDisplay}
+        onRotateLeft={() => setTarget(r => Math.round(r / (Math.PI / 2)) * (Math.PI / 2) - Math.PI / 2)}
+        onRotateRight={() => setTarget(r => Math.round(r / (Math.PI / 2)) * (Math.PI / 2) + Math.PI / 2)}
+        onZoomIn={() => { zoomRef.current = Math.min(120, zoomRef.current * 1.15); setZoomDisplay(zoomRef.current) }}
+        onZoomOut={() => { zoomRef.current = Math.max(15, zoomRef.current / 1.15); setZoomDisplay(zoomRef.current) }}
+        onReset={() => {
+          // Fit visible content to screen
+          let minC = gridW, maxC = 0, minR = gridD, maxR = 0
+          for (const key of activeZoneCells) {
+            const [c, r] = key.split(',').map(Number)
+            minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+            minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+          }
+          const contentW = maxC - minC + 1 || gridW
+          const contentD = maxR - minR + 1 || gridD
+          const maxDim = Math.max(contentW, contentD, 6)
+          const fitZoom = Math.max(20, Math.min(80, 400 / maxDim))
+          zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
+          // Center pan on the content — don't reset rotation
+          panRef.current = { x: 0, z: 0 }
+        }}
+        ceilingView={ceilingView}
+        onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+        showGrid={showGrid}
+        onToggleGrid={() => setShowGrid(v => !v)}
+      />
+
+      {/* Tool panels in BuilderSheet — Claude Design layouts */}
+      {activeTool === 'place' && (
+        <BuilderSheet title="Shop & Place" accentDot="#e87fc8" onClose={() => setActiveTool(null)} height="84%" noPad>
+          <BrowseTab
+            onPlace={(tk) => { placeItem(tk); setActiveTool(null) }}
+            onOpenModal={openProductModal}
+            catalogue={shopPanelCatalogue}
+            gridW={gridW}
+            gridD={gridD}
+            roomItemKeys={roomItemKeys}
+            ownedKeys={ownedKeys}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'build' && (
+        <BuilderSheet title="Build" accentDot="#3fb88a" onClose={() => setActiveTool(null)}>
+          <DesignBuildContent
+            onWindow={() => { setWindowPickerOpen(true); setActiveTool(null) }}
+            onDoor={() => { setDoorPickerOpen(true); setActiveTool(null) }}
+            onWalls={() => {
+              setActiveTool(null)
+              setFloorPlanOpen(true)
+            }}
+            onStairsUp={() => {
+              setActiveTool(null); setWallDrawMode(false)
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+              showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
+            }}
+            onStairsDown={() => {
+              setActiveTool(null)
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+              showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
+            }}
+            ceilingView={ceilingView}
+            onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+            showGrid={showGrid}
+            onToggleGrid={() => setShowGrid(v => !v)}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'style' && (
+        <BuilderSheet title="Style" accentDot="#9b7ae0" onClose={() => setActiveTool(null)}>
+          <DesignStyleContent
+            wallColor={wallColor} floorColor={floorColor}
+            onWallColor={setWallColor} onFloorColor={setFloorColor}
+            floorTexture={floorTexture} wallTexture={wallTexture} wallFinish={wallFinish}
+            onFloorTexture={setFloorTexture} onWallTexture={setWallTexture} onWallFinish={setWallFinish}
+            onClearOverrides={(target) => {
+              if (target === 'floor') setFloorOverrides(new Map())
+              else setWallOverrides(new Map())
+            }}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'view' && (
+        <BuilderSheet title="View" accentDot="#5ea8c8" onClose={() => setActiveTool(null)}>
+          <ViewTabPanel
+            ceilingView={ceilingView}
+            onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+            onSummonWispy={showWispy}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
+            showGrid={showGrid}
+            onToggleGrid={() => setShowGrid(v => !v)}
+            cloudsOn={cloudsOn}
+            onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+            forceEasterEggs={forceEasterEggs}
+            onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'music' && (
+        <BuilderSheet title="Music" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <MusicTabPanel />
+        </BuilderSheet>
+      )}
+      {activeTool === 'plan' && (
+        <BuilderSheet title="Plan · Budget" accentDot="#5bb0c8" onClose={() => setActiveTool(null)}>
+          <DesignPlanContent
+            items={items}
+            catalogue={catalogue}
+            onAddAll={() => { items.forEach(it => addToCart(it.typeKey, it.sizeIndex, it.swatchIndex)) }}
+            showMeasurements={showMeasurements}
+            onToggleMeasurements={() => setShowMeasurements(v => !v)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'social' && (
+        <BuilderSheet title="Social" accentDot="#e87fa0" onClose={() => setActiveTool(null)}>
+          <SocialTabPanel
+            onCommunity={() => setCommunityOpen(true)}
+            onContests={() => setContestsOpen(true)}
+            onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+          />
+        </BuilderSheet>
+      )}
+      {activeTool === 'more' && (
+        <BuilderSheet title="More" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
+          <DesignMoreContent
+            railTools={TOOL_SETS[window.innerWidth <= 768 ? 'mobile' : window.innerWidth <= 1199 ? 'tablet' : 'desktop']}
+            onTool={(id) => { setActiveTool(id === 'account' ? null : id); if (id === 'account') { user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'saved') { user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'settings') { user ? (setAccountModalTab('Preferences'), setAccountModalOpen(true)) : setAuthModalOpen(true) } if (id === 'notifications') { user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true) } }}
+            showMeasurements={showMeasurements}
+            onMeasure={() => setShowMeasurements(v => !v)}
+            onScreenshot={() => screenshotRef.current?.()}
+            onShare={() => setShareOpen(true)}
+            onReset={() => { /* TODO: reset room */ }}
+            cloudsOn={cloudsOn}
+            onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+            onSummonWispy={showWispy}
+          />
+        </BuilderSheet>
+      )}
+      <BuilderActionPill
+        item={selectedItem}
+        catalogue={catalogue}
+        onRotate={() => selectedItem && rotateItem(selectedItem.id)}
+        onDetails={() => selectedItem && !selectedItem.stairs && openProductModal(selectedItem.typeKey)}
+        onDelete={() => selectedItem && deleteItem(selectedItem.id)}
+        onWishlist={() => selectedItem && toggleWishlist(selectedItem.id)}
+        isWishlisted={selectedItem?.wishlisted}
+        onLock={() => selectedItem && toggleLocked(selectedItem.id)}
+      />
+
+      {selectedItem && (
+        <SelectedControls
+          item={selectedItem}
+          catalogue={catalogue}
+          drawerOpen={drawerOpen}
+          roomRotation={targetRotation}
+          onShowDetails={() => openProductModal(selectedItem.typeKey)}
+          onRotate={() => rotateItem(selectedItem.id)}
+          onDelete={() => deleteItem(selectedItem.id)}
+          onResize={resizeSelectedItem}
+          onRecolor={recolorSelectedItem}
+          onToggleOwned={() => toggleOwned(selectedItem.id)}
+          onToggleLocked={() => toggleLocked(selectedItem.id)}
+          onToggleWishlist={() => toggleWishlist(selectedItem.id)}
+          onAddToCart={() => addToCart(selectedItem.typeKey, selectedItem.sizeIndex, selectedItem.swatchIndex)}
+          groupQty={selectedGroupQty}
+          onIncrementQty={incrementGroupQty}
+          onDecrementQty={decrementGroupQty}
+          onMoveWall={(wu, wh) => moveWallItem(selectedItem.id, wu, wh)}
+          onChangeWall={(wall) => changeItemWall(selectedItem.id, wall)}
+          parallelFaces={selectedItem.wall
+            ? getParallelWallFaces(selectedItem.wall, selectedItem.wallU, cells, gridW, gridD).length
+            : 0}
+          onSwapWallFace={() => swapWallFace(selectedItem.id)}
+          wallHeight={wallHeight}
+          onAdjustDropLength={(len) => adjustDropLength(selectedItem.id, len)}
+          onSetPaneConfig={(cols, rows) => setPaneConfig(selectedItem.id, cols, rows)}
+          onAdjustWindowSize={(w, h) => adjustWindowSize(selectedItem.id, w, h)}
+          onEnterRoom={() => enterRoom(selectedItem.id)}
+          onUpdateStairConfig={(cfg) => updateStairConfig(selectedItem.id, cfg)}
+        />
+      )}
+
+      {windowPickerOpen && (
+        <WindowSizePicker
+          onPick={(sizeIndex, customW, customH) => {
+            setWindowPickerOpen(false)
+            setWallPicker({
+              typeKey: 'window', sizeIndex: sizeIndex < 0 ? 0 : sizeIndex,
+              swatchIndex: 0, wishlisted: false,
+              ...(sizeIndex < 0 ? { customW, customH } : {}),
+            })
+          }}
+          onCancel={() => setWindowPickerOpen(false)}
+        />
+      )}
+
+      {doorPickerOpen && (
+        <ArchSizePicker
+          typeKey="door"
+          onPick={(sizeIndex) => {
+            setDoorPickerOpen(false)
+            setWallPicker({ typeKey: 'door', sizeIndex, swatchIndex: 0, wishlisted: false })
+          }}
+          onCancel={() => setDoorPickerOpen(false)}
+        />
+      )}
+
+      {doorLinkPicker && (
+        <DoorLinkPicker
+          doorId={doorLinkPicker.doorId}
+          allRoomsData={allRoomsData}
+          currentRoomId={currentRoomId}
+          getRoomName={getRoomName}
+          onNewRoom={confirmNewRoom}
+          onLinkRoom={linkDoorToRoom}
+          onCancel={() => setDoorLinkPicker(null)}
+        />
+      )}
+
+      {wallPicker && (
+        <WallPicker
+          def={ITEM_CATALOGUE[wallPicker.typeKey]}
+          onPick={placeItemOnWall}
+          onCancel={() => setWallPicker(null)}
+          roomRotation={targetRotation}
+        />
+      )}
+
+      {ceilingPicker && (
+        <div style={s.ceilingBanner}>
+          <span style={s.ceilingBannerText}>
+            Click a ceiling cell to place {ITEM_CATALOGUE[ceilingPicker.typeKey].label}
+          </span>
+          <button style={s.ceilingBannerCancel}
+            onClick={() => { setCeilingPicker(null); setCeilingView(false) }}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {authModalOpen    && <AuthModal    onClose={() => setAuthModalOpen(false)} />}
+      {accountModalOpen && <AccountModal onClose={() => setAccountModalOpen(false)} onLoadRoom={handleLoadRoom} defaultTab={accountModalTab} />}
+      {communityOpen && <CommunityFeed onClose={() => setCommunityOpen(false)} />}
+      {contestsOpen && <ContestsPage onClose={() => setContestsOpen(false)} roomItems={items} catalogue={catalogue} cloudRoomId={cloudRoomId} />}
+      {checkoutOpen  && <CheckoutModal cart={cart} catalogue={catalogue} roomName={getRoomName(currentRoomId)} onClose={() => setCheckoutOpen(false)} />}
+      {shareToCommunityOpen && <ShareToCommunityModal onClose={() => setShareToCommunityOpen(false)} screenshotRef={screenshotRef} musicStation={musicStation} cloudRoomId={cloudRoomId} />}
+      {orderSuccess  && <OrderSuccessBanner onClose={() => setOrderSuccess(false)} />}
+      {wispyMessage && !floorPlanOpen && <Wispy message={wispyMessage} onDismiss={dismissWispy} />}
+
+      {/* Share modal */}
+      {shareOpen && (
+        <ShareModal
+          roomData={allRoomsData}
+          roomName={getRoomName(currentRoomId)}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
+
+      {/* Welcome wizard — first visit only */}
+      {showWelcome && (
+        <WelcomeWizard
+          onComplete={(type) => {
+            localStorage.setItem('ddd_welcomed', '1')
+            setShowWelcome(false)
+            if (type === 'hotel' || type === 'dungeon') setFloorPlanOpen(true)
+          }}
+          onSkip={() => { localStorage.setItem('ddd_welcomed', '1'); setShowWelcome(false) }}
+        />
+      )}
+      {isExploring && exploreData && (
+        <ExploreBanner exploreData={exploreData} waitingCount={waitingInventory.count}
+          onExit={() => {
+            const from = new URLSearchParams(window.location.search).get('fromCommunity')
+            window.location.href = from ? `/community/room/${exploreData.post.id}` : window.location.pathname
+          }} />
+      )}
+      {/* Edit controls moved into bottomBar below */}
+      {showWaitingAlert && !isExploring && (
+        <WaitingInventoryAlert items={waitingInventory.items}
+          onClose={() => { setShowWaitingAlert(false); waitingInventory.markSeen() }}
+          onAddAllToCart={() => {
+            waitingInventory.items.forEach(it => addToCart(it.typeKey, it.sizeIndex || 0, it.swatchIndex || 0))
+            waitingInventory.clearAll(); setShowWaitingAlert(false)
+          }}
+          // Wishlist-all not wired yet: the inline toggleWishlist works on
+          // in-room item ids, but waiting items aren't placed yet. Proper
+          // fix is to route through useWishlists (lists + items tables);
+          // until then we omit the handler so the button hides.
+          onAddAllToWishlist={null}
+          onClear={() => { waitingInventory.clearAll(); setShowWaitingAlert(false) }}
+        />
+      )}
+      {shopBuilderSellerId && (
+        <ShopGreeter greeting={wispyGreeting ?? 'Welcome to my shop ☁'} />
+      )}
+
+      {saveModalOpen && (
+        <SaveRoomModal
+          existingName={cloudRoomId ? cloudSave.rooms.find(r => r.id === cloudRoomId)?.name : ''}
+          saving={cloudSave.saving}
+          onClose={() => setSaveModalOpen(false)}
+          onSave={async (name) => {
+            const { error } = cloudRoomId
+              ? await cloudSave.updateRoom(cloudRoomId, name)
+              : await cloudSave.saveRoom(name)
+            if (!error) {
+              setSaveModalOpen(false)
+              cloudSave.fetchRooms()
+              nudgeOnSave()
+            }
+            return { error }
+          }}
+        />
+      )}
+
+      {loadModalOpen && (
+        <LoadRoomModal
+          rooms={cloudSave.rooms}
+          loading={cloudSave.loading}
+          onFetch={cloudSave.fetchRooms}
+          onClose={() => setLoadModalOpen(false)}
+          onDelete={cloudSave.deleteRoom}
+          onLoad={handleLoadRoom}
+        />
+      )}
+
+      <div style={s.leftColumn}>
+        {roomPanelOpen && (
+          <RoomPanel
+            items={items}
+            onSelectItem={setSelectedId}
+            onToggleWishlist={toggleWishlist}
+          />
+        )}
+
+        {hubOpen && (
+          <HubPanel
+            compact={compact} vw={vw}
+            zoomRef={zoomRef}
+            showMeasurements={showMeasurements} setShowMeasurements={setShowMeasurements}
+            showGrid={showGrid} setShowGrid={setShowGrid}
+            panelOpen={panelOpen} setPanelOpen={setPanelOpen}
+            styleOpen={styleOpen} setStyleOpen={setStyleOpen}
+            setHubOpen={setHubOpen}
+            roomPanelOpen={roomPanelOpen} setRoomPanelOpen={setRoomPanelOpen}
+            itemCount={items.length}
+            windowPickerOpen={windowPickerOpen} setWindowPickerOpen={setWindowPickerOpen}
+            doorPickerOpen={doorPickerOpen} setDoorPickerOpen={setDoorPickerOpen}
+            wallPickerTypeKey={wallPicker?.typeKey}
+            canUndo={canUndo} canRedo={canRedo} undo={undo} redo={redo}
+            saveBookmark={saveBookmark} bookmark={bookmark} restoreBookmark={restoreBookmark}
+            exportRoom={exportRoom} importRef={importRef} importRoom={importRoom}
+            onCloudSave={() => user ? setSaveModalOpen(true) : setAuthModalOpen(true)}
+            onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
+            isSignedIn={!!user}
+            screenshotRef={screenshotRef}
+            onShareToCommunity={() => user ? setShareToCommunityOpen(true) : setAuthModalOpen(true)}
+          />
+        )}
+
+      </div>
+      {/* ── Centered bottom bar ── */}
+      <div style={{
+        position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 30, display: 'flex', gap: 6, alignItems: 'center',
+        background: 'rgba(15,12,30,0.75)', backdropFilter: 'blur(10px)',
+        border: `1px solid rgba(255,255,255,0.10)`, borderRadius: 12,
+        padding: '6px 10px',
+      }}>
+          {/* Lights toggle */}
+          {hasLightFixtures && (
+            <button
+              style={{ ...s.bottomBtn, padding: '8px 14px', borderColor: lightsOff ? '#ffc87a' : `${t.accent}40`, color: lightsOff ? '#ffc87a' : '#f0eaff', background: lightsOff ? 'rgba(255,200,122,0.18)' : 'transparent', display: 'flex', alignItems: 'center', gap: 5 }}
+              onClick={() => setLightsOff(v => !v)}
+              title={lightsOff ? 'Turn lights on' : 'Turn lights off'}
+            >
+              {lightsOff ? <LightbulbOff size={14} strokeWidth={2.2} /> : <Lightbulb size={14} strokeWidth={2.2} />}
+            </button>
+          )}
+          {/* Shop builder mode */}
+          {shopBuilderSellerId && (
+            <button style={{ ...s.bottomBtn, borderColor: '#3a8a5a', color: '#a0ffcc', background: '#1a3a2a' }} onClick={saveShopLayout}>
+              {shopSaving ? '…' : '💾'}{compact ? '' : (shopSaving ? ' Saving' : ' Save')}
+            </button>
+          )}
+          {shopBuilderSellerId && (
+            <button style={{ ...s.bottomBtn, borderColor: '#7a5a9a', color: '#d0b0ff', background: '#2a1a3a' }} onClick={() => window.close()}>
+              ✕{compact ? '' : ' Exit'}
+            </button>
+          )}
+          {roomStack.length > 0 && <button style={{ ...s.bottomBtn, borderColor: '#6090ff', color: '#a0c0ff' }} onClick={goBack}>←</button>}
+
+          {/* Edit mode: save & cancel when room opened via ?room= */}
+          {adminRoomId && (
+            <>
+              <button
+                style={{ ...s.bottomBtn, background: '#3a8a5a30', borderColor: '#3a8a5a', color: '#a0ffcc', fontWeight: 700 }}
+                disabled={cloudSave.saving}
+                onClick={async () => {
+                  const { error } = await cloudSave.updateRoom(adminRoomId, adminRoomName)
+                  if (error) return
+                  const from = new URLSearchParams(window.location.search).get('from')
+                  window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+                }}
+              >{cloudSave.saving ? '…' : '💾'}{compact ? '' : (cloudSave.saving ? ' Saving' : ' Save')}</button>
+              <button
+                style={{ ...s.bottomBtn, borderColor: '#ff6b6b50', color: '#ff9a9a' }}
+                onClick={() => {
+                  const from = new URLSearchParams(window.location.search).get('from')
+                  window.location.href = from === 'admin' ? '/?landing-admin=1' : '/?rooms=1'
+                }}
+              >✕{compact ? '' : ' Cancel'}</button>
+            </>
+          )}
+
+          {/* Explore-mode save button */}
+          {isExploring && selectedItem && (
+            <button
+              style={{ ...s.bottomBtn, background: `${t.accent}25`, borderColor: t.accent, color: t.accent, fontWeight: 700 }}
+              onClick={() => {
+                const def = ITEM_CATALOGUE[selectedItem.typeKey]
+                waitingInventory.addItem({
+                  typeKey: selectedItem.typeKey,
+                  swatchIndex: selectedItem.swatchIndex,
+                  sizeIndex: selectedItem.sizeIndex,
+                  label: def?.label ?? selectedItem.typeKey,
+                  action: 'place',
+                  fromRoomTitle: exploreData?.post?.title,
+                  fromDesigner: exploreData?.designer,
+                })
+              }}
+              title="Save this item to your inventory"
+            >+ Save</button>
+          )}
+
+          {/* Persistent waiting-inventory badge */}
+          {!isExploring && !showWaitingAlert && waitingInventory.count > 0 && (
+            <button
+              style={{ ...s.bottomBtn, background: `${t.accent}15`, borderColor: t.accent, color: t.accent, position: 'relative' }}
+              onClick={() => setShowWaitingAlert(true)}
+              title={`${waitingInventory.count} items waiting from explored rooms`}
+            >!
+              <span style={{ position: 'absolute', top: -4, right: -4, background: t.accent, color: t.accentText, borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {waitingInventory.count}
+              </span>
+            </button>
+          )}
+      </div>
+      </div>
+      {/* Static Shop right-rail. Slides in from the right with the same
+          transition the legacy drawer used. Width is 0 when closed. */}
+      <div style={compact ? {
+        // Mobile: overlay on top of canvas, full width
+        position: 'fixed', top: 52, bottom: 58, right: 0, zIndex: 55,
+        width: shopOpen ? '100%' : 0,
+        overflow: shopOpen ? 'visible' : 'hidden',
+        transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
+      } : {
+        // Desktop/tablet: inline right rail
+        width: shopOpen ? drawerWidth : 0,
+        flexShrink: 0, height: '100%',
+        overflow: shopOpen ? 'visible' : 'hidden',
+        transition: 'width 0.28s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <div style={{ width: compact ? '100%' : drawerWidth, height: '100%', transition: 'width 0.22s ease' }}>
+          <ShopDrawer
+            open={shopOpen}
+            activeTab={drawerTab}
+            onTabChange={setDrawerTab}
+            onPlace={placeItem}
+            onOpenModal={openProductModal}
+            catalogue={shopPanelCatalogue}
+            cart={cart}
+            onIncrementCart={addToCart}
+            onDecrementCart={decrementCart}
+            onRemoveFromCart={removeFromCart}
+            wishlistedItems={wishlistedItems}
+            onToggleWishlist={toggleWishlist}
+            gridW={gridW}
+            gridD={gridD}
+            cartHighlight={cartHighlight}
+            onCartHighlight={setCartHighlight}
+            onCheckout={() => setCheckoutOpen(true)}
+            drawerWidth={drawerWidth}
+            roomItemKeys={roomItemKeys}
+            ownedKeys={ownedKeys}
+            onClose={closeShop}
+            onFilterChange={setShopFilterActive}
+          />
+        </div>
+      </div>
+    </div>
+    {/* M8 strip + dockable panels (Music / Build / Place / Style / Plan / View / Social) */}
+    <SideTabStrip />
+    <DockablePanel tabId="music"><MusicTabPanel /></DockablePanel>
+    <DockablePanel tabId="build">
+      <BuildTabPanel
+        onWindow={() => setWindowPickerOpen(true)}
+        onDoor={() => setDoorPickerOpen(true)}
+        onWalls={() => {
+          setFloorPlanOpen(true)
+        }}
+        wallDrawMode={wallDrawMode}
+        onStairsUp={() => {
+          setWallDrawMode(false)
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+          showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
+        }}
+        onStairsDown={() => {
+          setWallDrawMode(false)
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+          showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
+        }}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="place" width={320} maxHeight="78vh">
+      <PlaceTabPanel
+        ownedKeys={ownedKeys}
+        roomItemKeys={roomItemKeys}
+        wishlistedItems={wishlistedItems}
+        catalogue={shopPanelCatalogue}
+        items={items}
+        onPlace={placeItem}
+        onOpenModal={openProductModal}
+        onSelectItem={setSelectedId}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="plan">
+      <PlanTabPanel
+        panelOpen={panelOpen}
+        onTogglePanel={() => setPanelOpen(v => !v)}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
+        onCloudSave={() => user ? setSaveModalOpen(true) : setAuthModalOpen(true)}
+        onCloudLoad={() => user ? setLoadModalOpen(true) : setAuthModalOpen(true)}
+        bookmark={bookmark}
+        onSaveBookmark={saveBookmark}
+        onRestoreBookmark={restoreBookmark}
+        floorColor={floorColor}
+        wallColor={wallColor}
+        onFloorColor={setFloorColor}
+        onWallColor={setWallColor}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="view">
+      <ViewTabPanel
+        ceilingView={ceilingView}
+        onToggleCeiling={() => { setCeilingView(v => !v); setCeilingPicker(null) }}
+        onSummonWispy={showWispy}
+        showMeasurements={showMeasurements}
+        onToggleMeasurements={() => setShowMeasurements(v => !v)}
+        showGrid={showGrid}
+        onToggleGrid={() => setShowGrid(v => !v)}
+        cloudsOn={cloudsOn}
+        onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
+        forceEasterEggs={forceEasterEggs}
+        onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
+      />
+    </DockablePanel>
+    <DockablePanel tabId="social">
+      <SocialTabPanel
+        onCommunity={() => setCommunityOpen(true)}
+        onContests={() => setContestsOpen(true)}
+        onNotifications={() => user ? (setAccountModalTab('Rooms'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+      />
+    </DockablePanel>
+    <BottomTabCluster
+      signedIn={!!user}
+      onAccount={() => user ? (setAccountModalTab('Profile'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+      onSettings={() => user ? (setAccountModalTab('Preferences'), setAccountModalOpen(true)) : setAuthModalOpen(true)}
+    />
+    </SideTabProvider>
+  )
+}
+
+// Placeholder body until the real panel contents are wired up step-by-step
+function PanelPlaceholder({ name, detail }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6, color: '#f0eaff', textShadow: 'none', WebkitTextStroke: 0 }}>{name} panel</div>
+      <div style={{ fontSize: 12, lineHeight: 1.5, color: '#c8b8ee', textShadow: 'none', WebkitTextStroke: 0 }}>{detail}</div>
+      <div style={{ marginTop: 12, fontSize: 10, fontStyle: 'italic', color: '#8a78a8', textShadow: 'none', WebkitTextStroke: 0 }}>Drag the header to undock; release near the tab to snap back.</div>
+    </div>
+  )
+}
+
+// Was a standalone WispyCashier component with its own SVG character;
+// now the shared mascot is already on screen, so all we do is push the
+// shop's custom greeting into its speech bubble on mount.
+function ShopGreeter({ greeting }) {
+  const { say } = useSharedWispy()
+  useEffect(() => {
+    if (!greeting) return
+    // Only greet once per shop visit per browser session — avoids
+    // re-talking every nav, which reads as nagging. Different shops still
+    // get their own greeting because the key includes the greeting text.
+    const key = 'ddd_wispy_shop_greeted_' + btoa(greeting).slice(0, 24)
+    if (sessionStorage.getItem(key)) return
+    sessionStorage.setItem(key, '1')
+    say({ text: greeting })
+  }, [greeting])
+  return null
+}
