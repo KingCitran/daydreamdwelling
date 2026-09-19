@@ -45,9 +45,9 @@ const SKY_BY_MOOD = {
 }
 
 const FONTS = {
-  display: "'EB Garamond', 'Cormorant Garamond', Georgia, serif",
-  body:    "'Outfit', 'Inter', system-ui, sans-serif",
-  hand:    "'Caveat', cursive",
+  display: "'Young Serif', Georgia, serif",
+  body:    "'Commissioner', 'Outfit', system-ui, sans-serif",
+  hand:    "'Cedarville Cursive', cursive",
 }
 
 // BLOSSOMS_URL archived — DaydreamBlossoms not ready yet

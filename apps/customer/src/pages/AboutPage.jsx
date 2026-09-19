@@ -61,7 +61,7 @@ export default function AboutPage({ onBack }) {
 
         {/* The story */}
         <h1 style={{
-          fontFamily: "'EB Garamond', Georgia, serif",
+          fontFamily: "'Young Serif', Georgia, serif",
           fontSize: 32, fontWeight: 500, margin: '0 0 8px',
           color: t.text, textShadow: '0 0 0 transparent',
           WebkitTextStroke: 0,
@@ -168,7 +168,7 @@ function Section({ title, children }) {
     <div style={{ marginBottom: 28 }}>
       {title && (
         <h2 style={{
-          fontFamily: "'EB Garamond', Georgia, serif",
+          fontFamily: "'Young Serif', Georgia, serif",
           fontSize: 22, fontWeight: 500, margin: '0 0 12px',
           letterSpacing: '-0.01em',
           textShadow: 'none', WebkitTextStroke: 0,

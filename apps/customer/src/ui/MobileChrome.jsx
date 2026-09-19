@@ -234,7 +234,7 @@ export function BuilderTopBar({
       <div onClick={onBrandClick} style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, cursor: 'pointer' }} title="DaydreamDwelling Hub">
         <Logo size={32} color={u.accent} />
         {mode === 'desktop' && (
-          <span style={{ fontFamily: "'EB Garamond',Georgia,serif", fontSize: 21, fontWeight: 500, letterSpacing: '-0.01em' }}>
+          <span style={{ fontFamily: "'Young Serif',Georgia,serif", fontSize: 21, fontWeight: 500, letterSpacing: '-0.01em' }}>
             Daydream<span style={{ color: u.accent, fontStyle: 'italic' }}>Dwelling</span>
           </span>
         )}

@@ -66,7 +66,7 @@ function greetingTime() {
   return 'Good night'
 }
 
-const F = { display: "'EB Garamond', Georgia, serif", body: "'Outfit', system-ui, sans-serif", hand: "'Caveat', cursive" }
+const F = { display: "'Young Serif', Georgia, serif", body: "'Outfit', system-ui, sans-serif", hand: "'Cedarville Cursive', cursive" }
 
 const DESTINATIONS = [
   { id: 'builder',   title: 'Room Builder', glyph: '◈', desc: 'Your studio, in 3D.', href: '/', tag: 'Your studio', hueShift: 0 },

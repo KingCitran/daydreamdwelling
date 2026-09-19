@@ -6,7 +6,7 @@ import { ROOMS as DEFAULT_ROOMS } from './landing/endlessRooms'
 import AuthModal from '../ui/AuthModal'
 
 const FONTS = {
-  display: "'EB Garamond', 'Cormorant Garamond', Georgia, serif",
+  display: "'Young Serif', Georgia, serif",
   body: "'Outfit', 'Inter', system-ui, sans-serif",
 }
 

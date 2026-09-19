@@ -15,7 +15,7 @@ export default function NotFoundPage() {
       <WispyArt slot="resting" mood="Dream State" width={120} />
 
       <h1 style={{
-        fontFamily: "'EB Garamond', Georgia, serif",
+        fontFamily: "'Young Serif', Georgia, serif",
         fontSize: 48, fontWeight: 400, color: t.text, margin: 0,
       }}>
         Lost in the clouds.

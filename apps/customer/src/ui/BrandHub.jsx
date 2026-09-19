@@ -64,7 +64,7 @@ export default function BrandHub({ onClose }) {
         }}>
           <Logo size={40} color={t.accent} />
           <h2 style={{
-            fontFamily: "'EB Garamond', Georgia, serif",
+            fontFamily: "'Young Serif', Georgia, serif",
             fontSize: 24, fontWeight: 400, margin: '8px 0 4px',
           }}>
             Daydream<span style={{ color: t.accent, fontStyle: 'italic' }}>Dwelling</span>
