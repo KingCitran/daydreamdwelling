@@ -235,7 +235,8 @@ function pad(n) { return String(n).padStart(3, '0') }
  * bottom edge as it nears the camera, then recycles with a new image and
  * a new random horizontal position.
  */
-export default function CloudConveyorPuffs({ forceEasterEggs = false }) {
+export default function CloudConveyorPuffs() {
+  const forceEasterEggs = false // dev toggle removed — normal EE spawning only
   const wrapRefs = useRef([])         // wrapper div per puff — animation target
   const tintRefs = useRef([])         // tint layer (mask source = cloud silhouette)
   const shadeRefs = useRef([])        // shade layer (multiply blend)

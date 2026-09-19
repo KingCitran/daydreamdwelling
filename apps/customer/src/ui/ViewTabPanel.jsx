@@ -10,7 +10,6 @@ export default function ViewTabPanel({
   showMeasurements, onToggleMeasurements,
   showGrid, onToggleGrid,
   cloudsOn, onToggleClouds,
-  forceEasterEggs, onToggleEasterEggs,
 }) {
   const t = useTheme()
 
@@ -37,11 +36,6 @@ export default function ViewTabPanel({
           <button onClick={onToggleClouds} style={btn(cloudsOn)}>
             {cloudsOn ? '⛅ Clouds On' : '◯ Clouds Off'}
           </button>
-          {cloudsOn && onToggleEasterEggs && (
-            <button onClick={onToggleEasterEggs} style={btn(forceEasterEggs)} title="Dev: forces every cloud to be an Easter-egg shape so you can audit them.">
-              {forceEasterEggs ? '✨ Cycling shapes ✓' : '✨ Cycle Easter Eggs (dev)'}
-            </button>
-          )}
         </div>
       </Section>
 

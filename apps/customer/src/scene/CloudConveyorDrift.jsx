@@ -164,7 +164,8 @@ function pad(n) { return String(n).padStart(3, '0') }
  *
  * Constrained to the bottom 78vh band; renders behind the room canvas.
  */
-export default function CloudConveyorDrift({ forceEasterEggs = false }) {
+export default function CloudConveyorDrift() {
+  const forceEasterEggs = false // dev toggle removed — normal EE spawning only
   const cloudsRef = useRef([])         // raw mode: refs to <img>
   const tintRefs = useRef([])
   const shadeRefs = useRef([])
@@ -176,6 +177,7 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
   // ── Smooth theme transition state ──
   const activeThemeRef = useRef(theme || NEUTRAL_THEME)
   const activeMoodRef = useRef(mood)
+  const justMountedRef = useRef(true)
   const fromThemeRef = useRef(null)
   const fromStopsRef = useRef(null); const toStopsRef = useRef(null)
   const fromShadeF = useRef(null); const toShadeF = useRef(null)
@@ -197,7 +199,13 @@ export default function CloudConveyorDrift({ forceEasterEggs = false }) {
     toGlowF.current = PARSED.glowF[mood] || PARSED.glowF['__neutral']
     fromShadowsRef.current = PARSED.shadows[oldMood] || PARSED.shadows['__neutral']
     toShadowsRef.current = PARSED.shadows[mood] || PARSED.shadows['__neutral']
-    transStartRef.current = performance.now()
+    // First mood change after mount → snap instantly (no 5s fade)
+    if (justMountedRef.current) {
+      transStartRef.current = 0
+      justMountedRef.current = false
+    } else {
+      transStartRef.current = performance.now()
+    }
     transActiveRef.current = true
     activeThemeRef.current = newTheme
     activeMoodRef.current = mood

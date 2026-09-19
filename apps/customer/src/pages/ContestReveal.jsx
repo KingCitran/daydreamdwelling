@@ -26,16 +26,74 @@ const MOOD_GRADIENTS = {
 }
 const DEFAULT_GRADIENT = 'linear-gradient(135deg, #10102a 0%, #2a2050 100%)'
 
-// Cloud bump — moonlit highlight on top, dark shadow on bottom, fully opaque
-function CloudBump({ left, bottom, w, h, bg, glow }) {
+// ── Real cloud pedestals ──
+// Uses the same 3-layer mask technique as CloudField (tint + shade + glow)
+// themed for the dark reveal night sky. Medal holders get warm-tinted clouds.
+const CLOUD_LAYER = {
+  position: 'absolute', inset: 0,
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain',
+  userSelect: 'none', pointerEvents: 'none',
+}
+const NIGHT_TINT    = 'linear-gradient(180deg, #2a2850 0%, #1e1e40 30%, #151530 60%, #0f0f28 100%)'
+const NIGHT_SHADOW  = 'drop-shadow(0 8px 20px rgba(0,0,0,0.5))'
+const MEDAL_TINTS   = {
+  1: { gradient: 'linear-gradient(180deg, #3a3520 0%, #2a2518 30%, #201a10 60%, #181408 100%)', shadow: 'drop-shadow(0 0 14px rgba(251,191,36,0.15)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
+  2: { gradient: 'linear-gradient(180deg, #303040 0%, #252530 30%, #1a1a25 60%, #101018 100%)', shadow: 'drop-shadow(0 0 12px rgba(192,192,200,0.12)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
+  3: { gradient: 'linear-gradient(180deg, #302418 0%, #251c12 30%, #1a140c 60%, #120e08 100%)', shadow: 'drop-shadow(0 0 12px rgba(139,94,60,0.12)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
+}
+// Deterministic cloud picker — each card gets a unique but consistent set
+const PEDESTAL_POOL = [2, 5, 8, 14, 22, 35, 47, 63, 78, 92, 108, 126, 143]
+function pickClouds(seed, n = 5) {
+  const out = []; let s = (seed + 1) * 2654435761
+  for (let i = 0; i < n; i++) { s = ((s >>> 0) * 16807 + 7) >>> 0; out.push(PEDESTAL_POOL[s % PEDESTAL_POOL.length]) }
+  return out
+}
+const pad3 = n => String(n).padStart(3, '0')
+
+// 5 clouds arranged as a floating platform under each card (280px wide)
+const PEDESTAL_LAYOUT = [
+  { left: -30,  bottom: -55, width: 200, flip: false },
+  { left: 80,   bottom: -65, width: 230, flip: true  },
+  { left: 160,  bottom: -50, width: 190, flip: false },
+  { left: -55,  bottom: -35, width: 140, flip: true  },
+  { left: 210,  bottom: -40, width: 150, flip: false },
+]
+
+function CloudPedestal({ seed, medalRank, hasMedal }) {
+  const clouds = pickClouds(seed)
+  const tint = hasMedal && MEDAL_TINTS[medalRank] ? MEDAL_TINTS[medalRank] : { gradient: NIGHT_TINT, shadow: NIGHT_SHADOW }
+  const glowOp = hasMedal && medalRank === 1 ? 0.25 : 0.15
+  return PEDESTAL_LAYOUT.map((pos, i) => {
+    const url = `url("/clouds/cloud-${pad3(clouds[i])}.webp")`
+    return (
+      <div key={i} style={{
+        position: 'absolute', left: pos.left, bottom: pos.bottom,
+        width: pos.width, aspectRatio: '3 / 2', zIndex: 2,
+        transform: pos.flip ? 'scaleX(-1)' : 'none',
+        pointerEvents: 'none',
+      }}>
+        <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: tint.gradient, filter: tint.shadow }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.85, filter: 'contrast(1.5) brightness(0.9)' }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: glowOp, filter: 'brightness(1.3) contrast(0.9)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)' }} />
+      </div>
+    )
+  })
+}
+
+// Small cloud behind the stats pill
+const STATS_POOL = [3, 10, 18, 31, 55, 71, 95, 110]
+function StatsCloud({ seed, medalBorder }) {
+  const num = STATS_POOL[(seed * 7 + 3) % STATS_POOL.length]
+  const url = `url("/clouds/cloud-${pad3(num)}.webp")`
+  const shadow = medalBorder
+    ? `drop-shadow(0 0 10px ${medalBorder}22) drop-shadow(0 6px 14px rgba(0,0,0,0.5))`
+    : 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))'
   return (
-    <div style={{
-      position: 'absolute', left, bottom, width: w, height: h, zIndex: 2,
-      borderRadius: `${w * 0.45}px ${w * 0.5}px ${w * 0.15}px ${w * 0.12}px`,
-      background: bg,
-      boxShadow: `${glow}, inset 0 ${h * 0.22}px ${h * 0.3}px rgba(255,255,255,0.12), inset 0 -${h * 0.12}px ${h * 0.2}px rgba(0,0,0,0.3)`,
-      borderTop: '1.5px solid rgba(255,255,255,0.1)',
-    }} />
+    <div style={{ position: 'absolute', inset: '-30% -40%', pointerEvents: 'none', zIndex: 0 }}>
+      <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: NIGHT_TINT, filter: shadow }} />
+      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.85, filter: 'contrast(1.5) brightness(0.9)' }} />
+      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.18, filter: 'brightness(1.3) contrast(0.9)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)' }} />
+    </div>
   )
 }
 
@@ -116,7 +174,6 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
           const isWinner = isPodium && globalRank === 1 && (phase >= 3 || podiumDone)
           const medal = MEDAL_COLORS[globalRank]
           const hasMedal = isPodium && medal && (phase >= 4 || podiumDone)
-          const bumpGlow = hasMedal ? `0 0 14px ${medal.glow}0.1)` : isWinner ? `0 0 20px ${t.accent}15` : '0 0 12px rgba(0,0,0,0.3)'
           const border = hasMedal ? `2.5px solid ${medal.border}` : isWinner ? `2px solid ${t.accent}40` : '1px solid rgba(120,120,180,0.15)'
           const shadow = hasMedal
             ? `0 0 16px ${medal.glow}0.2), 0 0 50px ${medal.glow}0.08), 0 8px 32px rgba(0,0,0,0.35)`
@@ -132,14 +189,8 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
               display: 'flex', flexDirection: 'column', alignItems: 'center',
             }}>
               <div style={{ position: 'relative', width: '100%', paddingTop: 30 }}>
-                {/* Bottom cloud bumps — moonlit tops */}
-                <CloudBump left={-80} bottom={-10} w={100} h={38} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={250} bottom={-12} w={96}  h={36} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={-40} bottom={-16} w={110} h={42} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={200} bottom={-18} w={105} h={40} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={-5}  bottom={-22} w={120} h={46} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={70}  bottom={-20} w={115} h={44} bg={CLOUD_BG} glow={bumpGlow} />
-                <CloudBump left={150} bottom={-24} w={122} h={48} bg={CLOUD_BG} glow={bumpGlow} />
+                {/* Real cloud pedestal — card floats on a bed of tinted clouds */}
+                <CloudPedestal seed={i} medalRank={globalRank} hasMedal={hasMedal} />
 
                 <div style={{
                   position: 'absolute', top: -40, left: -30, right: -30, bottom: -20,
@@ -213,23 +264,21 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
           position: 'absolute', bottom: '12%', left: 0, right: 0, zIndex: 10,
           display: 'grid', gridTemplateColumns: `repeat(${top.length}, 280px)`, justifyContent: 'center', gap: 180,
         }}>
-          {top.map(entry => {
+          {top.map((entry, si) => {
             const rank = entries.indexOf(entry) + 1
             const m = MEDAL_COLORS[rank]
             const hasMdl = isPodium && m && (phase >= 4 || podiumDone)
             return (
               <div key={entry.id} style={{ display: 'flex', justifyContent: 'center' }}>
                 <div style={{
-                  padding: '7px 20px', background: CLOUD_BG,
-                  borderRadius: '20px 22px 8px 6px',
-                  boxShadow: 'inset 0 3px 5px rgba(255,255,255,0.06), inset 0 -3px 5px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3)',
+                  position: 'relative',
+                  padding: '7px 20px',
                   display: 'flex', alignItems: 'center', gap: 7,
-                  borderTop: '1.5px solid rgba(255,255,255,0.08)',
-                  border: hasMdl ? `1.5px solid ${m.border}40` : '1px solid rgba(120,120,180,0.1)',
                 }}>
-                  <RaindropIcon size={16} filled={statsRolling} color={hasMdl ? m.border : statsRolling ? '#fbbf24' : '#50507a'} />
-                  <RollCounter target={entry.vote_count} active={statsRolling} instant={!gatePodium} color={hasMdl ? m.border : statsRolling ? '#c0c0d0' : '#50507a'} />
-                  {statsRolling && <span style={{ fontSize: 11, color: '#50507a', fontWeight: 500 }}>raindrops</span>}
+                  <StatsCloud seed={si} medalBorder={hasMdl ? m.border : null} />
+                  <RaindropIcon size={16} filled={statsRolling} color={hasMdl ? m.border : statsRolling ? '#fbbf24' : '#50507a'} style={{ position: 'relative', zIndex: 1 }} />
+                  <span style={{ position: 'relative', zIndex: 1 }}><RollCounter target={entry.vote_count} active={statsRolling} instant={!gatePodium} color={hasMdl ? m.border : statsRolling ? '#c0c0d0' : '#50507a'} /></span>
+                  {statsRolling && <span style={{ fontSize: 11, color: '#50507a', fontWeight: 500, position: 'relative', zIndex: 1 }}>raindrops</span>}
                 </div>
               </div>
             )

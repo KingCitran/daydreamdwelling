@@ -201,10 +201,6 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const [initSave] = useState(loadSaved)
   const [lightsOff, setLightsOff] = useState(false)
   const [cloudsOn, setCloudsOn] = useState(() => localStorage.getItem('ddd_clouds') !== '0')
-  // cloudVariant archived — drift-across is the only cloud style now
-  // Dev: cycle every cloud through the Easter-egg shape pool so the user can
-  // audit + tune cloudShapes.js manifest. Off by default.
-  const [forceEasterEggs, setForceEasterEggs] = useState(false)
 
   // Defer cloud rendering until after the room canvas + items have a chance
   // to render and settle. Clouds are visually secondary; loading them first
@@ -979,7 +975,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       <SkyBackdrop />
 
       {cloudsOn && cloudsReady && (
-        <CloudConveyorDrift key={forceEasterEggs ? 'eggs' : 'normal'} forceEasterEggs={forceEasterEggs} />
+        <CloudConveyorDrift />
       )}
 
 
@@ -1615,8 +1611,6 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             onToggleGrid={() => setShowGrid(v => !v)}
             cloudsOn={cloudsOn}
             onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
-            forceEasterEggs={forceEasterEggs}
-            onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
           />
         </BuilderSheet>
       )}
@@ -2080,8 +2074,6 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         onToggleGrid={() => setShowGrid(v => !v)}
         cloudsOn={cloudsOn}
         onToggleClouds={() => { const next = !cloudsOn; setCloudsOn(next); localStorage.setItem('ddd_clouds', next ? '1' : '0') }}
-        forceEasterEggs={forceEasterEggs}
-        onToggleEasterEggs={() => setForceEasterEggs(v => !v)}
       />
     </DockablePanel>
     <DockablePanel tabId="social">

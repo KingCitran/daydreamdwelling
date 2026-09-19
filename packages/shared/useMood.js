@@ -48,6 +48,16 @@ const APP_DEFAULTS = {
   seller:   'Dream State', // always locked, never user-controlled
 }
 
+// Cache last mood in localStorage so page loads start with the correct mood
+// before the async profile fetch completes — prevents cloud color flash.
+const MOOD_CACHE_KEY = 'dd_mood'
+function getCachedMood() {
+  try { return localStorage.getItem(MOOD_CACHE_KEY) } catch { return null }
+}
+function setCachedMood(m) {
+  try { localStorage.setItem(MOOD_CACHE_KEY, m) } catch {}
+}
+
 /**
  * useMood(appKey)
  * appKey: 'customer' | 'outdoor' | 'seller'
@@ -73,8 +83,8 @@ export function useMood(appKey = 'customer') {
   const appOverrides  = profile?.app_mood_overrides ?? {}
   const appDefault    = APP_DEFAULTS[appKey]
 
-  // User-set app override > global preference > app default > hard fallback
-  const effectiveMood = appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day'
+  // User-set app override > global preference > localStorage cache > app default
+  const effectiveMood = appOverrides[appKey] ?? globalMood ?? getCachedMood() ?? appDefault ?? 'Bright Day'
 
   const [mood, setMoodLocal] = useState(effectiveMood)
   const moodSetExplicitly = useRef(false)
@@ -83,12 +93,15 @@ export function useMood(appKey = 'customer') {
   // (e.g. by loading a room that carries its own mood)
   useEffect(() => {
     if (!profile || moodSetExplicitly.current) return
-    setMoodLocal(appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day')
+    const synced = appOverrides[appKey] ?? globalMood ?? appDefault ?? 'Bright Day'
+    setMoodLocal(synced)
+    setCachedMood(synced)
   }, [profile])
 
   const setMood = useCallback(async (newMood) => {
     moodSetExplicitly.current = true
     setMoodLocal(newMood)
+    setCachedMood(newMood)
     if (!user) return
     await supabase
       .from('profiles')

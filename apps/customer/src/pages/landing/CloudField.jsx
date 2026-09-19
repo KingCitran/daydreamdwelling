@@ -108,6 +108,7 @@ export default function CloudField({ lite = false }) {
   // Theme transition state — managed imperatively, not via React state
   const activeThemeRef = useRef(theme || NEUTRAL_THEME)
   const activeMoodRef = useRef(mood)
+  const justMountedRef = useRef(true)  // snap on first mood change (no 5s fade)
   const fromThemeRef = useRef(null)    // theme we're transitioning FROM
   const fromStopsRef = useRef(null)    // parsed gradient stops of from-theme
   const toStopsRef = useRef(null)      // parsed gradient stops of to-theme
@@ -136,7 +137,15 @@ export default function CloudField({ lite = false }) {
     toGlowF.current = PARSED.glowF[mood] || PARSED.glowF['__neutral']
     fromShadows.current = PARSED.shadows[oldMood] || PARSED.shadows['__neutral']
     toShadows.current = PARSED.shadows[mood] || PARSED.shadows['__neutral']
-    transStartRef.current = performance.now()
+
+    // First mood change after mount (profile loaded async) → snap instantly
+    // by placing transStart in the past so interpolateTheme returns done=true
+    if (justMountedRef.current) {
+      transStartRef.current = 0
+      justMountedRef.current = false
+    } else {
+      transStartRef.current = performance.now()
+    }
     transActiveRef.current = true
 
     activeThemeRef.current = newTheme
