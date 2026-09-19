@@ -1072,11 +1072,8 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             })
             showWispy('Door opening placed — rooms stay separate for editing.')
           }}
-          onAddFloor={(direction) => {
-            const newLevel = direction === 'below' ? activeFloorLevel - 1 : activeFloorLevel + 1
-            const newRoomId = nextRoomIdRef.current++
-            const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae'][Math.abs(newRoomId) % 4]
-            // Save current room + create new room in one setAllRooms call
+          onAddFloor={(direction, count = 1) => {
+            // Save current room state first
             const currentSnapshot = {
               gridW, gridD, cells: new Set(cells), items: [...items],
               wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
@@ -1084,26 +1081,46 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
               doorOpenings: new Set(doorOpenings ?? []),
               level: activeFloorLevel,
             }
-            const newRoom = {
-              gridW, gridD,
-              cells: new Set(),
-              items: [],
-              internalWalls: new Set(),
-              doorOpenings: new Set(),
-              wallHeight,
-              floorColor: palette, floorTexture: 'flat',
-              wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
-              targetRotation: 0,
-              level: newLevel,
+            const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae']
+
+            // Find the highest and lowest existing levels to stack on top/below
+            const existingLevels = Object.values(allRooms).map(r => r.level ?? 0)
+            existingLevels.push(activeFloorLevel)
+            const topLevel = Math.max(...existingLevels)
+            const bottomLevel = Math.min(...existingLevels)
+
+            const newRooms = { [currentRoomId]: currentSnapshot }
+            let lastRoomId, lastLevel
+            for (let i = 0; i < count; i++) {
+              const rid = nextRoomIdRef.current++
+              const lvl = direction === 'below' ? bottomLevel - 1 - i : topLevel + 1 + i
+              newRooms[rid] = {
+                gridW, gridD,
+                cells: new Set(cells), // copy current floor shape
+                items: [],
+                internalWalls: new Set(internalWalls ?? []),
+                doorOpenings: new Set(doorOpenings ?? []),
+                wallHeight,
+                floorColor: palette[Math.abs(rid) % 4], floorTexture: 'flat',
+                wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
+                targetRotation: 0,
+                level: lvl,
+              }
+              lastRoomId = rid
+              lastLevel = lvl
             }
-            setAllRooms(prev => ({ ...prev, [currentRoomId]: currentSnapshot, [newRoomId]: newRoom }))
-            // Load the new empty floor
-            setCurrentRoomId(newRoomId)
-            setCells(new Set())
+            setAllRooms(prev => ({ ...prev, ...newRooms }))
+            // Jump to the last created floor
+            setCurrentRoomId(lastRoomId)
+            setCells(new Set(cells)) // keep same shape
             setItems([])
-            setInternalWalls(new Set())
-            setActiveFloorLevel(newLevel)
-            showWispy(`${direction === 'below' ? 'Basement' : 'Upper floor'} added. Draw the floor shape, then add stairs to connect.`)
+            setInternalWalls(new Set(internalWalls ?? []))
+            setActiveFloorLevel(lastLevel)
+            if (count === 1) {
+              showWispy(`${direction === 'below' ? 'Basement' : 'Upper floor'} added. Draw the floor shape, then add stairs to connect.`)
+            } else {
+              showWispy(`${count} floors added ${direction}! Each copies the current floor shape. Add stairs to connect them.`)
+            }
           }}
           activeFloorLevel={activeFloorLevel}
           floorStack={floorStack}

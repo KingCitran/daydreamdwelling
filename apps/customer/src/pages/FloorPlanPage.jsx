@@ -69,7 +69,7 @@ export default function FloorPlanPage({
   onBulkAddCells,
   roomZoneLabels, onSetZoneLabel,
   onEditZone,
-  onAddFloor,  // ('above' | 'below') => void — create empty floor
+  onAddFloor,  // ('above' | 'below', count?) => void — create empty floor(s)
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
 }) {
@@ -568,13 +568,13 @@ export default function FloorPlanPage({
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0c0c1a', display: 'flex', fontFamily: "'Outfit',sans-serif" }}>
-      {/* Sidebar */}
-      <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+      {/* Sidebar — scrollable so many floors don't push controls off screen */}
+      <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, overflowY: 'auto' }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0', padding: '8px 10px 12px' }}>Floor Plan</div>
 
         {/* Floor management */}
         <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Floors</div>
-        <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap', maxHeight: 120, overflowY: 'auto' }}>
           {/* Show ALL rooms sorted by level — deduplicated by level */}
           {Object.entries(allRoomsData ?? {})
             .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
@@ -590,9 +590,25 @@ export default function FloorPlanPage({
                 }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
             ))}
         </div>
-        <div style={{ display: 'flex', gap: 3, margin: '0 6px 6px' }}>
+        <div style={{ display: 'flex', gap: 3, margin: '0 6px 2px' }}>
           <button onClick={() => onAddFloor?.('above')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Above</button>
           <button onClick={() => onAddFloor?.('below')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Below</button>
+        </div>
+        {/* Batch add — type a number and add many floors at once */}
+        <div style={{ display: 'flex', gap: 3, margin: '0 6px 6px', alignItems: 'center' }}>
+          <input id="ddd-batch-floors" type="number" min="2" max="50" defaultValue="5" style={{
+            width: 40, padding: '4px 6px', borderRadius: 4, border: '1px solid #2a2a40',
+            background: '#12122a', color: '#b0b0c0', fontSize: 10, fontFamily: 'inherit',
+            textAlign: 'center', outline: 'none',
+          }} />
+          <button onClick={() => {
+            const n = parseInt(document.getElementById('ddd-batch-floors')?.value, 10)
+            if (n >= 2 && n <= 50) onAddFloor?.('above', n)
+          }} style={{
+            flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40',
+            background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10,
+            fontWeight: 600, fontFamily: 'inherit',
+          }}>+ Add Floors</button>
         </div>
 
         <div style={{ height: 1, background: '#1e1e30', margin: '2px 10px' }} />
