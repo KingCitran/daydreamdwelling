@@ -70,6 +70,7 @@ export default function FloorPlanPage({
   roomZoneLabels, onSetZoneLabel,
   onEditZone,
   onAddFloor,  // ('above' | 'below', count?) => void — create empty floor(s)
+  onDeleteFloors, // (roomIds[]) => void — batch delete floors
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
 }) {
@@ -86,6 +87,8 @@ export default function FloorPlanPage({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const panStartRef = useRef(null)
   const [editingLabel, setEditingLabel] = useState(null)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deleteSelection, setDeleteSelection] = useState(new Set()) // roomIds to delete
   // Background image for tracing
   const [bgImage, setBgImage] = useState(null)  // { img: HTMLImageElement, opacity: 0.4 }
   const [bgScale, setBgScale] = useState(1)
@@ -610,6 +613,74 @@ export default function FloorPlanPage({
             fontWeight: 600, fontFamily: 'inherit',
           }}>+ Add Floors</button>
         </div>
+        {/* Delete floors toggle */}
+        {(() => {
+          const allFloors = Object.entries(allRoomsData ?? {})
+            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            .sort((a, b) => a.level - b.level)
+            .filter((f, i, arr) => i === 0 || f.level !== arr[i-1].level)
+          return allFloors.length > 1 && (
+            <div style={{ margin: '0 6px 6px' }}>
+              <button onClick={() => { setDeleteMode(d => !d); setDeleteSelection(new Set()) }} style={{
+                width: '100%', padding: '5px', borderRadius: 4,
+                border: `1px solid ${deleteMode ? '#5a2a2a' : '#2a2a40'}`,
+                background: deleteMode ? '#2a1515' : '#12122a',
+                color: deleteMode ? '#e06060' : '#707090',
+                cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit',
+              }}>{deleteMode ? '✕ Cancel Delete' : '🗑 Delete Floors...'}</button>
+              {deleteMode && (
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', background: '#1a1218', borderRadius: 6, padding: 3, maxHeight: 100, overflowY: 'auto', marginBottom: 4 }}>
+                    {allFloors.map(f => {
+                      const isCurrent = f.level === activeFloorLevel
+                      const isSelected = deleteSelection.has(f.roomId)
+                      return (
+                        <button key={f.roomId} disabled={isCurrent}
+                          onClick={() => setDeleteSelection(prev => {
+                            const next = new Set(prev)
+                            next.has(f.roomId) ? next.delete(f.roomId) : next.add(f.roomId)
+                            return next
+                          })}
+                          title={isCurrent ? "Can't delete the floor you're on" : `${isSelected ? 'Deselect' : 'Select'} ${f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}`}
+                          style={{
+                            flex: 1, minWidth: 28, padding: '5px 6px', borderRadius: 4, border: 'none',
+                            fontSize: 10, fontWeight: 700, cursor: isCurrent ? 'not-allowed' : 'pointer',
+                            fontFamily: 'inherit',
+                            background: isSelected ? '#5a2a2a' : isCurrent ? '#1a1a2a' : 'transparent',
+                            color: isSelected ? '#ff6060' : isCurrent ? '#303050' : '#707090',
+                            opacity: isCurrent ? 0.4 : 1,
+                          }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    <button onClick={() => {
+                      const all = allFloors.filter(f => f.level !== activeFloorLevel).map(f => f.roomId)
+                      setDeleteSelection(new Set(all))
+                    }} style={{
+                      flex: 1, padding: '4px', borderRadius: 4, border: '1px solid #3a2020',
+                      background: '#1a1010', color: '#c06060', cursor: 'pointer', fontSize: 9,
+                      fontWeight: 600, fontFamily: 'inherit',
+                    }}>Select All</button>
+                    <button disabled={deleteSelection.size === 0} onClick={() => {
+                      const count = deleteSelection.size
+                      if (!window.confirm(`Delete ${count} floor${count > 1 ? 's' : ''}? This cannot be undone.`)) return
+                      onDeleteFloors?.([...deleteSelection])
+                      setDeleteSelection(new Set())
+                      setDeleteMode(false)
+                    }} style={{
+                      flex: 1, padding: '4px', borderRadius: 4, border: '1px solid #5a2020',
+                      background: deleteSelection.size > 0 ? '#3a1515' : '#1a1010',
+                      color: deleteSelection.size > 0 ? '#ff5050' : '#503030',
+                      cursor: deleteSelection.size > 0 ? 'pointer' : 'not-allowed',
+                      fontSize: 9, fontWeight: 700, fontFamily: 'inherit',
+                    }}>Delete {deleteSelection.size > 0 ? `(${deleteSelection.size})` : ''}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         <div style={{ height: 1, background: '#1e1e30', margin: '2px 10px' }} />
 

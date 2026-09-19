@@ -1122,6 +1122,29 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
               showWispy(`${count} floors added ${direction}! Each copies the current floor shape. Add stairs to connect them.`)
             }
           }}
+          onDeleteFloors={(roomIds) => {
+            // Batch delete floors — unlink any doors/stairs referencing them
+            const snapshot = {
+              gridW, gridD, cells: new Set(cells), items: [...items],
+              wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
+              internalWalls: new Set(internalWalls ?? []),
+              doorOpenings: new Set(doorOpenings ?? []),
+              level: activeFloorLevel,
+            }
+            const idsToRemove = new Set(roomIds)
+            setAllRooms(prev => {
+              const updated = { ...prev, [currentRoomId]: snapshot }
+              for (const rid of idsToRemove) delete updated[rid]
+              // Clean up any items referencing deleted rooms
+              for (const [rid, room] of Object.entries(updated)) {
+                if (room.items?.some(it => idsToRemove.has(it.connectedRoomId))) {
+                  updated[Number(rid)] = { ...room, items: room.items.filter(it => !idsToRemove.has(it.connectedRoomId)) }
+                }
+              }
+              return updated
+            })
+            showWispy(`Deleted ${roomIds.length} floor${roomIds.length > 1 ? 's' : ''}.`)
+          }}
           activeFloorLevel={activeFloorLevel}
           floorStack={floorStack}
           allRoomsData={allRoomsData}
