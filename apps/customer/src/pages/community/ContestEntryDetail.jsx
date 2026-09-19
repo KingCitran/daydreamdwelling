@@ -60,7 +60,7 @@ export default function ContestEntryDetail({ entry, t, user, canVote, voted, onV
 
   return (
     <div style={{
-      borderRadius: 12, overflow: 'hidden',
+      borderRadius: '6px 999px 999px 6px', overflow: 'hidden',
       background: isMine ? `${t.accent}05` : t.bg,
       border: `1px solid ${isMine ? `${t.accent}30` : t.surfaceBorder}`,
     }}>
@@ -111,7 +111,7 @@ export default function ContestEntryDetail({ entry, t, user, canVote, voted, onV
             display: 'flex', alignItems: 'center', gap: 6,
             background: voted ? `${t.accent}20` : `${t.accent}10`,
             border: `1.5px solid ${voted ? t.accent : `${t.accent}40`}`,
-            cursor: 'pointer', borderRadius: 10,
+            cursor: 'pointer', borderRadius: '5px 999px 999px 5px',
             color: voted ? t.accent : t.text, fontWeight: 700, fontSize: 14,
             padding: '6px 12px', transition: 'all 0.2s',
             transform: voted ? 'scale(1.05)' : 'scale(1)',
@@ -136,7 +136,7 @@ export default function ContestEntryDetail({ entry, t, user, canVote, voted, onV
         <div style={{ padding: '0 14px 14px', borderTop: `1px solid ${t.surfaceBorder}` }}>
           {/* Screenshot large */}
           {screenshot && (
-            <div style={{ marginTop: 12, borderRadius: 10, overflow: 'hidden', maxHeight: 200 }}>
+            <div style={{ marginTop: 12, borderRadius: '5px 999px 999px 5px', overflow: 'hidden', maxHeight: 200 }}>
               <img src={screenshot} alt={cp?.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           )}
@@ -206,7 +206,7 @@ export default function ContestEntryDetail({ entry, t, user, canVote, voted, onV
                       <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>${totalPrice.toFixed(2)}</span>
                     </div>
                     <button onClick={handleBuyAll} style={{
-                      width: '100%', padding: '10px', borderRadius: 10,
+                      width: '100%', padding: '10px', borderRadius: '5px 999px 999px 5px',
                       background: addedAll ? '#22c55e' : t.accent,
                       color: addedAll ? '#fff' : t.accentText,
                       border: 'none', fontSize: 13, fontWeight: 700,

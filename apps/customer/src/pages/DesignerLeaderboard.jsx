@@ -59,7 +59,7 @@ export default function DesignerLeaderboard({ compact = false }) {
       {!compact && (
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <p style={{ fontSize: 11, fontWeight: 700, color: t.accent, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 8, marginTop: 0 }}>Community</p>
-          <h2 style={{ fontSize: 28, fontWeight: 800, color: t.text, margin: 0 }}>Designer Leaderboard</h2>
+          <h2 style={{ fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: 0 }}>Designer Leaderboard</h2>
           <p style={{ fontSize: 13, color: t.textSoft, marginTop: 8 }}>Top designers this month by hearts + placements</p>
         </div>
       )}
@@ -80,7 +80,7 @@ export default function DesignerLeaderboard({ compact = false }) {
                 padding: compact ? '8px 12px' : '12px 16px',
                 background: isTop3 ? `${t.accent}08` : t.surface,
                 border: `1px solid ${isTop3 ? `${t.accent}30` : t.surfaceBorder}`,
-                borderRadius: 12,
+                borderRadius: '6px 999px 999px 6px',
                 transition: 'border-color 0.2s, box-shadow 0.2s',
               }}
             >

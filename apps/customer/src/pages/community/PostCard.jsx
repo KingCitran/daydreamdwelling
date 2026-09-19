@@ -70,7 +70,7 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
         {featured && (
           <div style={{
             position: 'absolute', top: 10, left: 10,
-            padding: '3px 10px', borderRadius: 12,
+            padding: '3px 10px', borderRadius: '6px 999px 999px 6px',
             background: `${t.accent}cc`, color: t.accentText,
             fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase',
             backdropFilter: 'blur(4px)',
@@ -125,7 +125,7 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
           </span>
           {showBuyButton && onBuyRoom && (
             <button onClick={e => { e.stopPropagation(); onBuyRoom(post) }} style={{
-              marginLeft: 'auto', padding: '6px 14px', borderRadius: 12,
+              marginLeft: 'auto', padding: '6px 14px', borderRadius: '6px 999px 999px 6px',
               background: t.accent, color: t.accentText, border: 'none',
               fontSize: 11, fontWeight: 700, cursor: 'pointer',
             }}>Buy This Room</button>

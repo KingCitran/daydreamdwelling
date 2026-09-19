@@ -62,7 +62,7 @@ export default function ArtistSelfListenPlayer({ userId }) {
           return (
             <button key={track.id} onClick={() => onPlayRow(idx)} style={{
               display: 'flex', alignItems: 'center', gap: 12,
-              padding: '8px 10px', borderRadius: 10,
+              padding: '8px 10px', borderRadius: '5px 999px 999px 5px',
               border: 'none', cursor: 'pointer',
               background: isThisRow ? `${t.accent}14` : 'transparent',
               textAlign: 'left',

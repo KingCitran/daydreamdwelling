@@ -55,7 +55,7 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
           extras that move the needle.
         </p>
         <button onClick={onPrimary} style={{
-          padding: '14px 28px', borderRadius: 12, border: 'none',
+          padding: '14px 28px', borderRadius: '6px 999px 999px 6px', border: 'none',
           background: t.accent, color: t.accentText, fontSize: 14, fontWeight: 700,
           cursor: 'pointer', boxShadow: `0 6px 20px ${t.accent}30`,
         }}>{primaryCta}</button>
@@ -71,7 +71,7 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
 
       {/* Value props */}
       <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: t.text, marginBottom: 20, textAlign: 'center' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, marginBottom: 20, textAlign: 'center' }}>
           Why join?
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
@@ -90,7 +90,7 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
 
       {/* How it works */}
       <section style={{ marginBottom: 48 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: t.text, marginBottom: 20, textAlign: 'center' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, marginBottom: 20, textAlign: 'center' }}>
           How it works
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
@@ -115,7 +115,7 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
       {/* Top tracks */}
       {topTracks.length > 0 && (
         <section style={{ marginBottom: 48 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: t.text, marginBottom: 20, textAlign: 'center' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, marginBottom: 20, textAlign: 'center' }}>
             Top tracks right now
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
@@ -131,7 +131,7 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                   {(track.station_tags ?? []).slice(0, 3).map(tag => (
                     <span key={tag} style={{
-                      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: '5px 999px 999px 5px',
                       background: `${t.accent}15`, color: t.accent,
                     }}>{tag}</span>
                   ))}
@@ -148,14 +148,14 @@ export default function ArtistLanding({ onNavigate, onSignIn }) {
         background: `${t.accent}08`, border: `1px solid ${t.accent}25`,
         borderRadius: 20,
       }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: t.text, margin: '0 0 8px' }}>
+        <h2 style={{ fontSize: 20, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: '0 0 8px' }}>
           Ready to get heard?
         </h2>
         <p style={{ fontSize: 13, color: t.textSoft, margin: '0 0 20px' }}>
           Free to submit. No subscription. Your data stays yours.
         </p>
         <button onClick={onPrimary} style={{
-          padding: '12px 26px', borderRadius: 10, border: 'none',
+          padding: '12px 26px', borderRadius: '5px 999px 999px 5px', border: 'none',
           background: t.accent, color: t.accentText, fontSize: 13, fontWeight: 700, cursor: 'pointer',
         }}>{primaryCta}</button>
       </section>

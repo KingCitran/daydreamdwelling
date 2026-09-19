@@ -26,7 +26,7 @@ export default function MusicPlaylistsPage({ onNavigate, onSignIn }) {
         <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to keep your own music playlists.</p>
         <button onClick={onSignIn} style={{
           padding: '10px 22px', background: t.accent, color: t.accentText,
-          border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
         }}>Sign in</button>
       </div>
     )
@@ -66,7 +66,7 @@ export default function MusicPlaylistsPage({ onNavigate, onSignIn }) {
   return (
     <div style={{ padding: '32px 0 64px' }}>
       <header style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: t.text, margin: '0 0 6px' }}>Your playlists</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: '0 0 6px' }}>Your playlists</h1>
         <p style={{ fontSize: 13, color: t.textSoft, margin: 0 }}>
           Curate sets of approved tracks. Mark public to share a link with friends.
         </p>
@@ -80,7 +80,7 @@ export default function MusicPlaylistsPage({ onNavigate, onSignIn }) {
 
       <form onSubmit={onCreate} style={{
         display: 'flex', gap: 10, marginBottom: 24,
-        padding: 14, background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12,
+        padding: 14, background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: '6px 999px 999px 6px',
       }}>
         <input
           value={newName}
@@ -125,7 +125,7 @@ export default function MusicPlaylistsPage({ onNavigate, onSignIn }) {
             .sort((a, b) => a.sort_order - b.sort_order || a.added_at.localeCompare(b.added_at))
           return (
             <div key={pl.id} style={{
-              background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: 12,
+              background: t.surface, border: `1px solid ${t.surfaceBorder}`, borderRadius: '6px 999px 999px 6px',
               overflow: 'hidden',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
@@ -152,7 +152,7 @@ export default function MusicPlaylistsPage({ onNavigate, onSignIn }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{pl.name}</div>
                       {pl.is_public && (
-                        <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: `${t.accent}20`, color: t.accent, fontWeight: 700, letterSpacing: '0.3px' }}>PUBLIC</span>
+                        <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: '5px 999px 999px 5px', background: `${t.accent}20`, color: t.accent, fontWeight: 700, letterSpacing: '0.3px' }}>PUBLIC</span>
                       )}
                     </div>
                   )}

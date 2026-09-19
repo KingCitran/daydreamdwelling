@@ -89,7 +89,7 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
   const CLOUD_BG = 'rgb(25,23,48)'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'linear-gradient(180deg, #080818 0%, #10102a 50%, #0a0a20 100%)', fontFamily: 'system-ui, sans-serif', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'linear-gradient(180deg, #080818 0%, #10102a 50%, #0a0a20 100%)', fontFamily: "'Commissioner', system-ui, sans-serif", overflow: 'hidden' }}>
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }} />
       <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, zIndex: 20, padding: '8px 18px', borderRadius: 10, background: 'rgba(20,20,50,0.7)', backdropFilter: 'blur(8px)', border: '1px solid rgba(120,120,180,0.25)', color: '#b0b0d0', fontSize: 13, cursor: 'pointer' }}>✕ Close</button>
       <RevealAudioToggleCorner />

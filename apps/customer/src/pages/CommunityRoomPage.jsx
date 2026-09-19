@@ -95,9 +95,9 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
   if (!post) {
     return (
       <div style={{ padding: '80px 0', textAlign: 'center' }}>
-        <h2 style={{ color: t.text, fontSize: 20, fontWeight: 700 }}>Room not found</h2>
+        <h2 style={{ color: t.text, fontSize: 20, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif" }}>Room not found</h2>
         <button onClick={() => onNavigate('/community')} style={{
-          marginTop: 16, padding: '10px 20px', borderRadius: 10,
+          marginTop: 16, padding: '10px 20px', borderRadius: '5px 999px 999px 5px',
           background: t.accent, color: t.accentText, border: 'none',
           fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>Back to Community</button>
@@ -155,7 +155,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
             </div>
           </div>
 
-          <h1 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 700, color: t.text }}>{post.title}</h1>
+          <h1 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 400, color: '#2a1848', fontFamily: "'Young Serif', Georgia, serif" }}>{post.title}</h1>
           {post.description && (
             <p style={{ margin: '0 0 16px', fontSize: 14, color: t.textSoft, lineHeight: 1.7 }}>{post.description}</p>
           )}
@@ -163,8 +163,8 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
           {/* Tags */}
           {(post.mood || post.music_station) && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-              {post.mood && <span style={{ padding: '5px 12px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: `${t.accent}15`, border: `1px solid ${t.accent}30`, color: t.accent }}>✦ {post.mood}</span>}
-              {post.music_station && <span style={{ padding: '5px 12px', borderRadius: 10, fontSize: 11, fontWeight: 600, background: t.bg, border: `1px solid ${t.surfaceBorder}`, color: t.textSoft }}>🎵 {post.music_station}</span>}
+              {post.mood && <span style={{ padding: '5px 12px', borderRadius: '5px 999px 999px 5px', fontSize: 11, fontWeight: 600, background: `${t.accent}15`, border: `1px solid ${t.accent}30`, color: t.accent }}>✦ {post.mood}</span>}
+              {post.music_station && <span style={{ padding: '5px 12px', borderRadius: '5px 999px 999px 5px', fontSize: 11, fontWeight: 600, background: t.bg, border: `1px solid ${t.surfaceBorder}`, color: t.textSoft }}>🎵 {post.music_station}</span>}
             </div>
           )}
 
@@ -172,7 +172,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
             <button onClick={toggleHeart} style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 18px', borderRadius: 12,
+              padding: '10px 18px', borderRadius: '6px 999px 999px 6px',
               background: hearted ? `${t.accent}20` : `${t.accent}10`,
               border: `2px solid ${hearted ? t.accent : `${t.accent}50`}`,
               color: hearted ? t.accent : t.text,
@@ -183,7 +183,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
               {post.heart_count} <span style={{ fontSize: 11, fontWeight: 500, color: t.textSoft }}>raindrops</span>
             </button>
             <button onClick={() => { window.location.href = `/?exploreRoom=${post.id}&fromCommunity=1` }} style={{
-              padding: '10px 18px', borderRadius: 12,
+              padding: '10px 18px', borderRadius: '6px 999px 999px 6px',
               background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
               color: t.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}>Explore in 3D →</button>
@@ -196,7 +196,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
                 {related.map(rp => (
                   <div key={rp.id} onClick={() => onNavigate(`/community/room/${rp.id}`)} style={{
-                    borderRadius: 10, overflow: 'hidden', cursor: 'pointer',
+                    borderRadius: '5px 999px 999px 5px', overflow: 'hidden', cursor: 'pointer',
                     border: `1px solid ${t.surfaceBorder}`,
                   }} className="ddd-tile">
                     <div style={{ height: 80, background: t.bg, overflow: 'hidden' }}>
@@ -241,7 +241,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
                 {roomItems.map((item, idx) => (
                   <div key={idx} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 12px', borderRadius: 10,
+                    padding: '10px 12px', borderRadius: '5px 999px 999px 5px',
                     background: t.bg, border: `1px solid ${t.surfaceBorder}`,
                   }}>
                     {item.swatchHex && (
@@ -274,7 +274,7 @@ export default function CommunityRoomPage({ postId, cart, onNavigate }) {
                   <span style={{ fontSize: 18, fontWeight: 700, color: t.text }}>${totalPrice.toFixed(2)}</span>
                 </div>
                 <button onClick={handleBuyAll} style={{
-                  width: '100%', padding: '14px', borderRadius: 12,
+                  width: '100%', padding: '14px', borderRadius: '6px 999px 999px 6px',
                   background: addedAll ? '#22c55e' : t.accent,
                   color: addedAll ? '#fff' : t.accentText,
                   border: 'none', fontSize: 15, fontWeight: 700,

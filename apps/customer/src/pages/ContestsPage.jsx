@@ -167,14 +167,14 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {}, 
 
   const wrapStyle = standalone
     ? { paddingTop: 24, paddingBottom: 48 }
-    : { position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }
+    : { position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: "'Commissioner', system-ui, sans-serif" }
 
   return (
     <div style={wrapStyle}>
       {!standalone && (
         <div style={{ padding: '14px 24px', borderBottom: `1px solid ${t.surfaceBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: t.bg, zIndex: 10 }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text }}>Contests & Challenges</h1>
-          <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, cursor: 'pointer', fontSize: 13 }}>✕ Close</button>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text }}>Contests & Challenges</h1>
+          <button onClick={onClose} style={{ padding: '6px 14px', borderRadius: '4px 999px 999px 4px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, cursor: 'pointer', fontSize: 13 }}>✕ Close</button>
         </div>
       )}
 
@@ -184,7 +184,7 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {}, 
           <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
             {[['all', 'All Contests'], ['mine', 'My Contests']].map(([key, label]) => (
               <button key={key} onClick={() => setTab(key)} style={{
-                padding: '7px 16px', borderRadius: 10, border: 'none',
+                padding: '7px 16px', borderRadius: '5px 999px 999px 5px', border: 'none',
                 background: tab === key ? `${t.accent}15` : 'transparent',
                 color: tab === key ? t.accent : t.textSoft,
                 fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -198,13 +198,13 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {}, 
           <input type="text" placeholder="Search contests..." value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
-              flex: '1 1 180px', padding: '8px 12px', borderRadius: 8,
+              flex: '1 1 180px', padding: '8px 12px', borderRadius: '4px 999px 999px 4px',
               border: `1px solid ${t.surfaceBorder}`, background: t.surface,
               color: t.text, fontSize: 13, outline: 'none', minWidth: 0,
             }}
           />
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{
-            padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`,
+            padding: '8px 10px', borderRadius: '4px 999px 999px 4px', border: `1px solid ${t.surfaceBorder}`,
             background: t.surface, color: t.text, fontSize: 12, outline: 'none', cursor: 'pointer',
           }}>
             {STATUS_LIST.map(s => (
@@ -212,7 +212,7 @@ export default function ContestsPage({ onClose, roomItems = [], catalogue = {}, 
             ))}
           </select>
           <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={{
-            padding: '8px 10px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`,
+            padding: '8px 10px', borderRadius: '4px 999px 999px 4px', border: `1px solid ${t.surfaceBorder}`,
             background: t.surface, color: t.text, fontSize: 12, outline: 'none', cursor: 'pointer',
           }}>
             {TYPE_LIST.map(tp => (
@@ -281,7 +281,7 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
           </div>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: t.text }}>{c.title}</h3>
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: STATUS_COLORS[c.status], padding: '4px 10px', background: `${STATUS_COLORS[c.status]}15`, borderRadius: 12, flexShrink: 0 }}>{c.status}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: STATUS_COLORS[c.status], padding: '4px 10px', background: `${STATUS_COLORS[c.status]}15`, borderRadius: '6px 999px 999px 6px', flexShrink: 0 }}>{c.status}</span>
       </div>
 
       <p style={{ margin: '0 0 12px', fontSize: 13, color: t.textSoft, lineHeight: 1.6 }}>{c.description}</p>
@@ -293,7 +293,7 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
       </div>
 
       {c.sponsor?.display_name && (
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: `${t.accent}10`, border: `1px solid ${t.accent}25`, borderRadius: 8, fontSize: 11, color: t.accent, fontWeight: 600, marginBottom: 10 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: `${t.accent}10`, border: `1px solid ${t.accent}25`, borderRadius: '4px 999px 999px 4px', fontSize: 11, color: t.accent, fontWeight: 600, marginBottom: 10 }}>
           ✦ Sponsored by {c.sponsor.display_name}
         </div>
       )}
@@ -318,7 +318,7 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
       )}
 
       {winners.map(w => (
-        <div key={w.id} style={{ marginTop: 4, padding: '8px 12px', background: `${t.accent}10`, borderRadius: 8, fontSize: 12, color: t.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div key={w.id} style={{ marginTop: 4, padding: '8px 12px', background: `${t.accent}10`, borderRadius: '4px 999px 999px 4px', fontSize: 12, color: t.accent, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
           <RaindropIcon size={14} filled color={t.accent} />
           {w.award}: {w.profiles?.display_name ?? 'Unknown'} ({w.vote_count} <RaindropIcon size={11} filled color={t.accent} />)
         </div>
@@ -327,21 +327,21 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
       {/* Actions */}
       <div style={{ display: 'flex', gap: 10, marginTop: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {isActive && user && (
-          <button onClick={() => onToggleJoin(c.id)} style={{ padding: '8px 16px', borderRadius: 10, background: isJoining ? 'transparent' : t.accent, color: isJoining ? t.textSoft : t.accentText, border: isJoining ? `1px solid ${t.surfaceBorder}` : 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => onToggleJoin(c.id)} style={{ padding: '8px 16px', borderRadius: '5px 999px 999px 5px', background: isJoining ? 'transparent' : t.accent, color: isJoining ? t.textSoft : t.accentText, border: isJoining ? `1px solid ${t.surfaceBorder}` : 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             {isJoining ? 'Cancel' : hasEntered ? '+ Submit another entry' : 'Join this contest'}
           </button>
         )}
         {isActive && !user && <span style={{ fontSize: 12, color: t.textSoft, fontStyle: 'italic' }}>Sign in to join</span>}
         {hasEntered && (
-          <span style={{ padding: '6px 14px', borderRadius: 10, background: `${STATUS_COLORS.active}15`, color: STATUS_COLORS.active, fontSize: 12, fontWeight: 700 }}>✓ Entered</span>
+          <span style={{ padding: '6px 14px', borderRadius: '5px 999px 999px 5px', background: `${STATUS_COLORS.active}15`, color: STATUS_COLORS.active, fontSize: 12, fontWeight: 700 }}>✓ Entered</span>
         )}
         {entries.length > 0 && (
-          <button onClick={() => onToggleExpand(c.id)} style={{ padding: '6px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, fontSize: 12, cursor: 'pointer' }}>
+          <button onClick={() => onToggleExpand(c.id)} style={{ padding: '6px 14px', borderRadius: '4px 999px 999px 4px', background: 'transparent', border: `1px solid ${t.surfaceBorder}`, color: t.textSoft, fontSize: 12, cursor: 'pointer' }}>
             {isExpanded ? 'Hide entries ▴' : `View entries (${entries.length}) ▾`}
           </button>
         )}
         {c.status === 'complete' && entries.length > 0 && (
-          <button onClick={onReveal} style={{ padding: '6px 14px', borderRadius: 8, background: `${STATUS_COLORS.complete}20`, border: `1px solid ${STATUS_COLORS.complete}40`, color: STATUS_COLORS.complete, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={onReveal} style={{ padding: '6px 14px', borderRadius: '4px 999px 999px 4px', background: `${STATUS_COLORS.complete}20`, border: `1px solid ${STATUS_COLORS.complete}40`, color: STATUS_COLORS.complete, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             Watch Reveal ✦
           </button>
         )}
@@ -349,19 +349,19 @@ function ContestCard({ contest: c, t, user, myEntries, myVotes, expanded, joinin
 
       {/* Entry form */}
       {isJoining && (
-        <div style={{ marginTop: 14, padding: 16, background: t.bg, borderRadius: 10, border: `1px solid ${t.surfaceBorder}` }}>
+        <div style={{ marginTop: 14, padding: 16, background: t.bg, borderRadius: '5px 999px 999px 5px', border: `1px solid ${t.surfaceBorder}` }}>
           <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: t.text }}>Submit your room</h4>
           <input type="text" placeholder="Entry title (e.g. 'Sunset Reading Nook')" value={entryForm.title}
             onChange={e => onFormChange(p => ({ ...p, title: e.target.value }))}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.surface, color: t.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: '4px 999px 999px 4px', border: `1px solid ${t.surfaceBorder}`, background: t.surface, color: t.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', outline: 'none' }}
           />
           <textarea placeholder="Describe your design (optional)" value={entryForm.description} rows={3}
             onChange={e => onFormChange(p => ({ ...p, description: e.target.value }))}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${t.surfaceBorder}`, background: t.surface, color: t.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: '4px 999px 999px 4px', border: `1px solid ${t.surfaceBorder}`, background: t.surface, color: t.text, fontSize: 13, marginBottom: 10, boxSizing: 'border-box', resize: 'vertical', outline: 'none', fontFamily: 'inherit' }}
           />
           {error && isJoining && <p style={{ margin: '0 0 10px', fontSize: 12, color: '#ff6b6b' }}>{error}</p>}
           <button onClick={() => onSubmit(c)} disabled={submitting}
-            style={{ padding: '10px 20px', borderRadius: 10, background: t.accent, color: t.accentText, border: 'none', fontSize: 13, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
+            style={{ padding: '10px 20px', borderRadius: '5px 999px 999px 5px', background: t.accent, color: t.accentText, border: 'none', fontSize: 13, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1 }}>
             {submitting ? 'Submitting...' : 'Submit entry'}
           </button>
         </div>

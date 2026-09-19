@@ -109,13 +109,13 @@ export default function MusicCatalogPage({ onNavigate }) {
     <div style={{ padding: '32px 0 64px' }}>
       <header style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: t.text, margin: '0 0 6px' }}>Music catalog</h1>
+          <h1 style={{ fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: '0 0 6px' }}>Music catalog</h1>
           <p style={{ fontSize: 13, color: t.textSoft, margin: 0 }}>
             Every track approved for rotation. Search by title or artist; tap a card to play.
           </p>
         </div>
         <button onClick={() => onNavigate('/community/music/playlists')} style={{
-          padding: '9px 16px', borderRadius: 10,
+          padding: '9px 16px', borderRadius: '5px 999px 999px 5px',
           background: 'transparent', border: `1px solid ${t.accent}50`,
           color: t.accent, fontSize: 12, fontWeight: 700, cursor: 'pointer',
         }}>Your playlists →</button>
@@ -132,7 +132,7 @@ export default function MusicCatalogPage({ onNavigate }) {
             style={{
               width: '100%', boxSizing: 'border-box',
               padding: '10px 36px 10px 14px',
-              borderRadius: 10,
+              borderRadius: '5px 999px 999px 5px',
               background: t.surface,
               border: `1px solid ${t.surfaceBorder}`,
               color: t.text, fontSize: 13, fontFamily: 'inherit',
@@ -162,11 +162,11 @@ export default function MusicCatalogPage({ onNavigate }) {
 
       {/* Results */}
       {loading && <div style={{ padding: 32, textAlign: 'center', color: t.textSoft, fontSize: 13 }}>Loading catalog…</div>}
-      {error && <div style={{ padding: 16, background: '#ff8a8a20', color: '#ff8a8a', borderRadius: 10, fontSize: 13, marginBottom: 16 }}>Couldn't load tracks: {error}</div>}
+      {error && <div style={{ padding: 16, background: '#ff8a8a20', color: '#ff8a8a', borderRadius: '5px 999px 999px 5px', fontSize: 13, marginBottom: 16 }}>Couldn't load tracks: {error}</div>}
 
       {raindropMsg && (
         <div style={{
-          padding: '10px 14px', marginBottom: 14, borderRadius: 10,
+          padding: '10px 14px', marginBottom: 14, borderRadius: '5px 999px 999px 5px',
           background: `${t.accent}15`, color: t.accent, fontSize: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
@@ -212,7 +212,7 @@ export default function MusicCatalogPage({ onNavigate }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                  width: 44, height: 44, borderRadius: '5px 999px 999px 5px', flexShrink: 0,
                   background: ap?.avatar_url ? `center / cover no-repeat url(${ap.avatar_url})` : `${t.accent}25`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 18, color: t.accent,
@@ -238,13 +238,13 @@ export default function MusicCatalogPage({ onNavigate }) {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
                 {(tr.station_tags ?? []).slice(0, 3).map(s => (
                   <span key={s} style={{
-                    fontSize: 9, padding: '2px 7px', borderRadius: 10,
+                    fontSize: 9, padding: '2px 7px', borderRadius: '5px 999px 999px 5px',
                     background: `${t.accent}15`, color: t.accent, fontWeight: 600, letterSpacing: '0.3px',
                   }}>{s}</span>
                 ))}
                 {typeof tr.play_count === 'number' && tr.play_count > 0 && (
                   <span style={{
-                    fontSize: 9, padding: '2px 7px', borderRadius: 10,
+                    fontSize: 9, padding: '2px 7px', borderRadius: '5px 999px 999px 5px',
                     background: t.bg, color: t.textSoft, fontWeight: 600,
                     marginLeft: 'auto',
                   }}>{tr.play_count.toLocaleString()} plays</span>
@@ -256,7 +256,7 @@ export default function MusicCatalogPage({ onNavigate }) {
                   style={{
                     marginLeft: typeof tr.play_count === 'number' && tr.play_count > 0 ? 4 : 'auto',
                     display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '2px 7px', borderRadius: 10,
+                    padding: '2px 7px', borderRadius: '5px 999px 999px 5px',
                     background: droppedToday.has(tr.id) ? `${t.accent}30` : 'transparent',
                     border: `1px solid ${droppedToday.has(tr.id) ? t.accent : t.surfaceBorder}`,
                     color: droppedToday.has(tr.id) ? t.accent : t.text,
@@ -272,7 +272,7 @@ export default function MusicCatalogPage({ onNavigate }) {
                   title="Add to a playlist"
                   style={{
                     display: 'flex', alignItems: 'center',
-                    padding: '2px 7px', borderRadius: 10,
+                    padding: '2px 7px', borderRadius: '5px 999px 999px 5px',
                     background: pickerForTrack === tr.id ? `${t.accent}30` : 'transparent',
                     border: `1px solid ${pickerForTrack === tr.id ? t.accent : t.surfaceBorder}`,
                     color: pickerForTrack === tr.id ? t.accent : t.text,
@@ -282,7 +282,7 @@ export default function MusicCatalogPage({ onNavigate }) {
               </div>
               {pickerForTrack === tr.id && (
                 <div onClick={e => e.stopPropagation()} style={{
-                  marginTop: 10, padding: 10, borderRadius: 10,
+                  marginTop: 10, padding: 10, borderRadius: '5px 999px 999px 5px',
                   background: t.bg, border: `1px solid ${t.surfaceBorder}`,
                   display: 'flex', flexDirection: 'column', gap: 6,
                 }}>

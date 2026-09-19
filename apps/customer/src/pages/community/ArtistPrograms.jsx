@@ -46,7 +46,7 @@ export default function ArtistPrograms({ onNavigate, onSignIn }) {
   if (!user) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to view programs.</p>
-      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
     </div>
   )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
@@ -58,7 +58,7 @@ export default function ArtistPrograms({ onNavigate, onSignIn }) {
         <p style={{ ...s.subtitle, marginBottom: 20 }}>Submit a track to claim a profile, then you can opt into programs.</p>
         <button onClick={() => onNavigate('/community/artists/submit')} style={{
           padding: '12px 24px', background: t.accent, color: t.accentText,
-          border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>+ Submit your first track</button>
       </div>
     )
@@ -93,7 +93,7 @@ export default function ArtistPrograms({ onNavigate, onSignIn }) {
               opacity: topupBusy !== null && topupBusy !== p.pack ? 0.5 : 1,
             }}>
               {p.popular && <div style={{ fontSize: 9, fontWeight: 800, color: t.accent, letterSpacing: '1px', marginBottom: 6 }}>POPULAR</div>}
-              <div style={{ fontSize: 28, fontWeight: 800, color: t.text, marginBottom: 4 }}>{p.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, marginBottom: 4 }}>{p.label}</div>
               <div style={{ fontSize: 11, color: t.textSoft }}>~{p.clicksAt15} clicks at ${(ppcRate / 100).toFixed(2)} each</div>
               {topupBusy === p.pack && <div style={{ marginTop: 8, fontSize: 11, color: t.accent }}>Opening checkout…</div>}
             </button>
@@ -115,7 +115,7 @@ export default function ArtistPrograms({ onNavigate, onSignIn }) {
               <div style={{ fontSize: 22, marginBottom: 10 }}>{prog.icon}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>{prog.title}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: `${t.accent}15`, color: t.accent, letterSpacing: '0.5px' }}>SOON</span>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: '5px 999px 999px 5px', background: `${t.accent}15`, color: t.accent, letterSpacing: '0.5px' }}>SOON</span>
               </div>
               <div style={{ fontSize: 12, color: t.textSoft, lineHeight: 1.55 }}>{prog.body}</div>
             </div>

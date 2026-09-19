@@ -270,7 +270,7 @@ export default function CommunityHome({ cart, onNavigate }) {
         </div>
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button onClick={() => setShowReveal(true)} style={{
-            padding: '10px 24px', borderRadius: 10,
+            padding: '10px 24px', borderRadius: '5px 999px 999px 5px',
             background: t.accent, color: t.accentText, border: 'none',
             fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}>Preview Contest Reveal</button>
@@ -319,7 +319,7 @@ export default function CommunityHome({ cart, onNavigate }) {
       {!loading && posts.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ fontSize: 48, opacity: 0.15, marginBottom: 16 }}>✦</div>
-          <h3 style={{ fontSize: 18, fontWeight: 700, color: t.text, margin: '0 0 8px' }}>
+          <h3 style={{ fontSize: 18, fontWeight: 400, color: '#2a1848', fontFamily: "'Young Serif', Georgia, serif", margin: '0 0 8px' }}>
             {moodFilter ? `No ${moodFilter} rooms yet` : 'The community is just getting started'}
           </h3>
           <p style={{ fontSize: 14, color: t.textSoft, margin: 0 }}>
@@ -355,7 +355,7 @@ export default function CommunityHome({ cart, onNavigate }) {
           Open the 3D builder, set the mood, furnish your room, and share it here.
         </p>
         <a href="/" style={{
-          display: 'inline-block', padding: '12px 28px', borderRadius: 10,
+          display: 'inline-block', padding: '12px 28px', borderRadius: '5px 999px 999px 5px',
           background: t.accent, color: t.accentText, textDecoration: 'none',
           fontSize: 15, fontWeight: 700,
         }}>Open the Builder →</a>

@@ -166,7 +166,7 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
   if (!user) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to submit tracks.</p>
-      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
     </div>
   )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
@@ -213,7 +213,7 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: 18, color: '#3a8a4a' }}>✓</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: t.text }}>Track submitted</span>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: `${t.accent}20`, color: t.accent, letterSpacing: '0.5px' }}>PENDING REVIEW</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: '5px 999px 999px 5px', background: `${t.accent}20`, color: t.accent, letterSpacing: '0.5px' }}>PENDING REVIEW</span>
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 4 }}>{submittedTrack.title}</div>
           <div style={{ fontSize: 12, color: t.textSoft, marginBottom: 12 }}>
@@ -308,14 +308,14 @@ export default function ArtistSubmit({ onNavigate, onSignIn }) {
         </section>
 
         <button type="submit" disabled={submitting || !audioFile || !title.trim()} style={{
-          padding: '14px 28px', borderRadius: 12, border: 'none',
+          padding: '14px 28px', borderRadius: '6px 999px 999px 6px', border: 'none',
           background: t.accent, color: t.accentText, fontSize: 14, fontWeight: 700,
           cursor: submitting ? 'wait' : 'pointer', opacity: submitting || !audioFile || !title.trim() ? 0.5 : 1,
         }}>{submitting ? 'Submitting…' : 'Submit track'}</button>
 
         {submitMsg && (
           <div style={{
-            padding: '12px 16px', borderRadius: 10,
+            padding: '12px 16px', borderRadius: '5px 999px 999px 5px',
             background: submitMsg.startsWith('Track submitted') ? `${t.accent}15` : '#ff8a8a20',
             color: submitMsg.startsWith('Track submitted') ? t.accent : '#ff8a8a',
             fontSize: 13,
@@ -373,7 +373,7 @@ function makeStyles(t) {
       border: `1px solid ${t.surfaceBorder}`,
       borderRadius: 16, padding: '20px 22px', marginBottom: 24,
     },
-    pageTitle:    { fontSize: 24, fontWeight: 700, color: t.text, margin: '0 0 6px' },
+    pageTitle:    { fontSize: 24, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: '0 0 6px' },
     subtitle:     { fontSize: 13, color: t.text, opacity: 0.75, margin: 0 },
     card: {
       backgroundColor: solidBg(t),

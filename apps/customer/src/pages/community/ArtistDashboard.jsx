@@ -96,7 +96,7 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
   if (!user) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to view your artist dashboard.</p>
-      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
     </div>
   )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
@@ -107,7 +107,7 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
         <p style={{ ...s.pageSubtitle, marginBottom: 20 }}>Submit your first track to claim an artist profile.</p>
         <button onClick={() => onNavigate('/community/artists/submit')} style={{
           padding: '12px 24px', background: t.accent, color: t.accentText,
-          border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
         }}>+ Submit your first track</button>
       </div>
     )
@@ -154,7 +154,7 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
           }}>{!artist?.avatar_url && '♪'}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{
-              margin: 0, fontSize: 28, fontWeight: 800,
+              margin: 0, fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif",
               color: artist?.cover_url ? '#fff' : t.text,
               textShadow: artist?.cover_url ? '0 2px 8px rgba(0,0,0,0.4)' : 'none',
             }}>{name}</h1>
@@ -290,7 +290,7 @@ export default function ArtistDashboard({ onNavigate, onSignIn }) {
       {stats.tracks === 0 && (
         <div style={{ marginTop: 16, background: t.surface, border: `1px dashed ${t.surfaceBorder}`, borderRadius: 16, padding: 28, textAlign: 'center' }}>
           <p style={{ fontSize: 14, color: t.textSoft, marginBottom: 14 }}>You don't have any approved tracks yet.</p>
-          <button style={{ padding: '11px 24px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }} onClick={() => onNavigate('/community/artists/submit')}>
+          <button style={{ padding: '11px 24px', background: t.accent, color: t.accentText, border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }} onClick={() => onNavigate('/community/artists/submit')}>
             + Submit your first track
           </button>
         </div>
@@ -310,7 +310,7 @@ function PpcBalanceCard({ t, balanceDollars, clicksLeft, ppcRate, charges, onTop
   const scrollDuration = Math.max(20, charges.length * 2.5)
 
   return (
-    <div style={{ background: `${t.accent}10`, borderRadius: 12, padding: '14px 16px' }}>
+    <div style={{ background: `${t.accent}10`, borderRadius: '6px 999px 999px 6px', padding: '14px 16px' }}>
       <style>{`
         @keyframes ppcChargeScroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
       `}</style>
@@ -360,7 +360,7 @@ function PpcBalanceCard({ t, balanceDollars, clicksLeft, ppcRate, charges, onTop
 function StatCard({ label, value, color, bg, t }) {
   return (
     <div style={{ background: bg, border: `1px solid ${color}30`, borderRadius: 16, padding: 20, boxShadow: '0 2px 16px rgba(0,0,0,0.05)' }}>
-      <div style={{ fontSize: 28, fontWeight: 800, color, marginBottom: 4 }}>{value}</div>
+      <div style={{ fontSize: 28, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color, marginBottom: 4 }}>{value}</div>
       <div style={{ fontSize: 11, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{label}</div>
     </div>
   )
@@ -380,7 +380,7 @@ function makeStyles(t) {
     tableHead:  { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8, padding: '6px 0', borderBottom: `1px solid ${t.surfaceBorder}`, fontSize: 10, color: t.textSoft, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 },
     tableRow:   { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8, padding: '10px 0', borderBottom: `1px solid ${t.surfaceBorder}` },
     cell:       { fontSize: 13, color: t.text, display: 'flex', alignItems: 'center' },
-    actionBtn:  { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: 'none', background: `${t.accent}08`, cursor: 'pointer', width: '100%' },
+    actionBtn:  { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: '5px 999px 999px 5px', border: 'none', background: `${t.accent}08`, cursor: 'pointer', width: '100%' },
     attnRow:    { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: `1px solid ${t.surfaceBorder}` },
     attnDot:    { width: 8, height: 8, borderRadius: '50%', background: '#ffc87a', flexShrink: 0 },
     topRow:     { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: `1px solid ${t.surfaceBorder}` },

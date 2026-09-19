@@ -162,7 +162,7 @@ export default function CommunityPostDetail({ post: initialPost, onClose, onOpen
 
             {/* Title + Featured badge */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: t.text, lineHeight: 1.2, flex: 1, minWidth: 0 }}>
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 400, color: '#2a1848', lineHeight: 1.2, flex: 1, minWidth: 0, fontFamily: "'Young Serif', Georgia, serif" }}>
                 {post.title}
               </h1>
               {post.is_featured && (
@@ -221,9 +221,10 @@ export default function CommunityPostDetail({ post: initialPost, onClose, onOpen
             {/* CTA */}
             {onOpenBuilder && (
               <button onClick={() => onOpenBuilder(post)} style={{
-                padding: '12px 18px', borderRadius: 10,
-                background: t.accent, color: t.accentText, border: 'none',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4,
+                padding: '12px 22px', borderRadius: '6px 999px 999px 6px',
+                background: '#7a48cc', color: '#fff', border: 'none',
+                fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'Commissioner', system-ui, sans-serif", marginTop: 4,
+                boxShadow: '0 8px 20px rgba(122,72,204,.22)', touchAction: 'manipulation',
               }}>
                 ✦ Step into this room
               </button>

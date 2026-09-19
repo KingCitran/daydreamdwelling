@@ -120,18 +120,18 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
   if (!user) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <p style={{ color: t.textSoft, marginBottom: 16 }}>Sign in to edit your artist profile.</p>
-      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
+      <button onClick={onSignIn} style={{ padding: '10px 22px', background: t.accent, color: t.accentText, border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Sign in</button>
     </div>
   )
   if (loading) return <div style={{ padding: 48, color: t.textSoft }}>Loading…</div>
 
   if (!exists) return (
     <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: t.text, marginBottom: 8 }}>You're not on the artist roster yet</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, marginBottom: 8 }}>You're not on the artist roster yet</h1>
       <p style={{ fontSize: 13, color: t.textSoft, marginBottom: 20 }}>Submit your first track to claim a profile, then come back here to edit it.</p>
       <button onClick={() => onNavigate('/community/artists/submit')} style={{
         padding: '12px 24px', background: t.accent, color: t.accentText,
-        border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        border: 'none', borderRadius: '5px 999px 999px 5px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
       }}>+ Submit your first track</button>
     </div>
   )
@@ -175,7 +175,7 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
           {/* Cover banner — full-width image strip behind avatar */}
           <div style={{
             position: 'relative', marginBottom: 16,
-            height: 140, borderRadius: 12, overflow: 'hidden',
+            height: 140, borderRadius: '6px 999px 999px 6px', overflow: 'hidden',
             background: coverUrl ? `center / cover no-repeat url(${coverUrl})` : `${t.accent}18`,
             border: `1px solid ${t.surfaceBorder}`,
           }}>
@@ -257,12 +257,12 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button type="submit" disabled={saving || !artistName.trim()} style={{
-            padding: '14px 28px', borderRadius: 12, border: 'none',
+            padding: '14px 28px', borderRadius: '6px 999px 999px 6px', border: 'none',
             background: t.accent, color: t.accentText, fontSize: 14, fontWeight: 700,
             cursor: saving ? 'wait' : 'pointer', opacity: saving || !artistName.trim() ? 0.5 : 1,
           }}>{saving ? 'Saving…' : 'Save changes'}</button>
           <button type="button" onClick={() => onNavigate('/community/artists/dashboard')} style={{
-            padding: '14px 20px', borderRadius: 12,
+            padding: '14px 20px', borderRadius: '6px 999px 999px 6px',
             background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
             color: t.text, fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}>Cancel</button>
@@ -270,7 +270,7 @@ export default function ArtistProfile({ onNavigate, onSignIn }) {
 
         {saveMsg && (
           <div style={{
-            padding: '12px 16px', borderRadius: 10,
+            padding: '12px 16px', borderRadius: '5px 999px 999px 5px',
             background: saveMsg === 'Profile saved.' ? `${t.accent}15` : '#ff8a8a20',
             color: saveMsg === 'Profile saved.' ? t.accent : '#ff8a8a',
             fontSize: 13,
@@ -311,7 +311,7 @@ function makeStyles(t) {
       border: `1px solid ${t.surfaceBorder}`,
       borderRadius: 16, padding: '20px 22px', marginBottom: 24,
     },
-    pageTitle:    { fontSize: 24, fontWeight: 700, color: t.text, margin: '0 0 6px' },
+    pageTitle:    { fontSize: 24, fontWeight: 400, fontFamily: "'Young Serif', Georgia, serif", color: t.text, margin: '0 0 6px' },
     subtitle:     { fontSize: 13, color: t.text, opacity: 0.75, margin: 0 },
     card: {
       backgroundColor: solidBg(t),
