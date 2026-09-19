@@ -44,16 +44,16 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
 
   return (
     <div className="ddd-tile" style={{
-      background: 'rgba(255,255,255,0.5)',
-      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      border: `1.5px solid ${featured ? 'rgba(122,72,204,0.3)' : 'rgba(255,255,255,0.7)'}`,
+      background: `${t.surface}cc`,
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      border: `1.5px solid ${featured ? `${t.accent}40` : `${t.surfaceBorder}80`}`,
       borderRadius: '24px 28px 26px 22px',
       overflow: 'hidden', cursor: 'pointer',
       transition: 'border-color 0.2s, box-shadow 0.3s, transform 0.2s',
-      boxShadow: '0 4px 24px rgba(122,72,204,0.06), 0 1px 0 rgba(255,255,255,0.8) inset',
+      boxShadow: `0 4px 24px ${t.accent}08`,
     }} onClick={onOpen}>
       <div style={{
-        height: 200, background: 'linear-gradient(135deg, #ede9ff 0%, #ddd4f5 100%)', position: 'relative',
+        height: 200, background: t.bg, position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
         margin: '10px 10px 0', borderRadius: '18px 22px 14px 16px',
       }}>

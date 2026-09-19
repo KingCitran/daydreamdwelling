@@ -6,6 +6,7 @@ import MoodPicker from '@shared/MoodPicker'
 import Logo from '@shared/Logo'
 import AuthModal from '../ui/AuthModal'
 import FeedbackButton from '../ui/FeedbackButton'
+import CloudField from './landing/CloudField'
 import CommunityHome from './CommunityHome'
 import CommunityRoomPage from './CommunityRoomPage'
 import ProfilePage from './ProfilePage'
@@ -109,42 +110,27 @@ export default function CommunityApp() {
   }
 
   return (
-    <div className="ddd-community-wrap" style={{ minHeight: '100vh', fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif" }}>
+    <div className="ddd-community-wrap" style={{ minHeight: '100vh', fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif", color: '#2a1848', position: 'relative' }}>
+      {/* Sky + clouds — same atmosphere as the landing page */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, background: t.bg }} />
+      <CloudField lite />
       <style>{`
-        /* Force Dream State branding on community — override mood theme */
-        .ddd-community-wrap {
-          background: linear-gradient(180deg, #ede9ff 0%, #f5f0ff 40%, #fdf5f0 100%) !important;
-          color: #2a1848 !important;
-        }
-        .ddd-community-nav {
-          background: rgba(237,233,255,0.8) !important;
-          backdrop-filter: blur(20px) !important;
-          -webkit-backdrop-filter: blur(20px) !important;
-          border-bottom: 1px solid rgba(183,167,230,0.25) !important;
-        }
         .ddd-community-nav *, .ddd-community-foot *,
         .ddd-artist-section * {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
         }
-        .ddd-community-wrap .ddd-tile {
-          background: rgba(255,255,255,0.5) !important;
-          backdrop-filter: blur(16px) !important;
-          -webkit-backdrop-filter: blur(16px) !important;
-          border-color: rgba(255,255,255,0.7) !important;
-        }
         .ddd-community-wrap .ddd-tile:hover {
-          border-color: rgba(122,72,204,0.3) !important;
           transform: translateY(-2px);
-          box-shadow: 0 8px 32px rgba(122,72,204,0.12) !important;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
         }
       `}</style>
 
       {/* Nav */}
       <header className="ddd-community-nav" style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(237,233,255,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(183,167,230,0.25)',
+        background: `${t.navBg}cc`, backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+        borderBottom: `1px solid ${t.surfaceBorder}`,
         padding: isNarrow ? '0 12px' : '0 24px',
       }}>
         <div style={{
@@ -238,20 +224,21 @@ export default function CommunityApp() {
         )}
       </header>
 
-      {/* Content */}
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: isNarrow ? '0 14px' : '0 24px' }}>
+      {/* Content — above clouds */}
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: isNarrow ? '0 14px' : '0 24px', position: 'relative', zIndex: 1 }}>
         {content}
       </main>
 
       {/* Footer */}
       <footer className="ddd-community-foot" style={{
-        borderTop: '1px solid rgba(183,167,230,0.25)',
+        borderTop: `1px solid ${t.surfaceBorder}`,
         padding: '40px 24px', marginTop: 60,
-        textAlign: 'center', fontSize: 12, color: '#7a6aa8',
+        textAlign: 'center', fontSize: 12, color: t.textSoft,
+        position: 'relative', zIndex: 1,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
-          <a href="/" style={{ color: '#7a48cc', textDecoration: 'underline', textDecorationColor: '#b7a7e6', textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Room Builder</a>
-          <a href="https://daydreamsellers.com" style={{ color: '#7a48cc', textDecoration: 'underline', textDecorationColor: '#b7a7e6', textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Sell on Daydream</a>
+          <a href="/" style={{ color: t.accent, textDecoration: 'underline', textDecorationColor: `${t.accent}40`, textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Room Builder</a>
+          <a href="https://daydreamsellers.com" style={{ color: t.accent, textDecoration: 'underline', textDecorationColor: `${t.accent}40`, textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Sell on Daydream</a>
         </div>
         © {new Date().getFullYear()} DaydreamDwelling. All rights reserved.
       </footer>
