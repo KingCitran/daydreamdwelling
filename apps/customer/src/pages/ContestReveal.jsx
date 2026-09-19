@@ -94,16 +94,22 @@ function CloudPedestal({ seed, medalRank, hasMedal }) {
   })
 }
 
-// Small cloud behind the stats pill
+// Cloud behind the stats raindrop count — sized absolutely so it doesn't
+// depend on the text content width. Centered behind the pill.
 const STATS_POOL = [3, 10, 18, 31, 55, 71, 95, 110]
 function StatsCloud({ seed, medalBorder }) {
   const num = STATS_POOL[(seed * 7 + 3) % STATS_POOL.length]
   const url = `url("/clouds/cloud-${pad3(num)}.webp")`
   const shadow = medalBorder
-    ? `drop-shadow(0 0 10px ${medalBorder}22) drop-shadow(0 6px 14px rgba(0,0,0,0.5))`
+    ? `drop-shadow(0 0 12px ${medalBorder}30) drop-shadow(0 6px 14px rgba(0,0,0,0.5))`
     : 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))'
   return (
-    <div style={{ position: 'absolute', inset: '-40% -50%', pointerEvents: 'none', zIndex: 0 }}>
+    <div style={{
+      position: 'absolute', left: '50%', top: '50%',
+      width: 200, height: 130,
+      transform: 'translate(-50%, -50%)',
+      pointerEvents: 'none', zIndex: 0,
+    }}>
       <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: NIGHT_TINT, filter: shadow }} />
       <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.20, filter: 'contrast(1.1) brightness(1.1)' }} />
       <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.35, filter: 'brightness(1.5) contrast(0.8)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)' }} />
