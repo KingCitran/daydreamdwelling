@@ -1521,32 +1521,36 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         }}
         onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
         onOverview={() => {
+          // Explicitly save current room state first to prevent data loss
+          const snapshot = {
+            gridW, gridD, cells: new Set(cells), items: [...items],
+            wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
+            internalWalls: new Set(internalWalls ?? []),
+            doorOpenings: new Set(doorOpenings ?? []),
+            level: activeFloorLevel,
+          }
+          setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
+
           setActiveZoneIdx(null)
           setFloorPlanOpen(false)
-          // Show the highest floor so all ghost floors render below
-          const allFloors = Object.entries(allRoomsData)
-            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
-            .sort((a, b) => a.level - b.level)
-          if (allFloors.length > 1) {
-            const topFloor = allFloors[allFloors.length - 1]
-            jumpToRoom(topFloor.roomId)
-            setActiveFloorLevel(topFloor.level)
+
+          // Compute zoom from ALL rooms, not just current cells
+          let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
+          for (const [, room] of Object.entries(allRoomsData)) {
+            const roomCells = room.cells instanceof Set ? room.cells : new Set(room.cells ?? [])
+            for (const key of roomCells) {
+              const [c, r] = key.split(',').map(Number)
+              minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+              minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+            }
           }
-          // Fit to content
-          let minC = gridW, maxC = 0, minR = gridD, maxR = 0
-          for (const key of cells) {
-            const [c, r] = key.split(',').map(Number)
-            minC = Math.min(minC, c); maxC = Math.max(maxC, c)
-            minR = Math.min(minR, r); maxR = Math.max(maxR, r)
-          }
-          const contentW = maxC - minC + 1 || gridW
-          const contentD = maxR - minR + 1 || gridD
+          const contentW = isFinite(maxC) ? maxC - minC + 1 : gridW
+          const contentD = isFinite(maxR) ? maxR - minR + 1 : gridD
           const maxDim = Math.max(contentW, contentD, 6)
-          // Zoom out more to see stacked floors
-          const floorCount = floorStack.length || 1
-          const fitZoom = Math.max(10, Math.min(60, 240 / (maxDim + floorCount * 4)))
+          const floorCount = Object.keys(allRoomsData).length || 1
+          const fitZoom = Math.max(8, Math.min(50, 200 / (maxDim + floorCount * 3)))
           zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
-          setTarget(0); panRef.current = { x: 0, z: 0 }
+          setTarget(-30); panRef.current = { x: 0, z: 0 }
         }}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
