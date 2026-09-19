@@ -40,18 +40,19 @@ import { useMusicPlayer } from './contexts/MusicPlayerContext'
 import { SideTabProvider, dispatchTogglePanel, dispatchOpenPanel } from './contexts/SideTabContext'
 import SideTabStrip from './ui/SideTabStrip'
 import DockablePanel from './ui/DockablePanel'
-import MusicTabPanel from './ui/MusicTabPanel'
-import PlaceTabPanel from './ui/PlaceTabPanel'
-import SocialTabPanel from './ui/SocialTabPanel'
-import PlanTabPanel from './ui/PlanTabPanel'
-import ViewTabPanel from './ui/ViewTabPanel'
-import BuildTabPanel from './ui/BuildTabPanel'
+import { lazy, Suspense } from 'react'
+const MusicTabPanel = lazy(() => import('./ui/MusicTabPanel'))
+const PlaceTabPanel = lazy(() => import('./ui/PlaceTabPanel'))
+const SocialTabPanel = lazy(() => import('./ui/SocialTabPanel'))
+const PlanTabPanel = lazy(() => import('./ui/PlanTabPanel'))
+const ViewTabPanel = lazy(() => import('./ui/ViewTabPanel'))
+const BuildTabPanel = lazy(() => import('./ui/BuildTabPanel'))
 import WallDrawPanel from './ui/WallDrawPanel'
 import BottomTabCluster from './ui/BottomTabCluster'
 import TopRightCluster from './ui/TopRightCluster'
 import { BuilderTopBar, BuilderToolDock, BuilderViewControls, BuilderActionPill, BuilderSheet, useIsMobile, useMode, TOOL_SETS } from './ui/MobileChrome'
 import { DesignStyleContent, DesignBuildContent, DesignPlanContent, DesignMoreContent } from './ui/BuilderPanels'
-import BrowseTab from './ui/shop/BrowseTab'
+const BrowseTab = lazy(() => import('./ui/shop/BrowseTab'))
 import { useIsDragging } from './contexts/dragSignal'
 import { useShopRail, openShop, closeShop, toggleShop } from './contexts/shopRailSignal'
 import { Lightbulb, LightbulbOff } from 'lucide-react'
@@ -97,6 +98,15 @@ function loadSaved() {
     const data = JSON.parse(raw)
     return data.version === 1 ? data : null
   } catch { return null }
+}
+
+// Loading indicator for lazy-loaded panels
+function PanelLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, opacity: 0.5 }}>
+      <div style={{ width: 24, height: 24, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'ddd-spin 0.8s linear infinite' }} />
+    </div>
+  )
 }
 
 // ── Floor Switcher — Sims-style ▲ Floor N ▼ ───────────────────────
@@ -1538,15 +1548,17 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       {/* Tool panels in BuilderSheet — Claude Design layouts */}
       {activeTool === 'place' && (
         <BuilderSheet title="Shop & Place" accentDot="#e87fc8" onClose={() => setActiveTool(null)} height="84%" noPad>
-          <BrowseTab
-            onPlace={(tk) => { placeItem(tk); setActiveTool(null) }}
-            onOpenModal={openProductModal}
-            catalogue={shopPanelCatalogue}
-            gridW={gridW}
-            gridD={gridD}
-            roomItemKeys={roomItemKeys}
-            ownedKeys={ownedKeys}
-          />
+          <Suspense fallback={<PanelLoader />}>
+            <BrowseTab
+              onPlace={(tk) => { placeItem(tk); setActiveTool(null) }}
+              onOpenModal={openProductModal}
+              catalogue={shopPanelCatalogue}
+              gridW={gridW}
+              gridD={gridD}
+              roomItemKeys={roomItemKeys}
+              ownedKeys={ownedKeys}
+            />
+          </Suspense>
         </BuilderSheet>
       )}
       {activeTool === 'build' && (
@@ -2005,7 +2017,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     </div>
     {/* M8 strip + dockable panels (Music / Build / Place / Style / Plan / View / Social) */}
     <SideTabStrip />
-    <DockablePanel tabId="music"><MusicTabPanel /></DockablePanel>
+    <DockablePanel tabId="music"><Suspense fallback={<PanelLoader />}><MusicTabPanel /></Suspense></DockablePanel>
     <DockablePanel tabId="build">
       <BuildTabPanel
         onWindow={() => setWindowPickerOpen(true)}
