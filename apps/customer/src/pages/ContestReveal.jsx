@@ -34,35 +34,44 @@ const CLOUD_LAYER = {
   backgroundRepeat: 'no-repeat', backgroundPosition: 'center', backgroundSize: 'contain',
   userSelect: 'none', pointerEvents: 'none',
 }
-const NIGHT_TINT    = 'linear-gradient(180deg, #2a2850 0%, #1e1e40 30%, #151530 60%, #0f0f28 100%)'
-const NIGHT_SHADOW  = 'drop-shadow(0 8px 20px rgba(0,0,0,0.5))'
+// Cooler moonlit cloud palette — silver-blue highlights, deep indigo shadows
+const NIGHT_TINT    = 'linear-gradient(180deg, #5a5a78 0%, #44446a 25%, #2e2e52 55%, #1a1a3a 100%)'
+const NIGHT_SHADOW  = 'drop-shadow(0 6px 18px rgba(0,0,0,0.6))'
 const MEDAL_TINTS   = {
-  1: { gradient: 'linear-gradient(180deg, #3a3520 0%, #2a2518 30%, #201a10 60%, #181408 100%)', shadow: 'drop-shadow(0 0 14px rgba(251,191,36,0.15)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
-  2: { gradient: 'linear-gradient(180deg, #303040 0%, #252530 30%, #1a1a25 60%, #101018 100%)', shadow: 'drop-shadow(0 0 12px rgba(192,192,200,0.12)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
-  3: { gradient: 'linear-gradient(180deg, #302418 0%, #251c12 30%, #1a140c 60%, #120e08 100%)', shadow: 'drop-shadow(0 0 12px rgba(139,94,60,0.12)) drop-shadow(0 8px 20px rgba(0,0,0,0.5))' },
+  1: { gradient: 'linear-gradient(180deg, #6a6050 0%, #504838 25%, #3a3020 55%, #241c10 100%)', shadow: 'drop-shadow(0 0 16px rgba(251,191,36,0.20)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
+  2: { gradient: 'linear-gradient(180deg, #606878 0%, #4a5068 25%, #343a50 55%, #1e2038 100%)', shadow: 'drop-shadow(0 0 14px rgba(192,192,220,0.18)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
+  3: { gradient: 'linear-gradient(180deg, #5a4838 0%, #443828 25%, #302818 55%, #1c1810 100%)', shadow: 'drop-shadow(0 0 14px rgba(160,120,80,0.15)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
 }
 // Deterministic cloud picker — each card gets a unique but consistent set
-const PEDESTAL_POOL = [2, 5, 8, 14, 22, 35, 47, 63, 78, 92, 108, 126, 143]
-function pickClouds(seed, n = 5) {
+const PEDESTAL_POOL = [2, 5, 8, 10, 14, 18, 22, 28, 35, 42, 47, 55, 63, 71, 78, 85, 92, 100, 108, 118, 126, 135, 143]
+function pickClouds(seed, n = 9) {
   const out = []; let s = (seed + 1) * 2654435761
   for (let i = 0; i < n; i++) { s = ((s >>> 0) * 16807 + 7) >>> 0; out.push(PEDESTAL_POOL[s % PEDESTAL_POOL.length]) }
   return out
 }
 const pad3 = n => String(n).padStart(3, '0')
 
-// 5 clouds arranged as a floating platform under each card (280px wide)
+// 9 clouds arranged as a thick floating platform under each card (280px wide)
 const PEDESTAL_LAYOUT = [
-  { left: -30,  bottom: -55, width: 200, flip: false },
-  { left: 80,   bottom: -65, width: 230, flip: true  },
-  { left: 160,  bottom: -50, width: 190, flip: false },
-  { left: -55,  bottom: -35, width: 140, flip: true  },
-  { left: 210,  bottom: -40, width: 150, flip: false },
+  // Main bed — wide, overlapping, covers the full bottom
+  { left: -60,  bottom: -85, width: 250, flip: false },
+  { left: 50,   bottom: -95, width: 270, flip: true  },
+  { left: 140,  bottom: -80, width: 240, flip: false },
+  // Fill layer — plugs gaps between main clouds
+  { left: 10,   bottom: -70, width: 220, flip: true  },
+  { left: 110,  bottom: -90, width: 230, flip: false },
+  // Edge accents — extend platform beyond card edges
+  { left: -90,  bottom: -60, width: 200, flip: false },
+  { left: 220,  bottom: -65, width: 200, flip: true  },
+  // Top fill — higher up, partially behind card for depth
+  { left: -30,  bottom: -45, width: 180, flip: true  },
+  { left: 180,  bottom: -50, width: 170, flip: false },
 ]
 
 function CloudPedestal({ seed, medalRank, hasMedal }) {
   const clouds = pickClouds(seed)
   const tint = hasMedal && MEDAL_TINTS[medalRank] ? MEDAL_TINTS[medalRank] : { gradient: NIGHT_TINT, shadow: NIGHT_SHADOW }
-  const glowOp = hasMedal && medalRank === 1 ? 0.25 : 0.15
+  const glowOp = hasMedal && medalRank === 1 ? 0.35 : 0.25
   return PEDESTAL_LAYOUT.map((pos, i) => {
     const url = `url("/clouds/cloud-${pad3(clouds[i])}.webp")`
     return (
@@ -73,8 +82,8 @@ function CloudPedestal({ seed, medalRank, hasMedal }) {
         pointerEvents: 'none',
       }}>
         <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: tint.gradient, filter: tint.shadow }} />
-        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.85, filter: 'contrast(1.5) brightness(0.9)' }} />
-        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: glowOp, filter: 'brightness(1.3) contrast(0.9)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)' }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.70, filter: 'contrast(1.3) brightness(1.0)' }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: glowOp, filter: 'brightness(1.4) contrast(0.85)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 35%, transparent 75%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 35%, transparent 75%)' }} />
       </div>
     )
   })
@@ -89,10 +98,10 @@ function StatsCloud({ seed, medalBorder }) {
     ? `drop-shadow(0 0 10px ${medalBorder}22) drop-shadow(0 6px 14px rgba(0,0,0,0.5))`
     : 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))'
   return (
-    <div style={{ position: 'absolute', inset: '-30% -40%', pointerEvents: 'none', zIndex: 0 }}>
+    <div style={{ position: 'absolute', inset: '-40% -50%', pointerEvents: 'none', zIndex: 0 }}>
       <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: NIGHT_TINT, filter: shadow }} />
-      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.85, filter: 'contrast(1.5) brightness(0.9)' }} />
-      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.18, filter: 'brightness(1.3) contrast(0.9)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 32%, transparent 70%)' }} />
+      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.70, filter: 'contrast(1.3) brightness(1.0)' }} />
+      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.25, filter: 'brightness(1.4) contrast(0.85)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 35%, transparent 75%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 35%, transparent 75%)' }} />
     </div>
   )
 }

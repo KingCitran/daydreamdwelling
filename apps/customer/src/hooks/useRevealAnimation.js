@@ -85,9 +85,15 @@ export default function useRevealAnimation({ maxVotes, top, winner, cardRefs, ca
       for (let b = 0; b < boltsEach; b++) {
         const img = imgs[Math.floor(Math.random() * imgs.length)]
         const cx = rect.left + rect.width * (0.3 + Math.random() * 0.4)
-        const boltH = targetY - rect.bottom + 40
+        const gapH = targetY - rect.bottom + 40
+        // Preserve the bolt PNG's natural aspect ratio — never squish.
+        // Cap height so very tall gaps don't over-stretch the image;
+        // the bolt just won't reach the full distance.
+        const natRatio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 0.5
+        const boltH = Math.min(gapH, 380)
+        const boltW = boltH * natRatio
         bolts.current.push({
-          img, cx, y: rect.bottom - 20, w: boltH * 0.6, h: boltH,
+          img, cx, y: rect.bottom - 20, w: boltW, h: boltH,
           flip: Math.random() > 0.5,
           life: 1, delay: b * 6 + i * 4,
         })
