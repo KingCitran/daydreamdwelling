@@ -102,7 +102,10 @@ function Gate() {
   const exploreRoomId              = params.get('exploreRoom') || null
   const adminRoomId                = params.get('room') || null
   const wantsBuilder               = params.get('builder') === '1'
-  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!adminRoomId || wantsBuilder)
+  const hasVisited                 = typeof window !== 'undefined' && localStorage.getItem('ddd_has_visited') === '1'
+  // Return to builder on reload if user has visited before — landing page
+  // is only shown to first-time visitors or via explicit ?landing=1
+  const [inBuilder, _setInBuilder]  = useState(isCheckoutRedirect || !!shopBuilderSellerId || !!exploreRoomId || !!adminRoomId || wantsBuilder || hasVisited)
   const setInBuilder = (v) => { if (v) localStorage.setItem('ddd_has_visited', '1'); _setInBuilder(v) }
   const [inMarketplace, setInMarketplace] = useState(params.get('shop') === '1')
   const { mood, setMood }          = useMoodControl()
