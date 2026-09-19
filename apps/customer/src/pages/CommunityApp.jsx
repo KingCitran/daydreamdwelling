@@ -109,7 +109,7 @@ export default function CommunityApp() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif", color: '#2a1848' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #ede9ff 0%, #f5f0ff 40%, #fdf5f0 100%)', fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif", color: '#2a1848' }}>
       <style>{`
         /* Strip Ember Sunrise's global text-shadow inside the nav, footer, and
            every artist page — those have their own solid backdrops, so the
@@ -132,8 +132,8 @@ export default function CommunityApp() {
       {/* Nav */}
       <header className="ddd-community-nav" style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: t.navBg, backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${t.navBorder}`,
+        background: 'rgba(237,233,255,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(183,167,230,0.25)',
         padding: isNarrow ? '0 12px' : '0 24px',
       }}>
         <div style={{
@@ -172,9 +172,9 @@ export default function CommunityApp() {
           <div style={{ display: 'flex', gap: isNarrow ? 6 : 10, alignItems: 'center', flexShrink: 0 }}>
             <MoodPicker />
             <button onClick={() => setCartOpen(true)} style={{
-              position: 'relative', padding: '6px 12px', borderRadius: 8,
-              background: 'transparent', border: `1px solid ${t.surfaceBorder}`,
-              color: t.text, fontSize: 13, cursor: 'pointer',
+              position: 'relative', padding: '6px 12px', borderRadius: '4px 999px 999px 4px',
+              background: 'rgba(255,255,255,0.5)', border: '1px solid #b7a7e6',
+              color: '#2a1848', fontSize: 13, cursor: 'pointer', touchAction: 'manipulation',
             }}>
               🛒 {cart.count > 0 && <span style={{
                 position: 'absolute', top: -6, right: -6,
@@ -234,13 +234,13 @@ export default function CommunityApp() {
 
       {/* Footer */}
       <footer className="ddd-community-foot" style={{
-        borderTop: `1px solid ${t.surfaceBorder}`,
-        padding: '32px 24px', marginTop: 48,
-        textAlign: 'center', fontSize: 12, color: t.text, opacity: 0.75,
+        borderTop: '1px solid rgba(183,167,230,0.25)',
+        padding: '40px 24px', marginTop: 60,
+        textAlign: 'center', fontSize: 12, color: '#7a6aa8',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
-          <a href="/" style={{ color: t.text, textDecoration: 'none' }}>Room Builder</a>
-          <a href="https://daydreamsellers.com" style={{ color: t.text, textDecoration: 'none' }}>Sell on Daydream</a>
+          <a href="/" style={{ color: '#7a48cc', textDecoration: 'underline', textDecorationColor: '#b7a7e6', textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Room Builder</a>
+          <a href="https://daydreamsellers.com" style={{ color: '#7a48cc', textDecoration: 'underline', textDecorationColor: '#b7a7e6', textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Sell on Daydream</a>
         </div>
         © {new Date().getFullYear()} DaydreamDwelling. All rights reserved.
       </footer>

@@ -44,15 +44,16 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
 
   return (
     <div className="ddd-tile" style={{
-      background: t.surface,
-      border: `1.5px solid ${featured ? `${t.accent}40` : t.surfaceBorder}`,
+      background: 'rgba(255,255,255,0.5)',
+      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      border: `1.5px solid ${featured ? 'rgba(122,72,204,0.3)' : 'rgba(255,255,255,0.7)'}`,
       borderRadius: '24px 28px 26px 22px',
       overflow: 'hidden', cursor: 'pointer',
       transition: 'border-color 0.2s, box-shadow 0.3s, transform 0.2s',
-      boxShadow: '0 4px 20px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+      boxShadow: '0 4px 24px rgba(122,72,204,0.06), 0 1px 0 rgba(255,255,255,0.8) inset',
     }} onClick={onOpen}>
       <div style={{
-        height: 200, background: t.bg, position: 'relative',
+        height: 200, background: 'linear-gradient(135deg, #ede9ff 0%, #ddd4f5 100%)', position: 'relative',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
         margin: '10px 10px 0', borderRadius: '18px 22px 14px 16px',
       }}>
@@ -105,7 +106,7 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
           </p>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: '1px solid rgba(183,167,230,0.2)', paddingTop: 10 }}>
           <button onClick={e => { e.stopPropagation(); onHeart() }} title="Drop a raindrop" style={{
             background: hearted ? '#ddd4f520' : '#ddd4f510',
             border: `1.5px solid ${hearted ? '#7a48cc' : '#b7a7e6'}`,

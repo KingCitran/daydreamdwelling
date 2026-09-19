@@ -151,14 +151,16 @@ export default function CommunityHome({ cart, onNavigate }) {
   const TIER_NAMES  = ['', 'Reverie', 'Drift', 'Wander', 'Lucid', 'Ethereal']
 
   return (
-    <div style={{ paddingTop: 32, paddingBottom: 48 }}>
+    <div style={{ paddingTop: 40, paddingBottom: 60 }}>
 
       {/* Hero — featured room */}
       {featuredRoom && !moodFilter && (
         <div style={{
-          borderRadius: 18, overflow: 'hidden', marginBottom: 36,
-          border: `1px solid ${t.surfaceBorder}`, background: t.surface,
-          display: 'grid', gridTemplateColumns: '1.4fr 1fr', minHeight: 280,
+          borderRadius: 28, overflow: 'hidden', marginBottom: 44,
+          border: '1px solid rgba(255,255,255,0.6)',
+          background: 'rgba(255,255,255,0.45)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+          display: 'grid', gridTemplateColumns: '1.4fr 1fr', minHeight: 300,
+          boxShadow: '0 8px 32px rgba(122,72,204,0.08)',
         }} className="ddd-tile">
           <div style={{ background: t.bg, overflow: 'hidden' }}>
             {featuredRoom.screenshot_url
@@ -167,7 +169,7 @@ export default function CommunityHome({ cart, onNavigate }) {
           </div>
           <div style={{ padding: '28px 28px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12 }}>
             {featuredRoom.is_featured && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, letterSpacing: '1.5px', textTransform: 'uppercase' }}>✦ Featured Room</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#7a48cc', letterSpacing: '2.5px', textTransform: 'uppercase', fontFamily: "'Commissioner', system-ui, sans-serif" }}>✦ Featured Room</span>
             )}
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 400, color: '#2a1848', lineHeight: 1.3, fontFamily: "'Young Serif', Georgia, serif" }}>{featuredRoom.title}</h2>
             <p style={{ margin: 0, fontSize: 13, color: t.textSoft }}>
@@ -203,7 +205,7 @@ export default function CommunityHome({ cart, onNavigate }) {
       {/* Trending designers */}
       {designers.length > 0 && !moodFilter && (
         <div style={{ marginBottom: 32 }}>
-          <h3 style={{ fontSize: 12, fontWeight: 700, color: t.textSoft, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Trending Designers</h3>
+          <h3 style={{ fontSize: 11, fontWeight: 600, color: '#7a6aa8', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '2.5px', fontFamily: "'Commissioner', system-ui, sans-serif" }}>Trending Designers</h3>
           <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
             {designers.map(d => (
               <button key={d.id} onClick={() => onNavigate(`/community/profile/${d.id}`)} style={{
@@ -285,23 +287,25 @@ export default function CommunityHome({ cart, onNavigate }) {
       )}
 
       {/* Browse by theme */}
-      <div style={{ marginBottom: 24 }}>
-        <h3 style={{ fontSize: 12, fontWeight: 700, color: t.textSoft, margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>Browse by Theme</h3>
+      <div style={{ marginBottom: 28 }}>
+        <h3 style={{ fontSize: 11, fontWeight: 600, color: '#7a6aa8', margin: '0 0 14px', textTransform: 'uppercase', letterSpacing: '2.5px', fontFamily: "'Commissioner', system-ui, sans-serif" }}>Browse by Theme</h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={() => setMoodFilter(null)} style={{
-            padding: '7px 16px', borderRadius: 20,
-            background: !moodFilter ? t.accent : 'transparent',
-            color: !moodFilter ? t.accentText : t.textSoft,
-            border: `1px solid ${!moodFilter ? t.accent : t.surfaceBorder}`,
-            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            padding: '7px 16px', borderRadius: '4px 999px 999px 4px',
+            background: !moodFilter ? '#7a48cc' : 'rgba(255,255,255,0.5)',
+            color: !moodFilter ? '#fff' : '#7a6aa8',
+            border: `1px solid ${!moodFilter ? '#7a48cc' : '#b7a7e6'}`,
+            fontSize: 12, fontWeight: 500, cursor: 'pointer', touchAction: 'manipulation',
+            fontFamily: "'Commissioner', system-ui, sans-serif",
           }}>All</button>
           {MOODS.map(m => (
             <button key={m.key} onClick={() => setMoodFilter(moodFilter === m.key ? null : m.key)} style={{
-              padding: '7px 16px', borderRadius: 20,
-              background: moodFilter === m.key ? t.accent : 'transparent',
-              color: moodFilter === m.key ? t.accentText : t.textSoft,
-              border: `1px solid ${moodFilter === m.key ? t.accent : t.surfaceBorder}`,
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+              padding: '7px 16px', borderRadius: '4px 999px 999px 4px',
+              background: moodFilter === m.key ? '#7a48cc' : 'rgba(255,255,255,0.5)',
+              color: moodFilter === m.key ? '#fff' : '#7a6aa8',
+              border: `1px solid ${moodFilter === m.key ? '#7a48cc' : '#b7a7e6'}`,
+              fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.18s',
+              touchAction: 'manipulation', fontFamily: "'Commissioner', system-ui, sans-serif",
             }}>{m.icon} {m.label}</button>
           ))}
         </div>
