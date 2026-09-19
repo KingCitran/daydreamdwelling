@@ -109,23 +109,34 @@ export default function CommunityApp() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #ede9ff 0%, #f5f0ff 40%, #fdf5f0 100%)', fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif", color: '#2a1848' }}>
+    <div className="ddd-community-wrap" style={{ minHeight: '100vh', fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif" }}>
       <style>{`
-        /* Strip Ember Sunrise's global text-shadow inside the nav, footer, and
-           every artist page — those have their own solid backdrops, so the
-           shadow only muddies text. */
-        .ddd-community-nav h1, .ddd-community-nav h2, .ddd-community-nav p,
-        .ddd-community-nav a,  .ddd-community-nav span, .ddd-community-nav button,
-        .ddd-community-nav label, .ddd-community-nav div,
-        .ddd-community-foot a, .ddd-community-foot p, .ddd-community-foot span,
-        .ddd-community-foot div,
-        .ddd-artist-section h1, .ddd-artist-section h2, .ddd-artist-section h3,
-        .ddd-artist-section p, .ddd-artist-section span, .ddd-artist-section a,
-        .ddd-artist-section button, .ddd-artist-section label,
-        .ddd-artist-section label *, .ddd-artist-section div,
-        .ddd-artist-section input, .ddd-artist-section textarea, .ddd-artist-section select {
+        /* Force Dream State branding on community — override mood theme */
+        .ddd-community-wrap {
+          background: linear-gradient(180deg, #ede9ff 0%, #f5f0ff 40%, #fdf5f0 100%) !important;
+          color: #2a1848 !important;
+        }
+        .ddd-community-nav {
+          background: rgba(237,233,255,0.8) !important;
+          backdrop-filter: blur(20px) !important;
+          -webkit-backdrop-filter: blur(20px) !important;
+          border-bottom: 1px solid rgba(183,167,230,0.25) !important;
+        }
+        .ddd-community-nav *, .ddd-community-foot *,
+        .ddd-artist-section * {
           -webkit-text-stroke: 0 !important;
           text-shadow: none !important;
+        }
+        .ddd-community-wrap .ddd-tile {
+          background: rgba(255,255,255,0.5) !important;
+          backdrop-filter: blur(16px) !important;
+          -webkit-backdrop-filter: blur(16px) !important;
+          border-color: rgba(255,255,255,0.7) !important;
+        }
+        .ddd-community-wrap .ddd-tile:hover {
+          border-color: rgba(122,72,204,0.3) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 32px rgba(122,72,204,0.12) !important;
         }
       `}</style>
 
