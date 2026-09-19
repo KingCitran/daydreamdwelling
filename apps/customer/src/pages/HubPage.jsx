@@ -69,7 +69,7 @@ function greetingTime() {
 const F = { display: "'Young Serif', Georgia, serif", body: "'Outfit', system-ui, sans-serif", hand: "'Cedarville Cursive', cursive" }
 
 const DESTINATIONS = [
-  { id: 'builder',   title: 'Room Builder', glyph: '◈', desc: 'Your studio, in 3D.', href: '/', tag: 'Your studio', hueShift: 0 },
+  { id: 'builder',   title: 'Room Builder', glyph: '◈', desc: 'Your studio, in 3D.', href: '/?builder=1', tag: 'Your studio', hueShift: 0 },
   { id: 'shop',      title: 'Marketplace',  glyph: '❀', desc: 'Buy from real makers.', href: '/?shop=1', tag: 'Browse items', hueShift: 34 },
   { id: 'community', title: 'Community',    glyph: '✦', desc: 'Share & discover.', href: '/community', tag: 'Explore', hueShift: -30 },
   { id: 'music',     title: 'Music',        glyph: '♪', desc: 'Stations to design to.', href: '/community/music', tag: 'Listen', hueShift: 64 },

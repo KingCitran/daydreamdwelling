@@ -89,7 +89,7 @@ export default function CommunityApp() {
   } else if (currentSegs[1] === 'contests') {
     content = <ContestsPage onClose={() => navigate('/community')} standalone cart={cart} />
   } else if (currentSegs[1] === 'profile' && currentSegs[2]) {
-    content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/' }} />
+    content = <ProfilePage key={currentSegs[2]} userId={currentSegs[2]} onEnterBuilder={() => { window.location.href = '/?builder=1' }} />
   } else if (currentSegs[1] === 'music') {
     if (currentSegs[2] === 'playlists') {
       content = <MusicPlaylistsPage onNavigate={navigate} onSignIn={() => setAuthOpen(true)} />
@@ -195,7 +195,7 @@ export default function CommunityApp() {
                 fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
               }}>Sign in</button>
             )}
-            <a href="/" style={{
+            <a href="/?builder=1" style={{
               padding: '6px 14px', borderRadius: 8, textDecoration: 'none',
               background: `${t.accent}10`, border: `1px solid ${t.accent}30`,
               color: t.accent, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
@@ -237,7 +237,7 @@ export default function CommunityApp() {
         position: 'relative', zIndex: 1,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
-          <a href="/" style={{ color: t.accent, textDecoration: 'underline', textDecorationColor: `${t.accent}40`, textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Room Builder</a>
+          <a href="/?builder=1" style={{ color: t.accent, textDecoration: 'underline', textDecorationColor: `${t.accent}40`, textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Room Builder</a>
           <a href="https://daydreamsellers.com" style={{ color: t.accent, textDecoration: 'underline', textDecorationColor: `${t.accent}40`, textUnderlineOffset: '5px', fontFamily: "'Young Serif', Georgia, serif", fontSize: 14 }}>Sell on Daydream</a>
         </div>
         © {new Date().getFullYear()} DaydreamDwelling. All rights reserved.

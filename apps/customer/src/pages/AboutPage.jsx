@@ -151,7 +151,7 @@ export default function AboutPage({ onBack }) {
         fontSize: 12, color: t.textSoft,
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
-          <a href="/" style={{ color: t.text, textDecoration: 'none' }}>Room Builder</a>
+          <a href="/?builder=1" style={{ color: t.text, textDecoration: 'none' }}>Room Builder</a>
           <a href="/community" style={{ color: t.text, textDecoration: 'none' }}>Community</a>
           <a href="https://daydreamsellers.com" style={{ color: t.text, textDecoration: 'none' }}>Sell on Daydream</a>
         </div>

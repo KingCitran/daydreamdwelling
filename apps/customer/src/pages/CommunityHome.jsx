@@ -358,7 +358,7 @@ export default function CommunityHome({ cart, onNavigate }) {
         <p style={{ margin: '0 0 16px', fontSize: 14, color: t.textSoft }}>
           Open the 3D builder, set the mood, furnish your room, and share it here.
         </p>
-        <a href="/" style={{
+        <a href="/?builder=1" style={{
           display: 'inline-block', padding: '12px 28px', borderRadius: '5px 999px 999px 5px',
           background: t.accent, color: t.accentText, textDecoration: 'none',
           fontSize: 15, fontWeight: 700,
