@@ -98,7 +98,7 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
           </div>
         </div>
 
-        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: t.text }}>{post.title}</h3>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 400, color: '#2a1848', fontFamily: "'Young Serif', Georgia, serif" }}>{post.title}</h3>
         {post.description && (
           <p style={{ margin: '0 0 10px', fontSize: 12, color: t.textSoft, lineHeight: 1.6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {post.description}
@@ -107,9 +107,9 @@ export default function PostCard({ post, t, hearted, onHeart, onOpen, featured =
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderTop: `1px solid ${t.surfaceBorder}`, paddingTop: 10 }}>
           <button onClick={e => { e.stopPropagation(); onHeart() }} title="Drop a raindrop" style={{
-            background: hearted ? `${t.accent}15` : `${t.accent}08`,
-            border: `1.5px solid ${hearted ? t.accent : t.surfaceBorder}`,
-            cursor: 'pointer', borderRadius: 10,
+            background: hearted ? '#ddd4f520' : '#ddd4f510',
+            border: `1.5px solid ${hearted ? '#7a48cc' : '#b7a7e6'}`,
+            cursor: 'pointer', borderRadius: '4px 999px 999px 4px',
             display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 14, padding: '6px 12px',
             color: hearted ? t.accent : t.text,

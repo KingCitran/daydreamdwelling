@@ -57,7 +57,7 @@ export default function CommunityFeed({ onClose }) {
   const regular  = posts.filter(p => !p.is_featured)
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: t.bg, overflowY: 'auto', fontFamily: "'Commissioner', system-ui, sans-serif", color: '#2a1848' }}>
       {/* Header */}
       <div style={{
         padding: '16px 24px', borderBottom: `1px solid ${t.surfaceBorder}`,
@@ -65,7 +65,7 @@ export default function CommunityFeed({ onClose }) {
         position: 'sticky', top: 0, background: t.navBg, backdropFilter: 'blur(12px)', zIndex: 10,
       }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: t.text }}>Community</h1>
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 400, color: '#2a1848', fontFamily: "'Young Serif', Georgia, serif" }}>Community</h1>
           <p style={{ margin: '2px 0 0', fontSize: 11, color: t.textSoft }}>Room designs from the DaydreamDwelling family</p>
         </div>
         <button onClick={onClose} style={{

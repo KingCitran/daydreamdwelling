@@ -169,7 +169,7 @@ export default function CommunityHome({ cart, onNavigate }) {
             {featuredRoom.is_featured && (
               <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, letterSpacing: '1.5px', textTransform: 'uppercase' }}>✦ Featured Room</span>
             )}
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: t.text, lineHeight: 1.3 }}>{featuredRoom.title}</h2>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 400, color: '#2a1848', lineHeight: 1.3, fontFamily: "'Young Serif', Georgia, serif" }}>{featuredRoom.title}</h2>
             <p style={{ margin: 0, fontSize: 13, color: t.textSoft }}>
               by {featuredRoom.profiles?.display_name || 'Dreamer'}
             </p>
@@ -180,15 +180,20 @@ export default function CommunityHome({ cart, onNavigate }) {
             )}
             <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
               <button onClick={() => onNavigate(`/community/room/${featuredRoom.id}`)} style={{
-                padding: '10px 20px', borderRadius: 10,
-                background: t.accent, color: t.accentText, border: 'none',
-                fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                padding: '10px 20px', borderRadius: '6px 999px 999px 6px',
+                background: '#7a48cc', color: '#fff', border: 'none',
+                fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                fontFamily: "'Commissioner', system-ui, sans-serif",
+                boxShadow: '0 8px 20px rgba(122,72,204,.22)',
+                touchAction: 'manipulation',
               }}>View Room + Buy Items</button>
               <button onClick={() => { window.location.href = `/?exploreRoom=${featuredRoom.id}&fromCommunity=1` }} style={{
-                padding: '10px 20px', borderRadius: 10,
-                background: 'transparent', color: t.accent,
-                border: `1px solid ${t.accent}40`,
-                fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                padding: '10px 20px', borderRadius: '6px 999px 999px 6px',
+                background: 'transparent', color: '#2a1848',
+                border: '1px solid #b7a7e6',
+                fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                fontFamily: "'Commissioner', system-ui, sans-serif",
+                touchAction: 'manipulation',
               }}>Explore in 3D</button>
             </div>
           </div>

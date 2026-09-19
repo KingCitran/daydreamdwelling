@@ -109,7 +109,7 @@ export default function CommunityApp() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Outfit', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: t.bg, fontFamily: "'Commissioner', 'Outfit', system-ui, sans-serif", color: '#2a1848' }}>
       <style>{`
         /* Strip Ember Sunrise's global text-shadow inside the nav, footer, and
            every artist page — those have their own solid backdrops, so the
@@ -146,7 +146,7 @@ export default function CommunityApp() {
                onClick={() => { window.location.href = '/?hub=1' }}>
             <Logo size={26} color={t.accent} />
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: t.text, lineHeight: 1.2 }}>DaydreamCommunity</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#2a1848', lineHeight: 1.2, fontFamily: "'Young Serif', Georgia, serif" }}>DaydreamCommunity</div>
               {!isNarrow && <div style={{ fontSize: 8, color: t.textSoft, letterSpacing: '0.5px' }}>Room designs you can buy</div>}
             </div>
           </div>
@@ -157,11 +157,12 @@ export default function CommunityApp() {
             <nav style={{ display: 'flex', gap: 6 }}>
               {NAV_ITEMS.map(item => (
                 <button key={item.path} onClick={() => navigate(item.path)} style={{
-                  padding: '6px 14px', borderRadius: 8, border: 'none',
-                  background: currentPath === item.path ? `${t.accent}15` : 'transparent',
-                  color: currentPath === item.path ? t.accent : t.textSoft,
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  padding: '6px 14px', borderRadius: '4px 999px 999px 4px', border: 'none',
+                  background: currentPath === item.path ? '#ddd4f5' : 'transparent',
+                  color: currentPath === item.path ? '#2a1848' : '#7a6aa8',
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  transition: 'all 0.18s', fontFamily: "'Commissioner', system-ui, sans-serif",
+                  touchAction: 'manipulation',
                 }}>{item.label}</button>
               ))}
             </nav>
