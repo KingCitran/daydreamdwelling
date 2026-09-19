@@ -300,7 +300,7 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
                   <StatsCloudNest seed={si} />
                   <RaindropIcon size={16} filled={statsRolling} color={hasMdl ? m.border : statsRolling ? '#fbbf24' : '#50507a'} style={{ position: 'relative', zIndex: 1 }} />
                   <span style={{ position: 'relative', zIndex: 1 }}><RollCounter target={entry.vote_count} active={statsRolling} instant={!gatePodium} color={hasMdl ? m.border : statsRolling ? '#c0c0d0' : '#50507a'} /></span>
-                  {statsRolling && <span style={{ fontSize: 11, color: '#50507a', fontWeight: 500, position: 'relative', zIndex: 1 }}>raindrops</span>}
+                  {statsRolling && <span style={{ fontSize: 11, color: '#b0b0d0', fontWeight: 500, position: 'relative', zIndex: 1 }}>raindrops</span>}
                 </div>
               </div>
             )
