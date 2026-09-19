@@ -7,6 +7,7 @@ const RotatingRoom = lazy(() => import('./landing/RotatingRoom'))
 import { ROOMS_WITH_BRAND as ENDLESS_ROOMS } from './landing/endlessRooms'
 import { fetchPublishedRooms } from './landing/configToRooms'
 import MoodSwatch from './landing/MoodSwatch'
+import DButton from '@shared/ui/DButton'
 import WispyArt from '@shared/wispy/art'
 
 // "Above the clouds" sky palette — independent of mood. The mood-tinted glow
@@ -191,14 +192,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
                 fontSize: 13, fontWeight: 500, color: sky.ink, textDecoration: 'none',
               }}>{l.label}</a>
             ))}
-            <button onClick={onEnter} style={{
-              marginLeft: 8, padding: '11px 22px', cursor: 'pointer',
-              background: 'transparent', color: sky.ink,
-              border: `1.5px solid ${sky.ink}33`,
-              fontSize: 13, fontWeight: 600, borderRadius: 999,
-              letterSpacing: '0.3px',
-              transition: 'background 0.15s, border-color 0.15s',
-            }}>open the builder →</button>
+            <DButton onClick={onEnter} variant="tertiary" size="sm" style={{ marginLeft: 8 }}>open the builder</DButton>
           </nav>
         </div>
       </header>
@@ -267,13 +261,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         </div>
 
         <div style={{ marginTop: 8, position: 'relative', zIndex: 20 }}>
-          <button onClick={onEnter} style={{
-            padding: '14px 28px', border: 'none', cursor: 'pointer',
-            background: heroAccent, color: '#fff',
-            fontSize: 15, fontWeight: 600, borderRadius: 999,
-            letterSpacing: '0.3px',
-            boxShadow: '0 8px 24px rgba(255,155,92,0.40)',
-          }}>start building — it's free →</button>
+          <DButton onClick={onEnter} size="lg">start building — it's free</DButton>
         </div>
       </section>
 
