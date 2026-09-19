@@ -1351,33 +1351,35 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       {!floorPlanOpen && (
         <div style={{
           position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 20, display: 'flex', alignItems: 'center', gap: 3,
-          padding: '3px 4px', borderRadius: 10,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
+          zIndex: 20, display: 'flex', alignItems: 'center', gap: 4,
+          padding: '4px 6px', borderRadius: 12,
+          background: 'rgba(10,8,24,0.7)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.08)',
           fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
-          maxWidth: '80vw', overflowX: 'auto',
+          maxWidth: '85vw', overflowX: 'auto',
         }}>
           <button onClick={() => setFloorPlanOpen(true)} style={{
-            padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
-            background: 'rgba(60,120,200,0.2)', color: '#70a0e0',
+            padding: '6px 14px', borderRadius: '4px 999px 999px 4px', border: 'none',
+            fontSize: 12, fontWeight: 700,
+            background: 'rgba(60,120,200,0.2)', color: '#90b8f0',
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }} title="Open Floor Plan Editor">▦ Plan</button>
-          <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 20, background: '#ffffff15', flexShrink: 0 }} />
           <DwellingSelector currentName="My Dwelling" />
           {roomZones.length > 1 && (
             <>
-              <div style={{ width: 1, height: 16, background: '#ffffff15', flexShrink: 0 }} />
+              <div style={{ width: 1, height: 20, background: '#ffffff15', flexShrink: 0 }} />
               <button onClick={() => setActiveZoneIdx(null)} style={{
-                padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
-                background: activeZoneIdx == null ? 'rgba(80,200,120,0.3)' : 'transparent',
-                color: activeZoneIdx == null ? '#50c878' : '#a0a0b0',
+                padding: '6px 12px', borderRadius: '4px 999px 999px 4px', border: 'none', fontSize: 12, fontWeight: 700,
+                background: activeZoneIdx == null ? 'rgba(80,200,120,0.25)' : 'transparent',
+                color: activeZoneIdx == null ? '#60d888' : '#a0a0c0',
                 cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
               }}>All</button>
               {roomZones.map((zone, i) => (
                 <button key={zone.id} onClick={() => setActiveZoneIdx(i)} style={{
-                  padding: '4px 10px', borderRadius: 7, border: 'none', fontSize: 10, fontWeight: 700,
-                  background: activeZoneIdx === i ? 'rgba(80,200,120,0.3)' : 'transparent',
-                  color: activeZoneIdx === i ? '#50c878' : '#a0a0b0',
+                  padding: '6px 12px', borderRadius: '4px 999px 999px 4px', border: 'none', fontSize: 12, fontWeight: 700,
+                  background: activeZoneIdx === i ? 'rgba(80,200,120,0.25)' : 'transparent',
+                  color: activeZoneIdx === i ? '#60d888' : '#a0a0c0',
                   cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap',
                 }}>{roomNames[`zone_${zone.id}`] || `Room ${i + 1}`}</button>
               ))}

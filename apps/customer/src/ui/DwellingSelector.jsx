@@ -18,9 +18,9 @@ export default function DwellingSelector({ currentName, onSwitch, onNew, onRenam
   return (
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpen(o => !o)} style={{
-        padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.05)', color: '#a0a0c0',
-        fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+        padding: '6px 14px', borderRadius: '4px 999px 999px 4px', border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.06)', color: '#c0c0e0',
+        fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
       }}>
         🏠 {currentName || 'My Dwelling'}
       </button>
