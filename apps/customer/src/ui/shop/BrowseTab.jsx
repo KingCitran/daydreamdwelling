@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { ITEM_CATALOGUE as STATIC_CATALOGUE } from '../../data/items'
 import {
   SHOP_MODES, OBJECT_BUCKETS, ROOM_BUCKETS, VIBE_BUCKETS, COLOR_BUCKETS, FUNCTION_BUCKETS,
@@ -8,6 +8,64 @@ import { useShopStyles } from './shopStyles'
 import { useTheme } from '@shared/ThemeProvider'
 import ProductCard from './ProductCard'
 import ShopIcon from './ShopIcon'
+
+// ── Skeleton card — shows instantly while real cards load ──
+function SkeletonCard() {
+  return (
+    <div style={{ borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}>
+      <div style={{ aspectRatio: '4/3', background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)', animation: 'ddd-shimmer 1.5s ease-in-out infinite alternate' }} />
+      <div style={{ padding: '8px 10px' }}>
+        <div style={{ height: 10, width: '60%', borderRadius: 4, background: 'rgba(255,255,255,0.06)', marginBottom: 6 }} />
+        <div style={{ height: 12, width: '80%', borderRadius: 4, background: 'rgba(255,255,255,0.06)', marginBottom: 6 }} />
+        <div style={{ height: 10, width: '40%', borderRadius: 4, background: 'rgba(255,255,255,0.06)' }} />
+      </div>
+    </div>
+  )
+}
+
+// ── Virtualized product grid — only renders items near the viewport ──
+function VirtualProductGrid({ items, emptyMsg, onPlace, onOpenModal, gridW, gridD, colorFamilies, roomItemKeys, ownedKeys, s }) {
+  const scrollRef = useRef(null)
+  const [renderCount, setRenderCount] = useState(8) // start with 8 items
+
+  // Load more items as user scrolls near the bottom
+  const onScroll = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    if (el.scrollTop + el.clientHeight > el.scrollHeight - 200) {
+      setRenderCount(prev => Math.min(prev + 8, items.length))
+    }
+  }, [items.length])
+
+  // Reset render count when items change (new filter/search)
+  useEffect(() => { setRenderCount(8) }, [items.length])
+
+  if (items.length === 0) return <p style={s.emptyMsg}>{emptyMsg}</p>
+
+  const rendered = items.slice(0, renderCount)
+  const remaining = Math.max(0, items.length - renderCount)
+
+  return (
+    <div ref={scrollRef} onScroll={onScroll} style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 16px', WebkitOverflowScrolling: 'touch' }}>
+      <style>{`@keyframes ddd-shimmer { from { opacity: 0.5 } to { opacity: 1 } }`}</style>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7 }}>
+        {rendered.map(([key, def]) => (
+          <ProductCard key={key} typeKey={key} def={def}
+            onPlace={onPlace} onOpenModal={onOpenModal}
+            gridW={gridW} gridD={gridD}
+            colorFamilies={colorFamilies}
+            roomItemKeys={roomItemKeys}
+            ownedKeys={ownedKeys}
+            canPlace={!!STATIC_CATALOGUE[key]}
+          />
+        ))}
+        {remaining > 0 && Array.from({ length: Math.min(remaining, 4) }, (_, i) => (
+          <SkeletonCard key={`skel-${i}`} />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function getSubOptions(mode) {
   if (mode === 'object')   return Object.entries(OBJECT_BUCKETS).map(([key, m]) => ({ key, icon: m.icon, emoji: m.emoji, label: key }))
@@ -205,26 +263,17 @@ export default function BrowseTab({ onPlace, onOpenModal, catalogue, gridW, grid
           </span>
         </div>
 
-        {/* Product grid */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 16px' }}>
-          {visibleItems.length === 0
-            ? <p style={s.emptyMsg}>No items{activeSub ? ` in ${activeSub}` : ''}{searchTerm ? ` matching "${search}"` : ''}.</p>
-            : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 7 }}>
-                {visibleItems.map(([key, def]) => (
-                  <ProductCard key={key} typeKey={key} def={def}
-                    onPlace={onPlace} onOpenModal={trackAndOpen}
-                    gridW={gridW} gridD={gridD}
-                    colorFamilies={activeFamilies}
-                    roomItemKeys={roomItemKeys}
-                    ownedKeys={ownedKeys}
-                    canPlace={!!STATIC_CATALOGUE[key]}
-                  />
-                ))}
-              </div>
-            )
-          }
-        </div>
+        {/* Product grid — virtualized: only renders items near the viewport */}
+        <VirtualProductGrid
+          items={visibleItems}
+          emptyMsg={`No items${activeSub ? ` in ${activeSub}` : ''}${searchTerm ? ` matching "${search}"` : ''}.`}
+          onPlace={onPlace} onOpenModal={trackAndOpen}
+          gridW={gridW} gridD={gridD}
+          colorFamilies={activeFamilies}
+          roomItemKeys={roomItemKeys}
+          ownedKeys={ownedKeys}
+          s={s}
+        />
       </div>
     ) : (
       /* ══ DESKTOP/TABLET: original vertical strips ══ */
