@@ -50,7 +50,7 @@ const FONTS = {
   hand:    "'Caveat', cursive",
 }
 
-const BLOSSOMS_URL = 'https://daydreamblossoms.com'
+// BLOSSOMS_URL archived — DaydreamBlossoms not ready yet
 
 export default function LandingPage({ onEnter, onBrowseShop }) {
   const { mood, setMood, moods } = useMoodControl()
@@ -184,7 +184,6 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           <nav style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {[
               { label: 'community', href: '/community' },
-              { label: 'blossoms',  href: BLOSSOMS_URL },
               { label: 'about',     href: '/?about=1' },
             ].map(l => (
               <a key={l.label} href={l.href} style={{
@@ -462,36 +461,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
         </div>
       </section>
 
-      {/* ── Blossoms ── */}
-      <section style={{ position: 'relative', maxWidth: 1100, margin: '100px auto 60px', padding: '0 40px', zIndex: 10 }}>
-        <div className="ddd-blur" style={{
-          background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 32, padding: 'clamp(28px, 4vw, 48px) clamp(20px, 5vw, 56px)',
-          border: '1px solid rgba(255,255,255,0.6)',
-          display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap',
-        }}>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ fontSize: 11, color: sky.inkSoft, letterSpacing: '2.5px', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>
-              Also from DaydreamDwelling
-            </div>
-            <h3 style={{ fontFamily: FONTS.display, fontSize: 'clamp(24px, 3.2vw, 38px)', fontWeight: 300, letterSpacing: '-1px', margin: '0 0 6px', color: sky.ink }}>
-              <span style={{ fontStyle: 'italic' }}>Daydream Blossoms</span>
-            </h3>
-            <div style={{ fontSize: 14, color: sky.accent, fontWeight: 500, marginBottom: 14, letterSpacing: '1px', textTransform: 'uppercase' }}>
-              outdoor & garden
-            </div>
-            <p style={{ fontSize: 14, lineHeight: 1.7, color: sky.inkSoft, margin: 0, maxWidth: 480 }}>
-              Soil, sun, and yard planning — plus curated outdoor furniture, planters, and decor
-              from independent makers. Same dreamy vibes, different weather.
-            </p>
-          </div>
-          <a href={BLOSSOMS_URL} style={{
-            padding: '14px 28px', border: `1.5px solid ${sky.accent}`,
-            background: 'transparent', color: sky.accent, cursor: 'pointer',
-            fontSize: 14, fontWeight: 600, borderRadius: 999, textDecoration: 'none',
-          }}>visit blossoms →</a>
-        </div>
-      </section>
+      {/* Blossoms section archived — not ready yet */}
 
       {/* ── Footer ── */}
       <footer style={{ position: 'relative', padding: '60px 40px 80px', textAlign: 'center', zIndex: 10 }}>
@@ -508,7 +478,7 @@ export default function LandingPage({ onEnter, onBrowseShop }) {
           ))}
         </div>
         <div style={{ fontSize: 12, color: sky.inkSoft }}>
-          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href={BLOSSOMS_URL} style={{ color: sky.accent, textDecoration: 'none' }}>blossoms</a> · <a href="mailto:kingcitran@gmail.com" style={{ color: sky.accent, textDecoration: 'none' }}>contact</a>
+          © 2026 DaydreamDwelling · daydreamdwelling.com · <a href="mailto:kingcitran@gmail.com" style={{ color: sky.accent, textDecoration: 'none' }}>contact</a>
         </div>
       </footer>
 

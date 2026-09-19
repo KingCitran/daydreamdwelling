@@ -74,7 +74,6 @@ const DESTINATIONS = [
   { id: 'community', title: 'Community',    glyph: '✦', desc: 'Share & discover.', href: '/community', tag: 'Explore', hueShift: -30 },
   { id: 'music',     title: 'Music',        glyph: '♪', desc: 'Stations to design to.', href: '/community/music', tag: 'Listen', hueShift: 64 },
   { id: 'about',     title: 'About',        glyph: '☁', desc: 'The story behind it.', href: '/?about=1', tag: 'Our dream', hueShift: -62 },
-  { id: 'blossoms',  title: 'Blossoms',     glyph: '✿', desc: 'Garden & outdoor.', href: 'https://daydreamblossoms.com', tag: 'Sister site', external: true, hueShift: 96 },
 ]
 
 const CREATORS = [
@@ -240,7 +239,7 @@ export default function HubPage({ onBack }) {
                 return (
                   <div key={d.id} style={{
                     ...(feat ? { gridColumn: 'span 2', gridRow: mobile ? 'auto' : '1 / 3' } : {}),
-                    ...(mobile && d.id === 'blossoms' ? { gridColumn: 'span 2' } : {}),
+                    // blossoms span archived
                     display: 'flex',
                   }}>
                     <DestCard t={t} d={d} surf={surf} mobile={mobile} featured={feat} />
@@ -333,7 +332,7 @@ export default function HubPage({ onBack }) {
               <span style={{ fontFamily: F.body, fontSize: 12, color: t.textSoft }}>© {new Date().getFullYear()} DaydreamDwelling · Stay dreamy ☁</span>
             </div>
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              {[['Community','/community'],['Marketplace','/?shop=1'],['Blossoms','https://daydreamblossoms.com'],['About','/?about=1'],['Privacy','/?privacy=1'],['Terms','/?terms=1']].map(([l,h]) => (
+              {[['Community','/community'],['Marketplace','/?shop=1'],['About','/?about=1'],['Privacy','/?privacy=1'],['Terms','/?terms=1']].map(([l,h]) => (
                 <a key={l} href={h} style={{ fontFamily: F.body, fontSize: 12.5, color: t.textSoft, textDecoration: 'none' }}>{l}</a>
               ))}
             </div>

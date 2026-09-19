@@ -16,7 +16,6 @@ const LINKS = [
   { label: 'Music Catalog',    href: '/community/music', emoji: '🎵' },
   { label: 'Contests',         href: '/community/contests', emoji: '🏆' },
   { label: 'Sell on Daydream', href: 'https://daydreamsellers.com', emoji: '🛍️', external: true },
-  { label: 'Daydream Blossoms', href: 'https://daydreamblossoms.com', emoji: '🌿', external: true },
 ]
 
 export default function BrandHub({ onClose }) {

@@ -240,7 +240,6 @@ export default function CommunityApp() {
         <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginBottom: 12 }}>
           <a href="/" style={{ color: t.text, textDecoration: 'none' }}>Room Builder</a>
           <a href="https://daydreamsellers.com" style={{ color: t.text, textDecoration: 'none' }}>Sell on Daydream</a>
-          <a href="https://daydreamblossoms.com" style={{ color: t.text, textDecoration: 'none' }}>Daydream Blossoms</a>
         </div>
         © {new Date().getFullYear()} DaydreamDwelling. All rights reserved.
       </footer>
