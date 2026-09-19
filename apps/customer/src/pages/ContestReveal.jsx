@@ -39,11 +39,7 @@ const CLOUD_LAYER = {
 // or it muddies the clouds; the tint + screen (glow) carry the look.
 const NIGHT_TINT    = 'linear-gradient(180deg, #7078a8 0%, #505888 30%, #363870 60%, #1c1e50 100%)'
 const NIGHT_SHADOW  = 'drop-shadow(0 6px 18px rgba(0,0,0,0.55))'
-const MEDAL_TINTS   = {
-  1: { gradient: 'linear-gradient(180deg, #8a7858 0%, #6a5838 30%, #4a3820 60%, #2a2010 100%)', shadow: 'drop-shadow(0 0 18px rgba(251,191,36,0.25)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
-  2: { gradient: 'linear-gradient(180deg, #7880a0 0%, #586088 30%, #384068 60%, #1e2248 100%)', shadow: 'drop-shadow(0 0 16px rgba(200,200,230,0.20)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
-  3: { gradient: 'linear-gradient(180deg, #7a6048 0%, #5a4430 30%, #3a2a18 60%, #201808 100%)', shadow: 'drop-shadow(0 0 16px rgba(180,140,90,0.18)) drop-shadow(0 6px 18px rgba(0,0,0,0.5))' },
-}
+// Medal tints removed — user preferred uniform cloud color across all cards
 // Deterministic cloud picker — each card gets a unique but consistent set
 const PEDESTAL_POOL = [2, 5, 8, 10, 14, 18, 22, 28, 35, 42, 47, 55, 63, 71, 78, 85, 92, 100, 108, 118, 126, 135, 143]
 function pickClouds(seed, n = 9) {
@@ -70,10 +66,10 @@ const PEDESTAL_LAYOUT = [
   { left: 180,  bottom: -50, width: 170, flip: false },
 ]
 
-function CloudPedestal({ seed, medalRank, hasMedal }) {
+function CloudPedestal({ seed }) {
   const clouds = pickClouds(seed)
-  const tint = hasMedal && MEDAL_TINTS[medalRank] ? MEDAL_TINTS[medalRank] : { gradient: NIGHT_TINT, shadow: NIGHT_SHADOW }
-  const glowOp = hasMedal && medalRank === 1 ? 0.45 : 0.35
+  const tint = { gradient: NIGHT_TINT, shadow: NIGHT_SHADOW }
+  const glowOp = 0.35
   return PEDESTAL_LAYOUT.map((pos, i) => {
     const url = `url("/clouds/cloud-${pad3(clouds[i])}.webp")`
     return (
@@ -94,27 +90,32 @@ function CloudPedestal({ seed, medalRank, hasMedal }) {
   })
 }
 
-// Cloud behind the stats raindrop count — sized absolutely so it doesn't
-// depend on the text content width. Centered behind the pill.
+// Cloud nest around the stats raindrop count — text sits in the lower
+// belly of the cloud so it looks cradled, not floating above.
+// Uses 3 overlapping clouds for a full, fluffy look.
 const STATS_POOL = [3, 10, 18, 31, 55, 71, 95, 110]
-function StatsCloud({ seed, medalBorder }) {
-  const num = STATS_POOL[(seed * 7 + 3) % STATS_POOL.length]
-  const url = `url("/clouds/cloud-${pad3(num)}.webp")`
-  const shadow = medalBorder
-    ? `drop-shadow(0 0 12px ${medalBorder}30) drop-shadow(0 6px 14px rgba(0,0,0,0.5))`
-    : 'drop-shadow(0 6px 14px rgba(0,0,0,0.5))'
-  return (
-    <div style={{
-      position: 'absolute', left: '50%', top: '50%',
-      width: 200, height: 130,
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none', zIndex: 0,
-    }}>
-      <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: NIGHT_TINT, filter: shadow }} />
-      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.20, filter: 'contrast(1.1) brightness(1.1)' }} />
-      <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.35, filter: 'brightness(1.5) contrast(0.8)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)' }} />
-    </div>
-  )
+const STATS_LAYOUT = [
+  { left: -30, top: -45, width: 180, flip: false },  // left bump
+  { left: 20,  top: -55, width: 200, flip: true  },  // center (largest, highest)
+  { left: 80,  top: -40, width: 170, flip: false },  // right bump
+]
+function StatsCloudNest({ seed }) {
+  return STATS_LAYOUT.map((pos, i) => {
+    const num = STATS_POOL[(seed * 7 + i * 3 + 1) % STATS_POOL.length]
+    const url = `url("/clouds/cloud-${pad3(num)}.webp")`
+    return (
+      <div key={i} style={{
+        position: 'absolute', left: pos.left, top: pos.top,
+        width: pos.width, aspectRatio: '3 / 2',
+        transform: pos.flip ? 'scaleX(-1)' : 'none',
+        pointerEvents: 'none', zIndex: 0,
+      }}>
+        <div style={{ ...CLOUD_LAYER, WebkitMaskImage: url, maskImage: url, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center', background: NIGHT_TINT, filter: NIGHT_SHADOW }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'multiply', opacity: 0.20, filter: 'contrast(1.1) brightness(1.1)' }} />
+        <div style={{ ...CLOUD_LAYER, backgroundImage: url, mixBlendMode: 'screen', opacity: 0.35, filter: 'brightness(1.5) contrast(0.8)', WebkitMaskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)', maskImage: 'linear-gradient(180deg, #fff 0%, #fff 40%, transparent 80%)' }} />
+      </div>
+    )
+  })
 }
 
 function RollCounter({ target, active, color, instant = false }) {
@@ -210,7 +211,7 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
             }}>
               <div style={{ position: 'relative', width: '100%', paddingTop: 30 }}>
                 {/* Real cloud pedestal — card floats on a bed of tinted clouds */}
-                <CloudPedestal seed={i} medalRank={globalRank} hasMedal={hasMedal} />
+                <CloudPedestal seed={i} />
 
                 <div style={{
                   position: 'absolute', top: -40, left: -30, right: -30, bottom: -20,
@@ -292,10 +293,11 @@ export default function ContestReveal({ entries = [], contest, onClose }) {
               <div key={entry.id} style={{ display: 'flex', justifyContent: 'center' }}>
                 <div style={{
                   position: 'relative',
-                  padding: '7px 20px',
-                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '10px 24px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  minWidth: 140,
                 }}>
-                  <StatsCloud seed={si} medalBorder={hasMdl ? m.border : null} />
+                  <StatsCloudNest seed={si} />
                   <RaindropIcon size={16} filled={statsRolling} color={hasMdl ? m.border : statsRolling ? '#fbbf24' : '#50507a'} style={{ position: 'relative', zIndex: 1 }} />
                   <span style={{ position: 'relative', zIndex: 1 }}><RollCounter target={entry.vote_count} active={statsRolling} instant={!gatePodium} color={hasMdl ? m.border : statsRolling ? '#c0c0d0' : '#50507a'} /></span>
                   {statsRolling && <span style={{ fontSize: 11, color: '#50507a', fontWeight: 500, position: 'relative', zIndex: 1 }}>raindrops</span>}
