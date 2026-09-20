@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import RoomScene from './scene/RoomScene'
 // CloudConveyorPuffs archived — drift-across is the only cloud variant now
 import CloudConveyorDrift from './scene/CloudConveyorDrift'
@@ -31,6 +31,7 @@ import useCartWishlist from './hooks/useCartWishlist'
 import useItemActions from './hooks/useItemActions'
 import useRoomNavigation, { getFloorStack } from './hooks/useRoomNavigation'
 import GhostFloor from './scene/GhostFloor'
+import DwellingFloor from './scene/DwellingFloor'
 import NeighborRoom from './scene/NeighborRoom'
 import useShopProducts from './hooks/useShopProducts'
 import useOwnedItems from './hooks/useOwnedItems'
@@ -106,6 +107,31 @@ function PanelLoader() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, opacity: 0.5 }}>
       <div style={{ width: 24, height: 24, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', animation: 'ddd-spin 0.8s linear infinite' }} />
     </div>
+  )
+}
+
+// ── Overview Camera — isometric view for dwelling overview ────────
+// Renders camera + lights when the normal RoomScene is hidden.
+function OverviewCamera({ zoomRef, panRef, floorCount, wallHeight }) {
+  const { camera } = useThree()
+  const midY = ((floorCount - 1) * wallHeight) / 2
+  useFrame(() => {
+    const px = panRef.current.x, pz = panRef.current.z
+    camera.position.set(18 + px, 18, 18 + pz)
+    camera.lookAt(px, midY, pz)
+    camera.zoom = zoomRef.current
+    camera.updateProjectionMatrix()
+  })
+  return (
+    <>
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[10, 20, 10]} intensity={0.8} castShadow
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-30} shadow-camera-right={30}
+        shadow-camera-top={30 + floorCount * wallHeight}
+        shadow-camera-bottom={-10}
+      />
+    </>
   )
 }
 
@@ -308,7 +334,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     return (initSave?.gridW ?? 30) <= 20
   })
   const setShowGrid = (v) => { const next = typeof v === 'function' ? v(showGrid) : v; _setShowGrid(next); localStorage.setItem('ddd_grid', next ? '1' : '0') }
-  // overviewOpen removed — Floor Plan (floorPlanOpen) is the Dwelling Overview
+  const [dwellingOverview, setDwellingOverview] = useState(false)
   const [showOverviewLabels,  setShowOverviewLabels]  = useState(true)
   const [layoutOverrides,     setLayoutOverrides]     = useState({})
   const [bookmark,        setBookmark]        = useState(null)
@@ -1160,8 +1186,34 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       )}
       {!floorPlanOpen && <Canvas orthographic shadows="percentage" gl={{ preserveDrawingBuffer: true, alpha: true }} frameloop={isDragging ? 'never' : 'always'} style={{ position: 'absolute', inset: 0, zIndex: 1, touchAction: 'none' }} onPointerMissed={() => { setSelectedId(null); if (!wallDrawMode) return; }}>
 
-        {/* Ghost floors — only visible in overview mode (All zones) */}
-        {activeZoneIdx == null && Object.entries(allRoomsData)
+        {/* ── Dwelling Overview — all floors stacked with walls ── */}
+        {dwellingOverview && <OverviewCamera
+          zoomRef={zoomRef} panRef={panRef}
+          floorCount={Object.keys(allRoomsData).length}
+          wallHeight={wallHeight}
+        />}
+        {dwellingOverview && Object.entries(allRoomsData)
+          .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+          .sort((a, b) => a.level - b.level)
+          .filter((f, i, arr) => i === 0 || f.level !== arr[i - 1].level)
+          .map(f => {
+            const rd = allRoomsData[f.roomId]
+            if (!rd) return null
+            return (
+              <DwellingFloor
+                key={`dwell-${f.roomId}`}
+                roomData={rd}
+                yOffset={f.level * wallHeight}
+                wallHeight={rd.wallHeight ?? wallHeight}
+                roomRotationRef={roomRotationRef}
+                catalogue={catalogue}
+                isActive={f.roomId === currentRoomId}
+              />
+            )
+          })}
+
+        {/* Ghost floors — only visible when All zones selected (not in overview) */}
+        {!dwellingOverview && activeZoneIdx == null && Object.entries(allRoomsData)
           .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
           .filter(f => f.level !== activeFloorLevel && f.roomId !== currentRoomId)
           .map(f => {
@@ -1178,8 +1230,8 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             />
           )
         })}
-        {/* Neighbor rooms on the SAME floor — semi-transparent, clickable */}
-        {(() => {
+        {/* Neighbor rooms on the SAME floor — semi-transparent, clickable (hidden in overview) */}
+        {!dwellingOverview && (() => {
           // Find rooms connected by doors on the same floor
           const neighbors = []
           for (const it of items) {
@@ -1213,7 +1265,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             )
           })
         })()}
-        <RoomScene
+        {!dwellingOverview && <RoomScene
           targetRotation={targetRotation}
           contentCenter={contentCenter}
           onZoomChange={setZoomDisplay}
@@ -1331,11 +1383,31 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           onGhostCancel={() => { setGhostPlacement(null); showWispy('Placement cancelled.') }}
           onRotate={delta => setTarget(r => r + delta)}
           onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
-        />
+        />}
       </Canvas>}
 
       {/* FX overlays render AFTER canvas so they layer on top */}
       <MoonOverlay />
+
+      {/* Dwelling overview banner + exit button */}
+      {dwellingOverview && (
+        <div style={{
+          position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 30, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '8px 20px', borderRadius: '6px 999px 999px 6px',
+          background: 'rgba(10,8,24,0.8)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          fontFamily: "'Outfit',sans-serif",
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#d0d0f0' }}>🏠 Dwelling Overview</span>
+          <span style={{ fontSize: 11, color: '#8080a0' }}>{Object.keys(allRoomsData).length} floor{Object.keys(allRoomsData).length !== 1 ? 's' : ''}</span>
+          <button onClick={() => setDwellingOverview(false)} style={{
+            padding: '5px 14px', borderRadius: '4px 999px 999px 4px', border: 'none',
+            background: 'rgba(120,80,200,0.25)', color: '#b0a0e0',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>← Back to Room</button>
+        </div>
+      )}
 
       {/* Floor level switcher — Sims-style ▲ Floor N ▼ */}
       <FloorSwitcher
@@ -1521,7 +1593,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         }}
         onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
         onOverview={() => {
-          // Explicitly save current room state first to prevent data loss
+          // Save current room, then toggle dwelling overview mode
           const snapshot = {
             gridW, gridD, cells: new Set(cells), items: [...items],
             wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
@@ -1531,26 +1603,30 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           }
           setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
 
-          setActiveZoneIdx(null)
+          const entering = !dwellingOverview
+          setDwellingOverview(entering)
           setFloorPlanOpen(false)
 
-          // Compute zoom from ALL rooms, not just current cells
-          let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
-          for (const [, room] of Object.entries(allRoomsData)) {
-            const roomCells = room.cells instanceof Set ? room.cells : new Set(room.cells ?? [])
-            for (const key of roomCells) {
-              const [c, r] = key.split(',').map(Number)
-              minC = Math.min(minC, c); maxC = Math.max(maxC, c)
-              minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+          if (entering) {
+            setActiveZoneIdx(null)
+            // Zoom to fit entire building
+            let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
+            for (const [, room] of Object.entries(allRoomsData)) {
+              const roomCells = room.cells instanceof Set ? room.cells : new Set(room.cells ?? [])
+              for (const key of roomCells) {
+                const [c, r] = key.split(',').map(Number)
+                minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+                minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+              }
             }
+            const contentW = isFinite(maxC) ? maxC - minC + 1 : gridW
+            const contentD = isFinite(maxR) ? maxR - minR + 1 : gridD
+            const maxDim = Math.max(contentW, contentD, 6)
+            const floorCount = Object.keys(allRoomsData).length || 1
+            const fitZoom = Math.max(6, Math.min(40, 160 / (maxDim + floorCount * 4)))
+            zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
+            panRef.current = { x: 0, z: 0 }
           }
-          const contentW = isFinite(maxC) ? maxC - minC + 1 : gridW
-          const contentD = isFinite(maxR) ? maxR - minR + 1 : gridD
-          const maxDim = Math.max(contentW, contentD, 6)
-          const floorCount = Object.keys(allRoomsData).length || 1
-          const fitZoom = Math.max(8, Math.min(50, 200 / (maxDim + floorCount * 3)))
-          zoomRef.current = fitZoom; setZoomDisplay(fitZoom)
-          setTarget(-30); panRef.current = { x: 0, z: 0 }
         }}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
