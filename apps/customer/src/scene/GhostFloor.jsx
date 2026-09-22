@@ -6,6 +6,12 @@ import Items from './Items'
 import { ITEM_CATALOGUE } from '../data/items'
 
 const noop = () => {}
+function safeSet(v) {
+  if (v instanceof Set) return v
+  if (Array.isArray(v)) return new Set(v)
+  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
+  return new Set()
+}
 
 export default function GhostFloor({
   roomData, yOffset = 0, wallHeight = 8,
@@ -14,7 +20,7 @@ export default function GhostFloor({
   const groupRef = useRef()
 
   const cells = useMemo(
-    () => (roomData.cells instanceof Set ? roomData.cells : new Set(roomData.cells ?? [])),
+    () => (roomData.cells instanceof Set ? roomData.cells : safeSet(roomData.cells)),
     [roomData.cells]
   )
 

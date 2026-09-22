@@ -8,6 +8,12 @@ import Items from './Items'
 import { ITEM_CATALOGUE } from '../data/items'
 
 const noop = () => {}
+function safeSet(v) {
+  if (v instanceof Set) return v
+  if (Array.isArray(v)) return new Set(v)
+  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
+  return new Set()
+}
 
 export default function DwellingFloor({
   roomData, yOffset = 0, wallHeight = 8,
@@ -17,11 +23,11 @@ export default function DwellingFloor({
   const groupRef = useRef()
 
   const cells = useMemo(
-    () => (roomData.cells instanceof Set ? roomData.cells : new Set(roomData.cells ?? [])),
+    () => (roomData.cells instanceof Set ? roomData.cells : safeSet(roomData.cells)),
     [roomData.cells]
   )
   const internalWalls = useMemo(
-    () => (roomData.internalWalls instanceof Set ? roomData.internalWalls : new Set(roomData.internalWalls ?? [])),
+    () => (roomData.internalWalls instanceof Set ? roomData.internalWalls : safeSet(roomData.internalWalls)),
     [roomData.internalWalls]
   )
 

@@ -4,6 +4,12 @@ import { makeGrid, getParallelWallFaces } from '../utils/roomGeometry'
 import { findSpatialNeighbors } from '../overview/layout'
 
 const DEFAULT_wallHeight = 8
+function safeSet(v) {
+  if (v instanceof Set) return v
+  if (Array.isArray(v)) return new Set(v)
+  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
+  return new Set()
+}
 
 // Trace stair connections to build an ordered floor stack for a building.
 // Returns [{roomId, level}] sorted by level (0 = ground floor).
@@ -109,13 +115,13 @@ export default function useRoomNavigation({
       setCurrentRoomId(targetId)
       setRoomStack(prev => [...prev, currentRoomId])
       setGridW(targetRoom.gridW); setGridD(targetRoom.gridD)
-      setCells(new Set(targetRoom.cells))
+      setCells(safeSet(targetRoom.cells))
       setItems([...targetRoom.items])
       setWallHeight(targetRoom.wallHeight ?? wallHeight)
       if (targetRoom.floorColor) setFloorColor(targetRoom.floorColor)
       if (targetRoom.wallColor) setWallColor(targetRoom.wallColor)
-      if (setInternalWalls) setInternalWalls(new Set(targetRoom.internalWalls ?? []))
-      if (setDoorOpenings) setDoorOpenings(new Set(targetRoom.doorOpenings ?? []))
+      if (setInternalWalls) setInternalWalls(safeSet(targetRoom.internalWalls))
+      if (setDoorOpenings) setDoorOpenings(safeSet(targetRoom.doorOpenings))
       setSelectedId(null)
       return
     }
@@ -163,7 +169,7 @@ export default function useRoomNavigation({
     setCurrentRoomId(targetId)
     setRoomStack(prev => [...prev, currentRoomId])
     setGridW(targetRoom.gridW); setGridD(targetRoom.gridD)
-    setCells(new Set(targetRoom.cells))
+    setCells(safeSet(targetRoom.cells))
     setItems([...targetRoom.items])
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
@@ -227,7 +233,7 @@ export default function useRoomNavigation({
     if (!alreadyLinked) {
       const wallLen  = (door.wall === 'N' || door.wall === 'S') ? gridW : gridD
       const mirU     = wallLen - door.wallU
-      const tCells   = targetRoom.cells instanceof Set ? targetRoom.cells : new Set(targetRoom.cells)
+      const tCells   = safeSet(targetRoom.cells)
       const faces    = getParallelWallFaces(oppWall, mirU, tCells, targetRoom.gridW, targetRoom.gridD)
       const def      = ITEM_CATALOGUE[door.typeKey]
       updatedTargetItems = [...targetRoom.items, {
@@ -248,7 +254,7 @@ export default function useRoomNavigation({
     setCurrentRoomId(targetId)
     setRoomStack(prev => [...prev, currentRoomId])
     setGridW(targetRoom.gridW); setGridD(targetRoom.gridD)
-    setCells(new Set(targetRoom.cells))
+    setCells(safeSet(targetRoom.cells))
     setItems(updatedTargetItems)
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
@@ -268,7 +274,7 @@ export default function useRoomNavigation({
     setCurrentRoomId(prevId)
     setRoomStack(prev => prev.slice(0, -1))
     setGridW(prevRoom.gridW); setGridD(prevRoom.gridD)
-    setCells(new Set(prevRoom.cells))
+    setCells(safeSet(prevRoom.cells))
     setItems([...prevRoom.items])
     setWallHeight(prevRoom.wallHeight)
     setFloorColor(prevRoom.floorColor); setWallColor(prevRoom.wallColor)
@@ -285,15 +291,15 @@ export default function useRoomNavigation({
     setCurrentRoomId(tid)
     setRoomStack(prev => [...prev, currentRoomId])
     setGridW(targetRoom.gridW); setGridD(targetRoom.gridD)
-    setCells(new Set(targetRoom.cells))
+    setCells(safeSet(targetRoom.cells))
     setItems([...targetRoom.items])
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
     if (setFloorTexture) setFloorTexture(targetRoom.floorTexture ?? 'flat')
     if (setWallTexture) setWallTexture(targetRoom.wallTexture ?? 'flat')
     if (setWallFinish) setWallFinish(targetRoom.wallFinish ?? 'eggshell')
-    if (setInternalWalls) setInternalWalls(new Set(targetRoom.internalWalls ?? []))
-    if (setDoorOpenings) setDoorOpenings(new Set(targetRoom.doorOpenings ?? []))
+    if (setInternalWalls) setInternalWalls(safeSet(targetRoom.internalWalls))
+    if (setDoorOpenings) setDoorOpenings(safeSet(targetRoom.doorOpenings))
     setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
   }, [currentRoomId, allRooms, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, floorTexture, wallTexture, wallFinish, targetRotation, internalWalls, activeFloorLevel, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setFloorTexture, setWallTexture, setWallFinish, setTarget, setSelectedId, setInternalWalls])
 
@@ -390,7 +396,7 @@ export default function useRoomNavigation({
         const updated = { ...prev, [currentRoomId]: liveSnap }
         const room    = updated[roomId]
         if (!room) return prev
-        const rCells  = room.cells instanceof Set ? room.cells : new Set(room.cells)
+        const rCells  = safeSet(room.cells)
         const wallLen2 = (wall === 'N' || wall === 'S') ? room.gridW : room.gridD
         const u2       = wallU ?? wallLen2 / 2
         const faces    = getParallelWallFaces(wall, u2, rCells, room.gridW, room.gridD)

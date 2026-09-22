@@ -92,6 +92,15 @@ const DEFAULT_wallHeight = 8
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const isUUID = (s) => typeof s === 'string' && UUID_RE.test(s)
 
+// Safe Set constructor — JSON serializes Sets as {} which isn't iterable.
+// This handles Set, Array, plain-object-from-JSON, null/undefined.
+function safeSet(v) {
+  if (v instanceof Set) return v
+  if (Array.isArray(v)) return new Set(v)
+  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
+  return new Set()
+}
+
 function loadSaved() {
   try {
     const raw = localStorage.getItem('room-builder-v1')
@@ -256,7 +265,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const [gridW,      setGridW]      = useState(initSave?.gridW ?? 30)
   const [gridD,      setGridD]      = useState(initSave?.gridD ?? 30)
   const [cells,      setCells]      = useState(() =>
-    initSave?.cells ? new Set(initSave.cells) : makeGrid(10, 10, 10, 10)
+    initSave?.cells ? safeSet(initSave.cells) : makeGrid(10, 10, 10, 10)
   )
   const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
   const [targetRotation, setTarget] = useState(0)
@@ -279,11 +288,11 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const [shareOpen, setShareOpen] = useState(false)
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('ddd_welcomed'))
   const [doorOpenings, setDoorOpenings] = useState(() => {
-    if (initSave?.doorOpenings) return new Set(initSave.doorOpenings)
+    if (initSave?.doorOpenings) return safeSet(initSave.doorOpenings)
     return new Set()
   })  // null = show all, number = specific zone
   const [internalWalls, setInternalWalls] = useState(() => {
-    if (initSave?.internalWalls) return new Set(initSave.internalWalls)
+    if (initSave?.internalWalls) return safeSet(initSave.internalWalls)
     return new Set()
   })
   const [bgColor,    setBgColor]    = useState(initSave?.bgColor    ?? '#1a1a2e')
@@ -357,7 +366,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const [allRooms,      setAllRooms]      = useState(() => {
     if (!initSave?.allRooms) return {}
     return Object.fromEntries(
-      Object.entries(initSave.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+      Object.entries(initSave.allRooms).map(([id, room]) => [id, { ...room, cells: safeSet(room.cells), internalWalls: safeSet(room.internalWalls), doorOpenings: safeSet(room.doorOpenings) }])
     )
   })
   const [currentRoomId, setCurrentRoomId] = useState(initSave?.currentRoomId ?? 0)
@@ -377,7 +386,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const zoomRef       = useRef(() => {
     if (!initSave?.cells) return Math.max(15, Math.min(80, 280 / defaultContentSize))
     let minC = Infinity, maxC = 0, minR = Infinity, maxR = 0
-    const c = new Set(initSave.cells)
+    const c = safeSet(initSave.cells)
     for (const key of c) { const [col, row] = key.split(',').map(Number); minC = Math.min(minC, col); maxC = Math.max(maxC, col); minR = Math.min(minR, row); maxR = Math.max(maxR, row) }
     return Math.max(15, Math.min(80, 280 / Math.max(maxC - minC + 1, maxR - minR + 1, 6)))
   })
@@ -469,7 +478,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         if (d.gridW)  setGridW(d.gridW)
         if (d.gridD)  setGridD(d.gridD)
         if (d.wallHeight) setWallHeight(d.wallHeight)
-        if (d.cells)  setCells(new Set(d.cells))
+        if (d.cells)  setCells(safeSet(d.cells))
         if (d.items)  setItems(d.items)
         if (d.floorColor) setFloorColor(d.floorColor)
         if (d.floorTexture) setFloorTexture(d.floorTexture)
@@ -500,7 +509,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     if (error || !data) return
     setGridW(data.gridW); setGridD(data.gridD)
     if (data.wallHeight) setWallHeight(data.wallHeight)
-    setCells(new Set(data.cells))
+    setCells(safeSet(data.cells))
     setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
     setCart(data.cart ?? [])
     if (data.floorColor) setFloorColor(data.floorColor)
@@ -516,7 +525,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     if (data.roomNames)  setRoomNamesState(data.roomNames)
     if (data.allRooms) {
       const restored = Object.fromEntries(
-        Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+        Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: safeSet(room.cells), internalWalls: safeSet(room.internalWalls), doorOpenings: safeSet(room.doorOpenings) }])
       )
       setAllRooms(restored)
     }
@@ -538,7 +547,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         setAdminRoomName(name || 'Untitled Room')
         setGridW(data.gridW); setGridD(data.gridD)
         if (data.wallHeight) setWallHeight(data.wallHeight)
-        setCells(new Set(data.cells))
+        setCells(safeSet(data.cells))
         setItems((data.items ?? []).map((it, i) => it.id != null ? it : { ...it, id: i + 1 }))
         setCart(data.cart ?? [])
         if (data.floorColor) setFloorColor(data.floorColor)
@@ -554,7 +563,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         if (data.roomNames) setRoomNamesState(data.roomNames)
         if (data.allRooms) {
           const restored = Object.fromEntries(
-            Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: new Set(room.cells) }])
+            Object.entries(data.allRooms).map(([id, room]) => [id, { ...room, cells: safeSet(room.cells), internalWalls: safeSet(room.internalWalls), doorOpenings: safeSet(room.doorOpenings) }])
           )
           setAllRooms(restored)
         }
@@ -609,7 +618,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         if (d.gridW)  setGridW(d.gridW)
         if (d.gridD)  setGridD(d.gridD)
         if (d.wallHeight) setWallHeight(d.wallHeight)
-        if (d.cells)  setCells(new Set(d.cells))
+        if (d.cells)  setCells(safeSet(d.cells))
         if (d.items)  setItems(d.items)
         if (d.floorColor) setFloorColor(d.floorColor)
         if (d.floorTexture) setFloorTexture(d.floorTexture)
@@ -956,7 +965,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       if (rid === currentRoomId) continue
       const pos = overviewPositions[rid]
       if (!pos) continue
-      const bCells = room.cells instanceof Set ? room.cells : new Set(room.cells)
+      const bCells = room.cells instanceof Set ? room.cells : safeSet(room.cells)
       for (const key of bCells) {
         const [col_B, row_B] = key.split(',').map(Number)
         const worldX = pos.ox - room.gridW / 2 + col_B + 0.5
