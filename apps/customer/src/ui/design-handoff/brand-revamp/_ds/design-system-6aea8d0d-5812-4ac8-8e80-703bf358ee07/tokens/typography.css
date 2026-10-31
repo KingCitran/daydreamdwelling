@@ -1,0 +1,53 @@
+/* ─────────────────────────────────────────────────────────────
+   DaydreamDwelling — Typography Tokens
+   Display is a light, airy serif (EB Garamond) — frequently italic
+   for emphasis. Body is Outfit, set generously. Caveat signs the
+   founder's notes by hand.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Families ──────────────────────────────────────────────── */
+  --font-display: "EB Garamond", "Cormorant Garamond", Georgia, serif;
+  --font-body:    "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-hand:    "Caveat", "Brush Script MT", cursive;
+
+  /* ── Display weights ───────────────────────────────────────── */
+  /* The brand voice is quiet — display type is LIGHT (300–400), never
+     bold. Emphasis comes from italics and color, not weight. */
+  --display-weight:        300;
+  --display-weight-emph:   400;
+
+  /* ── Body weights ──────────────────────────────────────────── */
+  --body-weight:           400;
+  --body-weight-medium:    500;
+  --body-weight-semibold:  600;
+
+  /* ── Display scale (serif headings, fluid) ─────────────────── */
+  --text-hero: clamp(40px, 7vw, 88px);   /* hero — line-height 0.95   */
+  --text-d1:   clamp(34px, 5vw, 60px);   /* section heroes            */
+  --text-d2:   clamp(30px, 4.5vw, 54px); /* major section heads       */
+  --text-d3:   clamp(28px, 4vw, 48px);   /* card / panel heads        */
+  --text-d4:   clamp(24px, 3.2vw, 38px); /* sub-section               */
+  --text-lede: 26px;                     /* serif pull-quote / lede   */
+
+  /* ── Body scale (Outfit) ───────────────────────────────────── */
+  --text-xl:   19px;   /* generous intro paragraphs                  */
+  --text-lg:   18px;   /* standard body                              */
+  --text-md:   16px;   /* dense body / card copy                     */
+  --text-sm:   14px;   /* captions, meta                             */
+  --text-xs:   13px;   /* fine print, nav                            */
+  --text-2xs:  11px;   /* eyebrows, micro-labels                     */
+
+  /* ── Line heights ──────────────────────────────────────────── */
+  --leading-display: 0.95;  /* tight, overlapping serif lines        */
+  --leading-snug:    1.2;
+  --leading-body:    1.65;  /* airy, readable                        */
+  --leading-loose:   1.85;  /* the "how it works" long-form columns  */
+
+  /* ── Letter spacing ────────────────────────────────────────── */
+  --tracking-display: -2.5px;  /* tighten big light serif            */
+  --tracking-tight:   -1.5px;
+  --tracking-body:    0px;
+  --tracking-eyebrow: 2.5px;   /* UPPERCASE sparkle eyebrows         */
+  --tracking-caps:    1.5px;   /* small uppercase meta               */
+}

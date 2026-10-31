@@ -3,7 +3,7 @@ import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
 
-const WALL_T = 0.28
+import { WALL_T } from '../utils/buildingConstants'
 const DISC_R = 0.18
 
 const CEILING_LIGHT_CONFIG = {

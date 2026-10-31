@@ -1,15 +1,10 @@
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 import { ITEM_CATALOGUE } from '../data/items'
 import { makeGrid, getParallelWallFaces } from '../utils/roomGeometry'
 import { findSpatialNeighbors } from '../overview/layout'
+import safeSet from '../utils/safeSet'
 
 const DEFAULT_wallHeight = 8
-function safeSet(v) {
-  if (v instanceof Set) return v
-  if (Array.isArray(v)) return new Set(v)
-  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
-  return new Set()
-}
 
 // Trace stair connections to build an ordered floor stack for a building.
 // Returns [{roomId, level}] sorted by level (0 = ground floor).
@@ -86,7 +81,8 @@ export default function useRoomNavigation({
   floorTexture, setFloorTexture,
   wallTexture, setWallTexture,
   wallFinish, setWallFinish,
-  activeFloorLevel,
+  activeFloorLevel, setActiveFloorLevel,
+  roomType, setRoomType,
 }) {
   // Helper: create a complete room snapshot
   const makeSnapshot = (overrides = {}) => ({
@@ -96,8 +92,14 @@ export default function useRoomNavigation({
     internalWalls: new Set(internalWalls ?? []),
     doorOpenings: new Set(doorOpenings ?? []),
     level: activeFloorLevel ?? 0,
+    roomType: roomType ?? 'indoor',
     ...overrides,
   })
+
+  // Keep a ref to allRooms so jumpToRoom always reads the latest value
+  const allRoomsRef = useRef(allRooms)
+  allRoomsRef.current = allRooms
+
   const enterRoom = useCallback((doorId) => {
     const door = items.find(it => it.id === doorId)
     if (!door) return
@@ -122,6 +124,8 @@ export default function useRoomNavigation({
       if (targetRoom.wallColor) setWallColor(targetRoom.wallColor)
       if (setInternalWalls) setInternalWalls(safeSet(targetRoom.internalWalls))
       if (setDoorOpenings) setDoorOpenings(safeSet(targetRoom.doorOpenings))
+      if (setRoomType) setRoomType(targetRoom.roomType ?? 'indoor')
+      if (setActiveFloorLevel) setActiveFloorLevel(targetRoom.level ?? 0)
       setSelectedId(null)
       return
     }
@@ -173,6 +177,7 @@ export default function useRoomNavigation({
     setItems([...targetRoom.items])
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
+    if (setRoomType) setRoomType(targetRoom.roomType ?? 'indoor')
     setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, gridW, gridD, cells, wallHeight, floorColor, wallColor, targetRotation, currentRoomId, allRooms, zoomRef])
@@ -258,6 +263,8 @@ export default function useRoomNavigation({
     setItems(updatedTargetItems)
     setWallHeight(targetRoom.wallHeight)
     setFloorColor(targetRoom.floorColor); setWallColor(targetRoom.wallColor)
+    if (setRoomType) setRoomType(targetRoom.roomType ?? 'indoor')
+    if (setActiveFloorLevel) setActiveFloorLevel(targetRoom.level ?? 0)
     setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
   }, [items, gridW, gridD, cells, wallHeight, floorColor, wallColor, targetRotation, currentRoomId, allRooms, zoomRef, nextItemIdRef, setDoorLinkPicker, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setTarget, setSelectedId])
 
@@ -278,14 +285,18 @@ export default function useRoomNavigation({
     setItems([...prevRoom.items])
     setWallHeight(prevRoom.wallHeight)
     setFloorColor(prevRoom.floorColor); setWallColor(prevRoom.wallColor)
+    if (setRoomType) setRoomType(prevRoom.roomType ?? 'indoor')
+    if (setActiveFloorLevel) setActiveFloorLevel(prevRoom.level ?? 0)
     setTarget(prevRoom.targetRotation ?? 0); setSelectedId(null)
   }, [roomStack, allRooms, currentRoomId, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, zoomRef, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setTarget, setSelectedId])
 
   const jumpToRoom = useCallback((targetId) => {
     const tid = Number(targetId)
+    // Use ref to always read latest allRooms (avoids stale closure)
+    const rooms = allRoomsRef.current
     if (tid === currentRoomId) return
-    const targetRoom = allRooms[tid]
-    if (!targetRoom) return
+    const targetRoom = rooms[tid]
+    if (!targetRoom) { console.warn('[jumpToRoom] room', tid, 'not found. Available:', Object.keys(rooms)); return }
     const snapshot = makeSnapshot()
     setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
     setCurrentRoomId(tid)
@@ -300,6 +311,8 @@ export default function useRoomNavigation({
     if (setWallFinish) setWallFinish(targetRoom.wallFinish ?? 'eggshell')
     if (setInternalWalls) setInternalWalls(safeSet(targetRoom.internalWalls))
     if (setDoorOpenings) setDoorOpenings(safeSet(targetRoom.doorOpenings))
+    if (setRoomType) setRoomType(targetRoom.roomType ?? 'indoor')
+    if (setActiveFloorLevel) setActiveFloorLevel(targetRoom.level ?? 0)
     setTarget(targetRoom.targetRotation ?? 0); setSelectedId(null)
   }, [currentRoomId, allRooms, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, floorTexture, wallTexture, wallFinish, targetRotation, internalWalls, activeFloorLevel, setAllRooms, setCurrentRoomId, setRoomStack, setGridW, setGridD, setCells, setItems, setWallHeight, setFloorColor, setWallColor, setFloorTexture, setWallTexture, setWallFinish, setTarget, setSelectedId, setInternalWalls])
 
@@ -335,6 +348,27 @@ export default function useRoomNavigation({
     })
     setItems(prev => prev.filter(it => it.connectedRoomId !== roomId))
     setRoomStack(prev => prev.filter(id => id !== roomId))
+  }, [currentRoomId, getRoomName, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, setAllRooms, setItems, setRoomStack])
+
+  const deleteMultipleRooms = useCallback((roomIds) => {
+    const valid = roomIds.filter(id => id !== currentRoomId)
+    if (!valid.length) return
+    const names = valid.map(id => getRoomName(id)).join(', ')
+    if (!window.confirm(`Delete ${valid.length} room${valid.length > 1 ? 's' : ''}: ${names}?\nAll doors connecting to them will be unlinked.`)) return
+    const snapshot = makeSnapshot()
+    setAllRooms(prev => {
+      const updated = { ...prev, [currentRoomId]: snapshot }
+      for (const roomId of valid) {
+        delete updated[roomId]
+        for (const [rid, room] of Object.entries(updated)) {
+          if (room.items.some(it => it.connectedRoomId === roomId))
+            updated[Number(rid)] = { ...room, items: room.items.filter(it => it.connectedRoomId !== roomId) }
+        }
+      }
+      return updated
+    })
+    setItems(prev => prev.filter(it => !valid.includes(it.connectedRoomId)))
+    setRoomStack(prev => prev.filter(id => !valid.includes(id)))
   }, [currentRoomId, getRoomName, gridW, gridD, cells, items, wallHeight, floorColor, wallColor, targetRotation, setAllRooms, setItems, setRoomStack])
 
   const addRoom = useCallback(({ gridW: rW, gridD: rD, cells: rCells, name, wallHeight: rWH, level }) => {
@@ -461,7 +495,7 @@ export default function useRoomNavigation({
   const placeStairsQuick = useCallback(() => {
     if (gridW < 3 || gridD < 5) return false
 
-    const stairW = 3, stairD = 5, stairCount = 14
+    const stairW = 3, stairD = 10, stairCount = 13
     // Place near the center of the room
     const col = Math.max(0, Math.floor(gridW / 2) - Math.floor(stairW / 2))
     const row = Math.max(0, Math.floor(gridD / 2) - Math.floor(stairD / 2))
@@ -482,5 +516,5 @@ export default function useRoomNavigation({
     return true
   }, [gridW, gridD, items, currentRoomId, addStairs])
 
-  return { enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs, placeStairsQuick }
+  return { enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, unlinkDoors, deleteRoom, deleteMultipleRooms, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs, placeStairsQuick }
 }

@@ -3,7 +3,7 @@ import { Grid } from '@react-three/drei'
 import * as THREE from 'three'
 import { getTexture, TEXTURE_ROUGHNESS, onTextureReady } from './textures'
 
-const WALL_T = 0.28
+import { WALL_T } from '../utils/buildingConstants'
 
 // How many feet one texture tile covers. Larger = less obvious repeat.
 const TEX_SCALE = {

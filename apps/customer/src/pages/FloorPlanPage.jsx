@@ -4,16 +4,40 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { exportFloorPlanPNG } from '../utils/exportFloorPlan'
 import { ROOM_TEMPLATES } from '../data/roomTemplates'
+import { BUILDING_TEMPLATES } from '../data/buildingTemplates'
+
+// Is rotation effectively sideways? Handles any angle, not just exact 90/270
+function isRotatedSideways(rotation) {
+  const r = ((rotation ?? 0) % 360 + 360) % 360
+  return (r > 45 && r < 135) || (r > 225 && r < 315)
+}
+
+// Get effective width/depth for an item accounting for rotation
+function getItemFootprint(it, catalogue) {
+  if (it.stairs) {
+    const sw = it.stairW ?? 3, sd = it.stairD ?? 10
+    const rot = isRotatedSideways(it.rotation)
+    return [rot ? sd : sw, rot ? sw : sd]
+  }
+  const def = (catalogue ?? {})[it.typeKey]
+  const size = def?.sizes?.[it.sizeIndex ?? 0] ?? def?.sizes?.[0]
+  const [fw, fd] = size?.footprint ?? [1, 1]
+  const rot = isRotatedSideways(it.rotation)
+  return [rot ? fd : fw, rot ? fw : fd]
+}
 
 const TOOLS = [
-  { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure' },
+  { id: 'shape',  label: 'Floor Shape',  icon: '▦', desc: 'Drag rectangles to add/remove floor area', group: 'structure', primary: true },
+  { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls', group: 'structure', primary: true },
+  { id: 'door',   label: 'Openings',     icon: '▯', desc: 'Click a wall for a doorway — works on interior and exterior walls', group: 'structure', primary: true },
+  { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to mark stair connection', group: 'stairs', primary: true },
+  { id: 'resize', label: 'Move Wall',    icon: '↔', desc: 'Drag a wall edge to resize rooms', group: 'structure' },
   { id: 'addroom',label: 'Add Room',     icon: '⊞', desc: 'Drag a rectangle to add a walled room', group: 'structure' },
-  { id: 'walls',  label: 'Walls',        icon: '┼', desc: 'Click edges between cells to draw walls', group: 'structure' },
-  { id: 'door',   label: 'Openings',      icon: '▯', desc: 'Click an internal wall to create a doorway opening', group: 'structure' },
-  { id: 'stairs', label: 'Stairs',       icon: '⟋', desc: 'Click a cell to mark stair connection', group: 'stairs' },
   { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it', group: 'rooms' },
   { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste', group: 'rooms' },
 ]
+const PRIMARY_TOOLS   = TOOLS.filter(t => t.primary)
+const SECONDARY_TOOLS = TOOLS.filter(t => !t.primary)
 
 // Flood-fill to detect room zones from internal walls.
 // Returns [{ id: "3,4", cells: Set, seedCell: "3,4" }]
@@ -65,21 +89,34 @@ const ZONE_COLORS = ['#3a5a8a40','#8a5a3a40','#3a8a5a40','#8a3a5a40','#5a8a3a40'
 export default function FloorPlanPage({
   gridW, gridD, cells, internalWalls, doorOpenings, items,
   onToggleCell, onToggleWall, onResizeGrid, onDone,
-  onAddStairs, onRemoveStairs, onAddDoor,
+  onAddStairs, onRemoveStairs, onAddDoor, onRemoveDoor, onAddExteriorDoor,
   onBulkAddCells,
   roomZoneLabels, onSetZoneLabel,
   onEditZone,
   onAddFloor,  // ('above' | 'below', count?) => void — create empty floor(s)
   onDeleteFloors, // (roomIds[]) => void — batch delete floors
+  onLoadBuilding, // (buildingTemplate) => void — load a full building plan
+  onPlaceTemplateItems, // (items[], baseCol, baseRow) => void — add furniture from template
+  onRestoreSnapshot, // ({ cells, internalWalls, doorOpenings }) => void — undo/redo
+  onMoveItem, // (id, col, row) => void — move an item
+  onSelectItem, // (id) => void — select an item
+  onDeleteItem, // (id) => void — delete an item
+  onRotateItem, // (id, deg) => void — rotate an item
+  onResizeItem, // (id, sizeIndex) => void — change item size
+  selectedId,
+  catalogue,
   // Multi-floor
   activeFloorLevel, floorStack, allRoomsData, onSwitchFloor,
 }) {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
-  const [tool, setTool] = useState('shape')
+  const [tool, setTool] = useState(null)
+  const [showMoreTools, setShowMoreTools] = useState(false)
+  const [stairRotation, setStairRotation] = useState(0)
   const [hoverInfo, setHoverInfo] = useState(null)
   const rectRef = useRef(null)
   const wallDragRef = useRef(null)
+  const resizeDragRef = useRef(null) // { wall: 'N'|'S'|'E'|'W', cells: [col,row keys along the wall], startPos: int, currentPos: int }
   // Copy room: { cells: Set of relative "dc,dr", walls: Set of relative edges, w, d }
   const [clipboard, setClipboard] = useState(null)
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 })
@@ -87,6 +124,8 @@ export default function FloorPlanPage({
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const panStartRef = useRef(null)
   const [editingLabel, setEditingLabel] = useState(null)
+  const [selectedZoneIdx, setSelectedZoneIdx] = useState(null)
+  const [draggingLabel, setDraggingLabel] = useState(null) // { label, x, y } when dragging a room tag
   const [deleteMode, setDeleteMode] = useState(false)
   const [deleteSelection, setDeleteSelection] = useState(new Set()) // roomIds to delete
   // Background image for tracing
@@ -95,7 +134,21 @@ export default function FloorPlanPage({
   // Import modals
   const [showImport, setShowImport] = useState(false)
   const [dimInput, setDimInput] = useState({ name: '', w: 12, d: 10 })
+  const [gridInput, setGridInput] = useState({ w: gridW, d: gridD })
   const fileInputRef = useRef(null)
+
+  // ── Undo stack for floor plan actions ──────────────────────────────
+  const undoStackRef = useRef([])
+  const redoStackRef = useRef([])
+  const saveUndoSnapshot = useCallback(() => {
+    undoStackRef.current.push({
+      cells: new Set(cells),
+      internalWalls: new Set(internalWalls ?? []),
+      doorOpenings: new Set(doorOpenings ?? []),
+    })
+    if (undoStackRef.current.length > 40) undoStackRef.current.shift()
+    redoStackRef.current = []
+  }, [cells, internalWalls, doorOpenings])
   const roomPlanInputRef = useRef(null)
 
   // Auto-detect room zones
@@ -110,12 +163,30 @@ export default function FloorPlanPage({
     return null
   }, [allRoomsData, activeFloorLevel])
 
-  // ESC clears clipboard
+  // ESC clears clipboard; Ctrl+Z/Y undo/redo floor plan changes
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') setClipboard(null) }
+    const onKey = (e) => {
+      if (e.key === 'Escape') setClipboard(null)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        const snap = undoStackRef.current.pop()
+        if (snap) {
+          redoStackRef.current.push({ cells: new Set(cells), internalWalls: new Set(internalWalls ?? []), doorOpenings: new Set(doorOpenings ?? []) })
+          onRestoreSnapshot?.(snap)
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        const snap = redoStackRef.current.pop()
+        if (snap) {
+          undoStackRef.current.push({ cells: new Set(cells), internalWalls: new Set(internalWalls ?? []), doorOpenings: new Set(doorOpenings ?? []) })
+          onRestoreSnapshot?.(snap)
+        }
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [cells, internalWalls, doorOpenings, onRestoreSnapshot])
 
   // Space key for pan mode
   const spaceRef = useRef(false)
@@ -126,6 +197,18 @@ export default function FloorPlanPage({
     window.addEventListener('keyup', up)
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
   }, [])
+
+  // R key rotates stairs when stairs tool is active
+  useEffect(() => {
+    const onKey = (e) => {
+      if (tool !== 'stairs') return
+      const tag = document.activeElement?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'r' || e.key === 'R') { e.preventDefault(); setStairRotation(r => (r + 90) % 360) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [tool])
 
   useEffect(() => {
     const update = () => {
@@ -203,10 +286,24 @@ export default function FloorPlanPage({
 
     // Room zone fills
     roomZones.forEach(({ id: zoneId, cells: zoneCells }, zi) => {
-      ctx.fillStyle = ZONE_COLORS[zi % ZONE_COLORS.length]
+      const isSelectedZone = zi === selectedZoneIdx
+      ctx.fillStyle = isSelectedZone ? 'rgba(120,90,238,0.25)' : ZONE_COLORS[zi % ZONE_COLORS.length]
       for (const key of zoneCells) {
         const [c, r] = key.split(',').map(Number)
         ctx.fillRect(offsetX + c * cellSize + 0.5, offsetY + r * cellSize + 0.5, cellSize - 1, cellSize - 1)
+      }
+      // Selected zone border
+      if (isSelectedZone) {
+        ctx.strokeStyle = '#7a5aee'
+        ctx.lineWidth = 2
+        for (const key of zoneCells) {
+          const [c, r] = key.split(',').map(Number)
+          const x = offsetX + c * cellSize, y = offsetY + r * cellSize
+          if (!zoneCells.has(`${c},${r-1}`)) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); ctx.stroke() }
+          if (!zoneCells.has(`${c},${r+1}`)) { ctx.beginPath(); ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); ctx.stroke() }
+          if (!zoneCells.has(`${c-1},${r}`)) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); ctx.stroke() }
+          if (!zoneCells.has(`${c+1},${r}`)) { ctx.beginPath(); ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); ctx.stroke() }
+        }
       }
       // Zone label at centroid
       let sumC = 0, sumR = 0
@@ -218,12 +315,37 @@ export default function FloorPlanPage({
       ctx.font = `bold ${Math.max(9, cellSize * 0.45)}px Outfit, sans-serif`
       ctx.textAlign = 'center'
       ctx.fillText(label, cx, cy)
+      // Compute zone bounding box for dimensions
+      let zMinC = Infinity, zMinR = Infinity, zMaxC = -Infinity, zMaxR = -Infinity
+      for (const key of zoneCells) { const [c, r] = key.split(',').map(Number); zMinC = Math.min(zMinC, c); zMinR = Math.min(zMinR, r); zMaxC = Math.max(zMaxC, c); zMaxR = Math.max(zMaxR, r) }
+      const zW = zMaxC - zMinC + 1, zD = zMaxR - zMinR + 1
       ctx.fillStyle = '#606080'
       ctx.font = `${Math.max(8, cellSize * 0.35)}px Outfit, sans-serif`
-      ctx.fillText(`${zoneCells.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
+      ctx.fillText(`${zW}×${zD} ft · ${zoneCells.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
       ctx.fillStyle = '#50c87880'
       ctx.font = `${Math.max(7, cellSize * 0.3)}px Outfit, sans-serif`
       ctx.fillText('double-click to edit', cx, cy + Math.max(22, cellSize * 0.8))
+      // Dimension rulers along zone edges (when zoomed in enough)
+      if (cellSize >= 14) {
+        ctx.strokeStyle = '#40608030'
+        ctx.lineWidth = 1
+        ctx.setLineDash([3, 3])
+        // Top edge dimension
+        const tx = offsetX + zMinC * cellSize, ty = offsetY + zMinR * cellSize - 8
+        ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + zW * cellSize, ty); ctx.stroke()
+        ctx.fillStyle = '#607090'
+        ctx.font = `${Math.max(8, cellSize * 0.28)}px Outfit, sans-serif`
+        ctx.fillText(`${zW}'`, tx + zW * cellSize / 2, ty - 2)
+        // Left edge dimension
+        const lx = offsetX + zMinC * cellSize - 8, ly = offsetY + zMinR * cellSize
+        ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx, ly + zD * cellSize); ctx.stroke()
+        ctx.save()
+        ctx.translate(lx - 2, ly + zD * cellSize / 2)
+        ctx.rotate(-Math.PI / 2)
+        ctx.fillText(`${zD}'`, 0, 0)
+        ctx.restore()
+        ctx.setLineDash([])
+      }
     })
 
     // Active cells (on top of zone fill)
@@ -263,11 +385,66 @@ export default function FloorPlanPage({
       ctx.stroke()
     }
 
+    // Door openings (dashed blue lines)
+    ctx.strokeStyle = '#60a0ff'
+    ctx.lineWidth = Math.max(2, cellSize * 0.1)
+    ctx.setLineDash([cellSize * 0.15, cellSize * 0.1])
+    for (const edgeKey of (doorOpenings ?? [])) {
+      const sep = edgeKey.lastIndexOf(':')
+      const [c, r] = edgeKey.slice(0, sep).split(',').map(Number)
+      const dir = edgeKey.slice(sep + 1)
+      const x = offsetX + c * cellSize, y = offsetY + r * cellSize
+      ctx.beginPath()
+      if (dir === 'N') { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y) }
+      if (dir === 'S') { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize) }
+      if (dir === 'W') { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize) }
+      if (dir === 'E') { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize) }
+      ctx.stroke()
+    }
+    ctx.setLineDash([])
+
+    // Furniture items — rotated footprints from catalogue
+    if (cellSize >= 6) {
+      const ITEM_CAT = catalogue ?? {}
+      for (const it of (items ?? [])) {
+        if (it.stairs || it.wall || it.ceiling || it.returnStair) continue
+        const def = ITEM_CAT[it.typeKey]
+        const size = def?.sizes?.[it.sizeIndex ?? 0] ?? def?.sizes?.[0]
+        const [fw, fd] = size?.footprint ?? [1, 1]
+        const w = fw * cellSize, h = fd * cellSize
+        const rot = ((it.rotation ?? 0) * Math.PI) / 180
+        // Use AABB for position (col/row defines top-left of effective footprint)
+        const [ew, ed] = getItemFootprint(it, ITEM_CAT)
+        const cx = offsetX + (it.col + ew / 2) * cellSize
+        const cy = offsetY + (it.row + ed / 2) * cellSize
+        const isSel = it.id === selectedId
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(rot)
+        // Fill
+        ctx.fillStyle = isSel ? 'rgba(120,90,238,0.4)' : 'rgba(140,120,180,0.3)'
+        ctx.fillRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2)
+        // Border
+        ctx.strokeStyle = isSel ? '#7a5aee' : '#8070a0'
+        ctx.lineWidth = isSel ? 2 : 1
+        ctx.strokeRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2)
+        // Label
+        if (cellSize >= 12 && def?.name) {
+          ctx.rotate(-rot) // keep text upright
+          ctx.fillStyle = isSel ? '#c0b0f0' : '#9080b0'
+          ctx.font = `${Math.max(7, cellSize * 0.28)}px Outfit, sans-serif`
+          ctx.textAlign = 'center'
+          ctx.fillText(def.name, 0, 3)
+        }
+        ctx.restore()
+      }
+    }
+
     // Stairs
     for (const it of (items ?? [])) {
       if (!it.stairs || it.returnStair) continue
       const sw = it.stairW ?? 3, sd = it.stairD ?? 5
-      const rot = it.rotation === 90 || it.rotation === 270
+      const rot = isRotatedSideways(it.rotation)
       const ew = rot ? sd : sw, ed = rot ? sw : sd
       const x = offsetX + it.col * cellSize, y = offsetY + it.row * cellSize
       ctx.fillStyle = 'rgba(180,140,80,0.35)'
@@ -306,9 +483,9 @@ export default function FloorPlanPage({
         ctx.fillStyle = cells.has(`${col},${row}`) ? 'rgba(255,70,70,0.2)' : 'rgba(70,200,120,0.2)'
         ctx.fillRect(offsetX + col * cellSize, offsetY + row * cellSize, cellSize, cellSize)
       } else if (hoverInfo.edge) {
-        const { col, row, dir } = hoverInfo.edge
+        const { col, row, dir, isBoundary } = hoverInfo.edge
         const x = offsetX + col * cellSize, y = offsetY + row * cellSize
-        ctx.strokeStyle = tool === 'door' ? '#60a0ff' : '#ffd060'
+        ctx.strokeStyle = tool === 'door' ? (isBoundary ? '#ffa040' : '#60a0ff') : '#ffd060'
         ctx.lineWidth = 3
         ctx.beginPath()
         if (dir === 'N') { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y) }
@@ -318,8 +495,32 @@ export default function FloorPlanPage({
         ctx.stroke()
       } else if (tool === 'stairs' && hoverInfo.col != null) {
         const { col, row } = hoverInfo
+        const rot90 = stairRotation === 90 || stairRotation === 270
+        const hw = rot90 ? 5 : 3, hd = rot90 ? 3 : 5
         ctx.fillStyle = 'rgba(180,140,80,0.3)'
-        ctx.fillRect(offsetX + col * cellSize, offsetY + row * cellSize, 3 * cellSize, 5 * cellSize)
+        ctx.fillRect(offsetX + col * cellSize, offsetY + row * cellSize, hw * cellSize, hd * cellSize)
+        ctx.strokeStyle = '#c09040'
+        ctx.lineWidth = 1.5
+        ctx.strokeRect(offsetX + col * cellSize + 1, offsetY + row * cellSize + 1, hw * cellSize - 2, hd * cellSize - 2)
+        // Tread lines
+        const steps = 7
+        ctx.lineWidth = 0.5; ctx.strokeStyle = '#b08a50'
+        for (let i = 1; i < steps; i++) {
+          const frac = i / steps
+          ctx.beginPath()
+          if (rot90) { const sx = offsetX + col * cellSize + frac * hw * cellSize; ctx.moveTo(sx, offsetY + row * cellSize); ctx.lineTo(sx, offsetY + (row + hd) * cellSize) }
+          else { const sy = offsetY + row * cellSize + frac * hd * cellSize; ctx.moveTo(offsetX + col * cellSize, sy); ctx.lineTo(offsetX + (col + hw) * cellSize, sy) }
+          ctx.stroke()
+        }
+        // Direction arrow
+        ctx.fillStyle = '#c09040'
+        ctx.font = `bold ${Math.max(11, cellSize * 0.6)}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.fillText(['↑','→','↓','←'][stairRotation / 90], offsetX + (col + hw / 2) * cellSize, offsetY + (row + hd / 2) * cellSize + 5)
+        // "R to rotate" hint
+        ctx.fillStyle = '#a08040'
+        ctx.font = `${Math.max(8, cellSize * 0.32)}px Outfit, sans-serif`
+        ctx.fillText(`R to rotate (${stairRotation}°)`, offsetX + (col + hw / 2) * cellSize, offsetY + (row + hd + 0.5) * cellSize)
       } else if (tool === 'copy' && clipboard && hoverInfo.col != null) {
         // Show paste preview
         const { col, row } = hoverInfo
@@ -345,13 +546,39 @@ export default function FloorPlanPage({
       }
     }
 
+    // Resize drag preview
+    if (hoverInfo?.resize && hoverInfo.resize.wallCells) {
+      const r = hoverInfo.resize
+      const delta = r.currentPos - r.startPos
+      if (delta !== 0) {
+        ctx.fillStyle = delta > 0 ? 'rgba(70,200,120,0.25)' : 'rgba(255,70,70,0.25)'
+        for (const key of r.wallCells) {
+          const [c, row] = key.split(',').map(Number)
+          for (let d = 1; d <= Math.abs(delta); d++) {
+            let nc = c, nr = row
+            if (r.wall === 'S') nr = delta > 0 ? row + d : row + 1 - d
+            else if (r.wall === 'N') nr = delta < 0 ? row - d : row - 1 + d
+            else if (r.wall === 'E') nc = delta > 0 ? c + d : c + 1 - d
+            else if (r.wall === 'W') nc = delta < 0 ? c - d : c - 1 + d
+            ctx.fillRect(offsetX + nc * cellSize, offsetY + nr * cellSize, cellSize, cellSize)
+          }
+        }
+        // Show delta label
+        ctx.fillStyle = delta > 0 ? '#50c878' : '#ff5050'
+        ctx.font = `bold ${Math.max(10, cellSize * 0.5)}px Outfit, sans-serif`
+        ctx.textAlign = 'center'
+        const [fc, fr] = r.wallCells[Math.floor(r.wallCells.length / 2)].split(',').map(Number)
+        ctx.fillText(`${delta > 0 ? '+' : ''}${delta} ft`, offsetX + (fc + 0.5) * cellSize, offsetY + (fr + 0.5) * cellSize)
+      }
+    }
+
     // Info
     ctx.fillStyle = '#404060'
     ctx.font = '11px Outfit, sans-serif'
     ctx.textAlign = 'left'
     const floorLabel = activeFloorLevel === 0 ? 'Ground Floor' : activeFloorLevel < 0 ? `Basement ${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`
     ctx.fillText(`${floorLabel} · ${gridW}×${gridD} ft · ${cells.size} sq ft · ${roomZones.length} rooms · ${Math.round(zoom * 100)}%`, 8, canvasSize.h - 8)
-  }, [canvasSize, gridW, gridD, cells, internalWalls, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard])
+  }, [canvasSize, gridW, gridD, cells, internalWalls, doorOpenings, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard, stairRotation, selectedId, catalogue, selectedZoneIdx])
 
   useEffect(() => { draw() }, [draw])
 
@@ -366,7 +593,7 @@ export default function FloorPlanPage({
     return { col, row, fx: (px / cellSize) - col, fy: (py / cellSize) - row }
   }
 
-  const getEdge = (col, row, fx, fy, lockedAxis) => {
+  const getEdge = (col, row, fx, fy, lockedAxis, allowBoundary = false) => {
     let edges = [
       { dir: 'N', dist: fy, axis: 'h' }, { dir: 'S', dist: 1 - fy, axis: 'h' },
       { dir: 'W', dist: fx, axis: 'v' }, { dir: 'E', dist: 1 - fx, axis: 'v' },
@@ -377,8 +604,10 @@ export default function FloorPlanPage({
     if (nearest.dist > 0.45) return null
     const nb = nearest.dir === 'N' ? `${col},${row-1}` : nearest.dir === 'S' ? `${col},${row+1}` :
                nearest.dir === 'W' ? `${col-1},${row}` : `${col+1},${row}`
-    if (!cells.has(`${col},${row}`) || !cells.has(nb)) return null
-    return { col, row, dir: nearest.dir }
+    if (!cells.has(`${col},${row}`)) return null
+    const isBoundary = !cells.has(nb)
+    if (isBoundary && !allowBoundary) return null
+    return { col, row, dir: nearest.dir, isBoundary }
   }
 
   // ── Interactions ────────────────────────────────────────────────
@@ -393,12 +622,88 @@ export default function FloorPlanPage({
     const info = getCellFromMouse(e)
     if (!info) return
 
+    // No tool: select/drag items (including stairs)
+    if (!tool) {
+      const ITEM_CAT = catalogue ?? {}
+      // Use fractional position for precise hit testing
+      const clickCol = info.col + info.fx
+      const clickRow = info.row + info.fy
+      const hit = (items ?? []).find(it => {
+        if (it.wall || it.ceiling || it.returnStair) return false
+        const [ew, ed] = getItemFootprint(it, ITEM_CAT)
+        return clickCol >= it.col && clickCol < it.col + ew && clickRow >= it.row && clickRow < it.row + ed
+      })
+      if (hit) {
+        onSelectItem?.(hit.id)
+        const dragId = hit.id
+        const offC = info.col - hit.col, offR = info.row - hit.row
+        // Get dragged item's size for smart snap
+        const hitDef = ITEM_CAT[hit.typeKey]
+        const hitSize = hitDef?.sizes?.[hit.sizeIndex ?? 0]
+        const [hitFw, hitFd] = hit.stairs ? [hit.stairW ?? 3, hit.stairD ?? 10] : (hitSize?.footprint ?? [1, 1])
+        const hitRot = hit.rotation === 90 || hit.rotation === 270
+        const hitEw = hitRot ? hitFd : hitFw, hitEd = hitRot ? hitFw : hitFd
+
+        const handleItemMove = (ev) => {
+          const g = getCellFromMouse(ev)
+          if (!g) return
+          let newCol = Math.round((g.col - offC) * 4) / 4
+          let newRow = Math.round((g.row - offR) * 4) / 4
+
+          // Smart snap: align to other items in the floor plan
+          const SNAP = 0.5
+          let bestDx = SNAP, bestDz = SNAP
+          let snapCol = newCol, snapRow = newRow
+          for (const other of (items ?? [])) {
+            if (other.id === dragId || other.wall || other.ceiling || other.returnStair) continue
+            const [oew, oed] = getItemFootprint(other, ITEM_CAT)
+            const GAP = 0.08  // tight gap for chairs-to-table alignment
+            // X alignment: edge-to-edge, center-to-center, adjacent with gap
+            for (const [from, to] of [
+              [newCol, other.col], [newCol + hitEw, other.col + oew],  // edge align
+              [newCol, other.col + oew + GAP], [newCol + hitEw, other.col - GAP],  // adjacent
+              [newCol + hitEw/2, other.col + oew/2],  // center
+            ]) {
+              const dx = Math.abs(from - to)
+              if (dx < bestDx) { bestDx = dx; snapCol = newCol + (to - from) }
+            }
+            // Z alignment
+            for (const [from, to] of [
+              [newRow, other.row], [newRow + hitEd, other.row + oed],
+              [newRow, other.row + oed + GAP], [newRow + hitEd, other.row - GAP],
+              [newRow + hitEd/2, other.row + oed/2],
+            ]) {
+              const dz = Math.abs(from - to)
+              if (dz < bestDz) { bestDz = dz; snapRow = newRow + (to - from) }
+            }
+          }
+          newCol = snapCol; newRow = snapRow
+          onMoveItem?.(dragId, newCol, newRow)
+        }
+        const handleItemUp = () => {
+          window.removeEventListener('pointermove', handleItemMove)
+          window.removeEventListener('pointerup', handleItemUp)
+        }
+        window.addEventListener('pointermove', handleItemMove)
+        window.addEventListener('pointerup', handleItemUp)
+      } else {
+        onSelectItem?.(null)
+        // Also check if clicking a zone — select it for labeling
+        const key = `${Math.floor(info.col)},${Math.floor(info.row)}`
+        const zIdx = roomZones.findIndex(z => z.cells.has(key))
+        setSelectedZoneIdx(zIdx >= 0 ? zIdx : null)
+      }
+      return
+    }
+
     if (tool === 'shape' || tool === 'addroom') {
+      saveUndoSnapshot()
       const key = `${info.col},${info.row}`
       const action = tool === 'addroom' ? 'addroom' : (cells.has(key) ? 'remove' : 'add')
       rectRef.current = { startCol: info.col, startRow: info.row, endCol: info.col, endRow: info.row, action }
       setHoverInfo({ rect: rectRef.current })
     } else if (tool === 'walls') {
+      saveUndoSnapshot()
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
       if (!edge) return
       const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
@@ -406,10 +711,55 @@ export default function FloorPlanPage({
       wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]), axis }
       onToggleWall(key)
     } else if (tool === 'door') {
-      const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
-      if (edge) onAddDoor?.(info.col, info.row, edge.dir)
+      const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
+      if (!edge) return
+      saveUndoSnapshot()
+      // Check if there's already an opening here — remove it
+      const openKey = `${edge.col},${edge.row}:${edge.dir}`
+      if (doorOpenings?.has(openKey)) {
+        onRemoveDoor?.(edge.col, edge.row, edge.dir)
+        return
+      }
+      if (edge.isBoundary) {
+        const wallU = (edge.dir === 'N' || edge.dir === 'S') ? info.col + 0.5 : info.row + 0.5
+        onAddExteriorDoor?.(edge.dir, wallU)
+      } else {
+        onAddDoor?.(info.col, info.row, edge.dir)
+      }
     } else if (tool === 'stairs') {
-      if (cells.has(`${info.col},${info.row}`)) onAddStairs?.(info.col, info.row)
+      if (!cells.has(`${info.col},${info.row}`)) return
+      // Check if clicking on an existing stair — remove it instead
+      const existingStair = (items ?? []).find(it => {
+        if (!it.stairs || it.returnStair) return false
+        const sw = it.stairW ?? 3, sd = it.stairD ?? 5
+        const rot = isRotatedSideways(it.rotation)
+        const ew = rot ? sd : sw, ed = rot ? sw : sd
+        return info.col >= it.col && info.col < it.col + ew && info.row >= it.row && info.row < it.row + ed
+      })
+      if (existingStair) {
+        if (window.confirm('Remove these stairs?')) onRemoveStairs?.(existingStair.id)
+      } else {
+        onAddStairs?.(info.col, info.row, stairRotation)
+      }
+    } else if (tool === 'resize') {
+      // Find which boundary wall the user clicked near
+      const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
+      if (!edge || !edge.isBoundary) return
+      saveUndoSnapshot()
+      // Collect all cells along this boundary edge (contiguous cells sharing the same wall direction)
+      const wallCells = []
+      const isHoriz = edge.dir === 'N' || edge.dir === 'S'
+      for (const key of cells) {
+        const [c, r] = key.split(',').map(Number)
+        const nb = edge.dir === 'N' ? `${c},${r-1}` : edge.dir === 'S' ? `${c},${r+1}` : edge.dir === 'W' ? `${c-1},${r}` : `${c+1},${r}`
+        if (!cells.has(nb)) {
+          if (isHoriz && r === info.row) wallCells.push(key)
+          else if (!isHoriz && c === info.col) wallCells.push(key)
+        }
+      }
+      const startPos = isHoriz ? info.row : info.col
+      resizeDragRef.current = { wall: edge.dir, wallCells, startPos, currentPos: startPos, isHoriz }
+      setHoverInfo({ resize: { ...resizeDragRef.current } })
     } else if (tool === 'label') {
       const key = `${info.col},${info.row}`
       const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
@@ -450,7 +800,10 @@ export default function FloorPlanPage({
           const [c, r] = k.split(',').map(Number)
           maxC = Math.max(maxC, c - minC); maxR = Math.max(maxR, r - minR)
         }
-        setClipboard({ cells: relCells, walls: relWalls, w: maxC + 1, d: maxR + 1 })
+        // Capture items within this zone (relative positions)
+        const relItems = (items ?? []).filter(it => !it.stairs && zone.cells.has(`${it.col},${it.row}`))
+          .map(it => ({ typeKey: it.typeKey, col: it.col - minC, row: it.row - minR, rotation: it.rotation ?? 0, sizeIndex: it.sizeIndex ?? 0, swatchIndex: it.swatchIndex ?? 0 }))
+        setClipboard({ cells: relCells, walls: relWalls, items: relItems, w: maxC + 1, d: maxR + 1 })
       } else {
         // PASTE: place copied room at cursor position
         const { cells: relCells, walls: relWalls } = clipboard
@@ -467,6 +820,8 @@ export default function FloorPlanPage({
           const newKey = `${baseC + dc},${baseR + dr}:${dir}`
           if (!internalWalls?.has(newKey)) onToggleWall(newKey)
         }
+        // Paste copied items (offset to paste position)
+        if (clipboard.items?.length > 0) onPlaceTemplateItems?.(clipboard.items, baseC, baseR)
         setClipboard(null)  // Clear after paste (click again on source to re-copy)
       }
     }
@@ -491,7 +846,7 @@ export default function FloorPlanPage({
       }
     } else if (tool === 'walls' || tool === 'door') {
       const lockedAxis = wallDragRef.current?.axis ?? null
-      const edge = getEdge(info.col, info.row, info.fx, info.fy, lockedAxis)
+      const edge = getEdge(info.col, info.row, info.fx, info.fy, lockedAxis, tool === 'door')
       setHoverInfo(edge ? { edge } : null)
       if (wallDragRef.current && edge) {
         const edgeAxis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
@@ -501,6 +856,16 @@ export default function FloorPlanPage({
         wallDragRef.current.placed.add(key)
         if (wallDragRef.current.erasing) { if (internalWalls?.has(key)) onToggleWall(key) }
         else { if (!internalWalls?.has(key)) onToggleWall(key) }
+      }
+    } else if (tool === 'resize') {
+      if (resizeDragRef.current) {
+        const r = resizeDragRef.current
+        r.currentPos = r.isHoriz ? info.row : info.col
+        setHoverInfo({ resize: { ...r } })
+      } else {
+        // Show hover for boundary edges
+        const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
+        setHoverInfo(edge?.isBoundary ? { edge, resize: true } : null)
       }
     } else if (tool === 'stairs' || tool === 'copy') {
       setHoverInfo({ col: info.col, row: info.row })
@@ -547,6 +912,44 @@ export default function FloorPlanPage({
           }
       }
       rectRef.current = null; setHoverInfo(null)
+    }
+    // Apply resize drag
+    if (resizeDragRef.current) {
+      const r = resizeDragRef.current
+      const delta = r.currentPos - r.startPos
+      if (delta !== 0) {
+        // Expand or shrink: add/remove rows of cells along the wall
+        for (const key of r.wallCells) {
+          const [c, row] = key.split(',').map(Number)
+          if (r.wall === 'S') {
+            // Dragging south wall: add cells below or remove from bottom
+            for (let d = 1; d <= Math.abs(delta); d++) {
+              const nr = delta > 0 ? row + d : row + 1 - d
+              if (delta > 0 && !cells.has(`${c},${nr}`)) onToggleCell(c, nr)
+              if (delta < 0 && cells.has(`${c},${nr}`)) onToggleCell(c, nr)
+            }
+          } else if (r.wall === 'N') {
+            for (let d = 1; d <= Math.abs(delta); d++) {
+              const nr = delta < 0 ? row - d : row - 1 + d
+              if (delta < 0 && !cells.has(`${c},${nr}`)) onToggleCell(c, nr)
+              if (delta > 0 && cells.has(`${c},${nr}`)) onToggleCell(c, nr)
+            }
+          } else if (r.wall === 'E') {
+            for (let d = 1; d <= Math.abs(delta); d++) {
+              const nc = delta > 0 ? c + d : c + 1 - d
+              if (delta > 0 && !cells.has(`${nc},${row}`)) onToggleCell(nc, row)
+              if (delta < 0 && cells.has(`${nc},${row}`)) onToggleCell(nc, row)
+            }
+          } else if (r.wall === 'W') {
+            for (let d = 1; d <= Math.abs(delta); d++) {
+              const nc = delta < 0 ? c - d : c - 1 + d
+              if (delta < 0 && !cells.has(`${nc},${row}`)) onToggleCell(nc, row)
+              if (delta > 0 && cells.has(`${nc},${row}`)) onToggleCell(nc, row)
+            }
+          }
+        }
+      }
+      resizeDragRef.current = null; setHoverInfo(null)
     }
     wallDragRef.current = null
   }
@@ -684,30 +1087,44 @@ export default function FloorPlanPage({
 
         <div style={{ height: 1, background: '#1e1e30', margin: '2px 10px' }} />
 
-        {/* Tool groups */}
-        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Structure</div>
-        {TOOLS.filter(t => t.group === 'structure').map(t => (
-          <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
-            <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
+        {/* ── 4 Primary tools (2×2 grid) ─────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: '4px 8px' }}>
+          {PRIMARY_TOOLS.map(t => (
+            <button key={t.id} onClick={() => setTool(tool === t.id ? null : t.id)} title={t.desc} style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              padding: '8px 4px', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit',
+              border: tool === t.id ? '1.5px solid #7a5aee' : '1px solid #2a2a40',
+              background: tool === t.id ? 'rgba(120,90,238,0.18)' : '#12122a',
+              color: tool === t.id ? '#a090ff' : '#7070a0',
+              fontSize: 10, fontWeight: 600,
+            }}>
+              <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
 
-        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Stairs</div>
-        {TOOLS.filter(t => t.group === 'stairs').map(t => (
-          <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
-            <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
-
-        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 4 }}>Rooms</div>
-        {TOOLS.filter(t => t.group === 'rooms').map(t => (
-          <button key={t.id} onClick={() => setTool(t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
-            <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
+        {/* ── "More tools" overflow toggle ─────────────────── */}
+        <button onClick={() => setShowMoreTools(p => !p)} style={{
+          width: 'calc(100% - 16px)', margin: '2px 8px',
+          padding: '5px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 5, border: '1px solid #2a2a40', borderRadius: 5,
+          background: showMoreTools ? '#1a1a30' : '#12122a',
+          color: '#6060a0', cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600,
+        }}>
+          <span style={{ fontSize: 13 }}>{showMoreTools ? '▲' : '···'}</span>
+          {showMoreTools ? 'Less' : 'More tools'}
+        </button>
+        {showMoreTools && (
+          <div style={{ padding: '0 0 4px' }}>
+            {SECONDARY_TOOLS.map(t => (
+              <button key={t.id} onClick={() => setTool(tool === t.id ? null : t.id)} style={toolBtn(tool === t.id)} title={t.desc}>
+                <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{t.icon}</span>
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Divider */}
         <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
@@ -797,34 +1214,66 @@ export default function FloorPlanPage({
           </div>
         )}
 
-        {/* Room templates */}
+        {/* Room type labels — click a zone on the canvas, then click a label to name it */}
         <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
-        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Templates</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: '0 6px', maxHeight: 100, overflowY: 'auto' }}>
-          {ROOM_TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => {
-              // Auto-place template: add cells + walls + queue furniture
-              const baseC = 25, baseR = 25  // center of workspace
-              for (let c = 0; c < t.w; c++)
-                for (let r = 0; r < t.d; r++)
-                  if (!cells.has(`${baseC + c},${baseR + r}`)) onToggleCell(baseC + c, baseR + r)
-              // Add walls around the template room where it borders existing cells
-              const existingBefore = new Set(cells)
-              for (let c = 0; c < t.w; c++) {
-                if (existingBefore.has(`${baseC + c},${baseR - 1}`)) onToggleWall(`${baseC + c},${baseR}:N`)
-                if (existingBefore.has(`${baseC + c},${baseR + t.d}`)) onToggleWall(`${baseC + c},${baseR + t.d - 1}:S`)
-              }
-              for (let r = 0; r < t.d; r++) {
-                if (existingBefore.has(`${baseC - 1},${baseR + r}`)) onToggleWall(`${baseC},${baseR + r}:W`)
-                if (existingBefore.has(`${baseC + t.w},${baseR + r}`)) onToggleWall(`${baseC + t.w - 1},${baseR + r}:E`)
-              }
-            }} title={`${t.name}: ${t.desc} (${t.w}×${t.d} ft)`}
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Room Labels</div>
+        <div style={{ fontSize: 9, color: '#404060', padding: '0 10px 4px' }}>
+          {selectedZoneIdx != null
+            ? <span>Selected: <strong style={{ color: '#a0a0c0' }}>{roomZoneLabels?.[`zone_${roomZones[selectedZoneIdx]?.id}`] || `Room ${selectedZoneIdx + 1}`}</strong> — click a label</span>
+            : 'Click a room on the plan to select it, then click a label'}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: '0 6px 4px', flexShrink: 0 }}>
+          {[
+            { id: 'kitchen', label: 'Kitchen', icon: '🍳' },
+            { id: 'living', label: 'Living Room', icon: '🛋' },
+            { id: 'bedroom', label: 'Bedroom', icon: '🛏' },
+            { id: 'bathroom', label: 'Bathroom', icon: '🚿' },
+            { id: 'dining', label: 'Dining Room', icon: '🍽' },
+            { id: 'office', label: 'Office', icon: '💻' },
+            { id: 'entry', label: 'Entryway', icon: '🚪' },
+            { id: 'hallway', label: 'Hallway', icon: '🚶' },
+            { id: 'laundry', label: 'Laundry', icon: '🧺' },
+            { id: 'garage', label: 'Garage', icon: '🚗' },
+            { id: 'closet', label: 'Closet', icon: '👔' },
+            { id: 'nursery', label: 'Nursery', icon: '👶' },
+            { id: 'guest', label: 'Guest Room', icon: '🏨' },
+            { id: 'patio', label: 'Patio', icon: '☀️' },
+            { id: 'storage', label: 'Storage', icon: '📦' },
+          ].map(rt => (
+            <button key={rt.id}
+              onClick={() => {
+                if (selectedZoneIdx != null) onSetZoneLabel?.(selectedZoneIdx, rt.label)
+                else if (roomZones.length === 1) onSetZoneLabel?.(0, rt.label)
+              }}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', rt.label)
+                setDraggingLabel({ label: rt.label, icon: rt.icon })
+              }}
+              onDragEnd={() => setDraggingLabel(null)}
               style={{
-                padding: '4px 8px', borderRadius: 5, border: '1px solid #2a2a40',
-                background: '#12122a', color: '#707090', cursor: 'pointer',
+                padding: '3px 8px', borderRadius: 5, border: '1px solid #2a2a40',
+                background: '#12122a', color: '#808090', cursor: 'grab',
                 fontSize: 10, fontFamily: 'inherit', whiteSpace: 'nowrap',
               }}>
-              {t.icon} {t.name}
+              {rt.icon} {rt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Building templates (full floor plans) */}
+        <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
+        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Buildings</div>
+        <div style={{ padding: '0 0 4px', flexShrink: 0 }}>
+          {BUILDING_TEMPLATES.map(b => (
+            <button key={b.id} onClick={() => {
+              if (cells.size > 0 && !window.confirm(`Load "${b.name}"? This replaces the current floor plan.`)) return
+              onLoadBuilding?.(b)
+            }} title={`${b.name}: ${b.desc} (${b.floors.length} floor${b.floors.length > 1 ? 's' : ''})`}
+              style={toolBtn(false)}>
+              <span style={{ fontSize: 15, width: 20, textAlign: 'center', flexShrink: 0 }}>{b.icon}</span>
+              <span>{b.name}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 9, color: '#505070' }}>{b.floors.length}F</span>
             </button>
           ))}
         </div>
@@ -838,15 +1287,26 @@ export default function FloorPlanPage({
 
         <div style={{ flex: 1 }} />
 
-        {/* Workspace info */}
-        <div style={{ padding: '6px 10px', fontSize: 10, color: '#404060' }}>
-          Workspace: {gridW}×{gridD} ft
-          {gridW < 100 && (
-            <button onClick={() => onResizeGrid?.(Math.min(200, gridW + 40), Math.min(200, gridD + 40))}
-              style={{ marginLeft: 6, padding: '2px 6px', borderRadius: 3, border: '1px solid #2a2a40', background: '#12122a', color: '#606080', cursor: 'pointer', fontSize: 9, fontFamily: 'inherit' }}>
-              Expand
+        {/* Workspace size */}
+        <div style={{ padding: '4px 10px', fontSize: 10, color: '#404060' }}>
+          <div style={{ marginBottom: 3, fontWeight: 600 }}>Workspace</div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <input type="number" min={10} max={200} value={gridInput.w}
+              onChange={e => setGridInput(g => ({ ...g, w: Number(e.target.value) || gridW }))}
+              style={{ width: 40, padding: '3px 4px', borderRadius: 3, border: '1px solid #2a2a40', background: '#12122a', color: '#b0b0c0', fontSize: 10, textAlign: 'center', fontFamily: 'inherit' }}
+            />
+            <span>×</span>
+            <input type="number" min={10} max={200} value={gridInput.d}
+              onChange={e => setGridInput(g => ({ ...g, d: Number(e.target.value) || gridD }))}
+              style={{ width: 40, padding: '3px 4px', borderRadius: 3, border: '1px solid #2a2a40', background: '#12122a', color: '#b0b0c0', fontSize: 10, textAlign: 'center', fontFamily: 'inherit' }}
+            />
+            <span>ft</span>
+            <button onClick={() => onResizeGrid?.(Math.max(10, Math.min(200, gridInput.w)), Math.max(10, Math.min(200, gridInput.d)))}
+              disabled={gridInput.w === gridW && gridInput.d === gridD}
+              style={{ padding: '3px 8px', borderRadius: 3, border: '1px solid #2a2a40', background: (gridInput.w !== gridW || gridInput.d !== gridD) ? '#2a5a4a' : '#12122a', color: (gridInput.w !== gridW || gridInput.d !== gridD) ? '#50c878' : '#404060', cursor: 'pointer', fontSize: 9, fontWeight: 700, fontFamily: 'inherit' }}>
+              Set
             </button>
-          )}
+          </div>
         </div>
 
         {/* Zoom controls */}
@@ -862,7 +1322,7 @@ export default function FloorPlanPage({
           for (const it of (items ?? [])) {
             if (!it.stairs || it.returnStair) continue
             const sw = it.stairW ?? 3, sd = it.stairD ?? 5
-            const rot = it.rotation === 90 || it.rotation === 270
+            const rot = isRotatedSideways(it.rotation)
             const ew = rot ? sd : sw, ed = rot ? sw : sd
             for (let dc = 0; dc < ew; dc++)
               for (let dr = 0; dr < ed; dr++)
@@ -888,6 +1348,21 @@ export default function FloorPlanPage({
           onMouseDown={handleDown}
           onMouseMove={handleMove}
           onMouseUp={handleUp}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            const label = e.dataTransfer.getData('text/plain')
+            if (!label) return
+            const info = getCellFromMouse(e)
+            if (!info) return
+            const key = `${Math.floor(info.col)},${Math.floor(info.row)}`
+            const zIdx = roomZones.findIndex(z => z.cells.has(key))
+            if (zIdx >= 0) {
+              onSetZoneLabel?.(zIdx, label)
+              setSelectedZoneIdx(zIdx)
+            }
+            setDraggingLabel(null)
+          }}
           onDoubleClick={(e) => {
             const info = getCellFromMouse(e)
             if (!info) return
@@ -897,8 +1372,8 @@ export default function FloorPlanPage({
           }}
           onWheel={handleWheel}
           onContextMenu={e => e.preventDefault()}
-          onMouseLeave={() => { setHoverInfo(null); rectRef.current = null; wallDragRef.current = null; panStartRef.current = null }}
-          style={{ cursor: panStartRef.current ? 'grabbing' : tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0 }}
+          onMouseLeave={() => { setHoverInfo(null); rectRef.current = null; wallDragRef.current = null; resizeDragRef.current = null; panStartRef.current = null }}
+          style={{ cursor: panStartRef.current ? 'grabbing' : !tool ? 'default' : tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0 }}
         />
 
         {/* Inline label editor */}
@@ -918,13 +1393,58 @@ export default function FloorPlanPage({
           />
         )}
 
+        {/* Selected item info panel */}
+        {selectedId != null && !tool && (() => {
+          const ITEM_CAT = catalogue ?? {}
+          const selItem = (items ?? []).find(it => it.id === selectedId)
+          if (!selItem) return null
+          const def = ITEM_CAT[selItem.typeKey]
+          const isStair = !!selItem.stairs
+          const name = isStair ? 'Stairs' : def?.name ?? selItem.typeKey
+          const curSize = def?.sizes?.[selItem.sizeIndex ?? 0]
+          const [ew, ed] = getItemFootprint(selItem, ITEM_CAT)
+          const totalSizes = def?.sizes?.length ?? 1
+          const sizeLabel = curSize?.label ? `${curSize.label} (${ew}×${ed})` : `${ew}×${ed} ft`
+          const btnStyle = { padding: '4px 10px', borderRadius: 6, border: '1px solid #3a3a5a', background: '#1a1a30', color: '#a0a0c0', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }
+          return (
+            <div style={{
+              position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+              padding: '8px 16px', borderRadius: 10,
+              background: 'rgba(10,8,24,0.92)', backdropFilter: 'blur(8px)',
+              border: '1px solid #3a3a5a', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 10, zIndex: 10,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#d0d0f0' }}>{name}</span>
+              <span style={{ fontSize: 10, color: '#8080a0' }}>{sizeLabel}</span>
+              {totalSizes > 1 && (
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {def.sizes.map((s, i) => (
+                    <button key={i} onClick={() => onResizeItem?.(selectedId, i)}
+                      style={{ ...btnStyle, background: i === (selItem.sizeIndex ?? 0) ? '#2a2a5a' : '#1a1a30', color: i === (selItem.sizeIndex ?? 0) ? '#b0a0f0' : '#606080', padding: '3px 8px', fontSize: 10 }}
+                      title={s.label}>{s.label ?? `Size ${i + 1}`}</button>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => onRotateItem?.(selectedId, 90)} style={btnStyle} title="Rotate 90°">↻</button>
+              <button onClick={() => onDeleteItem?.(selectedId)} style={{ ...btnStyle, border: '1px solid #5a2a2a', background: '#2a1515', color: '#ff6060' }} title="Delete">✕</button>
+            </div>
+          )
+        })()}
+
         {/* Tool hint */}
         <div style={{
           position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
           padding: '5px 14px', borderRadius: 8, background: '#1a1a30', color: '#606080',
           fontSize: 11, fontWeight: 600, pointerEvents: 'none',
         }}>
-          {tool === 'copy' && clipboard ? 'Click to paste the copied room · ESC to cancel' : TOOLS.find(t => t.id === tool)?.desc} · Right-click to pan · Scroll to zoom
+          {!tool
+            ? 'Select a tool to start editing'
+            : tool === 'copy' && clipboard
+              ? 'Click to paste the copied room · ESC to cancel'
+              : tool === 'stairs'
+                ? `Click a cell to place stairs · R to rotate (${stairRotation}°)`
+                : TOOLS.find(t => t.id === tool)?.desc ?? ''
+          } · Right-click to pan · Scroll to zoom
         </div>
       </div>
 

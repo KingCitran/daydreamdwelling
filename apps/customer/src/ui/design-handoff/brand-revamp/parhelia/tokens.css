@@ -1,0 +1,27 @@
+/* Parhelia — synced from KingCitran/daydreamdwelling packages/shared/themes.js (2026-09-13) */
+:root {
+  --font-display: "Young Serif", Georgia, serif;
+  --font-body: "Commissioner", system-ui, sans-serif;
+  --font-hand: "Cedarville Cursive", cursive;
+
+  /* accent / text-on-accent / page bg — one triple per mood */
+  --mood-golden-hour: #c87820;        --mood-golden-hour-text: #fff;     --mood-golden-hour-bg: #fdf5e4;
+  --mood-bright-day: #3a7a4a;         --mood-bright-day-text: #fff;      --mood-bright-day-bg: #f7faf4;
+  --mood-vivid-sunset: #ffaa3d;       --mood-vivid-sunset-text: #1a0820; --mood-vivid-sunset-bg: #1a0820;
+  --mood-embers-sunrise: #ffe0a0;     --mood-embers-sunrise-text: #1a1438; --mood-embers-sunrise-bg: #1a1438;
+  --mood-moonlight: #5070c8;          --mood-moonlight-text: #fff;       --mood-moonlight-bg: #090c16;
+  --mood-northern-lights: #01efac;    --mood-northern-lights-text: #040814; --mood-northern-lights-bg: #040814;
+  --mood-dark-academia: #b88828;      --mood-dark-academia-text: #1a1004; --mood-dark-academia-bg: #130d07;
+  --mood-blush-hour: #c06858;         --mood-blush-hour-text: #fff;      --mood-blush-hour-bg: #fdf0ee;
+  --mood-coastal-morning: #1a60b8;    --mood-coastal-morning-text: #fff; --mood-coastal-morning-bg: #f0f6fc;
+  --mood-dream-state: #7a48cc;        --mood-dream-state-text: #fff;     --mood-dream-state-bg: #ede9ff;
+  --mood-neon-nights: #9828f0;        --mood-neon-nights-text: #fff;     --mood-neon-nights-bg: #07070f;
+  --mood-candlelit: #e09828;          --mood-candlelit-text: #1a0c02;    --mood-candlelit-bg: #0f0902;
+  --mood-greenhouse: #389848;         --mood-greenhouse-text: #fff;      --mood-greenhouse-bg: #07100a;
+  --mood-studio: #181818;             --mood-studio-text: #fff;          --mood-studio-bg: #f4f4f4;
+  --mood-studio-dark: #c0c0c0;        --mood-studio-dark-text: #111;     --mood-studio-dark-bg: #181818;
+
+  /* per-tool tints (builder) */
+  --tool-place: #e87fc8; --tool-build: #3fb88a; --tool-style: #9b7ae0; --tool-view: #5ea8c8;
+  --tool-music: #8a78e0; --tool-plan: #5bb0c8; --tool-social: #e87fa0; --tool-account: #5fb88a;
+}

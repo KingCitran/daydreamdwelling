@@ -92,14 +92,7 @@ const DEFAULT_wallHeight = 8
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const isUUID = (s) => typeof s === 'string' && UUID_RE.test(s)
 
-// Safe Set constructor — JSON serializes Sets as {} which isn't iterable.
-// This handles Set, Array, plain-object-from-JSON, null/undefined.
-function safeSet(v) {
-  if (v instanceof Set) return v
-  if (Array.isArray(v)) return new Set(v)
-  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
-  return new Set()
-}
+import safeSet from './utils/safeSet'
 
 function loadSaved() {
   try {
@@ -121,25 +114,28 @@ function PanelLoader() {
 
 // ── Overview Camera — isometric view for dwelling overview ────────
 // Renders camera + lights when the normal RoomScene is hidden.
-function OverviewCamera({ zoomRef, panRef, floorCount, wallHeight }) {
+function OverviewCamera({ zoomRef, panRef, floorCount, wallHeight, rotationRef }) {
   const { camera } = useThree()
-  const midY = ((floorCount - 1) * wallHeight) / 2
+  const floorSep = wallHeight + 2
+  const stackH = Math.max(0, (floorCount - 1)) * floorSep
+  const midY = stackH / 2
+  const camDist = 22
+  const camH = 22 + stackH * 0.5
   useFrame(() => {
     const px = panRef.current.x, pz = panRef.current.z
-    camera.position.set(18 + px, 18, 18 + pz)
+    // Offset so default rotation (0) gives the classic isometric 45° view
+    const angle = (rotationRef?.current ?? 0) + Math.PI / 4
+    const cx = Math.sin(angle) * camDist + px
+    const cz = Math.cos(angle) * camDist + pz
+    camera.position.set(cx, camH, cz)
     camera.lookAt(px, midY, pz)
     camera.zoom = zoomRef.current
     camera.updateProjectionMatrix()
   })
   return (
     <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 20, 10]} intensity={0.8} castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-30} shadow-camera-right={30}
-        shadow-camera-top={30 + floorCount * wallHeight}
-        shadow-camera-bottom={-10}
-      />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[camDist, camH + 15, camDist]} intensity={0.5} />
     </>
   )
 }
@@ -268,6 +264,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     initSave?.cells ? safeSet(initSave.cells) : makeGrid(10, 10, 10, 10)
   )
   const [wallHeight, setWallHeight] = useState(initSave?.wallHeight ?? DEFAULT_wallHeight)
+  const [roomType, setRoomType] = useState(initSave?.roomType ?? 'indoor')
   const [targetRotation, setTarget] = useState(0)
   const [floorColor,   setFloorColor]   = useState(initSave?.floorColor ?? '#cec5b8')
   const [floorTexture, setFloorTexture] = useState(initSave?.floorTexture ?? 'flat')
@@ -429,7 +426,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     placeItem, placeItemOnWall, placeCeilingItem,
     moveItem, moveCeilingItem, adjustDropLength,
     moveWallItem, changeItemWall, swapWallFace,
-    rotateItem, resizeItem, recolorItem,
+    rotateItem, rotateItemBy, resizeItem, recolorItem,
     setPaneConfig, adjustWindowSize,
     toggleOwned, toggleLocked, deleteItem, updateStairConfig,
   } = useItemActions({
@@ -649,7 +646,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
 
   const {
     enterRoom, confirmNewRoom, linkDoorToRoom, goBack, jumpToRoom, placeStairsQuick,
-    unlinkDoors, deleteRoom, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs,
+    unlinkDoors, deleteRoom, deleteMultipleRooms, addRoom, addDoor, addExteriorDoor, updateRoomShape, addStairs,
   } = useRoomNavigation({
     items, setItems,
     gridW, gridD, cells, setCells,
@@ -671,7 +668,8 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     floorTexture, setFloorTexture,
     wallTexture, setWallTexture,
     wallFinish, setWallFinish,
-    activeFloorLevel,
+    activeFloorLevel, setActiveFloorLevel,
+    roomType, setRoomType,
   })
 
   // ── Floor plan editing ───────────────────────────────────────────
@@ -866,6 +864,42 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     deleteItem(last.id)
   }, [selectedItem, selectedGroupQty, items, deleteItem])
 
+  // ── Keyboard shortcuts: R = rotate, Escape = deselect, Delete = remove ──
+  const rotateIntervalRef = useRef(null)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const tag = document.activeElement?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+      if (e.key === 'Escape') { setSelectedId(null); return }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault()
+        setItems(prev => prev.filter(it => it.id !== selectedId))
+        setSelectedId(null)
+        return
+      }
+      if (!selectedId) return
+      if ((e.key === 'r' || e.key === 'R') && !e.repeat) {
+        e.preventDefault()
+        if (e.shiftKey) {
+          rotateItemBy(selectedId, 90)
+        } else {
+          // First rotation immediately, then continuous while held
+          rotateItemBy(selectedId, 15)
+          if (rotateIntervalRef.current) clearInterval(rotateIntervalRef.current)
+          rotateIntervalRef.current = setInterval(() => rotateItemBy(selectedId, 15), 60)
+        }
+      }
+    }
+    const onKeyUp = (e) => {
+      if (e.key === 'r' || e.key === 'R') {
+        if (rotateIntervalRef.current) { clearInterval(rotateIntervalRef.current); rotateIntervalRef.current = null }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+    return () => { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); if (rotateIntervalRef.current) clearInterval(rotateIntervalRef.current) }
+  }, [selectedId, rotateItemBy])
+
   // ── Overview memos ───────────────────────────────────────────────
   const allRoomsData = useMemo(() => {
     const currentSnap = { gridW, gridD, cells, items, wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, internalWalls, doorOpenings, level: activeFloorLevel }
@@ -1030,6 +1064,23 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           internalWalls={internalWalls} doorOpenings={doorOpenings} items={items}
           floorColor={floorColor} wallColor={wallColor}
           onToggleCell={toggleCell}
+          onRestoreSnapshot={(snap) => {
+            setCells(snap.cells)
+            setInternalWalls(snap.internalWalls)
+            setDoorOpenings(snap.doorOpenings)
+          }}
+          onAddExteriorDoor={(wall, wallU) => {
+            // Place an entryway door on a boundary wall
+            const wallLen = (wall === 'N' || wall === 'S') ? gridW : gridD
+            setItems(prev => [...prev, {
+              id: nextItemIdRef.current++, typeKey: 'entryway_door',
+              sizeIndex: 0, swatchIndex: 0,
+              col: 0, row: 0, rotation: 0, layer: 0,
+              owned: false, locked: true,
+              wall, wallU: wallU ?? wallLen / 2, wallH: 3.5, wallAnchor: 0,
+            }])
+            showWispy('Exterior door placed on ' + ({ N: 'north', S: 'south', E: 'east', W: 'west' }[wall]) + ' wall.')
+          }}
           onToggleWall={(edgeKey) => {
             setInternalWalls(prev => {
               const next = new Set(prev)
@@ -1048,7 +1099,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             })
           }}
           onResizeGrid={(newW, newD) => { setGridW(newW); setGridD(newD) }}
-          onAddStairs={(col, row) => {
+          onAddStairs={(col, row, rotation = 0) => {
             // Find floors by level from ALL rooms (not just stair-connected)
             const allFloors = Object.entries(allRoomsData).map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
             const floorAbove = allFloors.find(f => f.level === activeFloorLevel + 1)
@@ -1059,12 +1110,12 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             }
             const targetFloor = floorAbove ?? floorBelow
             const direction = floorAbove ? 'up' : 'down'
-            const sw = 3, sd = 5
+            const sw = 3, sd = 10
             // Place stair item on current floor
             const stairItem = {
               id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
               stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
-              topFloorRoomId: targetFloor.roomId, rotation: 0, direction,
+              topFloorRoomId: targetFloor.roomId, rotation, direction,
               layer: 0, locked: false,
             }
             setItems(prev => [...prev, stairItem])
@@ -1072,7 +1123,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             const returnStair = {
               id: nextItemIdRef.current++, typeKey: 'stairs', sizeIndex: 0, swatchIndex: 0,
               stairs: true, col, row, stairW: sw, stairD: sd, stairCount: 14,
-              topFloorRoomId: currentRoomId, rotation: 0,
+              topFloorRoomId: currentRoomId, rotation,
               direction: direction === 'up' ? 'down' : 'up',
               layer: 0, locked: true, returnStair: true,
             }
@@ -1086,6 +1137,24 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             })
             setSelectedId(stairItem.id)
             showWispy(`Stairs connect to ${direction === 'up' ? 'floor above' : 'floor below'}. Adjust in the panel.`)
+          }}
+          onRemoveStairs={(stairId) => {
+            // Remove a stair and its return stair on the connected floor
+            const stair = items.find(it => it.id === stairId)
+            if (!stair) return
+            setItems(prev => prev.filter(it => it.id !== stairId))
+            // Remove the return stair on the target floor
+            if (stair.topFloorRoomId != null) {
+              setAllRooms(prev => {
+                const targetRoom = prev[stair.topFloorRoomId]
+                if (!targetRoom) return prev
+                return { ...prev, [stair.topFloorRoomId]: {
+                  ...targetRoom,
+                  items: (targetRoom.items ?? []).filter(it => !(it.returnStair && it.topFloorRoomId === currentRoomId)),
+                }}
+              })
+            }
+            showWispy('Stairs removed.')
           }}
           onAddDoor={(col, row, dir) => {
             // Add door opening — keeps zones separate but renders as opening in 3D
@@ -1106,6 +1175,13 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
               return next
             })
             showWispy('Door opening placed — rooms stay separate for editing.')
+          }}
+          onRemoveDoor={(col, row, dir) => {
+            const key = `${col},${row}:${dir}`
+            // Remove from doorOpenings, restore as internal wall
+            setDoorOpenings(prev => { const next = new Set(prev); next.delete(key); return next })
+            setInternalWalls(prev => { const next = new Set(prev); next.add(key); return next })
+            showWispy('Opening removed — wall restored.')
           }}
           onAddFloor={(direction, count = 1) => {
             // Save current room state first
@@ -1189,6 +1265,93 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             const zone = roomZones[zoneIdx]
             if (zone) setRoomNamesState(prev => ({ ...prev, [`zone_${zone.id}`]: label }))
           }}
+          onMoveItem={(id, col, row) => setItems(prev => prev.map(it => it.id === id ? { ...it, col, row } : it))}
+          onSelectItem={(id) => setSelectedId(id)}
+          onDeleteItem={(id) => { setItems(prev => prev.filter(it => it.id !== id)); setSelectedId(null) }}
+          onRotateItem={(id, deg) => setItems(prev => prev.map(it =>
+            it.id === id ? { ...it, rotation: ((it.rotation ?? 0) + deg) % 360 } : it
+          ))}
+          onResizeItem={(id, sizeIndex) => setItems(prev => prev.map(it => it.id === id ? { ...it, sizeIndex } : it))}
+          selectedId={selectedId}
+          catalogue={catalogue}
+          onPlaceTemplateItems={(templateItems, baseC, baseR) => {
+            const newItems = templateItems.map(it => ({
+              ...it,
+              id: nextItemIdRef.current++,
+              col: (it.col ?? 0) + baseC,
+              row: (it.row ?? 0) + baseR,
+              sizeIndex: it.sizeIndex ?? 0,
+              swatchIndex: it.swatchIndex ?? 0,
+              rotation: it.rotation ?? 0,
+              layer: 0, locked: false,
+            }))
+            setItems(prev => [...prev, ...newItems])
+          }}
+          onLoadBuilding={(building) => {
+            // Load a complete building — REPLACES all existing rooms
+            const floors = building.floors
+            const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae']
+
+            // Reset IDs — fresh project
+            nextItemIdRef.current = 1
+            nextRoomIdRef.current = 1
+            const roomId0 = 0
+            setCurrentRoomId(roomId0)
+            setRoomStack([])
+            setRoomNamesState({})
+
+            // Build all rooms
+            const freshRooms = {}
+            floors.forEach((f, fi) => {
+              const rid = fi === 0 ? roomId0 : nextRoomIdRef.current++
+              const floorItems = (f.items ?? []).map(it => ({
+                ...it, id: nextItemIdRef.current++, sizeIndex: 0, swatchIndex: 0,
+                rotation: it.rotation ?? 0, layer: 0, locked: false,
+              }))
+              freshRooms[rid] = {
+                gridW: f.gridW, gridD: f.gridD,
+                cells: new Set(f.cells), items: floorItems,
+                wallHeight,
+                floorColor: palette[fi % palette.length],
+                wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',
+                floorTexture: 'flat', targetRotation: 0,
+                internalWalls: new Set(f.internalWalls ?? []),
+                doorOpenings: new Set(f.doorOpenings ?? []),
+                level: f.level ?? fi,
+              }
+              if (f.zoneLabels) setRoomNamesState(prev => ({ ...prev, ...f.zoneLabels }))
+            })
+
+            // Set live state to first floor
+            const f0 = freshRooms[roomId0]
+            setGridW(f0.gridW); setGridD(f0.gridD)
+            setCells(f0.cells)
+            setItems([...f0.items])
+            setInternalWalls(f0.internalWalls)
+            setDoorOpenings(f0.doorOpenings)
+            setActiveFloorLevel(f0.level ?? 0)
+            setFloorColor(f0.floorColor); setWallColor(f0.wallColor)
+
+            // REPLACE all rooms (not merge)
+            setAllRooms(freshRooms)
+
+            // Remap zone labels — detect zones from the first floor and match template labels
+            // by finding the zone that contains the label's reference cell
+            const firstFloor = floors[0]
+            if (firstFloor.zoneLabels) {
+              setTimeout(() => {
+                const zones = detectRoomZones(f0.cells, f0.internalWalls, f0.doorOpenings)
+                const remapped = {}
+                for (const [templateKey, label] of Object.entries(firstFloor.zoneLabels)) {
+                  const refCell = templateKey.replace('zone_', '')
+                  const matchedZone = zones.find(z => z.cells.has(refCell))
+                  if (matchedZone) remapped[`zone_${matchedZone.id}`] = label
+                }
+                if (Object.keys(remapped).length > 0) setRoomNamesState(prev => ({ ...prev, ...remapped }))
+              }, 100)
+            }
+            showWispy(`Loaded "${building.name}" — ${floors.length} floor${floors.length > 1 ? 's' : ''}, ready to customize!`)
+          }}
           onEditZone={(zoneIdx) => { setActiveZoneIdx(zoneIdx); setFloorPlanOpen(false) }}
           onDone={() => setFloorPlanOpen(false)}
         />
@@ -1198,47 +1361,38 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         {/* ── Dwelling Overview — all floors stacked with walls ── */}
         {dwellingOverview && <OverviewCamera
           zoomRef={zoomRef} panRef={panRef}
-          floorCount={Object.keys(allRoomsData).length}
+          floorCount={new Set(Object.values(allRoomsData).map(r => r.level ?? 0)).size}
           wallHeight={wallHeight}
+          rotationRef={roomRotationRef}
         />}
-        {dwellingOverview && Object.entries(allRoomsData)
-          .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
-          .sort((a, b) => a.level - b.level)
-          .filter((f, i, arr) => i === 0 || f.level !== arr[i - 1].level)
-          .map(f => {
+        {dwellingOverview && (() => {
+          const floors = Object.entries(allRoomsData)
+            .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+            .sort((a, b) => a.level - b.level)
+            .filter((f, i, arr) => i === 0 || f.level !== arr[i - 1].level)
+          // Exploded view: gap between floors for clarity
+          const floorSep = wallHeight + 2
+          return floors.map((f, idx) => {
             const rd = allRoomsData[f.roomId]
             if (!rd) return null
+            const label = f.level < 0 ? `B${-f.level}` : f.level === 0 ? 'Ground' : `Floor ${f.level + 1}`
             return (
               <DwellingFloor
                 key={`dwell-${f.roomId}`}
                 roomData={rd}
-                yOffset={f.level * wallHeight}
+                yOffset={idx * floorSep}
                 wallHeight={rd.wallHeight ?? wallHeight}
                 roomRotationRef={roomRotationRef}
                 catalogue={catalogue}
                 isActive={f.roomId === currentRoomId}
+                showItems={false}
+                floorLabel={label}
               />
             )
-          })}
+          })
+        })()}
 
-        {/* Ghost floors — only visible when All zones selected (not in overview) */}
-        {!dwellingOverview && activeZoneIdx == null && Object.entries(allRoomsData)
-          .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
-          .filter(f => f.level !== activeFloorLevel && f.roomId !== currentRoomId)
-          .map(f => {
-          const rd = allRoomsData[f.roomId]
-          if (!rd) return null
-          return (
-            <GhostFloor
-              key={`ghost-${f.roomId}`}
-              roomData={rd}
-              yOffset={(f.level - activeFloorLevel) * wallHeight}
-              wallHeight={rd.wallHeight ?? wallHeight}
-              roomRotationRef={roomRotationRef}
-              catalogue={catalogue}
-            />
-          )
-        })}
+        {/* Ghost floors disabled — use My Dwelling for multi-floor view */}
         {/* Neighbor rooms on the SAME floor — semi-transparent, clickable (hidden in overview) */}
         {!dwellingOverview && (() => {
           // Find rooms connected by doors on the same floor
@@ -1392,6 +1546,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           onGhostCancel={() => { setGhostPlacement(null); showWispy('Placement cancelled.') }}
           onRotate={delta => setTarget(r => r + delta)}
           onSwipeVertical={dir => dir === 'up' ? setCeilingView(true) : setCeilingView(false)}
+          roomType={roomType}
         />}
       </Canvas>}
 
@@ -1402,34 +1557,59 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       {dwellingOverview && (
         <div style={{
           position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 30, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '8px 20px', borderRadius: '6px 999px 999px 6px',
-          background: 'rgba(10,8,24,0.8)', backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          zIndex: 100, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 24px', borderRadius: 12,
+          background: 'rgba(10,8,24,0.92)', backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.15)',
           fontFamily: "'Outfit',sans-serif",
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#d0d0f0' }}>🏠 Dwelling Overview</span>
-          <span style={{ fontSize: 11, color: '#8080a0' }}>{Object.keys(allRoomsData).length} floor{Object.keys(allRoomsData).length !== 1 ? 's' : ''}</span>
-          <button onClick={() => setDwellingOverview(false)} style={{
-            padding: '5px 14px', borderRadius: '4px 999px 999px 4px', border: 'none',
-            background: 'rgba(120,80,200,0.25)', color: '#b0a0e0',
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#e0e0ff' }}>🏠 My Dwelling</span>
+          <span style={{ fontSize: 11, color: '#8080a0' }}>
+            {(() => {
+              const rooms = Object.entries(allRoomsData)
+              const levels = rooms.map(([,r]) => r.level ?? 0)
+              const uniqueFloors = new Set(levels).size
+              return `${uniqueFloors} floor${uniqueFloors !== 1 ? 's' : ''} · ${rooms.length} room${rooms.length !== 1 ? 's' : ''} · cutaway`
+            })()}
+          </span>
+          <button onClick={() => {
+            // Restore current room state from allRooms to ensure clean state
+            const rd = allRooms[currentRoomId]
+            if (rd) {
+              setGridW(rd.gridW); setGridD(rd.gridD)
+              setCells(rd.cells instanceof Set ? rd.cells : new Set(rd.cells ?? []))
+              setItems([...(rd.items ?? [])])
+              setWallHeight(rd.wallHeight ?? wallHeight)
+              setFloorColor(rd.floorColor ?? floorColor); setWallColor(rd.wallColor ?? wallColor)
+              if (setFloorTexture) setFloorTexture(rd.floorTexture ?? 'flat')
+              if (setWallTexture) setWallTexture(rd.wallTexture ?? 'flat')
+              if (setWallFinish) setWallFinish(rd.wallFinish ?? 'eggshell')
+              setInternalWalls(rd.internalWalls instanceof Set ? rd.internalWalls : new Set(rd.internalWalls ?? []))
+              setDoorOpenings(rd.doorOpenings instanceof Set ? rd.doorOpenings : new Set(rd.doorOpenings ?? []))
+              setActiveFloorLevel(rd.level ?? 0)
+            }
+            setDwellingOverview(false)
+          }} style={{
+            padding: '7px 18px', borderRadius: 8, border: 'none',
+            background: '#5a3a9a', color: '#fff',
             fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           }}>← Back to Room</button>
         </div>
       )}
 
-      {/* Floor level switcher — Sims-style ▲ Floor N ▼ */}
-      <FloorSwitcher
+      {/* Floor level switcher — Sims-style ▲ Floor N ▼ (hidden in overview) */}
+      {!dwellingOverview && <FloorSwitcher
         currentRoomId={currentRoomId}
         allRoomsData={allRoomsData}
         floorStack={floorStack}
         onNavigate={jumpToRoom}
         onSetFloorLevel={setActiveFloorLevel}
-      />
+      />}
 
       {/* Room zone picker — shows when zones exist */}
-      {/* Zone picker + Floor Plan + Dwelling selector — always visible */}
-      {!floorPlanOpen && (
+      {/* Zone picker + Floor Plan + Dwelling selector — hidden in overview */}
+      {!floorPlanOpen && !dwellingOverview && (
         <div style={{
           position: 'absolute', top: 74, left: '50%', transform: 'translateX(-50%)',
           zIndex: 20, display: 'flex', alignItems: 'center', gap: 4,
@@ -1439,28 +1619,62 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
           maxWidth: '85vw', overflowX: 'auto',
         }}>
+          {/* Plan button */}
           <button onClick={() => setFloorPlanOpen(true)} style={{
-            padding: '6px 14px', borderRadius: '4px 999px 999px 4px', border: 'none',
-            fontSize: 12, fontWeight: 700,
+            padding: '6px 12px', borderRadius: 6, border: 'none',
+            fontSize: 11, fontWeight: 700,
             background: 'rgba(60,120,200,0.2)', color: '#90b8f0',
             cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
           }} title="Open Floor Plan Editor">▦ Plan</button>
           <div style={{ width: 1, height: 20, background: '#ffffff15', flexShrink: 0 }} />
-          <DwellingSelector currentName="My Dwelling" />
+
+          {/* ── 3 viewing levels: Dwelling | Floor | Room ── */}
+          <button onClick={() => {
+            // Save current room, enter dwelling overview
+            const snapshot = {
+              gridW, gridD, cells: new Set(cells), items: [...items],
+              wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
+              internalWalls: new Set(internalWalls ?? []),
+              doorOpenings: new Set(doorOpenings ?? []),
+              level: activeFloorLevel,
+            }
+            setAllRooms(prev => ({ ...prev, [currentRoomId]: snapshot }))
+            setDwellingOverview(true)
+            setFloorPlanOpen(false)
+            setActiveZoneIdx(null)
+            // Zoom to fit all floors
+            let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
+            for (const [, room] of Object.entries({ ...allRooms, [currentRoomId]: snapshot })) {
+              const roomCells = room.cells instanceof Set ? room.cells : new Set(room.cells ?? [])
+              for (const key of roomCells) { const [c, r] = key.split(',').map(Number); minC = Math.min(minC, c); maxC = Math.max(maxC, c); minR = Math.min(minR, r); maxR = Math.max(maxR, r) }
+            }
+            const maxDim = Math.max(isFinite(maxC) ? maxC - minC + 1 : gridW, isFinite(maxR) ? maxR - minR + 1 : gridD, 6)
+            const uniqueLevels = new Set(Object.values({ ...allRooms, [currentRoomId]: snapshot }).map(r => r.level ?? 0)).size
+            const stackH = Math.max(0, uniqueLevels - 1) * (wallHeight + 2)
+            const fitDim = Math.max(maxDim, stackH + maxDim * 0.4)
+            zoomRef.current = Math.max(8, Math.min(40, 480 / fitDim))
+            panRef.current = { x: 0, z: 0 }
+          }} style={{
+            padding: '6px 12px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
+            background: 'rgba(255,255,255,0.06)', color: '#c0c0e0',
+            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          }}>🏠 Dwelling</button>
+
+          <button onClick={() => setActiveZoneIdx(null)} style={{
+            padding: '6px 12px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 700,
+            background: activeZoneIdx == null ? 'rgba(80,200,120,0.25)' : 'transparent',
+            color: activeZoneIdx == null ? '#60d888' : '#a0a0c0',
+            cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+          }}>All</button>
+
           {roomZones.length > 1 && (
             <>
-              <div style={{ width: 1, height: 20, background: '#ffffff15', flexShrink: 0 }} />
-              <button onClick={() => setActiveZoneIdx(null)} style={{
-                padding: '6px 12px', borderRadius: '4px 999px 999px 4px', border: 'none', fontSize: 12, fontWeight: 700,
-                background: activeZoneIdx == null ? 'rgba(80,200,120,0.25)' : 'transparent',
-                color: activeZoneIdx == null ? '#60d888' : '#a0a0c0',
-                cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-              }}>All</button>
+              <div style={{ width: 1, height: 16, background: '#ffffff10', flexShrink: 0 }} />
               {roomZones.map((zone, i) => (
                 <button key={zone.id} onClick={() => setActiveZoneIdx(i)} style={{
-                  padding: '6px 12px', borderRadius: '4px 999px 999px 4px', border: 'none', fontSize: 12, fontWeight: 700,
-                  background: activeZoneIdx === i ? 'rgba(80,200,120,0.25)' : 'transparent',
-                  color: activeZoneIdx === i ? '#60d888' : '#a0a0c0',
+                  padding: '6px 10px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 600,
+                  background: activeZoneIdx === i ? 'rgba(120,90,238,0.25)' : 'transparent',
+                  color: activeZoneIdx === i ? '#b0a0f0' : '#808090',
                   cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0, whiteSpace: 'nowrap',
                 }}>{roomNames[`zone_${zone.id}`] || `Room ${i + 1}`}</button>
               ))}
@@ -1551,6 +1765,8 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             if (target === 'floor') setFloorOverrides(new Map())
             else setWallOverrides(new Map())
           }}
+          roomType={roomType}
+          onRoomType={setRoomType}
         />
       )}
 
@@ -1574,11 +1790,20 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           : floorLabels[currentRoomId] ? `${getRoomName(currentRoomId)} · ${floorLabels[currentRoomId]}` : getRoomName(currentRoomId)}
         roomIds={Object.keys(allRoomsData || {}).map(Number)}
         rooms={Object.keys(allRoomsData || {}).map(id => floorLabels[id] ? `${getRoomName(id)} · ${floorLabels[id]}` : getRoomName(id))}
-        budget={items.reduce((s, it) => {
-          const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
-          return s + (d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0)
-        }, 0)}
-        itemCount={items.length}
+        budget={(() => {
+          // Total cost of unowned items across ALL rooms
+          let total = 0, count = 0
+          for (const [, rd] of Object.entries(allRoomsData)) {
+            for (const it of (rd.items ?? [])) {
+              if (it.owned) continue
+              const d = (catalogue ?? {})[it.typeKey] ?? ITEM_CATALOGUE[it.typeKey]
+              total += d?.sizes?.[it.sizeIndex]?.price ?? d?.price ?? 0
+              count++
+            }
+          }
+          return total
+        })()}
+        itemCount={Object.values(allRoomsData).reduce((s, rd) => s + (rd.items ?? []).filter(it => !it.owned).length, 0)}
         cartCount={cartCount}
         onUndo={undo}
         onRedo={redo}
@@ -1601,6 +1826,8 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           addRoom({ gridW: rW, gridD: rD, cells: rCells })
         }}
         onDeleteRoom={(id) => { if (id != null) deleteRoom(Number(id)) }}
+        onDeleteMultipleRooms={(ids) => { if (ids?.length) deleteMultipleRooms(ids.map(Number)) }}
+        onRenameRoom={(id, name) => { if (id != null && name?.trim()) setRoomName(Number(id), name.trim()) }}
         onOverview={() => {
           // Save current room, then toggle dwelling overview mode
           const snapshot = {
@@ -1639,11 +1866,11 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         }}
         onBudget={() => { setActiveTool(activeTool === 'plan' ? null : 'plan'); setSelectedId(null) }}
       />
-      <BuilderToolDock
+      {!dwellingOverview && <BuilderToolDock
         active={activeTool}
         displacedCount={displacedCount}
         onPick={(id) => { setActiveTool(activeTool === id ? null : id); if (id) setSelectedId(null); if (id === 'place') setDisplacedCount(0) }}
-      />
+      />}
       <BuilderViewControls
         zoom={zoomDisplay}
         onRotateLeft={() => setTarget(r => Math.round(r / (Math.PI / 2)) * (Math.PI / 2) - Math.PI / 2)}
@@ -1699,12 +1926,12 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             }}
             onStairsUp={() => {
               setActiveTool(null); setWallDrawMode(false)
-              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 10, stairCount: 13, direction: 'up' })
               showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
             }}
             onStairsDown={() => {
               setActiveTool(null)
-              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+              setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 10, stairCount: 13, direction: 'down' })
               showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
             }}
             ceilingView={ceilingView}
@@ -1747,7 +1974,9 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
       )}
       {activeTool === 'music' && (
         <BuilderSheet title="Music" accentDot="#8a78e0" onClose={() => setActiveTool(null)}>
-          <MusicTabPanel />
+          <Suspense fallback={<div style={{ padding: 20, color: '#8080a0', fontSize: 12 }}>Loading music...</div>}>
+            <MusicTabPanel />
+          </Suspense>
         </BuilderSheet>
       )}
       {activeTool === 'plan' && (
@@ -2153,12 +2382,12 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
         wallDrawMode={wallDrawMode}
         onStairsUp={() => {
           setWallDrawMode(false)
-          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'up' })
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 10, stairCount: 13, direction: 'up' })
           showWispy('Click to place stairs going UP. R to rotate. ESC to cancel.')
         }}
         onStairsDown={() => {
           setWallDrawMode(false)
-          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 5, stairCount: 14, direction: 'down' })
+          setGhostPlacement({ typeKey: 'stairs', stairW: 3, stairD: 10, stairCount: 13, direction: 'down' })
           showWispy('Click to place stairs going DOWN (basement). R to rotate. ESC to cancel.')
         }}
       />

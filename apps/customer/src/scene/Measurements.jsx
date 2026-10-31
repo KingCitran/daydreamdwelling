@@ -1,7 +1,7 @@
 import { Text, Billboard } from '@react-three/drei'
 import { ITEM_CATALOGUE } from '../data/items'
 
-const WALL_T = 0.28
+import { WALL_T } from '../utils/buildingConstants'
 
 export default function Measurements({ gridW, gridD, wallHeight, items, selectedId }) {
   const hw = gridW / 2

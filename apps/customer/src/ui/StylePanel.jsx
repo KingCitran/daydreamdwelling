@@ -302,11 +302,18 @@ function FinishPicker({ value, onChange }) {
 }
 
 // ── StylePanel ─────────────────────────────────────────────────
+const ROOM_TYPES = [
+  { id: 'indoor', label: 'Indoor', icon: '🏠', desc: 'Enclosed room with ceiling & walls' },
+  { id: 'outdoor', label: 'Outdoor', icon: '☀️', desc: 'Open-air — balcony, courtyard, yard' },
+  { id: 'porch', label: 'Covered', icon: '⛺', desc: 'Porch or pergola — roof, open sides' },
+]
+
 export default function StylePanel({
   floorColor, wallColor, onFloorColor, onWallColor,
   floorTexture, wallTexture, wallFinish,
   onFloorTexture, onWallTexture, onWallFinish,
   onClearOverrides,
+  roomType = 'indoor', onRoomType,
 }) {
   const s = useStyles()
   const [target, setTarget] = useState('floor')
@@ -345,8 +352,27 @@ export default function StylePanel({
         </div>
       </div>
 
+      {/* Space type selector */}
+      {onRoomType && (
+        <div style={{ marginTop: 12, marginBottom: 4 }}>
+          <p style={{ ...s.title, marginBottom: 6 }}>Space Type</p>
+          <div style={{ display: 'flex', gap: 5 }}>
+            {ROOM_TYPES.map(rt => (
+              <button key={rt.id} title={rt.desc} onClick={() => onRoomType(rt.id)} style={{
+                flex: 1, padding: '7px 4px', borderRadius: 8, border: `1.5px solid ${roomType === rt.id ? s.accentColor : 'transparent'}`,
+                background: roomType === rt.id ? `${s.accentColor}18` : s.chipBg,
+                cursor: 'pointer', fontFamily: 'inherit', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 2,
+              }}>
+                <span style={{ fontSize: 16 }}>{rt.icon}</span>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: roomType === rt.id ? s.accentColor : s.textSoft }}>{rt.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <div style={{ marginTop: 0 }}>
+      <div style={{ marginTop: 8 }}>
         <TexturePresets
           presets={target === 'floor' ? FLOOR_TEXTURES : WALL_TEXTURES}
           onSelect={target === 'floor' ? handleFloorPreset : handleWallPreset}
@@ -422,5 +448,8 @@ function makeStyles(t) {
       position: 'relative', height: 14, marginTop: 6, borderRadius: 7, cursor: 'crosshair',
       background: 'linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)',
     },
+    accentColor: t.accent,
+    chipBg: t.surface,
+    textSoft: t.textSoft,
   }
 }

@@ -13,7 +13,6 @@ import HubPage from './pages/HubPage'
 import NotFoundPage from './pages/NotFoundPage'
 import PrivacyPage from './pages/PrivacyPage'
 import TermsPage from './pages/TermsPage'
-import LandingPageV1 from './pages/_archive/LandingPageV1'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import SavedRoomsPage from './pages/SavedRoomsPage'
 import MessagesPage from './pages/MessagesPage'
@@ -112,7 +111,6 @@ function Gate() {
   const { user }                   = useAuth()
 
 
-  if (params.get('legacy') === 'v1') return <LandingPageV1 onEnter={() => setInBuilder(true)} onBrowseShop={() => setInMarketplace(true)} />
   if (window.location.pathname.startsWith('/community')) return <CommunityApp />
   // Unknown path (not / and not /community) → 404
   if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/community')) return <NotFoundPage />

@@ -160,7 +160,7 @@ export default function SelectedControls({
 
             {isStairs && !item.locked && (
               <StairSection
-                stairW={item.stairW ?? 3} stairD={item.stairD ?? 5} stairCount={item.stairCount ?? 14}
+                stairW={item.stairW ?? 3} stairD={item.stairD ?? 10} stairCount={item.stairCount ?? 13}
                 onUpdateStairConfig={onUpdateStairConfig}
               />
             )}
@@ -426,12 +426,12 @@ const StairSection = memo(function StairSection({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Width</span>
-          <Stepper min={1} max={4} step={1} value={stairW} unit="ft"
+          <Stepper min={2} max={6} step={0.5} value={stairW} unit="ft"
             onChange={v => onUpdateStairConfig({ stairW: v })} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Depth</span>
-          <Stepper min={2} max={6} step={1} value={stairD} unit="ft"
+          <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Length</span>
+          <Stepper min={6} max={16} step={1} value={stairD} unit="ft"
             onChange={v => onUpdateStairConfig({ stairD: v })} />
         </div>
       </div>

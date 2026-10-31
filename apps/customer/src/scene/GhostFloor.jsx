@@ -5,17 +5,14 @@ import Floor from './Floor'
 import Items from './Items'
 import { ITEM_CATALOGUE } from '../data/items'
 
+import safeSet from '../utils/safeSet'
+
 const noop = () => {}
-function safeSet(v) {
-  if (v instanceof Set) return v
-  if (Array.isArray(v)) return new Set(v)
-  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
-  return new Set()
-}
 
 export default function GhostFloor({
   roomData, yOffset = 0, wallHeight = 8,
   roomRotationRef, catalogue = ITEM_CATALOGUE,
+  lowerFloorStairs,
 }) {
   const groupRef = useRef()
 
@@ -29,20 +26,27 @@ export default function GhostFloor({
   const gridD = roomData.gridD ?? 10
   const wh = roomData.wallHeight ?? wallHeight
 
-  // Compute floor cutouts from returnStair items
+  // Floor cutouts: returnStair items on this floor + stairs on the floor below
   const floorCutouts = useMemo(() => {
     const cuts = new Set()
-    for (const it of items) {
-      if (!it.stairs || !it.returnStair) continue
+    const addCuts = (it) => {
       const sw = it.stairW ?? 3, sd = it.stairD ?? 5
       const rotated = it.rotation === 90 || it.rotation === 270
       const ew = rotated ? sd : sw, ed = rotated ? sw : sd
       for (let dc = 0; dc < ew; dc++)
-        for (let dr = 0; dr < ed; dr++)
-          cuts.add(`${it.col + dc},${it.row + dr}`)
+        for (let dr = 0; dr < ed; dr++) {
+          const c = it.col + dc, r = it.row + dr
+          if (c >= 0 && c < gridW && r >= 0 && r < gridD)
+            cuts.add(`${c},${r}`)
+        }
     }
+    for (const it of items)
+      if (it.stairs && it.returnStair) addCuts(it)
+    if (lowerFloorStairs)
+      for (const it of lowerFloorStairs)
+        if (it.stairs && !it.returnStair) addCuts(it)
     return cuts
-  }, [items])
+  }, [items, lowerFloorStairs, gridW, gridD])
 
   // After mount/update: make all materials transparent and disable raycasting
   // Use a small delay so child meshes are mounted before traversal

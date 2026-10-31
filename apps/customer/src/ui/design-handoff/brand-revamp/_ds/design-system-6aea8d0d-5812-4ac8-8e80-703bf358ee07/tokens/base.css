@@ -1,0 +1,85 @@
+/* ─────────────────────────────────────────────────────────────
+   DaydreamDwelling — Base element styles & a few brand helpers
+   Light-touch resets and the reusable "sky" + "glass" utilities the
+   marketing surfaces lean on. Components style themselves via tokens;
+   this is just the connective tissue.
+   ───────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: var(--body-weight);
+  font-size: var(--text-lg);
+  line-height: var(--leading-body);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  margin: 0;
+}
+
+/* Italic is the brand's emphasis — not bold. */
+em, .ddd-italic { font-style: italic; }
+
+a { color: var(--link); text-decoration: none; }
+p { margin: 0; text-wrap: pretty; }
+
+::selection { background: var(--accent-wash); color: var(--ink); }
+
+/* ── The sky ───────────────────────────────────────────────────
+   Drop `class="ddd-sky"` on a full-bleed wrapper for the signature
+   above-the-clouds gradient backdrop. */
+.ddd-sky {
+  background: var(--sky-gradient);
+  color: var(--ink);
+}
+
+/* ── Frosted glass ─────────────────────────────────────────────
+   The core surface treatment: a translucent white card that blurs
+   the drifting clouds behind it. */
+.ddd-glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  backdrop-filter: blur(var(--blur-glass));
+  border: var(--border-glass);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass);
+}
+
+/* ── Eyebrow ───────────────────────────────────────────────────
+   The uppercase, letter-spaced, coral label that sits above headings,
+   usually prefixed with a ✦ or ◈ sparkle. */
+.ddd-eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  font-weight: var(--body-weight-semibold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* ── Scrollbars ────────────────────────────────────────────────*/
+.ddd-scroll-soft::-webkit-scrollbar { width: 6px; height: 6px; }
+.ddd-scroll-soft::-webkit-scrollbar-track { background: transparent; }
+.ddd-scroll-soft::-webkit-scrollbar-thumb {
+  background: rgba(120,150,200,0.30); border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

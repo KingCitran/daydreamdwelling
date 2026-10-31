@@ -240,6 +240,34 @@ export default function useItemActions({
     })
   }, [setItems])
 
+  // Rotate by an arbitrary degree amount — used by keyboard shortcut (R = 15°)
+  const rotateItemBy = useCallback((id, deg) => {
+    setItems(prev => {
+      const item = prev.find(it => it.id === id)
+      if (!item) return prev
+      const cat = catalogueRef.current
+      const def = cat[item.typeKey] ?? ITEM_CATALOGUE[item.typeKey]
+      const size = def?.sizes?.[item.sizeIndex] ?? def?.sizes?.[0]
+      const fw = item.stairW ?? (size?.footprint ?? [1,1])[0]
+      const fd = item.stairD ?? (size?.footprint ?? [1,1])[1]
+      const oldRot = item.rotation === 90 || item.rotation === 270
+      const rotation = ((item.rotation + deg) % 360 + 360) % 360
+      const newRot = rotation === 90 || rotation === 270
+      let col = item.col, row = item.row
+      if (oldRot !== newRot) {
+        // Dimensions swap — adjust position to keep center stable
+        const oldEw = oldRot ? fd : fw, oldEd = oldRot ? fw : fd
+        const newEw = newRot ? fd : fw, newEd = newRot ? fw : fd
+        col = item.col + (oldEw - newEw) / 2
+        row = item.row + (oldEd - newEd) / 2
+        // Only check overlap when dimensions change (expensive)
+        const testItem = { ...item, rotation, col, row }
+        if (hasOverlap(prev, id, testItem, cat)) return prev
+      }
+      return prev.map(it => it.id === id ? { ...it, rotation, col, row } : it)
+    })
+  }, [setItems])
+
   const resizeItem = useCallback((id, sizeIndex) => {
     setItems(prev => prev.map(it => it.id === id ? { ...it, sizeIndex } : it))
     const item = items.find(it => it.id === id)
@@ -374,7 +402,7 @@ export default function useItemActions({
     placeItem, placeItemOnWall, placeCeilingItem,
     moveItem, moveCeilingItem, adjustDropLength,
     moveWallItem, changeItemWall, swapWallFace,
-    rotateItem, resizeItem, recolorItem,
+    rotateItem, rotateItemBy, resizeItem, recolorItem,
     setPaneConfig, adjustWindowSize,
     toggleOwned, toggleLocked, deleteItem, updateStairConfig,
   }

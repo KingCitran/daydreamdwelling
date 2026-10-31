@@ -1841,6 +1841,171 @@ export const ITEM_CATALOGUE = {
     guarantee: '30-day return',
   },
 
+  // ── ACCESSIBILITY & STRUCTURE ──────────────────────────────────────────────
+
+  elevator: {
+    label: 'Elevator', category: 'Structure', subcategory: 'Vertical Transport',
+    color: '#8a9ab0', layer: 0, footprint: [2, 2], height: 8,
+    gradient: 'linear-gradient(135deg, #8a9ab0 0%, #4a5a70 100%)',
+    brand: 'Lift Co.', price: 0, priceMax: 0,
+    rating: 0, reviewCount: 0,
+    swatches: [
+      { name: 'Brushed Steel', hex: '#a0b0c0', family: 'Gray'  },
+      { name: 'Matte Black',   hex: '#2a2a2a', family: 'Black' },
+      { name: 'Warm Wood',     hex: '#c4a060', family: 'Wood'  },
+    ],
+    styles: ['Modern', 'Contemporary'], rooms: ['Hallway', 'Living Room'],
+    themes: ['Glam', 'Industrial'],
+    sizes: [
+      { label: "Residential 2'×2'", footprint: [2, 2], height: 8, price: 0 },
+      { label: "Wider 3'×2'",       footprint: [3, 2], height: 8, price: 0 },
+    ],
+    description: 'Residential elevator shaft — connects multiple floors with ADA-compliant clearances. Place on top of a matching shaft on each floor.',
+    materials: ['Tempered glass panels', 'Brushed metal cab', 'Emergency phone & power backup'],
+    guarantee: '',
+  },
+
+  ramp: {
+    label: 'Accessibility Ramp', category: 'Structure', subcategory: 'Accessibility',
+    color: '#b0c0b0', layer: 0, footprint: [2, 4], height: 0.6,
+    gradient: 'linear-gradient(135deg, #b0c0b0 0%, #708070 100%)',
+    brand: '', price: 0, priceMax: 0,
+    rating: 0, reviewCount: 0,
+    swatches: [
+      { name: 'Concrete',    hex: '#b0b0a8', family: 'Gray'  },
+      { name: 'Safety Yellow', hex: '#e8c840', family: 'Yellow' },
+      { name: 'Charcoal',    hex: '#4a4a4a', family: 'Black' },
+    ],
+    styles: ['Modern', 'Contemporary'], rooms: ['Entryway', 'Garage', 'Porch'],
+    themes: ['Accessibility'],
+    sizes: [
+      { label: "Compact 2'×4'",  footprint: [2, 4], height: 0.6, price: 0 },
+      { label: "Wide 3'×6'",     footprint: [3, 6], height: 0.6, price: 0 },
+    ],
+    description: 'ADA-compliant gentle slope ramp (1:12 ratio). Non-slip textured surface with side rails. Essential for wheelchair and mobility aid access.',
+    materials: ['Non-slip aluminum tread', 'Powder-coated steel frame', 'Handrails on both sides'],
+    guarantee: '',
+  },
+
+  balconyRailing: {
+    label: 'Balcony Railing', category: 'Structure', subcategory: 'Safety Railings',
+    color: '#9a9aa8', layer: 0, footprint: [4, 0.2], height: 3.5,
+    gradient: 'linear-gradient(135deg, #9a9aa8 0%, #4a4a58 100%)',
+    brand: '', price: 0, priceMax: 0,
+    rating: 0, reviewCount: 0,
+    swatches: [
+      { name: 'Brushed Steel', hex: '#a0a8b0', family: 'Gray'  },
+      { name: 'Matte Black',   hex: '#2a2a2a', family: 'Black' },
+      { name: 'White',         hex: '#f0f0f0', family: 'White' },
+      { name: 'Wood & Steel',  hex: '#c4a060', family: 'Wood'  },
+    ],
+    styles: ['Modern', 'Industrial', 'Traditional'], rooms: ['Balcony', 'Porch', 'Deck'],
+    themes: ['Industrial', 'Glam'],
+    sizes: [
+      { label: "4 ft section",  footprint: [4, 0.2], height: 3.5, price: 0 },
+      { label: "6 ft section",  footprint: [6, 0.2], height: 3.5, price: 0 },
+      { label: "8 ft section",  footprint: [8, 0.2], height: 3.5, price: 0 },
+    ],
+    description: 'Safety railing for balconies, decks, and open porches. Meets IBC 42-inch height code requirement. Available in cable, glass panel, or traditional balusters.',
+    materials: ['Powder-coated steel posts', 'Stainless cable or tempered glass infill', 'Composite handrail cap'],
+    guarantee: '',
+  },
+
+  grabBar: {
+    label: 'Grab Bar', category: 'Structure', subcategory: 'Accessibility',
+    color: '#b0c0d0', layer: 0, footprint: [1.5, 0.1], height: 0.2,
+    gradient: 'linear-gradient(135deg, #b0c0d0 0%, #708090 100%)',
+    brand: '', price: 79, priceMax: 149,
+    rating: 4.7, reviewCount: 88,
+    swatches: [
+      { name: 'Brushed Nickel', hex: '#b0b8c0', family: 'Gray'  },
+      { name: 'Matte Black',    hex: '#2a2a2a', family: 'Black' },
+      { name: 'Chrome',         hex: '#d0d8e0', family: 'Gray'  },
+    ],
+    styles: ['Modern', 'Traditional'], rooms: ['Bathroom'],
+    themes: ['Accessibility'],
+    sizes: [
+      { label: "18 in",  footprint: [1.5, 0.1], height: 0.2, price: 79  },
+      { label: "24 in",  footprint: [2,   0.1], height: 0.2, price: 99  },
+      { label: "36 in",  footprint: [3,   0.1], height: 0.2, price: 149 },
+    ],
+    description: 'ADA-compliant stainless steel grab bar. Supports 250 lb. Angled or straight mount. Required in accessible bathrooms near toilet and shower.',
+    materials: ['18-gauge stainless steel', 'Non-slip knurled grip', 'Concealed mounting flange'],
+    guarantee: 'Lifetime warranty',
+  },
+
+  porchColumn: {
+    label: 'Porch Column', category: 'Structure', subcategory: 'Columns',
+    color: '#d4ccc0', layer: 0, footprint: [1, 1], height: 8,
+    gradient: 'linear-gradient(135deg, #d4ccc0 0%, #a09888 100%)',
+    brand: '', price: 0, priceMax: 0,
+    rating: 0, reviewCount: 0,
+    swatches: [
+      { name: 'White Paint',  hex: '#f4f0ea', family: 'White' },
+      { name: 'Natural Wood', hex: '#c4a878', family: 'Wood'  },
+      { name: 'Stone Gray',   hex: '#a0a098', family: 'Gray'  },
+    ],
+    styles: ['Traditional', 'Colonial', 'Craftsman', 'Modern'], rooms: ['Porch', 'Entryway'],
+    themes: ['Cottagecore', 'Rustic'],
+    sizes: [
+      { label: "Round 8'",  footprint: [1, 1], height: 8,  price: 0 },
+      { label: "Square 8'", footprint: [1, 1], height: 8,  price: 0 },
+      { label: "Round 9'",  footprint: [1, 1], height: 9,  price: 0 },
+    ],
+    description: 'Load-bearing porch column with decorative capital and base. Hollow aluminum core wrapped in cellular PVC trim — rot and insect proof.',
+    materials: ['Hollow aluminum core', 'Cellular PVC cladding', 'Cast polyurethane capital & base'],
+    guarantee: '',
+  },
+
+  closetRod: {
+    label: 'Closet Rod', category: 'Storage', subcategory: 'Closet Systems',
+    surface: false,
+    color: '#a8a8a8', layer: 0, footprint: [3, 0.15], height: 0.1,
+    gradient: 'linear-gradient(135deg, #c0c0c0 0%, #808080 100%)',
+    brand: '', price: 29, priceMax: 79,
+    rating: 4.5, reviewCount: 312,
+    swatches: [
+      { name: 'Chrome',      hex: '#c8d0d8', family: 'Gray'  },
+      { name: 'Matte Black', hex: '#2a2a2a', family: 'Black' },
+      { name: 'Brushed Gold', hex: '#c8a840', family: 'Gold' },
+    ],
+    styles: ['Modern', 'Minimalist', 'Traditional'], rooms: ['Bedroom', 'Closet', 'Hallway'],
+    themes: ['Minimalist'],
+    sizes: [
+      { label: "24 in",  footprint: [2, 0.15], height: 0.1, price: 29 },
+      { label: "36 in",  footprint: [3, 0.15], height: 0.1, price: 39 },
+      { label: "48 in",  footprint: [4, 0.15], height: 0.1, price: 59 },
+      { label: "60 in",  footprint: [5, 0.15], height: 0.1, price: 79 },
+    ],
+    description: 'Adjustable-diameter closet rod with bracket flanges. Mounts to walls or custom wardrobe units. Supports up to 40 lb of hanging garments.',
+    materials: ['Heavy-gauge steel', 'Slip-fit end caps', 'Wall anchor hardware included'],
+    guarantee: '2-year warranty',
+  },
+
+  closetShelf: {
+    label: 'Closet Shelf', category: 'Storage', subcategory: 'Closet Systems',
+    color: '#d4c8b0', layer: 0, footprint: [3, 1], height: 0.15,
+    gradient: 'linear-gradient(135deg, #d4c8b0 0%, #a09878 100%)',
+    brand: '', price: 39, priceMax: 99,
+    rating: 4.4, reviewCount: 201,
+    swatches: [
+      { name: 'White',        hex: '#f0ece4', family: 'White' },
+      { name: 'Natural Wood', hex: '#d4b880', family: 'Wood'  },
+      { name: 'Dark Walnut',  hex: '#5a3a1a', family: 'Wood'  },
+    ],
+    styles: ['Modern', 'Minimalist', 'Scandinavian'], rooms: ['Bedroom', 'Closet', 'Office'],
+    themes: ['Minimalist', 'Scandinavian'],
+    sizes: [
+      { label: "24 in",  footprint: [2, 1], height: 0.15, price: 39 },
+      { label: "36 in",  footprint: [3, 1], height: 0.15, price: 59 },
+      { label: "48 in",  footprint: [4, 1], height: 0.15, price: 79 },
+      { label: "60 in",  footprint: [5, 1], height: 0.15, price: 99 },
+    ],
+    description: 'Adjustable wire or laminate shelf for walk-in and reach-in closets. Stackable system mounts on standard closet track standards.',
+    materials: ['Vinyl-coated wire or laminate board', 'Standard-track compatible brackets', 'Adjustable in 1-inch increments'],
+    guarantee: '5-year warranty',
+  },
+
   // ── FLOORING ──────────────────────────────────────────────────────────────
 
   hardwoodOak: {
@@ -2116,7 +2281,7 @@ export const ITEM_CATALOGUE = {
 export const CATEGORIES = [
   'Seating', 'Tables', 'Storage', 'Bedroom',
   'Wall Decor', 'Lighting', 'Textiles', 'Decor', 'Specialty',
-  'Flooring', 'Wallpaper', 'Doors', 'Windows',
+  'Structure', 'Flooring', 'Wallpaper', 'Doors', 'Windows',
 ].filter(cat => Object.values(ITEM_CATALOGUE).some(d => d.category === cat))
 
 // Subcategories per category, ordered by first appearance in catalogue

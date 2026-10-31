@@ -1,0 +1,390 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/brand/**",
+              "components/core/**",
+              "components/marketplace/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Outfit|EB Garamond|Caveat))/i]",
+        "message": "Font not provided by the design system. Available: Outfit, EB Garamond, Caveat."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|variant|size|as|arrow|style|onClick|href|disabled|key|ref|className|style|children)$/]",
+        "message": "<Button> doesn't accept that prop. Declared props: children, variant, size, as, arrow, style, onClick, href, disabled."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='variant'] > Literal[value!=/^(?:primary|secondary|ghost)$/]",
+        "message": "<Button> variant must be one of 'primary' | 'secondary' | 'ghost'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg)$/]",
+        "message": "<Button> size must be one of 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Button'] > JSXAttribute[name.name='as'] > Literal[value!=/^(?:button|a)$/]",
+        "message": "<Button> as must be one of 'button' | 'a'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Eyebrow'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|glyph|color|align|style|key|ref|className|style|children)$/]",
+        "message": "<Eyebrow> doesn't accept that prop. Declared props: children, glyph, color, align, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Eyebrow'] > JSXAttribute[name.name='align'] > Literal[value!=/^(?:left|center)$/]",
+        "message": "<Eyebrow> align must be one of 'left' | 'center'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GlassCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|tone|radius|style|key|ref|className|style|children)$/]",
+        "message": "<GlassCard> doesn't accept that prop. Declared props: children, tone, radius, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GlassCard'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:default|soft|strong)$/]",
+        "message": "<GlassCard> tone must be one of 'default' | 'soft' | 'strong'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GlassCard'] > JSXAttribute[name.name='radius'] > Literal[value!=/^(?:card|lg|sm)$/]",
+        "message": "<GlassCard> radius must be one of 'card' | 'lg' | 'sm'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute > JSXIdentifier[name!=/^(?:shape|placeholder|type|value|onChange|style|key|ref|className|style|children)$/]",
+        "message": "<Input> doesn't accept that prop. Declared props: shape, placeholder, type, value, onChange, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Input'] > JSXAttribute[name.name='shape'] > Literal[value!=/^(?:pill|rounded)$/]",
+        "message": "<Input> shape must be one of 'pill' | 'rounded'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Logo'] > JSXAttribute > JSXIdentifier[name!=/^(?:size|mark|showTagline|inkColor|softColor|cloudFill|style|key|ref|className|style|children)$/]",
+        "message": "<Logo> doesn't accept that prop. Declared props: size, mark, showTagline, inkColor, softColor, cloudFill, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Logo'] > JSXAttribute[name.name='size'] > Literal[value!=/^(?:sm|md|lg)$/]",
+        "message": "<Logo> size must be one of 'sm' | 'md' | 'lg'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Logo'] > JSXAttribute[name.name='mark'] > Literal[value!=/^(?:lockup|only)$/]",
+        "message": "<Logo> mark must be one of 'lockup' | 'only'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MoodSwatch'] > JSXAttribute > JSXIdentifier[name!=/^(?:mood|label|active|onClick|style|key|ref|className|style|children)$/]",
+        "message": "<MoodSwatch> doesn't accept that prop. Declared props: mood, label, active, onClick, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MoodSwatch'] > JSXAttribute[name.name='mood'] > Literal[value!=/^(?:Dream State|Golden Hour|Bright Day|Blush Hour|Coastal Morning|Moonlight|Vivid Sunset|Neon Nights|Greenhouse|Dark Academia|Northern Lights)$/]",
+        "message": "<MoodSwatch> mood must be one of 'Dream State' | 'Golden Hour' | 'Bright Day' | 'Blush Hour' | 'Coastal Morning' | 'Moonlight' | 'Vivid Sunset' | 'Neon Nights' | 'Greenhouse' | 'Dark Academia' | 'Northern Lights'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Pill'] > JSXAttribute > JSXIdentifier[name!=/^(?:children|tone|style|key|ref|className|style|children)$/]",
+        "message": "<Pill> doesn't accept that prop. Declared props: children, tone, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Pill'] > JSXAttribute[name.name='tone'] > Literal[value!=/^(?:glass|accent|outline)$/]",
+        "message": "<Pill> tone must be one of 'glass' | 'accent' | 'outline'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ProductCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|seller|price|rating|image|imageBg|swatches|onClick|style|key|ref|className|style|children)$/]",
+        "message": "<ProductCard> doesn't accept that prop. Declared props: title, seller, price, rating, image, imageBg, swatches, onClick, style."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Wispy'] > JSXAttribute > JSXIdentifier[name!=/^(?:width|bodySrc|faceSrc|float|style|key|ref|className|style|children)$/]",
+        "message": "<Wispy> doesn't accept that prop. Declared props: width, bodySrc, faceSrc, float, style."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "Button": {
+        "replaces": []
+      },
+      "Eyebrow": {
+        "replaces": []
+      },
+      "GlassCard": {
+        "replaces": []
+      },
+      "Input": {
+        "replaces": []
+      },
+      "Logo": {
+        "replaces": []
+      },
+      "MoodSwatch": {
+        "replaces": []
+      },
+      "Pill": {
+        "replaces": []
+      },
+      "ProductCard": {
+        "replaces": []
+      },
+      "Wispy": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--accent",
+      "--accent-glow",
+      "--accent-text",
+      "--accent-wash",
+      "--blossoms-accent",
+      "--blur-glass",
+      "--blur-nav",
+      "--blur-soft",
+      "--body-weight",
+      "--body-weight-medium",
+      "--body-weight-semibold",
+      "--border",
+      "--border-glass",
+      "--border-hair",
+      "--display-weight",
+      "--display-weight-emph",
+      "--dur-base",
+      "--dur-dreamy",
+      "--dur-fast",
+      "--ease-soft",
+      "--focus-ring",
+      "--font-body",
+      "--font-display",
+      "--font-hand",
+      "--glass",
+      "--glass-border",
+      "--glass-nav",
+      "--glass-soft",
+      "--glass-strong",
+      "--ink",
+      "--ink-soft",
+      "--leading-body",
+      "--leading-display",
+      "--leading-loose",
+      "--leading-snug",
+      "--lift-hover",
+      "--link",
+      "--mood-blush-hour",
+      "--mood-bright-day",
+      "--mood-coastal-morning",
+      "--mood-dark-academia",
+      "--mood-dream-state",
+      "--mood-golden-hour",
+      "--mood-greenhouse",
+      "--mood-moonlight",
+      "--mood-neon-nights",
+      "--mood-northern-lights",
+      "--mood-vivid-sunset",
+      "--neutral",
+      "--neutral-dark",
+      "--neutral-darker",
+      "--neutral-darkest",
+      "--neutral-light",
+      "--neutral-lighter",
+      "--neutral-lightest",
+      "--pad-card",
+      "--radius-card",
+      "--radius-card-lg",
+      "--radius-card-sm",
+      "--radius-image",
+      "--radius-input",
+      "--radius-pill",
+      "--shadow-accent",
+      "--shadow-card",
+      "--shadow-glass",
+      "--shadow-lift",
+      "--shadow-tile",
+      "--sky-gradient",
+      "--sky-horizon",
+      "--sky-middle",
+      "--sky-upper",
+      "--sky-zenith",
+      "--space-1",
+      "--space-10",
+      "--space-12",
+      "--space-14",
+      "--space-16",
+      "--space-2",
+      "--space-20",
+      "--space-25",
+      "--space-3",
+      "--space-30",
+      "--space-4",
+      "--space-5",
+      "--space-6",
+      "--space-8",
+      "--surface-card",
+      "--surface-panel",
+      "--text",
+      "--text-2xs",
+      "--text-d1",
+      "--text-d2",
+      "--text-d3",
+      "--text-d4",
+      "--text-hero",
+      "--text-lede",
+      "--text-lg",
+      "--text-md",
+      "--text-muted",
+      "--text-sm",
+      "--text-xl",
+      "--text-xs",
+      "--tracking-body",
+      "--tracking-caps",
+      "--tracking-display",
+      "--tracking-eyebrow",
+      "--tracking-tight",
+      "--white"
+    ],
+    "tokenKinds": {
+      "--sky-zenith": "color",
+      "--sky-upper": "color",
+      "--sky-middle": "color",
+      "--sky-horizon": "color",
+      "--sky-gradient": "color",
+      "--ink": "color",
+      "--ink-soft": "color",
+      "--accent": "color",
+      "--accent-text": "font",
+      "--accent-glow": "color",
+      "--accent-wash": "color",
+      "--glass": "color",
+      "--glass-soft": "color",
+      "--glass-strong": "color",
+      "--glass-border": "color",
+      "--glass-nav": "color",
+      "--white": "color",
+      "--neutral-lightest": "color",
+      "--neutral-lighter": "color",
+      "--neutral-light": "color",
+      "--neutral": "color",
+      "--neutral-dark": "color",
+      "--neutral-darker": "color",
+      "--neutral-darkest": "color",
+      "--mood-dream-state": "color",
+      "--mood-golden-hour": "color",
+      "--mood-bright-day": "color",
+      "--mood-blush-hour": "color",
+      "--mood-coastal-morning": "color",
+      "--mood-moonlight": "color",
+      "--mood-vivid-sunset": "color",
+      "--mood-neon-nights": "color",
+      "--mood-greenhouse": "color",
+      "--mood-dark-academia": "color",
+      "--mood-northern-lights": "color",
+      "--blossoms-accent": "color",
+      "--text": "font",
+      "--text-muted": "font",
+      "--surface-card": "color",
+      "--surface-panel": "color",
+      "--border": "color",
+      "--link": "color",
+      "--focus-ring": "color",
+      "--font-display": "font",
+      "--font-body": "font",
+      "--font-hand": "font",
+      "--display-weight": "font",
+      "--display-weight-emph": "font",
+      "--body-weight": "font",
+      "--body-weight-medium": "font",
+      "--body-weight-semibold": "font",
+      "--text-hero": "font",
+      "--text-d1": "font",
+      "--text-d2": "font",
+      "--text-d3": "font",
+      "--text-d4": "font",
+      "--text-lede": "font",
+      "--text-xl": "font",
+      "--text-lg": "font",
+      "--text-md": "font",
+      "--text-sm": "font",
+      "--text-xs": "font",
+      "--text-2xs": "font",
+      "--leading-display": "font",
+      "--leading-snug": "font",
+      "--leading-body": "font",
+      "--leading-loose": "font",
+      "--tracking-display": "font",
+      "--tracking-tight": "font",
+      "--tracking-body": "font",
+      "--tracking-eyebrow": "font",
+      "--tracking-caps": "font",
+      "--space-1": "spacing",
+      "--space-2": "spacing",
+      "--space-3": "spacing",
+      "--space-4": "spacing",
+      "--space-5": "spacing",
+      "--space-6": "spacing",
+      "--space-8": "spacing",
+      "--space-10": "spacing",
+      "--space-12": "spacing",
+      "--space-14": "spacing",
+      "--space-16": "spacing",
+      "--space-20": "spacing",
+      "--space-25": "spacing",
+      "--space-30": "spacing",
+      "--pad-card": "spacing",
+      "--radius-pill": "radius",
+      "--radius-card": "radius",
+      "--radius-card-lg": "radius",
+      "--radius-card-sm": "radius",
+      "--radius-image": "radius",
+      "--radius-input": "radius",
+      "--blur-glass": "spacing",
+      "--blur-nav": "spacing",
+      "--blur-soft": "spacing",
+      "--shadow-glass": "shadow",
+      "--shadow-card": "shadow",
+      "--shadow-tile": "shadow",
+      "--shadow-lift": "shadow",
+      "--shadow-accent": "shadow",
+      "--border-glass": "color",
+      "--border-hair": "other",
+      "--ease-soft": "other",
+      "--dur-fast": "other",
+      "--dur-base": "other",
+      "--dur-dreamy": "other",
+      "--lift-hover": "spacing"
+    },
+    "fontFamilies": [
+      "Caveat",
+      "EB Garamond",
+      "Outfit"
+    ]
+  }
+}

@@ -16,7 +16,7 @@ import {
   Package, Hammer, Palette, MoreHorizontal, ShoppingCart, Home,
   Undo2, Redo2, Trash2, Heart, SlidersHorizontal, RotateCw, RotateCcw,
   Camera, Share2, User, Music, Eye, ClipboardList, Users,
-  ChevronDown, Check, Plus, Minus, Search, Lock, Unlock, Layers
+  ChevronDown, Check, Plus, Minus, Search, Lock, Unlock, Layers, Pencil
 } from 'lucide-react'
 
 // ── Mode detection ─────────────────────────────────────────────────
@@ -102,12 +102,37 @@ function IconBtn({ icon: LucideIcon, onClick, label, badge, active, size = 38, u
 }
 
 // ── Room Switcher ──────────────────────────────────────────────────
-function RoomSwitcher({ mode, rooms, roomIds, room, onPick, onNew, onDelete, onOverview, u }) {
+function RoomSwitcher({ mode, rooms, roomIds, room, onPick, onNew, onDelete, onDeleteMultiple, onRename, onOverview, u }) {
   const [open, setOpen] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState(new Set())
+  const [editingId, setEditingId] = useState(null)
+  const [editValue, setEditValue] = useState('')
   const entries = (rooms || [room]).map((name, i) => ({ name, id: roomIds?.[i] ?? i }))
+  const deletableEntries = entries.filter(e => e.name !== room)
+
+  function closeDropdown() { setOpen(false); setSelectMode(false); setSelected(new Set()); setEditingId(null) }
+  function toggleSelect(id) {
+    setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  }
+  function handleDeleteSelected() {
+    if (!selected.size) return
+    onDeleteMultiple?.(Array.from(selected))
+    closeDropdown()
+  }
+  function startEdit(id, name, e) {
+    e.stopPropagation()
+    setEditingId(id)
+    setEditValue(name)
+  }
+  function commitEdit(id) {
+    if (editValue.trim()) onRename?.(id, editValue.trim())
+    setEditingId(null)
+  }
+
   return (
     <div style={{ position: 'relative', minWidth: 0, flexShrink: mode === 'mobile' ? 1 : 0 }}>
-      <button onClick={() => setOpen(o => !o)} style={{
+      <button onClick={() => { setOpen(o => !o); if (open) closeDropdown() }} style={{
         display: 'flex', alignItems: 'center', gap: 7,
         padding: mode === 'mobile' ? '6px 10px' : '8px 13px',
         borderRadius: 12, cursor: 'pointer', border: `1px solid ${u.line}`,
@@ -121,35 +146,79 @@ function RoomSwitcher({ mode, rooms, roomIds, room, onPick, onNew, onDelete, onO
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: '110%', left: 0, minWidth: 200,
+          position: 'absolute', top: '110%', left: 0, minWidth: 220,
           background: u.panel, border: `1px solid ${u.border}`, borderRadius: 14,
           padding: 6, zIndex: 120, boxShadow: '0 14px 40px rgba(0,0,0,0.28)',
         }}>
           {entries.map(({ name, id }) => (
             <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-              <button onClick={() => { onPick?.(id); setOpen(false) }} style={{
-                display: 'flex', flex: 1, alignItems: 'center', gap: 8,
-                padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: name === room ? u.accent + '16' : 'transparent',
-                color: name === room ? u.accent : u.text,
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
-              }}>
-                <Home size={15} /> {name}
-                {name === room && <Check size={15} style={{ marginLeft: 'auto' }} />}
-              </button>
-              {entries.length > 1 && name !== room && (
-                <button onClick={() => { onDelete?.(id); setOpen(false) }} title={`Delete ${name}`} style={{
-                  width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: 'transparent', color: u.soft, display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  fontSize: 13,
-                }}>✕</button>
+              {editingId === id ? (
+                <div style={{ display: 'flex', flex: 1, alignItems: 'center', gap: 4, padding: '4px 6px' }}>
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitEdit(id); if (e.key === 'Escape') setEditingId(null) }}
+                    onBlur={() => commitEdit(id)}
+                    style={{
+                      flex: 1, padding: '6px 8px', borderRadius: 8, border: `1.5px solid ${u.accent}`,
+                      background: u.card, color: u.text, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              ) : selectMode && name !== room ? (
+                <button onClick={() => toggleSelect(id)} style={{
+                  display: 'flex', flex: 1, alignItems: 'center', gap: 8,
+                  padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  background: selected.has(id) ? '#e53e3e18' : 'transparent',
+                  color: selected.has(id) ? '#e53e3e' : u.text,
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
+                }}>
+                  <span style={{
+                    width: 16, height: 16, borderRadius: 4, border: `2px solid ${selected.has(id) ? '#e53e3e' : u.soft}`,
+                    background: selected.has(id) ? '#e53e3e' : 'transparent', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {selected.has(id) && <Check size={10} color="#fff" />}
+                  </span>
+                  {name}
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => { if (!selectMode) { onPick?.(id); closeDropdown() } }} style={{
+                    display: 'flex', flex: 1, alignItems: 'center', gap: 8,
+                    padding: '9px 10px', borderRadius: 10, border: 'none', cursor: selectMode ? 'default' : 'pointer',
+                    background: name === room ? u.accent + '16' : 'transparent',
+                    color: name === room ? u.accent : u.text,
+                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, textAlign: 'left',
+                  }}>
+                    <Home size={15} style={{ color: name === room ? u.accent : u.soft, flexShrink: 0 }} />
+                    {name}
+                    {name === room && <Check size={15} style={{ marginLeft: 'auto', color: u.accent }} />}
+                  </button>
+                  {!selectMode && (
+                    <button onClick={(e) => startEdit(id, name, e)} title="Rename" style={{
+                      width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: 'transparent', color: u.soft, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}><Pencil size={13} /></button>
+                  )}
+                  {entries.length > 1 && name !== room && !selectMode && (
+                    <button onClick={() => { onDelete?.(id); closeDropdown() }} title={`Delete ${name}`} style={{
+                      width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: 'transparent', color: u.soft, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      fontSize: 13,
+                    }}>✕</button>
+                  )}
+                </>
               )}
             </div>
           ))}
           <div style={{ height: 1, background: u.line, margin: '4px 6px' }} />
-          {onOverview && (
-            <button onClick={() => { onOverview(); setOpen(false) }} style={{
+          {onOverview && !selectMode && (
+            <button onClick={() => { onOverview(); closeDropdown() }} style={{
               display: 'flex', width: '100%', alignItems: 'center', gap: 8,
               padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
               background: 'transparent', color: u.text,
@@ -158,14 +227,44 @@ function RoomSwitcher({ mode, rooms, roomIds, room, onPick, onNew, onDelete, onO
               <Layers size={15} /> Dwelling Overview
             </button>
           )}
-          <button onClick={() => { onNew?.(); setOpen(false) }} style={{
-            display: 'flex', width: '100%', alignItems: 'center', gap: 8,
-            padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
-            background: 'transparent', color: u.soft,
-            fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, textAlign: 'left',
-          }}>
-            <Plus size={15} /> New room
-          </button>
+          {!selectMode && (
+            <button onClick={() => { onNew?.(); closeDropdown() }} style={{
+              display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+              padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: 'transparent', color: u.soft,
+              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, textAlign: 'left',
+            }}>
+              <Plus size={15} /> New room
+            </button>
+          )}
+          {deletableEntries.length >= 1 && !selectMode && (
+            <button onClick={() => setSelectMode(true)} style={{
+              display: 'flex', width: '100%', alignItems: 'center', gap: 8,
+              padding: '9px 10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              background: 'transparent', color: u.soft,
+              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, textAlign: 'left',
+            }}>
+              <Trash2 size={15} /> Delete rooms...
+            </button>
+          )}
+          {selectMode && (
+            <div style={{ display: 'flex', gap: 6, padding: '4px 4px 2px' }}>
+              <button onClick={handleDeleteSelected} disabled={!selected.size} style={{
+                flex: 1, padding: '8px 0', borderRadius: 9, border: 'none', cursor: selected.size ? 'pointer' : 'default',
+                background: selected.size ? '#e53e3e' : u.line, color: selected.size ? '#fff' : u.soft,
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+              }}>
+                Delete{selected.size > 0 ? ` (${selected.size})` : ''}
+              </button>
+              <button onClick={() => { setSelectMode(false); setSelected(new Set()) }} style={{
+                padding: '8px 12px', borderRadius: 9, border: `1px solid ${u.line}`, cursor: 'pointer',
+                background: 'transparent', color: u.soft,
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+              }}>
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -198,7 +297,7 @@ function BudgetChip({ total, count, onClick, compact, u }) {
 export function BuilderTopBar({
   roomName, rooms, roomIds, budget, itemCount, cartCount,
   onUndo, onRedo, canUndo, canRedo, onCart, onScreenshot, onShare, onAccount,
-  onPickRoom, onNewRoom, onDeleteRoom, onOverview, onBudget, onBrandClick,
+  onPickRoom, onNewRoom, onDeleteRoom, onDeleteMultipleRooms, onRenameRoom, onOverview, onBudget, onBrandClick,
 }) {
   const t = useTheme()
   const u = ui(t)
@@ -219,7 +318,7 @@ export function BuilderTopBar({
       <header style={barStyle}>
         <div onClick={onBrandClick} style={{ cursor: 'pointer', flexShrink: 0 }}><Logo size={30} color={u.accent} /></div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-          <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} roomIds={roomIds} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onOverview={onOverview} u={u} />
+          <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} roomIds={roomIds} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onDeleteMultiple={onDeleteMultipleRooms} onRename={onRenameRoom} onOverview={onOverview} u={u} />
           <BudgetChip total={budget} count={itemCount} onClick={onBudget} compact u={u} />
         </div>
         <IconBtn icon={Undo2} onClick={onUndo} label="Undo" size={36} u={u} disabled={!canUndo} />
@@ -240,7 +339,7 @@ export function BuilderTopBar({
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} roomIds={roomIds} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onOverview={onOverview} u={u} />
+        <RoomSwitcher mode={mode} room={roomName || 'My Room'} rooms={rooms} roomIds={roomIds} onPick={onPickRoom} onNew={onNewRoom} onDelete={onDeleteRoom} onDeleteMultiple={onDeleteMultipleRooms} onRename={onRenameRoom} onOverview={onOverview} u={u} />
         <BudgetChip total={budget} count={itemCount} onClick={onBudget} u={u} />
       </div>
       <div style={{ flex: 1 }} />

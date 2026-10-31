@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
 import { getTexture, TEXTURE_ROUGHNESS, PAINT_FINISH_ROUGHNESS, onTextureReady } from './textures'
 
-const WALL_T = 0.28
+import { WALL_T } from '../utils/buildingConstants'
 
 // How many feet one texture tile covers on a wall
 const WALL_TEX_SCALE = {
@@ -65,7 +65,7 @@ function normalMatches(n, visibles) {
 // Compass → direction offset lookup for internal walls
 const COMPASS_DIR = { N: { dc: 0, dr: -1 }, S: { dc: 0, dr: 1 }, W: { dc: -1, dr: 0 }, E: { dc: 1, dr: 0 } }
 
-function buildWalls(cells, gridW, gridD, internalWalls) {
+function buildWalls(cells, gridW, gridD, internalWalls, cutawayNormals) {
   const walls = []
   const seen = new Set()  // deduplicate (e.g., "3,4:E" and "4,4:W" are the same wall)
 
@@ -74,6 +74,8 @@ function buildWalls(cells, gridW, gridD, internalWalls) {
     const [col, row] = key.split(',').map(Number)
     for (const { dc, dr, normal, axis } of DIRECTIONS) {
       if (!cells.has(`${col + dc},${row + dr}`)) {
+        // Cutaway: skip boundary walls facing the camera
+        if (cutawayNormals?.some(n => n[0] === normal[0] && n[1] === normal[1] && n[2] === normal[2])) continue
         const cx = (col + 0.5) - gridW / 2
         const cz = (row + 0.5) - gridD / 2
         const wallId = `${key}:${dc},${dr}`
@@ -262,10 +264,10 @@ function WallGrid({ x, z, normal, axis, wallHeight, uLo, uHi, yLo, yHi }) {
   )
 }
 
-export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wallTexture, wallFinish, wallOverrides, currentRotationRef, showGrid, items, paintMode, onClickWall, internalWalls }) {
+export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wallTexture, wallFinish, wallOverrides, currentRotationRef, showGrid, items, paintMode, onClickWall, internalWalls, cutawayNormals }) {
   const walls = useMemo(
-    () => buildWalls(cells, gridW, gridD, internalWalls),
-    [cells, gridW, gridD, internalWalls]
+    () => buildWalls(cells, gridW, gridD, internalWalls, cutawayNormals),
+    [cells, gridW, gridD, internalWalls, cutawayNormals]
   )
 
   // Force material recreation when async texture images finish loading.
@@ -279,6 +281,7 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
   const prevQ = useRef(0)
 
   useFrame(() => {
+    if (!currentRotationRef) return
     const q = getQuadrant(currentRotationRef.current)
     if (q !== prevQ.current) {
       prevQ.current = q

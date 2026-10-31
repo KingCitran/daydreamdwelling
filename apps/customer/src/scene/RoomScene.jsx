@@ -220,6 +220,11 @@ function ZoomController({ zoomRef, panRef, onZoomChange }) {
   return null
 }
 
+// Outdoor lighting preset — bright open-air sky, no warm interior cast
+const OUTDOOR_MOOD = { hemiI: 0.70, skyColor: '#c8e8ff', groundColor: '#8aaa78', keyI: 1.40, keyC: '#fffef8', fillI: 0.35, fillC: '#d8eeff' }
+// Semi-outdoor (covered porch/balcony) — diffused daylight, no direct sun
+const SEMI_MOOD    = { hemiI: 0.58, skyColor: '#d8eeff', groundColor: '#90a870', keyI: 0.90, keyC: '#fffff0', fillI: 0.28, fillC: '#d0e8f0' }
+
 export default function RoomScene({
   targetRotation, cells, gridW, gridD, wallHeight,
   floorColor, floorTexture, floorOverrides, wallColor, wallTexture, wallFinish, wallOverrides,
@@ -248,17 +253,20 @@ export default function RoomScene({
   contentCenter,
   onZoomChange,
   lowerFloorStairs,
+  roomType = 'indoor', // 'indoor' | 'outdoor' | 'porch'
 }) {
   const { mood: sharedMood } = useMoodControl()
-  const mood = MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day
+  const isOutdoor = roomType === 'outdoor'
+  const isPorch   = roomType === 'porch'
+  const baseMood  = isOutdoor ? OUTDOOR_MOOD : isPorch ? SEMI_MOOD : (MOOD_SCENE_PRESETS[sharedMood] ?? MOOD_LEGACY[lightMood] ?? MOOD_LEGACY.day)
+  const mood = lightsOff ? { ...baseMood, keyI: 0, fillI: 0, hemiI: 0.08 } : baseMood
   const groupRef = useRef()
   const currentRY = useRef(0)
   const activeDragRef = useRef(null)
   const internalPanRef = useRef({ x: 0, z: 0 })
   const panRef = externalPanRef || internalPanRef
 
-  // Cells to cut from the floor — from returnStair items on this floor
-  // Floor cutouts: from returnStair items on this floor AND stairs on the floor below
+  // Cells to cut from the floor — from returnStair items on this floor AND stairs on the floor below
   const floorCutouts = useMemo(() => {
     const cuts = new Set()
     const addCuts = (it) => {
@@ -266,8 +274,12 @@ export default function RoomScene({
       const rot = it.rotation === 90 || it.rotation === 270
       const ew = rot ? sd : sw, ed = rot ? sw : sd
       for (let dc = 0; dc < ew; dc++)
-        for (let dr = 0; dr < ed; dr++)
-          cuts.add(`${it.col + dc},${it.row + dr}`)
+        for (let dr = 0; dr < ed; dr++) {
+          const c = it.col + dc, r = it.row + dr
+          // Bounds-check prevents cutouts on invalid cells (esp. after rotation near edges)
+          if (c >= 0 && c < gridW && r >= 0 && r < gridD)
+            cuts.add(`${c},${r}`)
+        }
     }
     for (const it of items)
       if (it.stairs && it.returnStair) addCuts(it)
@@ -275,7 +287,7 @@ export default function RoomScene({
       for (const it of lowerFloorStairs)
         if (it.stairs && !it.returnStair) addCuts(it)
     return cuts
-  }, [items, lowerFloorStairs])
+  }, [items, lowerFloorStairs, gridW, gridD])
 
   const lookAtY = lookAtYOverride ?? (wallHeight / 2 + yOffset)
   const cx = contentCenter?.x ?? 0
@@ -402,6 +414,7 @@ export default function RoomScene({
           activeDragRef={activeDragRef}
           wallColor={wallColor}
           wallTexture={wallTexture}
+          internalWalls={internalWalls}
         />
         {ghostPlacement && (
           <GhostPreview
@@ -414,22 +427,25 @@ export default function RoomScene({
             catalogue={catalogue}
           />
         )}
-        <Ceiling
-          cells={cells}
-          gridW={gridW}
-          gridD={gridD}
-          wallHeight={wallHeight}
-          items={items}
-          selectedId={selectedId}
-          onClickCell={onPlaceCeilingItem}
-          onSelectItem={onSelectItem}
-          ceilingPicker={ceilingPicker}
-          ceilingView={ceilingView}
-          onMoveCeilingItem={onMoveCeilingItem}
-          roomRotationRef={currentRY}
-          cartHighlight={cartHighlight}
-          lightsOff={lightsOff}
-        />
+        {/* Outdoor rooms have no ceiling — open sky */}
+        {!isOutdoor && (
+          <Ceiling
+            cells={cells}
+            gridW={gridW}
+            gridD={gridD}
+            wallHeight={wallHeight}
+            items={items}
+            selectedId={selectedId}
+            onClickCell={onPlaceCeilingItem}
+            onSelectItem={onSelectItem}
+            ceilingPicker={ceilingPicker}
+            ceilingView={ceilingView}
+            onMoveCeilingItem={onMoveCeilingItem}
+            roomRotationRef={currentRY}
+            cartHighlight={cartHighlight}
+            lightsOff={lightsOff}
+          />
+        )}
         {showMeasurements && (
           <Measurements gridW={gridW} gridD={gridD} wallHeight={wallHeight} items={items} selectedId={selectedId} />
         )}

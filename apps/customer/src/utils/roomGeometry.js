@@ -64,8 +64,47 @@ export function isCeilingItem(def) {
   return !!def.ceiling
 }
 
-export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE) {
+export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE, roomCells, internalWalls) {
   const testCells = getItemCells(testItem, catalogue)
+
+  // Boundary wall collision: check if any of the item's cells are outside the room
+  if (roomCells && roomCells.size > 0) {
+    for (const cell of testCells) {
+      const [hc, hr] = cell.split(',').map(Number)
+      const roomKey = `${Math.floor(hc / 2)},${Math.floor(hr / 2)}`
+      if (!roomCells.has(roomKey)) return true
+    }
+  }
+
+  // Internal wall collision: check if the item's footprint crosses any internal wall
+  if (internalWalls && internalWalls.size > 0) {
+    const def = catalogue[testItem.typeKey] ?? ITEM_CATALOGUE[testItem.typeKey]
+    const size = def?.sizes?.[testItem.sizeIndex] ?? def?.sizes?.[0]
+    const fw = testItem.stairW ?? (size?.footprint ?? [1, 1])[0]
+    const fd = testItem.stairD ?? (size?.footprint ?? [1, 1])[1]
+    const rotated = testItem.rotation === 90 || testItem.rotation === 270
+    const ew = rotated ? fd : fw, ed = rotated ? fw : fd
+    const left = testItem.col, right = testItem.col + ew
+    const top = testItem.row, bottom = testItem.row + ed
+
+    for (const wallKey of internalWalls) {
+      const sep = wallKey.lastIndexOf(':')
+      const [wc, wr] = wallKey.slice(0, sep).split(',').map(Number)
+      const dir = wallKey.slice(sep + 1)
+      // Wall edge position in the room
+      if (dir === 'E' || dir === 'W') {
+        // Vertical wall at x = wc + (dir==='E' ? 1 : 0)
+        const wallX = dir === 'E' ? wc + 1 : wc
+        // Item crosses this wall if it spans across wallX AND overlaps the wall's row
+        if (left < wallX && right > wallX && top < wr + 1 && bottom > wr) return true
+      } else {
+        // Horizontal wall at z = wr + (dir==='S' ? 1 : 0)
+        const wallZ = dir === 'S' ? wr + 1 : wr
+        if (top < wallZ && bottom > wallZ && left < wc + 1 && right > wc) return true
+      }
+    }
+  }
+
   for (const other of items) {
     if (other.id === testId) continue
     if (other.wall) continue  // wall items don't occupy floor space

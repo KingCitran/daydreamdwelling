@@ -1,4 +1,4 @@
-// DwellingFloor — renders a complete floor (floor tiles + walls + items)
+// DwellingFloor — renders a complete floor (floor tiles + walls + optionally items)
 // at a given yOffset for the dwelling overview. Non-interactive, with
 // slightly translucent materials so you can see through the building.
 import { useRef, useEffect, useMemo } from 'react'
@@ -7,18 +7,28 @@ import Walls from './Walls'
 import Items from './Items'
 import { ITEM_CATALOGUE } from '../data/items'
 
+import safeSet from '../utils/safeSet'
+
 const noop = () => {}
-function safeSet(v) {
-  if (v instanceof Set) return v
-  if (Array.isArray(v)) return new Set(v)
-  if (v && typeof v[Symbol.iterator] === 'function') return new Set(v)
-  return new Set()
+
+// Cutaway normals based on camera rotation angle
+// Removes the wall(s) facing the camera so you can see inside
+function getCutawayNormals(angle) {
+  // Camera orbits around the building. Determine which quadrant it's in
+  // and remove the walls facing that direction
+  const a = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)
+  if (a < Math.PI / 2) return [[0, 0, 1]]         // camera at +X,+Z → remove south wall
+  if (a < Math.PI)     return [[-1, 0, 0]]         // camera at -X,+Z → remove east wall
+  if (a < 3 * Math.PI / 2) return [[0, 0, -1]]     // camera at -X,-Z → remove north wall
+  return [[1, 0, 0]]                                 // camera at +X,-Z → remove west wall
 }
 
 export default function DwellingFloor({
   roomData, yOffset = 0, wallHeight = 8,
   roomRotationRef, catalogue = ITEM_CATALOGUE,
-  isActive = false, // true = the floor the user was editing
+  isActive = false,
+  showItems = true,
+  floorLabel,
 }) {
   const groupRef = useRef()
 
@@ -51,8 +61,7 @@ export default function DwellingFloor({
     return cuts
   }, [items])
 
-  // After mount: make materials semi-transparent and disable raycasting.
-  // Active floor is more opaque, other floors more see-through.
+  // After mount: make materials semi-transparent and disable raycasting
   const appliedRef = useRef(false)
   useEffect(() => {
     appliedRef.current = false
@@ -61,11 +70,13 @@ export default function DwellingFloor({
       appliedRef.current = true
       groupRef.current.traverse(child => {
         child.raycast = noop
+        child.castShadow = false
+        child.receiveShadow = false
         if (child.isMesh && child.material) {
           child.material = child.material.clone()
           child.material.transparent = true
-          child.material.opacity = isActive ? 0.85 : 0.55
-          child.material.depthWrite = isActive
+          child.material.opacity = 0.92
+          child.material.depthWrite = true
         }
       })
     }, 50)
@@ -79,8 +90,7 @@ export default function DwellingFloor({
         gridW={gridW}
         gridD={gridD}
         floorColor={roomData.floorColor ?? '#cec5b8'}
-        floorTexture={roomData.floorTexture ?? 'flat'}
-        floorOverrides={roomData.floorOverrides}
+        floorTexture={'flat'}
         floorCutouts={floorCutouts}
         showGrid={false}
         paintMode={false}
@@ -95,26 +105,36 @@ export default function DwellingFloor({
         wallFinish={roomData.wallFinish ?? 'eggshell'}
         wallOverrides={roomData.wallOverrides}
         showGrid={false}
-        items={items}
+        items={showItems ? items : []}
         paintMode={false}
         onClickWall={noop}
         internalWalls={internalWalls}
+        cutawayNormals={[[0, 0, -1]]}
       />
-      <Items
-        items={items}
-        cells={cells}
-        gridW={gridW}
-        gridD={gridD}
-        wallHeight={wh}
-        onSelectItem={noop}
-        onMoveItem={noop}
-        onMoveWallItem={noop}
-        onDoubleClickItem={noop}
-        onDragStart={noop}
-        onDragEnd={noop}
-        roomRotationRef={roomRotationRef}
-        catalogue={catalogue}
-      />
+      {showItems && (
+        <Items
+          items={items}
+          cells={cells}
+          gridW={gridW}
+          gridD={gridD}
+          wallHeight={wh}
+          onSelectItem={noop}
+          onMoveItem={noop}
+          onMoveWallItem={noop}
+          onDoubleClickItem={noop}
+          onDragStart={noop}
+          onDragEnd={noop}
+          roomRotationRef={roomRotationRef}
+          catalogue={catalogue}
+        />
+      )}
+      {/* Floor edge highlight — colored bar on the front edge */}
+      {floorLabel && (
+        <mesh position={[0, 0.05, gridD / 2 + 0.3]}>
+          <boxGeometry args={[gridW * 0.8, 0.1, 0.3]} />
+          <meshBasicMaterial color={isActive ? '#60d888' : '#8080c0'} />
+        </mesh>
+      )}
     </group>
   )
 }

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/tokens/base.css">
+  <link rel="stylesheet" href="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/styles.css">
+  <script src="_ds/design-system-6aea8d0d-5812-4ac8-8e80-703bf358ee07/_ds_bundle.js"></script>
+  <link rel="stylesheet" href="parhelia/tokens.css">
+  <script src="parhelia/icons.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Commissioner:wght@300;400;500;600&family=Cedarville+Cursive&display=swap">
+  <style>
+    body { margin:0; background:var(--sky-gradient); background-attachment:fixed; min-height:100vh; color:var(--ink); }
+    a { color: var(--accent); } a:hover { color: #e8803f; }
+    @keyframes ddd-wisp { from { transform: translateX(-7%) } to { transform: translateX(7%) } }
+    @keyframes ddd-lump { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-1.5px) } }
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; } }
+  </style>
+</helmet>
+<section id="turn-6" style="position:relative; width:1400px; margin:0 auto; padding:72px 0 0; font-family:'Commissioner',sans-serif; color:#2a1848;">
+  <div style="padding:0 8px 28px; display:flex; align-items:flex-end; justify-content:space-between; gap:40px;">
+    <div>
+      <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#fff; margin-bottom:14px;"><span style="color:#7a48cc;">✦</span> TURN 6 · D BUTTONS, SIMPLE, DREAM STATE</div>
+      <h2 style="font-family:'Young Serif',serif; font-weight:400; font-size:44px; line-height:1.05; letter-spacing:-.8px; color:#fff; margin:0; text-wrap:pretty;">The D, kept plain. <span style="color:#7a48cc;">Light purple</span> as the neutral.</h2>
+    </div>
+    <p style="max-width:440px; margin:0; font-size:15px; line-height:1.65; color:#fff;">Same D silhouette as 4a — flat stem, half-round bowl — with nothing else on it. No highlight, no ring, no sparkle. Flat fills, one soft shadow, 1px lift on hover. Dream State palette throughout.</p>
+  </div>
+  <div id="6a" style="background:rgba(237,233,255,.72); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.7); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(122,72,204,.14); display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:start;">
+    <div style="display:flex; flex-direction:column; gap:30px;">
+      <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; height:50px; padding:0 30px 0 22px; border-radius:6px 999px 999px 6px; background:#7a48cc; color:#fff; border:0; box-shadow:0 8px 20px rgba(122,72,204,.22); display:inline-flex; align-items:center; cursor:pointer; transition:transform .18s, background .18s;" style-hover="transform:translateY(-1px); background:#6a3bb8;">start building — it's free</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; height:50px; padding:0 30px 0 22px; border-radius:6px 999px 999px 6px; background:#ddd4f5; color:#2a1848; border:0; display:inline-flex; align-items:center; cursor:pointer; transition:transform .18s, background .18s;" style-hover="transform:translateY(-1px); background:#d1c6f0;">browse the shop</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; height:50px; padding:0 30px 0 22px; border-radius:6px 999px 999px 6px; background:transparent; color:#2a1848; border:1px solid #b7a7e6; display:inline-flex; align-items:center; cursor:pointer; transition:transform .18s, border-color .18s;" style-hover="transform:translateY(-1px); border-color:#7a48cc;">about</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 26px 0 18px; border-radius:5px 999px 999px 5px; background:#7a48cc; color:#fff; border:0; display:inline-flex; align-items:center; cursor:pointer;">open the builder</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 18px 0 26px; border-radius:999px 5px 5px 999px; background:#ddd4f5; color:#2a1848; border:0; display:inline-flex; align-items:center; cursor:pointer;">back to the room</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 26px 0 18px; border-radius:5px 999px 999px 5px; background:#ede9ff; color:#9a8cc2; border:0; display:inline-flex; align-items:center; cursor:not-allowed;">the shop is opening soon</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <button aria-label="cart" style="width:46px; height:46px; border-radius:5px 999px 999px 5px; background:#7a48cc; color:#fff; border:0; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-left:2px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.5 11h11l2-7H7M9 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path></svg></button>
+        <button aria-label="save" style="width:46px; height:46px; border-radius:5px 999px 999px 5px; background:#ddd4f5; color:#2a1848; border:0; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-left:2px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg></button>
+        <button aria-label="close" style="width:46px; height:46px; border-radius:999px 5px 5px 999px; background:transparent; color:#2a1848; border:1px solid #b7a7e6; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-right:2px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"></path></svg></button>
+        <span style="width:12px;"></span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:#ddd4f5; color:#2a1848; display:inline-flex; align-items:center;">handmade</span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:#7a48cc; color:#fff; display:inline-flex; align-items:center;">new maker</span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:transparent; color:#5a4a8a; border:1px solid #b7a7e6; display:inline-flex; align-items:center;">seating</span>
+      </div>
+      <div style="display:flex; gap:0; max-width:480px;">
+        <input placeholder="your@email.com" style="flex:1; font-family:'Commissioner',sans-serif; font-size:15px; height:50px; padding:0 20px; border-radius:6px 0 0 6px; border:1px solid #b7a7e6; border-right:0; background:#fff; color:#2a1848; outline:none;" style-focus="border-color:#7a48cc;">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:50px; padding:0 28px 0 20px; border-radius:0 999px 999px 0; background:#7a48cc; color:#fff; border:0; cursor:pointer; white-space:nowrap;">send</button>
+      </div>
+      <div style="border-radius:20px; padding:22px 24px; background:#ede9ff; display:flex; flex-wrap:wrap; gap:14px; align-items:center;">
+        <span style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:#7a6aa8; width:100%;">on the pale Dream State page ground</span>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 26px 0 18px; border-radius:5px 999px 999px 5px; background:#7a48cc; color:#fff; border:0; cursor:pointer;">bring it home</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 26px 0 18px; border-radius:5px 999px 999px 5px; background:#fff; color:#2a1848; border:1px solid #d1c6f0; cursor:pointer;">save for later</button>
+        <a href="#" style="font-family:'Young Serif',serif; font-size:16px; color:#2a1848; text-decoration:underline; text-decoration-color:#b7a7e6; text-underline-offset:5px; text-decoration-thickness:1.5px;">see all makers</a>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:18px; font-size:15px; line-height:1.7; color:#2a1848;">
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Three fills, one shape.</em> Primary <code style="font-family:monospace; font-size:12px;">#7a48cc</code> · Secondary light purple <code style="font-family:monospace; font-size:12px;">#ddd4f5</code> · Tertiary outline <code style="font-family:monospace; font-size:12px;">#b7a7e6</code>. Text is the deep Dream State ink <code style="font-family:monospace; font-size:12px;">#2a1848</code>, never black.</p>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Light purple is the neutral.</em> Secondaries, chips, disabled states and page grounds all live in the pale end of the palette, so coral (when it appears) is a single warm note, not a competitor.</p>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Direction stays.</em> Bowl right = forward, bowl left = back / close. That's the only "idea" left on the button.</p>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Text links</em> get a plain thin lavender underline here; the cloud-sea underline from 4a stays available for hero moments.</p>
+    </div>
+  </div>
+</section>
+<section id="turn-5" style="position:relative; width:1400px; margin:0 auto; padding:72px 0 0; font-family:'Commissioner',sans-serif; color:var(--ink);">
+  <div style="padding:0 8px 28px; display:flex; align-items:flex-end; justify-content:space-between; gap:40px;">
+    <div>
+      <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#fff; margin-bottom:14px;"><span style="color:var(--accent);">✦</span> TURN 5 · LOGO WORKBENCH</div>
+      <h2 style="font-family:'Young Serif',serif; font-weight:400; font-size:44px; line-height:1.05; letter-spacing:-.8px; color:#fff; margin:0; text-wrap:pretty;">The room, <span style="color:var(--accent);">at every size.</span></h2>
+    </div>
+    <p style="max-width:440px; margin:0; font-size:15px; line-height:1.65; color:#fff;">The mark from 2a, isolated so we can iterate on it. Same one drawing throughout — change it once here and every size follows.</p>
+  </div>
+  <div id="5a" style="background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); display:flex; flex-direction:column; gap:36px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Mark · scale · lockups · grounds</span>
+      <a href="#5a" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">5a</a>
+    </div>
+    <div style="display:grid; grid-template-columns:auto 1fr; gap:48px; align-items:center;">
+      <svg width="260" height="282" viewBox="0 0 120 130" fill="none" aria-hidden="true"><defs><clipPath id="dd-hl"><path d="M30 12V34H22A11 11 0 0 1 22 12Z"></path></clipPath><clipPath id="dd-hr"><path d="M10 12V34H18A11 11 0 0 0 18 12Z"></path></clipPath></defs>
+        <path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path>
+        <g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g>
+        <g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g>
+        <path d="M22.9 35L60 20L97.1 35M60 20V66" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linejoin="round"></path>
+      </svg>
+      <div style="display:flex; flex-direction:column; gap:28px;">
+        <div style="display:flex; align-items:flex-end; gap:28px;">
+          <svg width="96" height="104" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g></svg>
+          <svg width="48" height="52" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#a08fd8"></path></g></svg>
+          <svg width="24" height="26" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#a08fd8"></path></g></svg>
+          <svg width="16" height="17" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#a08fd8"></path></g></svg>
+          <span style="font-size:12px; color:var(--ink-soft); padding-bottom:4px;">96 · 48 · 24 · 16 — the window frame drops below 48px</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:18px;">
+          <svg width="64" height="70" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g></svg>
+          <div>
+            <div style="font-family:'Young Serif',serif; font-size:40px; line-height:1; letter-spacing:-1px;">DaydreamDwelling</div>
+            <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft); margin-top:6px;">rooms in the sky</div>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px; align-self:flex-start; padding:0 12px;">
+          <svg width="88" height="95" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g></svg>
+          <div style="font-family:'Young Serif',serif; font-size:22px; line-height:1; letter-spacing:-.4px;">DaydreamDwelling</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:14px;">
+      <div style="border-radius:20px; padding:26px; background:var(--sky-gradient); display:flex; align-items:center; justify-content:center; min-height:150px;"><svg width="90" height="98" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g></svg></div>
+      <div style="border-radius:20px; padding:26px; background:#ede9ff; border:1px solid var(--glass-border); display:flex; align-items:center; justify-content:center; min-height:150px;"><svg width="90" height="98" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g></svg></div>
+      <div style="border-radius:20px; padding:26px; background:#090c16; display:flex; align-items:center; justify-content:center; min-height:150px;"><svg width="90" height="98" viewBox="0 0 120 130" fill="none" aria-hidden="true" style="color:#fff;"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="currentColor" opacity=".4"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="currentColor" opacity=".5"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="currentColor" opacity=".25"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="currentColor"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="currentColor" opacity=".95"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="currentColor" opacity=".95"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="currentColor" opacity=".95"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="currentColor" opacity=".5"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="currentColor" opacity=".7"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="currentColor" opacity=".6"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="currentColor" opacity=".8"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="currentColor" opacity=".85"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="currentColor" opacity="1"></path></g></svg></div>
+      <div style="border-radius:20px; padding:26px; background:#7a48cc; display:flex; align-items:center; justify-content:center; min-height:150px;"><svg width="90" height="98" viewBox="0 0 120 130" fill="none" aria-hidden="true" style="color:#fff;"><path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="currentColor" opacity=".4"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="currentColor" opacity=".5"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="currentColor" opacity=".25"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="currentColor"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="currentColor" opacity=".95"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="currentColor" opacity=".95"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="currentColor" opacity=".95"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="currentColor" opacity=".5"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="currentColor" opacity=".7"></path><g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="currentColor" opacity=".6"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="currentColor" opacity=".8"></path></g><g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="currentColor" opacity=".85"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="currentColor" opacity="1"></path></g></svg></div>
+    </div>
+    <div style="font-size:12px; color:var(--ink-soft); display:flex; gap:24px; flex-wrap:wrap;"><span>sky · Dream State pale · Moonlight dark · Dream State accent</span><span>lilac plaster walls, lit #c9bbea / shadow #a08fd8 · oak floor #e9dfcf · plum frames #3b2a6e · periwinkle rug #6d5cb8 · mono version on dark: white at 60/85%, windows still open</span></div>
+  </div>
+</section>
+<section id="turn-4" style="position:relative; width:1400px; margin:0 auto; padding:72px 0 0; font-family:'Commissioner',sans-serif; color:var(--ink);">
+  <div style="padding:0 8px 28px; display:flex; align-items:flex-end; justify-content:space-between; gap:40px;">
+    <div>
+      <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#fff; margin-bottom:14px;"><span style="color:var(--accent);">✦</span> TURN 4 · BUTTONS FROM THE LOGO, NOT FROM A TEMPLATE</div>
+      <h2 style="font-family:'Young Serif',serif; font-weight:400; font-size:44px; line-height:1.05; letter-spacing:-.8px; color:#fff; margin:0; text-wrap:pretty;">Every primary is a <span style="color:var(--accent);">D</span> — the window from your room.</h2>
+    </div>
+    <p style="max-width:440px; margin:0; font-size:15px; line-height:1.65; color:#fff;">The pill is everyone's. The D is only yours: flat on one side, arched on the other — the exact window cut into the logo's walls. "Through the door" stops being a metaphor. Secondary actions lose the box entirely and become hand-highlighted text, like a line marked in a letter.</p>
+  </div>
+  <div id="4a" style="background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:start;">
+    <div style="display:flex; flex-direction:column; gap:30px;">
+      <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; height:50px; padding:0 30px 0 22px; border-radius:6px 999px 999px 6px; background:var(--accent); color:#fff; border:0; box-shadow:0 10px 26px rgba(255,155,92,.28); display:inline-flex; align-items:center; gap:10px; cursor:pointer; transition:transform .18s, background .18s, box-shadow .18s;" style-hover="transform:translateY(-1px); background:#ffa86f;">start building — it's free <span style="color:#fff; font-size:13px;">✦</span></button>
+        <a href="#" data-cloud-key="shop" style="position:relative; isolation:isolate; display:inline-block; font-family:'Young Serif',serif; font-size:17px; color:var(--ink); text-decoration:none; padding:0 4px; transition:color .18s;" style-hover="color:#b8541a;"><span style="position:relative; z-index:1;">browse the shop</span>
+          <sc-for list="{{ shopClouds }}" as="c" hint-placeholder-count="0"><span aria-hidden="true" style="position:absolute; z-index:0; background:{{ c.color }}; opacity:.8; left:{{ c.left }}; width:{{ c.width }}; height:{{ c.height }}; bottom:{{ c.bottom }}; transform:{{ c.transform }}; -webkit-mask:{{ c.mask }}; mask:{{ c.mask }};"></span></sc-for></a>
+        <a href="#" data-cloud-key="about" style="position:relative; isolation:isolate; display:inline-block; font-family:'Young Serif',serif; font-size:17px; color:var(--ink); text-decoration:none; padding:0 4px; transition:color .18s;" style-hover="color:#b8541a;"><span style="position:relative; z-index:1;">about</span>
+          <sc-for list="{{ aboutClouds }}" as="c" hint-placeholder-count="0"><span aria-hidden="true" style="position:absolute; z-index:0; background:{{ c.color }}; opacity:.8; left:{{ c.left }}; width:{{ c.width }}; height:{{ c.height }}; bottom:{{ c.bottom }}; transform:{{ c.transform }}; -webkit-mask:{{ c.mask }}; mask:{{ c.mask }};"></span></sc-for></a>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 26px 0 18px; border-radius:5px 999px 999px 5px; background:var(--glass-strong); color:var(--ink); border:1px solid var(--glass-border); backdrop-filter:blur(12px); display:inline-flex; align-items:center; cursor:pointer; transition:transform .18s, background .18s;" style-hover="transform:translateY(-1px); background:#fff;">open the builder</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:44px; padding:0 18px 0 26px; border-radius:999px 5px 5px 999px; background:transparent; color:var(--ink); border:1px solid rgba(26,42,72,.3); display:inline-flex; align-items:center; cursor:pointer; transition:transform .18s, border-color .18s;" style-hover="transform:translateY(-1px); border-color:var(--ink);">back to the room</button>
+        <span style="font-size:13px; color:var(--ink-soft);">← the mirrored D goes backwards</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <button aria-label="cart" style="width:46px; height:46px; border-radius:5px 999px 999px 5px; background:var(--accent); color:#fff; border:0; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-left:2px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.5 11h11l2-7H7M9 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path></svg></button>
+        <button aria-label="save" style="width:46px; height:46px; border-radius:5px 999px 999px 5px; background:var(--glass-strong); color:var(--ink); border:1px solid var(--glass-border); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-left:2px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg></button>
+        <button aria-label="close" style="width:46px; height:46px; border-radius:999px 5px 5px 999px; background:transparent; color:var(--ink); border:1px solid rgba(26,42,72,.3); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding-right:2px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6l-12 12"></path></svg></button>
+        <span style="width:12px;"></span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:var(--glass-strong); border:1px solid var(--glass-border); display:inline-flex; align-items:center;">handmade</span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:rgba(255,155,92,.16); color:#b8541a; border:1px solid rgba(255,155,92,.45); display:inline-flex; align-items:center;">new maker</span>
+        <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; height:32px; padding:0 14px 0 10px; border-radius:4px 999px 999px 4px; background:transparent; color:var(--ink-soft); border:1px solid rgba(26,42,72,.18); display:inline-flex; align-items:center;">seating</span>
+      </div>
+      <div style="display:flex; gap:0; max-width:480px;">
+        <input placeholder="your@email.com" style="flex:1; font-family:'Commissioner',sans-serif; font-size:15px; height:50px; padding:0 20px; border-radius:6px 0 0 6px; border:1px solid rgba(120,150,200,.35); border-right:0; background:var(--glass-strong); color:var(--ink); outline:none;" style-focus="border-color:var(--accent);">
+        <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; height:50px; padding:0 28px 0 20px; border-radius:0 999px 999px 0; background:var(--accent); color:#fff; border:0; cursor:pointer; white-space:nowrap; display:inline-flex; align-items:center; gap:8px;">send <span style="font-size:12px;">✦</span></button>
+      </div>
+      <div style="border-radius:20px; padding:22px 24px; background:linear-gradient(180deg,#160f2c,#241848); display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+        <span style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.55); width:100%;">in the builder · same D, your dark glass</span>
+        <button style="display:flex; align-items:center; gap:10px; height:48px; padding:0 18px 0 8px; border-radius:6px 999px 999px 6px; border:1px solid rgba(136,216,176,.28); background:rgba(15,12,30,.5); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:600; font-family:'Commissioner',sans-serif; backdrop-filter:blur(10px);"><span style="width:30px; height:30px; border-radius:4px 999px 999px 4px; background:#88d8b0; color:#1a0f30; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM4 21a8 8 0 0 1 16 0"></path></svg></span>Account</button>
+        <button style="display:flex; align-items:center; gap:10px; height:48px; padding:0 18px 0 8px; border-radius:6px 999px 999px 6px; border:1px solid rgba(232,127,200,.28); background:rgba(15,12,30,.5); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:600; font-family:'Commissioner',sans-serif; backdrop-filter:blur(10px);"><span style="width:30px; height:30px; border-radius:4px 999px 999px 4px; background:#e87fc8; color:#1a0f30; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5l8 4.5 8-4.5-8-4.5z" fill="currentColor" fill-opacity=".22" stroke="none"></path><path d="M4 15.5l8-4.5 8 4.5-8 4.5zM4 15.5v-7L12 4M20 15.5v-7L12 4M12 4v7"></path></svg></span>Place</button>
+        <button style="font-family:'Commissioner',sans-serif; font-weight:600; font-size:14px; height:48px; padding:0 22px 0 16px; border-radius:6px 999px 999px 6px; background:#7a48cc; color:#fff; border:0; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">checkout · $1,240</button>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:18px; font-size:15px; line-height:1.7; color:var(--ink);">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <svg width="72" height="78" viewBox="0 0 120 130" fill="none" aria-hidden="true" style="color:var(--ink); flex-shrink:0;">
+          <g transform="matrix(-1 0.5774 1 0.5774 60 72)"><path d="M0 0H40V40H0Z" fill="currentColor" opacity=".12"></path></g>
+          <g transform="matrix(-1 0.5774 0 1 60 72)"><path d="M0 0H40V-48H0Z" fill="currentColor" opacity=".18"></path><path d="M30 -38V-12H24C8 -12 8 -38 24 -38Z" fill="var(--accent)"></path></g>
+          <g transform="matrix(1 0.5774 0 1 60 72)"><path d="M0 0H40V-48H0Z" fill="currentColor" opacity=".28"></path><path d="M10 -40V-14H16C32 -14 32 -40 16 -40Z" fill="var(--accent)"></path></g>
+        </svg>
+        <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Where it comes from.</em> Lift a window out of the wall, lay it flat, put a word in it. The stem side is squared to 6px, the bowl is a full arc — a real D, not a rounded rectangle.</p>
+      </div>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Direction is built in.</em> A D facing right moves you forward; the mirrored D takes you back or closes. Two facing each other is the logo's pair of windows.</p>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">Secondaries aren't boxes.</em> "browse the shop" sits on a run of your cloud photos — each one whole, randomly picked, sized and flipped, overlapping into a sea, and scaled so the run ends exactly at the word's edge. Same word, same clouds every time; different words, different sky. Reads like a marked-up letter, not a UI kit.</p>
+      <p style="margin:0;"><em style="font-family:'Young Serif',serif; font-style:normal; font-size:18px;">No arrows, no glow.</em> The trailing → and the blurry coral halo were the two most template-ish things on the page. A small ✦ carries the end of the line; the shadow is a cool, quiet lift.</p>
+    </div>
+  </div>
+</section>
+<section id="turn-3" style="position:relative; width:1400px; margin:0 auto; padding:72px 0 0; font-family:'Commissioner',sans-serif; color:var(--ink);">
+  <div style="padding:0 8px 28px; display:flex; align-items:flex-end; justify-content:space-between; gap:40px;">
+    <div>
+      <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:#fff; margin-bottom:14px;"><span style="color:var(--accent);">✦</span> TURN 3 · CLOUD-LIKE BUTTONS · THREE WAYS</div>
+      <h2 style="font-family:'Young Serif',serif; font-weight:400; font-size:44px; line-height:1.05; letter-spacing:-.8px; color:#fff; margin:0; text-wrap:pretty;">Opaque in the middle, <span style="color:var(--accent);">thin at the edges</span> — like your clouds.</h2>
+    </div>
+    <p style="max-width:420px; margin:0; font-size:15px; line-height:1.65; color:#fff;">All three cost nothing at runtime: no JavaScript, only transforms and opacity animate, and any blur is on a static layer painted once. Hover each one.</p>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px;">
+
+    <div id="3a" style="background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:32px; box-shadow:0 24px 60px rgba(120,150,200,.2); display:flex; flex-direction:column; gap:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Aura</span>
+        <a href="#3a" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">3a</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:22px; align-items:flex-start; padding:16px 0 8px;">
+        <button style="position:relative; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.6) 0, rgba(255,255,255,0) 32%), var(--accent); color:#fff; border:0; cursor:pointer; transition:transform .2s;" style-before="content:''; position:absolute; z-index:-1; left:-10px; top:-12px; width:54px; height:54px; border-radius:50%; background:var(--accent); opacity:.5; filter:blur(10px);" style-after="content:''; position:absolute; z-index:-1; right:-14px; bottom:-14px; width:72px; height:60px; border-radius:50%; background:var(--accent); opacity:.4; filter:blur(12px);" style-hover="transform:translateY(-1px);">start building — it's free →</button>
+        <button style="position:relative; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; padding:12px 24px; border-radius:999px; background:var(--glass-strong); color:var(--ink); border:1px solid var(--glass-border); cursor:pointer; transition:transform .2s;" style-before="content:''; position:absolute; z-index:-1; left:-8px; top:-10px; width:50px; height:50px; border-radius:50%; background:#fff; opacity:.75; filter:blur(10px);" style-after="content:''; position:absolute; z-index:-1; right:-10px; bottom:-12px; width:64px; height:54px; border-radius:50%; background:#fff; opacity:.6; filter:blur(12px);" style-hover="transform:translateY(-1px);">browse the shop</button>
+      </div>
+      <p style="margin:0; font-size:14px; line-height:1.65; color:var(--ink);">The pill stays crisp; two soft puffs of the same color sit behind it and bleed past the edge. Solid where the label is, vapour at the rim. The most grown-up of the three.</p>
+    </div>
+
+    <div id="3b" style="background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:32px; box-shadow:0 24px 60px rgba(120,150,200,.2); display:flex; flex-direction:column; gap:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Wisps inside</span>
+        <a href="#3b" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">3b</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:22px; align-items:flex-start; padding:16px 0 8px;">
+        <button style="position:relative; overflow:hidden; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:rgba(255,155,92,.88); color:#fff; border:1px solid rgba(255,255,255,.55); box-shadow:0 10px 24px rgba(255,155,92,.28); cursor:pointer; transition:transform .2s;" style-hover="transform:translateY(-1px);">
+          <span aria-hidden="true" style="position:absolute; inset:-60% -20%; background:url(assets/clouds/cloud-003.webp) center / 130% auto no-repeat; opacity:.7; mix-blend-mode:soft-light; animation:ddd-wisp 16s ease-in-out infinite alternate; pointer-events:none; z-index:-1;"></span>
+          <span style="position:relative;">start building — it's free →</span>
+        </button>
+        <button style="position:relative; overflow:hidden; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; padding:12px 24px; border-radius:999px; background:rgba(255,255,255,.55); color:var(--ink); border:1px solid var(--glass-border); cursor:pointer; transition:transform .2s;" style-hover="transform:translateY(-1px);">
+          <span aria-hidden="true" style="position:absolute; inset:-60% -20%; background:url(assets/clouds/cloud-001.webp) center / 130% auto no-repeat; opacity:.9; animation:ddd-wisp 20s ease-in-out infinite alternate; pointer-events:none; z-index:-1;"></span>
+          <span style="position:relative;">browse the shop</span>
+        </button>
+      </div>
+      <p style="margin:0; font-size:14px; line-height:1.65; color:var(--ink);">Your actual cloud photos drift very slowly inside the pill — the button is a little window onto the same sky. Coral is 88% opaque so the wisp shows through as light, not texture. One transform animation, compositor only. <em>Parked — the drifting cloud is the page's thing, not the button's.</em></p>
+    </div>
+
+    <div id="3c" style="background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:32px; box-shadow:0 24px 60px rgba(120,150,200,.2); display:flex; flex-direction:column; gap:22px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Lumps</span>
+        <a href="#3c" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">3c</a>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:26px; align-items:flex-start; padding:20px 0 8px;">
+        <button style="position:relative; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.6) 0, rgba(255,255,255,0) 32%), var(--accent); color:#fff; border:0; box-shadow:0 10px 24px rgba(255,155,92,.28); cursor:pointer; transition:transform .2s;" style-before="content:''; position:absolute; z-index:-1; top:-10px; left:26px; width:28px; height:28px; border-radius:50%; background:var(--accent); animation:ddd-lump 5s ease-in-out infinite;" style-after="content:''; position:absolute; z-index:-1; top:-6px; left:50px; width:18px; height:18px; border-radius:50%; background:var(--accent); animation:ddd-lump 5s ease-in-out -2s infinite;" style-hover="transform:translateY(-1px);">start building — it's free →</button>
+        <button style="position:relative; isolation:isolate; font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; padding:12px 24px; border-radius:999px; background:var(--glass-strong); color:var(--ink); border:1px solid var(--glass-border); cursor:pointer; transition:transform .2s;" style-before="content:''; z-index:-1; position:absolute; top:-9px; right:22px; width:24px; height:24px; border-radius:50%; background:var(--glass-strong); border:1px solid var(--glass-border); border-bottom-color:transparent; animation:ddd-lump 6s ease-in-out infinite;" style-hover="transform:translateY(-1px);">browse the shop</button>
+      </div>
+      <p style="margin:0; font-size:14px; line-height:1.65; color:var(--ink);">A pill that grew a cloud lump or two on its top edge — the silhouette is yours at a glance. Fully opaque, so it reads as a shape not an effect. Lumps breathe 1.5px over five seconds. This is the one that risks reading young; kept to one or two lumps so it doesn't.</p>
+    </div>
+  </div>
+</section>
+<section id="turn-2" style="position:relative; width:1400px; margin:0 auto; padding:72px 0 120px; font-family:'Commissioner',sans-serif; color:var(--ink);">
+  <img src="assets/clouds/cloud-001.webp" alt="" style="position:absolute; left:-120px; top:100px; width:620px; opacity:.85; pointer-events:none;">
+  <img src="assets/clouds/cloud-003.webp" alt="" style="position:absolute; right:-160px; top:1100px; width:700px; opacity:.8; pointer-events:none;">
+  <img src="assets/clouds/cloud-006.webp" alt="" style="position:absolute; left:-80px; top:2300px; width:560px; opacity:.75; pointer-events:none;">
+
+  <header style="position:relative; padding:0 8px 48px; display:flex; align-items:flex-end; justify-content:space-between; gap:40px;">
+    <div>
+      <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink); margin-bottom:14px;"><span style="color:var(--accent);">✦</span> DAYDREAMDWELLING · BRAND BOARD 2 · BUILT ON THE LIVE REPO</div>
+      <h1 style="font-family:'Young Serif',serif; font-weight:400; font-size:60px; line-height:1.02; letter-spacing:-1px; color:var(--ink); margin:0; text-wrap:pretty;">Fonts, buttons and icons — <span style="color:var(--accent);">on what's already live.</span></h1>
+    </div>
+    <p style="max-width:400px; margin:0; font-size:15px; line-height:1.65; color:var(--ink);">Sky and clouds untouched. The room with its D windows stays the mark. Everything here is a change to what's written, pressed, or pointed at.</p>
+  </header>
+
+  <!-- 2a · wordmark + type -->
+  <div id="2a" style="position:relative; background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:28px;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Wordmark · the three-D room stays</span>
+      <a href="#2a" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">2a</a>
+    </div>
+    <div style="display:grid; grid-template-columns:auto 1fr; gap:56px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:22px;">
+        <svg width="120" height="130" viewBox="0 0 120 130" fill="none" aria-hidden="true">
+          <path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="#c9bca8"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="#b0a28e"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="#e9dfcf"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="#6d5cb8"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="#e4dcf6"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="#e4dcf6"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="#e4dcf6"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="#b3a3de"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="#8b78c9"></path>
+          <g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="#c9bbea"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="#a695d6"></path><path d="M30 12V34H22A11 11 0 0 1 22 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g>
+          <g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="#a08fd8"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="#7d69c0"></path><path d="M10 12V34H18A11 11 0 0 0 18 12Z" stroke="#3b2a6e" stroke-width="2" stroke-linejoin="round"></path></g>
+          <path d="M22.9 35L60 20L97.1 35M60 20V66" stroke="rgba(255,255,255,.7)" stroke-width="1.5" stroke-linejoin="round"></path>
+        </svg>
+        <svg width="40" height="44" viewBox="0 0 120 130" fill="none" aria-hidden="true" style="color:var(--ink); margin-left:-8px;">
+          <path d="M20.1 79.9L60 96V99L20.1 82.9Z" fill="currentColor" opacity=".4"></path><path d="M60 96L99.9 79.9V82.9L60 99Z" fill="currentColor" opacity=".5"></path><g transform="matrix(-0.927 0.375 0.927 0.375 60 66)"><path d="M-3 -3H40V40H-3Z" fill="currentColor" opacity=".25"></path><path d="M9 9H31V17A11 11 0 0 1 9 17Z" fill="currentColor"></path></g><path d="M60 20L22.9 35L20.1 33.9L57.2 18.9Z" fill="currentColor" opacity=".95"></path><path d="M60 20L97.1 35L99.9 33.9L62.8 18.9Z" fill="currentColor" opacity=".95"></path><path d="M57.2 18.9L60 17.75L62.8 18.9L60 20Z" fill="currentColor" opacity=".95"></path><path d="M22.9 35L20.1 33.9V79.9L22.9 81Z" fill="currentColor" opacity=".5"></path><path d="M97.1 35L99.9 33.9V79.9L97.1 81Z" fill="currentColor" opacity=".7"></path>
+          <g transform="matrix(-0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM30 12V34H22A11 11 0 0 1 22 12Z" fill="currentColor" opacity=".6"></path><path clip-path="url(#dd-hl)" fill-rule="evenodd" d="M30 12V34H22A11 11 0 0 1 22 12ZM33 14.25V36.25H25A11 11 0 0 1 25 14.25Z" fill="currentColor" opacity=".8"></path></g>
+          <g transform="matrix(0.927 0.375 0 -1 60 66)"><path fill-rule="evenodd" d="M0 0H40V46H0ZM10 12V34H18A11 11 0 0 0 18 12Z" fill="currentColor" opacity=".85"></path><path clip-path="url(#dd-hr)" fill-rule="evenodd" d="M10 12V34H18A11 11 0 0 0 18 12ZM13 14.25V36.25H21A11 11 0 0 0 21 14.25Z" fill="currentColor" opacity="1"></path></g>
+        </svg>
+        <div>
+          <div style="font-family:'Young Serif',serif; font-size:56px; line-height:1; letter-spacing:-1.5px; color:var(--ink);">DaydreamDwelling</div>
+          <div style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft); margin-top:8px;">rooms in the sky</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px;">
+        <div>
+          <div style="font-family:'Young Serif',serif; font-size:34px; line-height:1.05; letter-spacing:-.5px; margin-bottom:14px; text-wrap:pretty;">The room that never <span style="color:var(--accent);">stops dreaming.</span></div>
+          <p style="margin:0; font-size:16px; line-height:1.65;">Young Serif for headlines and the name — soft, cushioned serifs, one weight. Emphasis is coral, not italic, so the type never has to lean. Commissioner for everything you read and press. Cedarville Cursive for the founder's hand.</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px; font-size:13px; color:var(--ink-soft);">
+          <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid rgba(26,42,72,.12); padding-bottom:10px;"><span style="font-family:'Young Serif',serif; font-size:22px; color:var(--ink);">Aa</span> Young Serif · display, wordmark, prices</div>
+          <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid rgba(26,42,72,.12); padding-bottom:10px;"><span style="font-size:22px; color:var(--ink); font-weight:500;">Aa</span> Commissioner 400/500/600 · body, buttons, builder UI</div>
+          <div style="display:flex; align-items:baseline; gap:14px;"><span style="font-family:'Cedarville Cursive',cursive; font-size:24px; color:var(--ink);">Aa</span> Cedarville Cursive · signatures only</div>
+          <div style="font-family:'Cedarville Cursive',cursive; font-size:30px; color:var(--accent); margin-top:6px;">— Parhelia</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin:24px 0 0; font-size:13px; color:var(--ink-soft); max-width:820px;">Your room, drawn in true 30° isometric: every edge is on the same grid, so the walls, the D windows and the D rug all sit flat in their planes instead of floating. Lilac plaster walls, lit and shadow sides, oak floor, plum window frames, periwinkle rug. The windows are real holes — whatever is behind the mark shows through them. The small one is the single-color version for favicon and dark moods. The 3D render stays the hero.</p>
+  </div>
+
+  <!-- 2b · marketing buttons -->
+  <div id="2b" style="position:relative; background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Buttons · same pill, different light</span>
+      <a href="#2b" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">2b</a>
+    </div>
+    <p style="margin:0 0 28px; max-width:760px; font-size:15px; line-height:1.7;">You're right that a cloud-shaped button would feel childish. So the shape doesn't change — the <em>light</em> does. Each primary gets a single soft highlight upper-left, like sun on the edge of a cloud; hover and focus draw a thin ring a few pixels out instead of the usual blurry glow. Labels drop to Commissioner 500 — the semibold-geometric-in-a-pill is what reads as AI.</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px;">
+      <div style="display:flex; flex-direction:column; gap:22px;">
+        <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-soft);">live today</div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+          <button style="font-family:'Outfit',sans-serif; font-weight:600; font-size:15px; letter-spacing:.3px; padding:14px 28px; border-radius:999px; background:var(--accent); color:#fff; border:0; box-shadow:0 8px 24px rgba(255,155,92,.4); cursor:pointer;">start building — it's free →</button>
+          <button style="font-family:'Outfit',sans-serif; font-weight:600; font-size:13px; letter-spacing:.3px; padding:11px 22px; border-radius:999px; background:transparent; color:var(--ink); border:1.5px solid rgba(26,42,72,.2); cursor:pointer;">open the builder →</button>
+          <span style="font-family:'Outfit',sans-serif; padding:8px 16px; border-radius:999px; font-size:13px; background:rgba(255,255,255,.6); border:1px solid rgba(255,255,255,.8);">✦ lives in the builder</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:22px;">
+        <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--accent);">proposed</div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+          <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.6) 0, rgba(255,255,255,0) 32%), var(--accent); color:#fff; border:0; box-shadow:0 10px 24px rgba(255,155,92,.28); cursor:pointer; transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-1px); box-shadow:0 0 0 3px rgba(255,255,255,.75), 0 0 0 4.5px var(--accent), 0 12px 28px rgba(255,155,92,.3);">start building — it's free →</button>
+          <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; padding:11px 22px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.9) 0, rgba(255,255,255,0) 30%), var(--glass-strong); color:var(--ink); border:1px solid var(--glass-border); backdrop-filter:blur(12px); cursor:pointer; transition:transform .15s, box-shadow .15s;" style-hover="transform:translateY(-1px); box-shadow:0 0 0 3px rgba(255,255,255,.75), 0 0 0 4.5px rgba(26,42,72,.35);">open the builder →</button>
+          <span style="font-family:'Commissioner',sans-serif; font-weight:500; padding:8px 16px 8px 12px; border-radius:999px; font-size:13px; background:rgba(255,255,255,.6); border:1px solid rgba(255,255,255,.8); display:inline-flex; align-items:center; gap:8px;"><span style="width:8px; height:8px; border-radius:50%; background:radial-gradient(circle at 30% 30%, #fff 0, var(--accent) 60%); display:inline-block;"></span>lives in the builder</span>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+          <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.6) 0, rgba(255,255,255,0) 32%), var(--accent); color:#fff; border:0; box-shadow:0 0 0 3px rgba(255,255,255,.75), 0 0 0 4.5px var(--accent), 0 12px 28px rgba(255,155,92,.3); cursor:pointer;">focused · halo ring</button>
+          <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:15px; padding:14px 28px; border-radius:999px; background:rgba(255,255,255,.4); color:rgba(26,42,72,.45); border:1px solid rgba(255,255,255,.6); cursor:not-allowed;">the shop is opening soon</button>
+          <button aria-label="cart" style="width:46px; height:46px; border-radius:999px; background:radial-gradient(circle at 20% 22%, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 34%), var(--glass-strong); border:1px solid var(--glass-border); color:var(--ink); display:inline-flex; align-items:center; justify-content:center; cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.5 11h11l2-7H7M9 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM17 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"></path></svg></button>
+        </div>
+        <div style="display:flex; gap:8px; max-width:460px;">
+          <input placeholder="your@email.com" style="flex:1; font-family:'Commissioner',sans-serif; font-size:15px; padding:14px 20px; border-radius:999px; border:1px solid rgba(120,150,200,.35); background:var(--glass-strong); color:var(--ink); outline:none;" style-focus="box-shadow:0 0 0 3px rgba(255,255,255,.75), 0 0 0 4.5px var(--accent);">
+          <button style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:14px; padding:14px 26px; border-radius:999px; background:radial-gradient(circle at 16% 22%, rgba(255,255,255,.6) 0, rgba(255,255,255,0) 32%), var(--accent); color:#fff; border:0; box-shadow:0 6px 18px rgba(255,155,92,.3); cursor:pointer;">send →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2c · builder buttons -->
+  <div id="2c" style="position:relative; background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Builder buttons · decision: keep live as-is</span>
+      <a href="#2c" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">2c</a>
+    </div>
+    <p style="margin:0 0 28px; max-width:760px; font-size:15px; line-height:1.7;">The dark glass tab with a tinted disc and a label is a good button — the structure stays exactly as you built it (<code style="font-family:monospace; font-size:12px;">BottomTabCluster</code>). Three quiet changes: the disc gets the same highlight so it reads as a lit sphere, not a flat badge; the label goes Commissioner 600 instead of Outfit 700; and the icons switch from Lucide at 2.2px to your own library at 1.9px so nav and shop finally match.</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px;">
+      <div style="border-radius:20px; padding:28px; background:linear-gradient(180deg,#160f2c,#241848); display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.55);">live today</div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+          <button style="display:flex; align-items:center; gap:10px; padding:10px 16px 10px 12px; min-height:52px; border-radius:14px; border:1px solid rgba(136,216,176,.2); background:rgba(15,12,30,.45); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:700; font-family:'Outfit',sans-serif; letter-spacing:.3px; backdrop-filter:blur(10px);"><span style="width:28px; height:28px; border-radius:50%; background:#88d8b0; color:#1a0f30; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>Account</button>
+          <button style="display:flex; align-items:center; gap:10px; padding:10px 16px 10px 12px; min-height:52px; border-radius:14px; border:1px solid rgba(255,200,122,.2); background:rgba(15,12,30,.45); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:700; font-family:'Outfit',sans-serif; letter-spacing:.3px; backdrop-filter:blur(10px);"><span style="width:28px; height:28px; border-radius:50%; background:#ffc87a; color:#1a0f30; display:flex; align-items:center; justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"></path></svg></span>Settings</button>
+        </div>
+        <div style="display:flex; gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1); align-self:flex-start;">
+          <span style="width:30px; height:30px; border-radius:7px; border:1.5px solid #e87fc8; background:rgba(232,127,200,.19); display:flex; align-items:center; justify-content:center; color:#fff;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5z"></path><path d="M4 8.5 12 13l8-4.5M12 13v7"></path></svg></span>
+          <span style="width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.7);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7l3-3 3 3-3 3M15.5 8.5 5 19l-2-2L13.5 6.5"></path></svg></span>
+          <span style="width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.7);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="4.5"></circle><circle cx="15.5" cy="15" r="4.5"></circle></svg></span>
+        </div>
+      </div>
+      <div style="border-radius:20px; padding:28px; background:linear-gradient(180deg,#160f2c,#241848); display:flex; flex-direction:column; gap:14px;">
+        <div style="font-size:11px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35);">proposed · not taken</div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start; opacity:.45;">
+          <button style="display:flex; align-items:center; gap:10px; padding:10px 16px 10px 12px; min-height:52px; border-radius:14px; border:1px solid rgba(136,216,176,.28); background:rgba(15,12,30,.5); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:600; font-family:'Commissioner',sans-serif; backdrop-filter:blur(10px); transition:box-shadow .15s;" style-hover="box-shadow:0 0 0 2px rgba(15,12,30,.8), 0 0 0 3.5px rgba(136,216,176,.7);"><span style="width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 30% 28%, #fff 0, #88d8b0 45%, #5fb88a 100%); color:#1a0f30; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 -2px 4px rgba(0,0,0,.18);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0zM4 21a8 8 0 0 1 16 0"></path></svg></span>Account</button>
+          <button style="display:flex; align-items:center; gap:10px; padding:10px 16px 10px 12px; min-height:52px; border-radius:14px; border:1px solid rgba(255,200,122,.28); background:rgba(15,12,30,.5); color:#f0eaff; cursor:pointer; font-size:14px; font-weight:600; font-family:'Commissioner',sans-serif; backdrop-filter:blur(10px); transition:box-shadow .15s;" style-hover="box-shadow:0 0 0 2px rgba(15,12,30,.8), 0 0 0 3.5px rgba(255,200,122,.7);"><span style="width:28px; height:28px; border-radius:50%; background:radial-gradient(circle at 30% 28%, #fff 0, #ffc87a 45%, #e09828 100%); color:#1a0f30; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 -2px 4px rgba(0,0,0,.18);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"></path></svg></span>Settings</button>
+        </div>
+        <div style="display:flex; gap:2px; padding:3px; border-radius:10px; background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.1); align-self:flex-start;">
+          <span style="width:30px; height:30px; border-radius:7px; border:1.5px solid #e87fc8; background:radial-gradient(circle at 25% 20%, rgba(255,255,255,.35) 0, rgba(255,255,255,0) 40%), rgba(232,127,200,.22); display:flex; align-items:center; justify-content:center; color:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15.5l8 4.5 8-4.5-8-4.5z" fill="currentColor" fill-opacity=".22" stroke="none"></path><path d="M4 15.5l8-4.5 8 4.5-8 4.5zM4 15.5v-7L12 4M20 15.5v-7L12 4M12 4v7"></path></svg></span>
+          <span style="width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.7);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7l3-3 3 3-3 3M15.5 8.5 5 19l-2-2L13.5 6.5"></path></svg></span>
+          <span style="width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,.7);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="4.5"></circle><circle cx="15.5" cy="15" r="4.5"></circle></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2d · icons -->
+  <div id="2d" style="position:relative; background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2); margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Icons · additions in your library's rules</span>
+      <a href="#2d" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">2d</a>
+    </div>
+    <p style="margin:0 0 28px; max-width:760px; font-size:15px; line-height:1.7;">24px grid, 1.9px stroke, round caps, duotone fills at 22% — exactly <code style="font-family:monospace; font-size:12px;">Icon.jsx</code>. The room is drawn from the front, floor low and walls rising to the back corner, like yours. New: the room with a D window, with a door, with the rug; a floor plan; Wispy; filled heart and raindrop for saved/voted states; and a sun-with-halo for light and mood.</p>
+    <div style="display:grid; grid-template-columns:repeat(9, 1fr); gap:14px;">
+      <sc-for list="{{ icons }}" as="ic" hint-placeholder-count="18">
+        <div style="background:rgba(255,255,255,.55); border:1px solid var(--glass-border); border-radius:18px; padding:20px 12px 14px; display:flex; flex-direction:column; align-items:center; gap:12px; position:relative;">
+          <sc-if value="{{ ic.isNew }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:8px; right:10px; font-size:9px; letter-spacing:1.5px; color:var(--accent); font-weight:600;">NEW</span></sc-if>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--ink);">
+            <sc-for list="{{ ic.paths }}" as="p" hint-placeholder-count="1"><path d="{{ p.d }}" fill="{{ p.fill }}" fill-opacity="{{ p.op }}" stroke="{{ p.stroke }}"></path></sc-for>
+          </svg>
+          <span style="font-size:11px; color:var(--ink-soft); letter-spacing:.3px; text-align:center;">{{ ic.name }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 2e · moods -->
+  <div id="2e" style="position:relative; background:var(--glass); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:32px; padding:40px; box-shadow:0 24px 60px rgba(120,150,200,.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-soft);"><span style="color:var(--accent);">✦</span> Sixteen weathers · from themes.js</span>
+      <a href="#2e" style="font-size:12px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.8); border:1px solid var(--glass-border); border-radius:999px; padding:5px 12px; text-decoration:none;">2e</a>
+    </div>
+    <p style="margin:0 0 24px; max-width:760px; font-size:15px; line-height:1.7;">The highlight is the mood's light source, so it moves: Golden Hour comes in low from the right and warm; Bright Day straight down from noon; Vivid Sunset and Ember's Sunrise sit on the horizon; Moonlight is a cool spot high on the right; Candlelit glows up from below; Neon Nights is lit from the side in magenta. The button belongs to the same sky as the page. <em>Moonlight's accent is shifted here to a pale moonlit silver (#d6e0f5, dark text) — themes.js still has #5070c8; say if you want the token changed.</em></p>
+    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;">
+      <sc-for list="{{ moods }}" as="m" hint-placeholder-count="16">
+        <div style="border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:12px; background:{{ m.bg }}; border:1px solid rgba(255,255,255,.25);">
+          <span style="font-family:'Young Serif',serif; font-size:15px; color:{{ m.ink }};">{{ m.name }}</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-family:'Commissioner',sans-serif; font-weight:500; font-size:13px; padding:10px 18px; border-radius:999px; color:{{ m.text }}; background:{{ m.fill }}; white-space:nowrap;">bring it home →</span>
+            <span style="width:34px; height:34px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:{{ m.text }}; background:{{ m.fill }};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"></path></svg></span>
+          </div>
+          <a href="#" data-cloud-key="{{ m.key }}" style="position:relative; isolation:isolate; display:inline-block; align-self:flex-start; font-family:'Young Serif',serif; font-size:16px; color:{{ m.ink }}; text-decoration:none; padding:0 4px; margin-top:4px;"><span style="position:relative; z-index:1;">browse the shop</span>
+            <sc-for list="{{ m.clouds }}" as="c" hint-placeholder-count="0"><span aria-hidden="true" style="position:absolute; z-index:0; background:{{ c.color }}; opacity:.8; left:{{ c.left }}; width:{{ c.width }}; height:{{ c.height }}; bottom:{{ c.bottom }}; transform:{{ c.transform }}; -webkit-mask:{{ c.mask }}; mask:{{ c.mask }};"></span></sc-for></a>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { widths: {} };
+  measureClouds = () => {
+    const widths = {};
+    document.querySelectorAll('[data-cloud-key]').forEach(el => { widths[el.getAttribute('data-cloud-key')] = el.offsetWidth; });
+    if (JSON.stringify(widths) !== JSON.stringify(this.state.widths)) this.setState({ widths });
+  };
+  // Random run of WHOLE cloud photos, scaled to end exactly at the word's edge. Seeded by key so it's stable.
+  cloudRun(key, color) {
+    const W = this.state.widths[key]; if (!W) return [];
+    let seed = 0; for (const ch of key) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const photos = ['cloud-001', 'cloud-002', 'cloud-003', 'cloud-004', 'cloud-005', 'cloud-006', 'cloud-007', 'cloud-008'];
+    const raw = []; let total = 0, last = -1;
+    while (total < W + 12) { let pi = Math.floor(rnd() * photos.length); if (pi === last) pi = (pi + 1) % photos.length; last = pi; const w = 40 + rnd() * 10; const gap = -(14 + rnd() * 3); raw.push({ w, gap, p: photos[pi], flip: rnd() < .5, y: rnd() * 2 - 1, rot: rnd() * 6 - 3 }); total += w + gap; }
+    const overlaps = raw.reduce((a, c, i) => a + (i ? c.gap : 0), 0);
+    const k = (W - overlaps) / raw.reduce((a, c) => a + c.w, 0);
+    let x = 0;
+    return raw.map((c, i) => { const w = c.w * k; if (i) x += c.gap; const item = { color: color || 'var(--accent)', left: x + 'px', width: w + 'px', height: w * .6 + 'px', bottom: c.y - 14 + 'px', transform: (c.flip ? 'scaleX(-1) ' : '') + `rotate(${c.rot.toFixed(1)}deg)`, mask: `url(assets/clouds/${c.p}.webp) center / contain no-repeat` }; x += w; return item; });
+  }
+  componentDidMount() {
+    if (!window.PARHELIA_ICONS) { const t = setInterval(() => { if (window.PARHELIA_ICONS) { clearInterval(t); this.forceUpdate(); } }, 100); }
+    this.measureClouds(); setTimeout(this.measureClouds, 400); if (document.fonts) document.fonts.ready.then(this.measureClouds);
+    window.addEventListener('resize', this.measureClouds);
+  }
+  componentDidUpdate() { this.measureClouds(); }
+  componentWillUnmount() { window.removeEventListener('resize', this.measureClouds); }
+  renderVals() {
+    const shopClouds = this.cloudRun('shop'), aboutClouds = this.cloudRun('about');
+    const lib = window.PARHELIA_ICONS || {};
+    const order = [
+      ['cart', 'cart'], ['search', 'search'], ['filter', 'filter'], ['user', 'account'], ['heart', 'heart'], ['chevronRight', 'chevron'], ['close', 'close'], ['room', 'room (live)'], ['raindrop', 'raindrop (live)'],
+      ['heartFilled', 'heart · saved', 1], ['raindropFilled', 'raindrop · voted', 1], ['roomWindow', 'room · D window', 1], ['roomDoor', 'room · door', 1], ['roomRug', 'room · rug', 1], ['roomPlan', 'floor plan', 1], ['wispy', 'wispy', 1], ['parhelion', 'light / mood', 1], ['sparkle', 'vibe', 1],
+    ];
+    const icons = order.map(([key, name, isNew]) => ({
+      name, isNew: !!isNew,
+      paths: (lib[key] || []).map(p => ({ d: p.d, fill: p.fill || 'none', op: p.op == null ? 1 : p.op, stroke: p.stroke || 'currentColor' })),
+    }));
+    // [name, accent, textOnAccent, pageBg, ink, sun: {x%, y%, light color, strength, spread%}]
+    // The highlight is the mood's light source: where its sun (or moon, or neon, or candle) sits in the sky.
+    const raw = [
+      ['Golden Hour', '#c87820', '#fff', '#fdf5e4', '#2e1e08', [88, 78, '255,214,150', .75, 40]],
+      ['Bright Day', '#3a7a4a', '#fff', '#f7faf4', '#182814', [50, -10, '255,255,255', .6, 45]],
+      ['Vivid Sunset', '#ffaa3d', '#1a0820', '#1a0820', '#fff5d4', [12, 96, '255,120,180', .7, 44]],
+      ["Ember's Sunrise", '#ffe0a0', '#1a1438', '#1a1438', '#f0e8d8', [8, 92, '255,150,80', .65, 42]],
+      ['Moonlight', '#d6e0f5', '#141a30', '#090c16', '#c8d0e8', [80, 10, '255,255,255', .9, 40]],
+      ['Northern Lights', '#01efac', '#040814', '#040814', '#d8f0e8', [40, -20, '160,255,230', .55, 60]],
+      ['Dark Academia', '#b88828', '#1a1004', '#130d07', '#e8d8a8', [92, 60, '255,200,120', .55, 36]],
+      ['Blush Hour', '#c06858', '#fff', '#fdf0ee', '#3a1816', [20, 90, '255,190,190', .6, 44]],
+      ['Coastal Morning', '#1a60b8', '#fff', '#f0f6fc', '#0c1e40', [90, 84, '255,225,170', .6, 40]],
+      ['Dream State', '#7a48cc', '#fff', '#ede9ff', '#2a1848', [30, 0, '255,230,255', .55, 48]],
+      ['Neon Nights', '#9828f0', '#fff', '#07070f', '#e8e0ff', [100, 50, '255,80,200', .6, 36]],
+      ['Candlelit Cozy Evening', '#e09828', '#1a0c02', '#0f0902', '#f0d8a0', [50, 110, '255,180,90', .7, 40]],
+      ['Greenhouse', '#389848', '#fff', '#07100a', '#c8e8c8', [55, -15, '240,255,200', .55, 50]],
+      ['Studio', '#181818', '#fff', '#f4f4f4', '#101010', [20, 20, '255,255,255', .35, 30]],
+      ['Studio Dark', '#c0c0c0', '#111', '#181818', '#f0f0f0', [20, 20, '255,255,255', .5, 30]],
+      ['Sunlight (landing)', '#ff9b5c', '#fff', '#a8c8e4', '#1a2a48', [16, 22, '255,255,255', .6, 32]],
+    ];
+    const moods = raw.map(([name, accent, text, bg, ink, [sx, sy, lc, st, sp]], i) => ({
+      name, text, bg, ink, key: 'mood-' + i, clouds: this.cloudRun('mood-' + i, accent),
+      fill: `radial-gradient(circle at ${sx}% ${sy}%, rgba(${lc},${st}) 0, rgba(${lc},0) ${sp}%), ${accent}`,
+    }));
+    return { icons, moods, shopClouds, aboutClouds };
+  }
+}
+</script>
+</body>
+</html>

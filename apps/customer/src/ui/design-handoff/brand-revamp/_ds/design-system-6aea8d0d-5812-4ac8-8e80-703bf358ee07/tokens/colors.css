@@ -1,0 +1,73 @@
+/* ─────────────────────────────────────────────────────────────
+   DaydreamDwelling — Color Tokens
+   "Rooms in the sky." The brand lives above the clouds: a blue sky
+   gradient, soft photographic clouds, glassmorphism, and a warm
+   coral accent that reads like sunlight on a cloud's edge.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Sky · the signature backdrop ──────────────────────────── */
+  /* Default "Bright Day" above-the-clouds palette. The page background
+     is a top-to-bottom gradient through these four stops. */
+  --sky-zenith:  #3a6fb8;   /* deepest blue, crown of the sky      */
+  --sky-upper:   #6a98d4;   /* upper mid blue                      */
+  --sky-middle:  #a8c8e4;   /* pale blue toward the horizon        */
+  --sky-horizon: #ffe4c0;   /* warm sunlit haze at the horizon     */
+  --sky-gradient: linear-gradient(180deg,
+    var(--sky-zenith) 0%, var(--sky-upper) 22%,
+    var(--sky-middle) 55%, var(--sky-horizon) 92%, var(--sky-horizon) 100%);
+
+  /* ── Ink · text on the sky ─────────────────────────────────── */
+  --ink:       #1a2a48;   /* primary text — deep twilight navy     */
+  --ink-soft:  #4a6890;   /* secondary / muted text                */
+
+  /* ── Accent · sunlight coral ───────────────────────────────── */
+  --accent:        #ff9b5c;          /* primary action, links, marks */
+  --accent-text:   #ffffff;          /* text on a coral fill         */
+  --accent-glow:   rgba(255,155,92,0.40); /* CTA halo                */
+  --accent-wash:   rgba(255,155,92,0.27); /* highlighter underline   */
+
+  /* ── Glass · frosted cloud surfaces ────────────────────────── */
+  --glass:        rgba(255,255,255,0.60); /* default frosted card    */
+  --glass-soft:   rgba(255,255,255,0.45); /* lighter, airier panel   */
+  --glass-strong: rgba(255,255,255,0.78); /* more opaque (inputs)    */
+  --glass-border: rgba(255,255,255,0.80); /* bright top-light edge   */
+  --glass-nav:    rgba(255,255,255,0.50); /* sticky header           */
+
+  /* ── Neutrals ──────────────────────────────────────────────── */
+  --white:             #ffffff;
+  --neutral-lightest:  #f2f2f2;
+  --neutral-lighter:   #d9d9d9;
+  --neutral-light:     #b3b4b3;
+  --neutral:           #818281;
+  --neutral-dark:      #4e504f;
+  --neutral-darker:    #1c1e1d;
+  --neutral-darkest:   #030604;
+
+  /* ── Mood accents · "fourteen weathers" ────────────────────── */
+  /* Every room exists in many lights. These per-mood accents drive
+     buttons, links, and active states inside the builder & apps. */
+  --mood-dream-state:     #7a48cc;  /* default app mood — soft violet */
+  --mood-golden-hour:     #c87820;  /* honeyed amber                  */
+  --mood-bright-day:      #3a7a4a;  /* fresh garden green             */
+  --mood-blush-hour:      #c06858;  /* dusky rose                     */
+  --mood-coastal-morning: #1a60b8;  /* clean ocean blue               */
+  --mood-moonlight:       #5070c8;  /* cool night blue                */
+  --mood-vivid-sunset:    #ffaa3d;  /* gold over magenta              */
+  --mood-neon-nights:     #9828f0;  /* electric purple                */
+  --mood-greenhouse:      #389848;  /* glasshouse green               */
+  --mood-dark-academia:   #b88828;  /* brass & oak                    */
+  --mood-northern-lights: #01efac;  /* aurora teal                    */
+
+  /* ── Daydream Blossoms · sister brand (outdoor & garden) ────── */
+  --blossoms-accent: #3a7a4a;
+
+  /* ── Semantic aliases ──────────────────────────────────────── */
+  --text:          var(--ink);
+  --text-muted:    var(--ink-soft);
+  --surface-card:  var(--glass);
+  --surface-panel: var(--glass-soft);
+  --border:        var(--glass-border);
+  --link:          var(--accent);
+  --focus-ring:    rgba(255,155,92,0.55);
+}

@@ -3,7 +3,7 @@ import { useThree, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { ITEM_CATALOGUE } from '../data/items'
-import { findSurfaceAt, isSurfaceItem } from '../utils/roomGeometry'
+import { findSurfaceAt, isSurfaceItem, hasOverlap } from '../utils/roomGeometry'
 import { getTexture } from './textures'
 
 // Shared wood texture for doors and window frames.
@@ -57,7 +57,7 @@ function WallFillMaterial({ wallColor, wallTexture, fw, fh }) {
   )
 }
 
-const WALL_T      = 0.28
+import { WALL_T } from '../utils/buildingConstants'
 const _plane      = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
 const _ray        = new THREE.Raycaster()
 const _ptr        = new THREE.Vector2()
@@ -65,6 +65,73 @@ const _hit        = new THREE.Vector3()
 
 const snapF = v => Math.round(v * 4) / 4   // 0.25 ft grid (floor — finer for better placement)
 const snapW = v => Math.round(v * 4) / 4   // 0.25 ft grid (wall)
+
+// ── Smart snapping — align to other items, walls, and room center ──
+const SNAP_DIST = 0.35   // how close before snap kicks in
+const SNAP_GAP  = 0.25   // 3-inch breathing room between items
+function smartSnap(col, row, ew, ed, allItems, dragId, gridW, gridD, catalogue) {
+  let bestCol = col, bestRow = row
+  let bestGuideX = null, bestGuideZ = null
+  let minDx = SNAP_DIST, minDz = SNAP_DIST
+
+  const myL = col, myR = col + ew, myMx = col + ew / 2
+  const myT = row, myB = row + ed, myMz = row + ed / 2
+
+  for (const other of allItems) {
+    if (other.id === dragId || other.wall || other.ceiling) continue
+    const oDef = (catalogue ?? {})[other.typeKey]
+    if (!oDef?.sizes) continue
+    const oSize = oDef.sizes[other.sizeIndex ?? 0]
+    if (!oSize?.footprint) continue
+    const [ofw, ofd] = oSize.footprint
+    const oRot = other.rotation === 90 || other.rotation === 270
+    const oew = oRot ? ofd : ofw, oed = oRot ? ofw : ofd
+    const oL = other.col, oR = other.col + oew, oMx = other.col + oew / 2
+    const oT = other.row, oB = other.row + oed, oMz = other.row + oed / 2
+
+    // X-axis: align edges (with gap) or centers
+    const xChecks = [
+      { from: myL, to: oL, g: oL },            // left-left align
+      { from: myR, to: oR, g: oR },            // right-right align
+      { from: myL, to: oR + SNAP_GAP, g: oR }, // place right of other (with gap)
+      { from: myR, to: oL - SNAP_GAP, g: oL }, // place left of other (with gap)
+      { from: myMx, to: oMx, g: oMx },         // center-center align
+    ]
+    for (const { from, to, g } of xChecks) {
+      const dx = Math.abs(from - to)
+      if (dx < minDx) { minDx = dx; bestCol = col + (to - from); bestGuideX = { axis: 'x', pos: g, type: 'edge' } }
+    }
+
+    // Z-axis: same pattern
+    const zChecks = [
+      { from: myT, to: oT, g: oT },
+      { from: myB, to: oB, g: oB },
+      { from: myT, to: oB + SNAP_GAP, g: oB },
+      { from: myB, to: oT - SNAP_GAP, g: oT },
+      { from: myMz, to: oMz, g: oMz },
+    ]
+    for (const { from, to, g } of zChecks) {
+      const dz = Math.abs(from - to)
+      if (dz < minDz) { minDz = dz; bestRow = row + (to - from); bestGuideZ = { axis: 'z', pos: g, type: 'edge' } }
+    }
+  }
+
+  // Room center snap
+  const centerX = gridW / 2 - ew / 2, centerZ = gridD / 2 - ed / 2
+  if (Math.abs(col - centerX) < SNAP_DIST) { bestCol = centerX; bestGuideX = { axis: 'x', pos: gridW / 2, type: 'center' } }
+  if (Math.abs(row - centerZ) < SNAP_DIST) { bestRow = centerZ; bestGuideZ = { axis: 'z', pos: gridD / 2, type: 'center' } }
+
+  // Wall midpoint snap
+  const wallMidX = gridW / 2 - ew / 2, wallMidZ = gridD / 2 - ed / 2
+  if (row < 1 && Math.abs(col - wallMidX) < SNAP_DIST) { bestCol = wallMidX; bestGuideX = { axis: 'x', pos: gridW / 2, type: 'center' } }
+  if (row + ed > gridD - 1 && Math.abs(col - wallMidX) < SNAP_DIST) { bestCol = wallMidX; bestGuideX = { axis: 'x', pos: gridW / 2, type: 'center' } }
+  if (col < 1 && Math.abs(row - wallMidZ) < SNAP_DIST) { bestRow = wallMidZ; bestGuideZ = { axis: 'z', pos: gridD / 2, type: 'center' } }
+  if (col + ew > gridW - 1 && Math.abs(row - wallMidZ) < SNAP_DIST) { bestRow = wallMidZ; bestGuideZ = { axis: 'z', pos: gridD / 2, type: 'center' } }
+
+  // Only return the best guide per axis (not a pile of them)
+  const guides = [bestGuideX, bestGuideZ].filter(Boolean)
+  return { col: bestCol, row: bestRow, guides }
+}
 
 // Point-light config per lighting typeKey — color, intensity, distance (in ft)
 // Note: ceiling items (chandelier, pendant, recessedLight, ceilingFan) are rendered
@@ -191,44 +258,56 @@ function StairVisual({ fw, fd, wallHeight, stairCount, color }) {
   const sc = stairCount ?? 14
   const riserH = wh / sc
   const treadD = fd / sc
-  const treadThick = 0.12  // ~1.5 inches
-  const riserThick = 0.08
-  const stringerW = 0.1
-  const darkerColor = '#8a6a48'
-  const stringerColor = '#7a5a38'
+  const treadThick = 0.15
+  const riserThick = 0.06
+  const stringerW = 0.12
+  const treadColor = color ?? '#b8a080'
+  const riserColor = '#9a8060'
+  const stringerColor = '#8a7050'
+  // Stringer slope angle
+  const slopeAngle = Math.atan2(wh, fd)
+  const slopeLen = Math.sqrt(wh * wh + fd * fd)
   return (
     <group position={[0, 0, -fd / 2]}>
-      {/* Treads + risers */}
+      {/* Treads — each step gets a nose overhang */}
       {Array.from({ length: sc }, (_, i) => (
         <group key={i}>
+          {/* Tread */}
           <mesh position={[0, (i + 1) * riserH - treadThick / 2, i * treadD + treadD / 2]}
             castShadow receiveShadow>
-            <boxGeometry args={[fw, treadThick, treadD]} />
-            <meshStandardMaterial color={color} roughness={0.7} />
+            <boxGeometry args={[fw - stringerW, treadThick, treadD + 0.06]} />
+            <meshStandardMaterial color={treadColor} roughness={0.65} />
           </mesh>
+          {/* Riser */}
           <mesh position={[0, i * riserH + riserH / 2, i * treadD + riserThick / 2]}
             castShadow>
-            <boxGeometry args={[fw - stringerW * 2, riserH, riserThick]} />
-            <meshStandardMaterial color={darkerColor} roughness={0.8} />
+            <boxGeometry args={[fw - stringerW * 2, riserH - treadThick, riserThick]} />
+            <meshStandardMaterial color={riserColor} roughness={0.85} />
           </mesh>
         </group>
       ))}
-      {/* Side stringers — diagonal boards supporting the steps */}
+      {/* Side stringers — diagonal boards following the stair slope */}
       {[-1, 1].map(side => (
         <mesh key={side}
           position={[side * (fw / 2 - stringerW / 2), wh / 2, fd / 2]}
+          rotation={[-slopeAngle, 0, 0]}
           castShadow>
-          <boxGeometry args={[stringerW, wh * 1.02, fd * 1.01]} />
-          <meshStandardMaterial color={stringerColor} roughness={0.75} />
+          <boxGeometry args={[stringerW, 0.3, slopeLen]} />
+          <meshStandardMaterial color={stringerColor} roughness={0.7} />
         </mesh>
       ))}
+      {/* Bottom landing strip */}
+      <mesh position={[0, treadThick / 2, treadD / 2]} receiveShadow>
+        <boxGeometry args={[fw, treadThick, treadD]} />
+        <meshStandardMaterial color={treadColor} roughness={0.6} />
+      </mesh>
     </group>
   )
 }
 
 // ── Floor item ─────────────────────────────────────────────────────
 const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHighlighted, gridW, gridD, wallHeight, onSelect, onMove, onDoubleClick,
-                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE, onEnterRoom }) {
+                    onDragStart, onDragEnd, roomRotationRef, activeDragRef, hoveredSurfaceRef, lightsOff = false, catalogue = ITEM_CATALOGUE, onEnterRoom, onDragMove, cellBounds, roomCells, internalWalls }) {
   const def        = catalogue[item.typeKey]
   if (!def || !def.sizes) return null   // live-only product, no 3D geometry
   const size       = def.sizes[item.sizeIndex] ?? def.sizes[0]
@@ -236,12 +315,13 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
   const isStairs   = !!def.isStairs && !!item.stairs
   // Stairs use their own stairW/stairD dimensions
   const [fw, fd]   = isStairs
-    ? [item.stairW ?? 1, item.stairD ?? 3]
+    ? [item.stairW ?? 3, item.stairD ?? 10]
     : (size.footprint && size.footprint[0] > 0) ? size.footprint : [2, 2]
   const fh         = isStairs ? (wallHeight ?? 8) : (size.height && size.height > 0) ? size.height : 2
   const rotated    = item.rotation === 90 || item.rotation === 270
   const effectiveW = rotated ? fd : fw
   const effectiveD = rotated ? fw : fd
+  // Position — clamped to room walls at render time
   const wx = (item.col + effectiveW / 2) - gridW / 2
   const wz = (item.row + effectiveD / 2) - gridD / 2
 
@@ -264,8 +344,25 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     : fh * 0.4                 // near top of item
 
   const { camera, gl } = useThree()
+  const [isHovered, setIsHovered] = useState(false)
+  const groupRef = useRef()
+  const rotGroupRef = useRef()
+  const isDraggingRef = useRef(false)
+  // Smooth rotation — visual rotation lerps toward target each frame
+  const visualRotRef = useRef(-(item.rotation ?? 0) * Math.PI / 180)
+  const targetRotRad = -(item.rotation ?? 0) * Math.PI / 180
+  useFrame(() => {
+    const diff = targetRotRad - visualRotRef.current
+    const wrapped = ((diff + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI
+    if (Math.abs(wrapped) > 0.003) {
+      visualRotRef.current += wrapped * 0.3
+    } else {
+      visualRotRef.current = targetRotRad
+    }
+    if (rotGroupRef.current) rotGroupRef.current.rotation.y = visualRotRef.current
+  })
 
-  const pointerToGrid = (clientX, clientY) => {
+  const pointerToGrid = (clientX, clientY, freePlace = false, skipSmartSnap = false) => {
     _ptr.set(
        (clientX / gl.domElement.clientWidth)  *  2 - 1,
       -(clientY / gl.domElement.clientHeight) *  2 + 1,
@@ -275,10 +372,28 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     const ry = roomRotationRef.current
     const lx = Math.cos(ry) * _hit.x - Math.sin(ry) * _hit.z
     const lz = Math.sin(ry) * _hit.x + Math.cos(ry) * _hit.z
-    return {
-      col: Math.max(0, Math.min(gridW - effectiveW, snapF(lx + gridW / 2 - effectiveW / 2))),
-      row: Math.max(0, Math.min(gridD - effectiveD, snapF(lz + gridD / 2 - effectiveD / 2))),
+    const snap = freePlace ? (v => Math.round(v * 16) / 16) : snapF
+    // Room boundaries: use cell bounds (where walls actually are), not grid edges
+    const wInset = WALL_T
+    const bMinC = cellBounds ? cellBounds.minC + wInset : wInset
+    const bMaxC = cellBounds ? cellBounds.maxC - effectiveW - wInset : gridW - effectiveW - wInset
+    const bMinR = cellBounds ? cellBounds.minR + wInset : wInset
+    const bMaxR = cellBounds ? cellBounds.maxR - effectiveD - wInset : gridD - effectiveD - wInset
+    let col = Math.max(bMinC, Math.min(bMaxC, snap(lx + gridW / 2 - effectiveW / 2)))
+    let row = Math.max(bMinR, Math.min(bMaxR, snap(lz + gridD / 2 - effectiveD / 2)))
+    // Smart snap: align to other items, room center, wall midpoints
+    // Disabled during fast mouse movement for responsiveness
+    let guides = []
+    if (!freePlace && !skipSmartSnap && allItems) {
+      const ss = smartSnap(col, row, effectiveW, effectiveD, allItems, item.id, gridW, gridD, catalogue)
+      col = snapF(ss.col)
+      row = snapF(ss.row)
+      guides = ss.guides
     }
+    // Final clamp — enforce room boundaries one more time after all snaps
+    col = Math.max(bMinC, Math.min(bMaxC, col))
+    row = Math.max(bMinR, Math.min(bMaxR, row))
+    return { col, row, guides }
   }
 
   const onPointerDown = (e) => {
@@ -292,24 +407,43 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
     canvas.style.cursor = 'grabbing'
     const capturedId = item.id
     let lastCol = -1, lastRow = -1
+    let finalCol = item.col, finalRow = item.row
+    let lastMx = 0, lastMy = 0, mouseSpeed = 0
     const def_ = catalogue[item.typeKey]
     const isSurfaceCandidate = def_ && !isSurfaceItem(def_) && !item.wall && !item.ceiling
+    isDraggingRef.current = true
     const handleMove = (ev) => {
-      const g = pointerToGrid(ev.clientX, ev.clientY)
+      const dx = ev.clientX - lastMx, dy = ev.clientY - lastMy
+      mouseSpeed = Math.sqrt(dx * dx + dy * dy)
+      lastMx = ev.clientX; lastMy = ev.clientY
+      const freePlace = ev.altKey
+      const g = pointerToGrid(ev.clientX, ev.clientY, freePlace, mouseSpeed > 12)
       if (g && (g.col !== lastCol || g.row !== lastRow)) {
         lastCol = g.col; lastRow = g.row
-        onMove(capturedId, g.col, g.row)
-        // Surface highlight: detect if dragged item is over a surface
+        const testItem = { ...item, col: g.col, row: g.row }
+        const isValid = !hasOverlap(allItems, capturedId, testItem, catalogue, roomCells, internalWalls)
+        if (isValid) {
+          finalCol = g.col; finalRow = g.row
+          // Move mesh directly — no React re-render during drag
+          if (groupRef.current) {
+            groupRef.current.position.x = (g.col + effectiveW / 2) - gridW / 2
+            groupRef.current.position.z = (g.row + effectiveD / 2) - gridD / 2
+          }
+        }
+        if (onDragMove) onDragMove({ id: capturedId, col: g.col, row: g.row, fw, fd, fh, effectiveW, effectiveD, isValid, guides: g.guides ?? [] })
         if (hoveredSurfaceRef && isSurfaceCandidate) {
-          const testItem = { ...item, col: g.col, row: g.row }
           const surface = findSurfaceAt(allItems, testItem, catalogue)
           hoveredSurfaceRef.current = surface?.id ?? null
         }
       }
     }
     const handleUp   = () => {
+      isDraggingRef.current = false
       activeDragRef.current = null; canvas.style.cursor = ''; onDragEnd()
+      // Commit final position to React state (single re-render)
+      onMove(capturedId, finalCol, finalRow)
       if (hoveredSurfaceRef) hoveredSurfaceRef.current = null
+      if (onDragMove) onDragMove(null)
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup',   handleUp)
     }
@@ -325,55 +459,70 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
 
   return (
     <group
+      ref={groupRef}
       position={[wx, wy, wz]}
       onPointerDown={onPointerDown}
       onClick={e => e.stopPropagation()}
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
+      onPointerEnter={e => { e.stopPropagation(); setIsHovered(true); gl.domElement.style.cursor = item.locked ? 'default' : 'grab' }}
+      onPointerLeave={e => { e.stopPropagation(); setIsHovered(false); gl.domElement.style.cursor = '' }}
     >
       {isStairs && item.returnStair ? (
-        /* Floor opening: trim border + 3-sided safety railing (open on front) */
+        /* Floor opening: trim border + railing — no smooth rotation needed */
         <group>
-          {/* Wooden trim around the opening edge */}
+          {/* Wooden trim around the opening edge — raised clear of floor to avoid z-fighting */}
           {[
-            { p: [0, 0.06, -effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.06] },
-            { p: [0, 0.06,  effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.06] },
-            { p: [-effectiveW/2, 0.06, 0],  s: [0.06, 0.12, effectiveD] },
-            { p: [ effectiveW/2, 0.06, 0],  s: [0.06, 0.12, effectiveD] },
+            { p: [0, 0.10, -effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.08] },
+            { p: [0, 0.10,  effectiveD/2], s: [effectiveW + 0.12, 0.12, 0.08] },
+            { p: [-effectiveW/2, 0.10, 0],  s: [0.08, 0.12, effectiveD] },
+            { p: [ effectiveW/2, 0.10, 0],  s: [0.08, 0.12, effectiveD] },
           ].map(({ p, s }, i) => (
             <mesh key={`t${i}`} position={p} castShadow>
               <boxGeometry args={s} />
-              <meshStandardMaterial color="#a08060" roughness={0.75} />
+              <meshStandardMaterial color="#a08060" roughness={0.75}
+                polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
             </mesh>
           ))}
-          {/* Corner posts — 3ft tall (~36 inches, standard railing) */}
+          {/* Corner posts — 3ft tall standard railing */}
           {[[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sz], i) => (
             <mesh key={`p${i}`} position={[sx * effectiveW/2, 1.5, sz * effectiveD/2]} castShadow>
-              <boxGeometry args={[0.1, 3, 0.1]} />
+              <boxGeometry args={[0.12, 3, 0.12]} />
               <meshStandardMaterial color="#8a6a48" roughness={0.65} />
+            </mesh>
+          ))}
+          {/* Vertical balusters on 3 sides (4 per long side, 2 per short side) */}
+          {Array.from({ length: 3 }, (_, i) => (
+            <mesh key={`bL${i}`} position={[-effectiveW/2, 1.5, -effectiveD/2 + (i + 1) * effectiveD / 4]} castShadow>
+              <boxGeometry args={[0.06, 2.8, 0.06]} />
+              <meshStandardMaterial color="#9a7a58" roughness={0.7} />
+            </mesh>
+          ))}
+          {Array.from({ length: 3 }, (_, i) => (
+            <mesh key={`bR${i}`} position={[effectiveW/2, 1.5, -effectiveD/2 + (i + 1) * effectiveD / 4]} castShadow>
+              <boxGeometry args={[0.06, 2.8, 0.06]} />
+              <meshStandardMaterial color="#9a7a58" roughness={0.7} />
             </mesh>
           ))}
           {/* Top rails on 3 sides (open on +D side for stair access) */}
           <mesh position={[0, 3, -effectiveD/2]} castShadow>
-            <boxGeometry args={[effectiveW, 0.06, 0.06]} />
-            <meshStandardMaterial color="#a08060" roughness={0.7} />
+            <boxGeometry args={[effectiveW + 0.06, 0.08, 0.08]} />
+            <meshStandardMaterial color="#a08060" roughness={0.6} />
           </mesh>
           <mesh position={[-effectiveW/2, 3, 0]} castShadow>
-            <boxGeometry args={[0.06, 0.06, effectiveD]} />
-            <meshStandardMaterial color="#a08060" roughness={0.7} />
+            <boxGeometry args={[0.08, 0.08, effectiveD + 0.06]} />
+            <meshStandardMaterial color="#a08060" roughness={0.6} />
           </mesh>
           <mesh position={[effectiveW/2, 3, 0]} castShadow>
-            <boxGeometry args={[0.06, 0.06, effectiveD]} />
-            <meshStandardMaterial color="#a08060" roughness={0.7} />
+            <boxGeometry args={[0.08, 0.08, effectiveD + 0.06]} />
+            <meshStandardMaterial color="#a08060" roughness={0.6} />
           </mesh>
         </group>
       ) : isStairs ? (
-        /* Rotation applied to the group, steps built along raw depth axis
-           — ported from open3dFloorplan pattern */
-        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+        <group ref={rotGroupRef}>
           <StairVisual fw={fw} fd={fd} wallHeight={wallHeight} stairCount={item.stairCount ?? 14} color={def.swatches?.[item.swatchIndex]?.hex ?? def.color ?? '#9a8a7a'} />
         </group>
       ) : modelUrl ? (
-        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+        <group ref={rotGroupRef}>
           {/* Contact shadow — soft multi-ring oval for grounded look */}
           <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -fh / 2 + 0.003, 0]}>
             {/* Core shadow — tight under the item */}
@@ -403,7 +552,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
         </group>
       ) : def.dShape && !def.window ? (
         /* D-shaped floor item (D-rug) — woven texture on D-shaped flat mesh */
-        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+        <group ref={rotGroupRef}>
           <mesh rotation-x={-Math.PI / 2} position-y={-fh / 2 + 0.01} receiveShadow>
             <shapeGeometry args={[_makeDShape(fw, fd)]} />
             <meshStandardMaterial
@@ -415,7 +564,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
           </mesh>
         </group>
       ) : (
-        <group rotation={[0, -(item.rotation * Math.PI) / 180, 0]}>
+        <group ref={rotGroupRef}>
           <mesh castShadow receiveShadow>
             <boxGeometry args={[fw, fh, fd]} />
             <meshStandardMaterial
@@ -440,6 +589,12 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
         <mesh>
           <boxGeometry args={[fw + 0.16, fh + 0.16, fd + 0.16]} />
           <meshBasicMaterial color="#ffd700" wireframe />
+        </mesh>
+      )}
+      {isHovered && !isSelected && !item.locked && (
+        <mesh>
+          <boxGeometry args={[fw + 0.06, fh + 0.06, fd + 0.06]} />
+          <meshBasicMaterial color="#c8b8f0" wireframe transparent opacity={0.55} />
         </mesh>
       )}
       {isSelected && (
@@ -1057,12 +1212,26 @@ export default function Items({
   activeDragRef: externalDragRef,
   wallColor,
   wallTexture,
+  internalWalls,
 }) {
   const internalDragRef = useRef(null)
   const activeDragRef = externalDragRef || internalDragRef
   const hoveredSurfaceRef = useRef(null)
   const [visibleWalls, setVisibleWalls] = useState(VISIBLE_WALLS[0])
+  const [dragGhost, setDragGhost] = useState(null)
+  const [snapGuides, setSnapGuides] = useState([]) // [{ axis, pos, type }]
   const prevQ = useRef(0)
+
+  // Actual room bounds from cells (not grid edges)
+  const cellBounds = useMemo(() => {
+    let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
+    for (const key of cells) {
+      const [c, r] = key.split(',').map(Number)
+      minC = Math.min(minC, c); maxC = Math.max(maxC, c)
+      minR = Math.min(minR, r); maxR = Math.max(maxR, r)
+    }
+    return { minC: isFinite(minC) ? minC : 0, maxC: isFinite(maxC) ? maxC + 1 : gridW, minR: isFinite(minR) ? minR : 0, maxR: isFinite(maxR) ? maxR + 1 : gridD }
+  }, [cells, gridW, gridD])
 
   // Per-column and per-row bounds derived from the room cells
   const { colBounds, rowBounds } = useMemo(() => {
@@ -1076,6 +1245,13 @@ export default function Items({
     }
     return { colBounds: colB, rowBounds: rowB }
   }, [cells])
+
+  const handleDragMove = (state) => {
+    if (!state) { setDragGhost(null); setSnapGuides([]); return }
+    setSnapGuides(state.guides ?? [])
+    if (state.isValid) { setDragGhost(null); return }
+    setDragGhost(state)
+  }
 
   useFrame(() => {
     const q = getQuadrant(roomRotationRef.current)
@@ -1127,8 +1303,34 @@ export default function Items({
           )
         }
         if (ceilingView) return null
-        return <ItemMesh key={item.id} {...shared} onMove={onMoveItem} onEnterRoom={onEnterRoom} />
+        return <ItemMesh key={item.id} {...shared} onMove={onMoveItem} onEnterRoom={onEnterRoom} onDragMove={handleDragMove} cellBounds={cellBounds} roomCells={cells} internalWalls={internalWalls} />
       })}
+      {dragGhost && (
+        <mesh
+          position={[
+            dragGhost.col + dragGhost.effectiveW / 2 - gridW / 2,
+            dragGhost.fh / 2,
+            dragGhost.row + dragGhost.effectiveD / 2 - gridD / 2,
+          ]}
+        >
+          <boxGeometry args={[dragGhost.effectiveW, dragGhost.fh, dragGhost.effectiveD]} />
+          <meshBasicMaterial color="#ff3333" transparent opacity={0.38} depthWrite={false} />
+        </mesh>
+      )}
+      {/* Snap alignment guide lines */}
+      {snapGuides.map((g, i) => (
+        g.axis === 'x' ? (
+          <mesh key={`sg${i}`} position={[g.pos - gridW / 2, 0.05, 0]}>
+            <boxGeometry args={[0.02, 0.02, gridD]} />
+            <meshBasicMaterial color={g.type === 'center' ? '#60c0ff' : '#ff60a0'} transparent opacity={0.6} depthWrite={false} />
+          </mesh>
+        ) : (
+          <mesh key={`sg${i}`} position={[0, 0.05, g.pos - gridD / 2]}>
+            <boxGeometry args={[gridW, 0.02, 0.02]} />
+            <meshBasicMaterial color={g.type === 'center' ? '#60c0ff' : '#ff60a0'} transparent opacity={0.6} depthWrite={false} />
+          </mesh>
+        )
+      ))}
       <SurfaceHighlight items={items} hoveredSurfaceRef={hoveredSurfaceRef} gridW={gridW} gridD={gridD} catalogue={catalogue} />
     </group>
   )
