@@ -3,8 +3,8 @@
 // Zoom/pan, floor switcher, ghost floor below.
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { exportFloorPlanPNG } from '../utils/exportFloorPlan'
-import { ROOM_TEMPLATES } from '../data/roomTemplates'
 import { BUILDING_TEMPLATES } from '../data/buildingTemplates'
+import { formatDim, parseDimInput } from '../utils/buildingConstants'
 
 // Is rotation effectively sideways? Handles any angle, not just exact 90/270
 function isRotatedSideways(rotation) {
@@ -36,6 +36,49 @@ const TOOLS = [
   { id: 'label',  label: 'Room Names',   icon: 'Aa', desc: 'Click a room area to name it', group: 'rooms' },
   { id: 'copy',   label: 'Copy Room',    icon: '⊟', desc: 'Click a room to copy, then click to paste', group: 'rooms' },
 ]
+
+// Floor shape stamps — non-rectangular room shapes
+const SHAPE_STAMPS = [
+  { id: 'circle',  label: 'Circle',  icon: '○' },
+  { id: 'lshape',  label: 'L-Shape', icon: '⌐' },
+  { id: 'tshape',  label: 'T-Shape', icon: '⊤' },
+  { id: 'hexagon', label: 'Hexagon', icon: '⬡' },
+  { id: 'pointed', label: 'Pointed', icon: '△' },
+]
+
+function generateShapeCells(shapeId, centerC, centerR, size = 6) {
+  const cells = []
+  const half = Math.floor(size / 2)
+  if (shapeId === 'circle') {
+    for (let c = -half; c <= half; c++)
+      for (let r = -half; r <= half; r++)
+        if (c * c + r * r <= half * half) cells.push([centerC + c, centerR + r])
+  } else if (shapeId === 'lshape') {
+    // Vertical bar
+    for (let r = 0; r < size; r++) for (let c = 0; c < Math.ceil(size / 2); c++) cells.push([centerC + c, centerR + r])
+    // Horizontal bar at bottom
+    for (let c = Math.ceil(size / 2); c < size; c++) for (let r = Math.floor(size / 2); r < size; r++) cells.push([centerC + c, centerR + r])
+  } else if (shapeId === 'tshape') {
+    // Top bar
+    for (let c = 0; c < size; c++) for (let r = 0; r < Math.ceil(size / 3); r++) cells.push([centerC + c, centerR + r])
+    // Vertical stem
+    const stemW = Math.ceil(size / 3), stemStart = Math.floor((size - stemW) / 2)
+    for (let c = stemStart; c < stemStart + stemW; c++) for (let r = Math.ceil(size / 3); r < size; r++) cells.push([centerC + c, centerR + r])
+  } else if (shapeId === 'hexagon') {
+    for (let r = -half; r <= half; r++) {
+      const indent = Math.floor(Math.abs(r) / 2)
+      for (let c = -half + indent; c <= half - indent; c++) cells.push([centerC + c, centerR + r])
+    }
+  } else if (shapeId === 'pointed') {
+    // Triangle pointing up
+    for (let r = 0; r < size; r++) {
+      const w = Math.floor((r + 1) * size / size)
+      const start = Math.floor((size - w * 2) / 2)
+      for (let c = -w; c <= w; c++) cells.push([centerC + c, centerR + r])
+    }
+  }
+  return cells
+}
 const PRIMARY_TOOLS   = TOOLS.filter(t => t.primary)
 const SECONDARY_TOOLS = TOOLS.filter(t => !t.primary)
 
@@ -125,7 +168,14 @@ export default function FloorPlanPage({
   const panStartRef = useRef(null)
   const [editingLabel, setEditingLabel] = useState(null)
   const [selectedZoneIdx, setSelectedZoneIdx] = useState(null)
-  const [draggingLabel, setDraggingLabel] = useState(null) // { label, x, y } when dragging a room tag
+  const [draggingLabel, setDraggingLabel] = useState(null)
+  const [activeShape, setActiveShape] = useState(null)
+  const [shapeSize, setShapeSize] = useState(8)
+  const [newFloorPrompt, setNewFloorPrompt] = useState(null)
+  const [editingDimension, setEditingDimension] = useState(null)
+  const [selectedDoor, setSelectedDoor] = useState(null)
+  const [showMeasurements, setShowMeasurements] = useState(true)
+  const [unitSystem, setUnitSystem] = useState('imperial') // 'imperial' | 'metric'
   const [deleteMode, setDeleteMode] = useState(false)
   const [deleteSelection, setDeleteSelection] = useState(new Set()) // roomIds to delete
   // Background image for tracing
@@ -321,29 +371,34 @@ export default function FloorPlanPage({
       const zW = zMaxC - zMinC + 1, zD = zMaxR - zMinR + 1
       ctx.fillStyle = '#606080'
       ctx.font = `${Math.max(8, cellSize * 0.35)}px Outfit, sans-serif`
-      ctx.fillText(`${zW}×${zD} ft · ${zoneCells.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
+      ctx.fillText(`${formatDim(zW, unitSystem)}×${formatDim(zD, unitSystem)} · ${zoneCells.size} sq ft`, cx, cy + Math.max(12, cellSize * 0.45))
       ctx.fillStyle = '#50c87880'
       ctx.font = `${Math.max(7, cellSize * 0.3)}px Outfit, sans-serif`
       ctx.fillText('double-click to edit', cx, cy + Math.max(22, cellSize * 0.8))
-      // Dimension rulers along zone edges (when zoomed in enough)
-      if (cellSize >= 14) {
-        ctx.strokeStyle = '#40608030'
+      // Dimension rulers along zone edges
+      if (showMeasurements && cellSize >= 10) {
+        ctx.strokeStyle = '#50709040'
         ctx.lineWidth = 1
         ctx.setLineDash([3, 3])
-        // Top edge dimension
-        const tx = offsetX + zMinC * cellSize, ty = offsetY + zMinR * cellSize - 8
+        const dimFont = `bold ${Math.max(9, cellSize * 0.32)}px Outfit, sans-serif`
+        ctx.font = dimFont
+        ctx.fillStyle = '#8090b0'
+        // Top edge
+        const tx = offsetX + zMinC * cellSize, ty = offsetY + zMinR * cellSize - 10
         ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx + zW * cellSize, ty); ctx.stroke()
-        ctx.fillStyle = '#607090'
-        ctx.font = `${Math.max(8, cellSize * 0.28)}px Outfit, sans-serif`
-        ctx.fillText(`${zW}'`, tx + zW * cellSize / 2, ty - 2)
-        // Left edge dimension
-        const lx = offsetX + zMinC * cellSize - 8, ly = offsetY + zMinR * cellSize
+        // End ticks
+        ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(tx, ty - 3); ctx.lineTo(tx, ty + 3); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(tx + zW * cellSize, ty - 3); ctx.lineTo(tx + zW * cellSize, ty + 3); ctx.stroke()
+        ctx.textAlign = 'center'
+        ctx.fillText(formatDim(zW, unitSystem), tx + zW * cellSize / 2, ty - 3)
+        // Left edge
+        ctx.setLineDash([3, 3])
+        const lx = offsetX + zMinC * cellSize - 10, ly = offsetY + zMinR * cellSize
         ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx, ly + zD * cellSize); ctx.stroke()
-        ctx.save()
-        ctx.translate(lx - 2, ly + zD * cellSize / 2)
-        ctx.rotate(-Math.PI / 2)
-        ctx.fillText(`${zD}'`, 0, 0)
-        ctx.restore()
+        ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(lx - 3, ly); ctx.lineTo(lx + 3, ly); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(lx - 3, ly + zD * cellSize); ctx.lineTo(lx + 3, ly + zD * cellSize); ctx.stroke()
+        ctx.save(); ctx.translate(lx - 3, ly + zD * cellSize / 2); ctx.rotate(-Math.PI / 2)
+        ctx.fillText(formatDim(zD, unitSystem), 0, 0); ctx.restore()
         ctx.setLineDash([])
       }
     })
@@ -369,6 +424,58 @@ export default function FloorPlanPage({
       if (!cells.has(`${c+1},${r}`)) { ctx.beginPath(); ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); ctx.stroke() }
     }
 
+    // Wall segment measurements
+    if (showMeasurements && cellSize >= 10) {
+      // Trace horizontal and vertical boundary wall runs
+      const measured = new Set()
+      ctx.fillStyle = '#a0b0c8'
+      ctx.font = `bold ${Math.max(8, cellSize * 0.28)}px Outfit, sans-serif`
+      ctx.textAlign = 'center'
+      for (const key of cells) {
+        const [c, r] = key.split(',').map(Number)
+        // North wall run
+        if (!cells.has(`${c},${r-1}`) && !measured.has(`N:${c},${r}`)) {
+          let len = 1; let cc = c + 1
+          while (cells.has(`${cc},${r}`) && !cells.has(`${cc},${r-1}`)) { len++; measured.add(`N:${cc},${r}`); cc++ }
+          measured.add(`N:${c},${r}`)
+          if (len > 1) {
+            const mx = offsetX + (c + len / 2) * cellSize, my = offsetY + r * cellSize - 3
+            ctx.fillText(formatDim(len, unitSystem), mx, my)
+          }
+        }
+        // South wall run
+        if (!cells.has(`${c},${r+1}`) && !measured.has(`S:${c},${r}`)) {
+          let len = 1; let cc = c + 1
+          while (cells.has(`${cc},${r}`) && !cells.has(`${cc},${r+1}`)) { len++; measured.add(`S:${cc},${r}`); cc++ }
+          measured.add(`S:${c},${r}`)
+          if (len > 1) {
+            const mx = offsetX + (c + len / 2) * cellSize, my = offsetY + (r + 1) * cellSize + 10
+            ctx.fillText(formatDim(len, unitSystem), mx, my)
+          }
+        }
+        // West wall run
+        if (!cells.has(`${c-1},${r}`) && !measured.has(`W:${c},${r}`)) {
+          let len = 1; let rr = r + 1
+          while (cells.has(`${c},${rr}`) && !cells.has(`${c-1},${rr}`)) { len++; measured.add(`W:${c},${rr}`); rr++ }
+          measured.add(`W:${c},${r}`)
+          if (len > 1) {
+            ctx.save(); ctx.translate(offsetX + c * cellSize - 4, offsetY + (r + len / 2) * cellSize)
+            ctx.rotate(-Math.PI / 2); ctx.fillText(formatDim(len, unitSystem), 0, 0); ctx.restore()
+          }
+        }
+        // East wall run
+        if (!cells.has(`${c+1},${r}`) && !measured.has(`E:${c},${r}`)) {
+          let len = 1; let rr = r + 1
+          while (cells.has(`${c},${rr}`) && !cells.has(`${c+1},${rr}`)) { len++; measured.add(`E:${c},${rr}`); rr++ }
+          measured.add(`E:${c},${r}`)
+          if (len > 1) {
+            ctx.save(); ctx.translate(offsetX + (c + 1) * cellSize + 10, offsetY + (r + len / 2) * cellSize)
+            ctx.rotate(-Math.PI / 2); ctx.fillText(formatDim(len, unitSystem), 0, 0); ctx.restore()
+          }
+        }
+      }
+    }
+
     // Internal walls
     ctx.strokeStyle = '#40b070'
     ctx.lineWidth = Math.max(2, cellSize * 0.1)
@@ -385,21 +492,34 @@ export default function FloorPlanPage({
       ctx.stroke()
     }
 
-    // Door openings (dashed blue lines)
-    ctx.strokeStyle = '#60a0ff'
-    ctx.lineWidth = Math.max(2, cellSize * 0.1)
-    ctx.setLineDash([cellSize * 0.15, cellSize * 0.1])
+    // Door openings (dashed lines — blue normal, purple selected)
+    const selDoor = selectedDoor
     for (const edgeKey of (doorOpenings ?? [])) {
       const sep = edgeKey.lastIndexOf(':')
       const [c, r] = edgeKey.slice(0, sep).split(',').map(Number)
       const dir = edgeKey.slice(sep + 1)
       const x = offsetX + c * cellSize, y = offsetY + r * cellSize
+      const isSel = edgeKey === selDoor
+      ctx.strokeStyle = isSel ? '#b080ff' : '#60a0ff'
+      ctx.lineWidth = isSel ? Math.max(3, cellSize * 0.15) : Math.max(2, cellSize * 0.1)
+      ctx.setLineDash(isSel ? [] : [cellSize * 0.15, cellSize * 0.1])
       ctx.beginPath()
       if (dir === 'N') { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y) }
       if (dir === 'S') { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize) }
       if (dir === 'W') { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize) }
       if (dir === 'E') { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize) }
       ctx.stroke()
+      // Draw arc symbol for selected door
+      if (isSel && cellSize >= 10) {
+        ctx.setLineDash([])
+        ctx.strokeStyle = '#b080ff'
+        ctx.lineWidth = 1.5
+        const cx = dir === 'W' ? x : dir === 'E' ? x + cellSize : x + cellSize / 2
+        const cy = dir === 'N' ? y : dir === 'S' ? y + cellSize : y + cellSize / 2
+        ctx.beginPath()
+        ctx.arc(cx, cy, cellSize * 0.3, 0, Math.PI, dir === 'S' || dir === 'E')
+        ctx.stroke()
+      }
     }
     ctx.setLineDash([])
 
@@ -478,6 +598,17 @@ export default function FloorPlanPage({
         ctx.strokeStyle = action === 'addroom' ? '#60a0ff' : action === 'add' ? '#50c878' : '#ff5050'
         ctx.lineWidth = 1.5
         ctx.strokeRect(offsetX + c0 * cellSize, offsetY + r0 * cellSize, (c1-c0+1) * cellSize, (r1-r0+1) * cellSize)
+      } else if (tool === 'shape' && activeShape && hoverInfo.col != null) {
+        // Shape stamp preview
+        const shapeCells = generateShapeCells(activeShape, hoverInfo.col, hoverInfo.row, shapeSize)
+        ctx.fillStyle = 'rgba(100,180,255,0.3)'
+        ctx.strokeStyle = '#60a0ff'
+        ctx.lineWidth = 1
+        for (const [c, r] of shapeCells) {
+          if (c >= 0 && r >= 0 && c < gridW && r < gridD) {
+            ctx.fillRect(offsetX + c * cellSize + 0.5, offsetY + r * cellSize + 0.5, cellSize - 1, cellSize - 1)
+          }
+        }
       } else if ((tool === 'shape' || tool === 'addroom') && hoverInfo.col != null) {
         const { col, row } = hoverInfo
         ctx.fillStyle = cells.has(`${col},${row}`) ? 'rgba(255,70,70,0.2)' : 'rgba(70,200,120,0.2)'
@@ -578,7 +709,7 @@ export default function FloorPlanPage({
     ctx.textAlign = 'left'
     const floorLabel = activeFloorLevel === 0 ? 'Ground Floor' : activeFloorLevel < 0 ? `Basement ${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`
     ctx.fillText(`${floorLabel} · ${gridW}×${gridD} ft · ${cells.size} sq ft · ${roomZones.length} rooms · ${Math.round(zoom * 100)}%`, 8, canvasSize.h - 8)
-  }, [canvasSize, gridW, gridD, cells, internalWalls, doorOpenings, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard, stairRotation, selectedId, catalogue, selectedZoneIdx])
+  }, [canvasSize, gridW, gridD, cells, internalWalls, doorOpenings, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard, stairRotation, selectedId, catalogue, selectedZoneIdx, activeShape, shapeSize, selectedDoor, showMeasurements, unitSystem])
 
   useEffect(() => { draw() }, [draw])
 
@@ -647,10 +778,12 @@ export default function FloorPlanPage({
         const handleItemMove = (ev) => {
           const g = getCellFromMouse(ev)
           if (!g) return
-          let newCol = Math.round((g.col - offC) * 4) / 4
-          let newRow = Math.round((g.row - offR) * 4) / 4
+          const precision = ev.shiftKey ? 16 : 4  // Shift = fine mode (1/16 ft)
+          let newCol = Math.round((g.col - offC) * precision) / precision
+          let newRow = Math.round((g.row - offR) * precision) / precision
 
-          // Smart snap: align to other items in the floor plan
+          // Smart snap: align to other items (skip in fine mode)
+          if (ev.shiftKey) { onMoveItem?.(dragId, newCol, newRow); return }
           const SNAP = 0.5
           let bestDx = SNAP, bestDz = SNAP
           let snapCol = newCol, snapRow = newRow
@@ -688,14 +821,112 @@ export default function FloorPlanPage({
         window.addEventListener('pointerup', handleItemUp)
       } else {
         onSelectItem?.(null)
-        // Also check if clicking a zone — select it for labeling
+        // Check if clicking near a door opening (bigger hitbox)
+        const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
+        if (edge) {
+          const openKey = `${edge.col},${edge.row}:${edge.dir}`
+          if (doorOpenings?.has(openKey)) {
+            setSelectedZoneIdx(null)
+            setSelectedDoor(openKey)
+            return
+          }
+        }
+        // Also check adjacent cells for nearby doors (bigger hitbox)
+        if (!edge) {
+          const c = info.col, r = info.row
+          for (const dk of (doorOpenings ?? [])) {
+            const sep = dk.lastIndexOf(':')
+            const [dc, dr] = dk.slice(0, sep).split(',').map(Number)
+            if (Math.abs(dc - c) <= 1 && Math.abs(dr - r) <= 1) {
+              setSelectedDoor(dk); setSelectedZoneIdx(null); return
+            }
+          }
+        }
+        setSelectedDoor(null)
+        // Check if clicking near any boundary wall — open dimension editor
+        if (showMeasurements) {
+          const c = info.col, r = info.row
+          // Check all 4 directions with generous hitbox
+          const dirs = []
+          if (cells.has(`${c},${r}`)) {
+            if (!cells.has(`${c},${r-1}`)) dirs.push({ dir: 'N', pri: info.fy })
+            if (!cells.has(`${c},${r+1}`)) dirs.push({ dir: 'S', pri: 1 - info.fy })
+            if (!cells.has(`${c-1},${r}`)) dirs.push({ dir: 'W', pri: info.fx })
+            if (!cells.has(`${c+1},${r}`)) dirs.push({ dir: 'E', pri: 1 - info.fx })
+          }
+          // Also check if clicking just outside a boundary (on the measurement label)
+          if (!cells.has(`${c},${r}`)) {
+            if (cells.has(`${c},${r+1}`)) dirs.push({ dir: 'N', pri: 0.1 })
+            if (cells.has(`${c},${r-1}`)) dirs.push({ dir: 'S', pri: 0.1 })
+            if (cells.has(`${c+1},${r}`)) dirs.push({ dir: 'W', pri: 0.1 })
+            if (cells.has(`${c-1},${r}`)) dirs.push({ dir: 'E', pri: 0.1 })
+          }
+          if (dirs.length > 0) {
+            const best = dirs.reduce((a, b) => a.pri < b.pri ? a : b)
+            if (best.pri < 0.4) {
+              const dir = best.dir
+              const isHoriz = dir === 'N' || dir === 'S'
+              // Find the wall run cell (the cell that has the boundary)
+              const wc = cells.has(`${c},${r}`) ? c : (dir === 'W' ? c + 1 : dir === 'E' ? c - 1 : c)
+              const wr = cells.has(`${c},${r}`) ? r : (dir === 'N' ? r + 1 : dir === 'S' ? r - 1 : r)
+              if (isHoriz) {
+                const checkR = dir === 'S' ? wr + 1 : wr - 1
+                let startC = wc
+                while (cells.has(`${startC-1},${wr}`) && !cells.has(`${startC-1},${checkR}`)) startC--
+                let ec = wc + 1
+                while (cells.has(`${ec},${wr}`) && !cells.has(`${ec},${checkR}`)) ec++
+                const len = ec - startC
+                const rect = canvasRef.current.getBoundingClientRect()
+                setEditingDimension({ wallRun: true, dir, startC, startR: wr, len, isHoriz, x: e.clientX - rect.left, y: e.clientY - rect.top })
+                return
+              } else {
+                const checkC = dir === 'E' ? wc + 1 : wc - 1
+                let startR = wr
+                while (cells.has(`${wc},${startR-1}`) && !cells.has(`${checkC},${startR-1}`)) startR--
+                let er = wr + 1
+                while (cells.has(`${wc},${er}`) && !cells.has(`${checkC},${er}`)) er++
+                const len = er - startR
+                const rect = canvasRef.current.getBoundingClientRect()
+                setEditingDimension({ wallRun: true, dir, startC: wc, startR, len, isHoriz, x: e.clientX - rect.left, y: e.clientY - rect.top })
+                return
+              }
+            }
+          }
+        }
+        // Check if clicking a zone — select it for labeling
         const key = `${Math.floor(info.col)},${Math.floor(info.row)}`
         const zIdx = roomZones.findIndex(z => z.cells.has(key))
         setSelectedZoneIdx(zIdx >= 0 ? zIdx : null)
+        setHoverInfo(null)
       }
       return
     }
 
+    if (tool === 'shape' && activeShape) {
+      // Drag-to-size shape: start drag, size from distance
+      saveUndoSnapshot()
+      const startC = info.col, startR = info.row
+      const handleShapeMove = (ev) => {
+        const g = getCellFromMouse(ev)
+        if (!g) return
+        const dragSize = Math.max(3, Math.round(Math.sqrt(Math.pow(g.col - startC, 2) + Math.pow(g.row - startR, 2)) * 1.5))
+        setShapeSize(dragSize)
+        setHoverInfo({ col: startC, row: startR })
+      }
+      const handleShapeUp = (ev) => {
+        const shapeCells = generateShapeCells(activeShape, startC, startR, shapeSize)
+        for (const [c, r] of shapeCells) {
+          if (c >= 0 && r >= 0 && c < gridW && r < gridD && !cells.has(`${c},${r}`))
+            onToggleCell(c, r)
+        }
+        setHoverInfo(null)
+        window.removeEventListener('pointermove', handleShapeMove)
+        window.removeEventListener('pointerup', handleShapeUp)
+      }
+      window.addEventListener('pointermove', handleShapeMove)
+      window.addEventListener('pointerup', handleShapeUp)
+      return
+    }
     if (tool === 'shape' || tool === 'addroom') {
       saveUndoSnapshot()
       const key = `${info.col},${info.row}`
@@ -976,48 +1207,40 @@ export default function FloorPlanPage({
     <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0c0c1a', display: 'flex', fontFamily: "'Outfit',sans-serif" }}>
       {/* Sidebar — scrollable so many floors don't push controls off screen */}
       <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, overflowY: 'auto' }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0', padding: '8px 10px 12px' }}>Floor Plan</div>
+        <div style={{ padding: '8px 10px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0' }}>Floor Plan</span>
+          <span style={{
+            padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+            background: '#2a5a4a', color: '#60d888',
+          }}>{activeFloorLevel === 0 ? 'Ground' : activeFloorLevel < 0 ? `B${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`}</span>
+        </div>
 
-        {/* Floor management */}
-        <div style={{ padding: '2px 10px', fontSize: 10, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Floors</div>
-        <div style={{ display: 'flex', gap: 2, margin: '0 6px 4px', background: '#12122a', borderRadius: 6, padding: 2, flexWrap: 'wrap', maxHeight: 120, overflowY: 'auto' }}>
-          {/* Show ALL rooms sorted by level — deduplicated by level */}
-          {Object.entries(allRoomsData ?? {})
+        {/* Floor switcher — compact ▼ name ▲ */}
+        {(() => {
+          const allFloors = Object.entries(allRoomsData ?? {})
             .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
             .sort((a, b) => a.level - b.level)
             .filter((f, i, arr) => i === 0 || f.level !== arr[i-1].level)
-            .map(f => (
-              <button key={f.roomId} onClick={() => onSwitchFloor?.(f.roomId, f.level)}
-                style={{
-                  flex: 1, minWidth: 28, padding: '5px 6px', borderRadius: 4, border: 'none', fontSize: 10, fontWeight: 700,
-                  background: f.level === activeFloorLevel ? '#2a8a5a30' : 'transparent',
-                  color: f.level === activeFloorLevel ? '#50c878' : '#505070',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}>{f.level < 0 ? `B${-f.level}` : `F${f.level + 1}`}</button>
-            ))}
-        </div>
-        <div style={{ display: 'flex', gap: 3, margin: '0 6px 2px' }}>
-          <button onClick={() => onAddFloor?.('above')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Above</button>
-          <button onClick={() => onAddFloor?.('below')} style={{ flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>+ Floor Below</button>
-        </div>
-        {/* Batch add — type a number and add many floors at once */}
-        <div style={{ display: 'flex', gap: 3, margin: '0 6px 6px', alignItems: 'center' }}>
-          <input id="ddd-batch-floors" type="number" min="2" max="50" defaultValue="5" style={{
-            width: 40, padding: '4px 6px', borderRadius: 4, border: '1px solid #2a2a40',
-            background: '#12122a', color: '#b0b0c0', fontSize: 10, fontFamily: 'inherit',
-            textAlign: 'center', outline: 'none',
-          }} />
-          <button onClick={() => {
-            const n = parseInt(document.getElementById('ddd-batch-floors')?.value, 10)
-            if (n >= 2 && n <= 50) onAddFloor?.('above', n)
-          }} style={{
-            flex: 1, padding: '5px', borderRadius: 4, border: '1px solid #2a2a40',
-            background: '#12122a', color: '#707090', cursor: 'pointer', fontSize: 10,
-            fontWeight: 600, fontFamily: 'inherit',
-          }}>+ Add Floors</button>
-        </div>
-        {/* Delete floors toggle */}
-        {(() => {
+          const curIdx = allFloors.findIndex(f => f.level === activeFloorLevel)
+          const canUp = curIdx < allFloors.length - 1
+          const canDown = curIdx > 0
+          const floorName = activeFloorLevel === 0 ? 'Ground' : activeFloorLevel < 0 ? `B${-activeFloorLevel}` : `F${activeFloorLevel + 1}`
+          return (
+            <div style={{ margin: '0 6px 4px', display: 'flex', alignItems: 'center', gap: 2 }}>
+              <button onClick={() => { if (canDown) onSwitchFloor?.(allFloors[curIdx - 1].roomId, allFloors[curIdx - 1].level) }}
+                disabled={!canDown}
+                style={{ width: 24, height: 24, borderRadius: 4, border: 'none', background: canDown ? '#2a3a4a' : '#12122a', color: canDown ? '#80c0ff' : '#303050', fontSize: 12, fontWeight: 800, cursor: canDown ? 'pointer' : 'default', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▼</button>
+              <div style={{ flex: 1, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#c0c0e0' }}>{floorName}</div>
+              <button onClick={() => { if (canUp) onSwitchFloor?.(allFloors[curIdx + 1].roomId, allFloors[curIdx + 1].level) }}
+                disabled={!canUp}
+                style={{ width: 24, height: 24, borderRadius: 4, border: 'none', background: canUp ? '#2a3a4a' : '#12122a', color: canUp ? '#80c0ff' : '#303050', fontSize: 12, fontWeight: 800, cursor: canUp ? 'pointer' : 'default', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▲</button>
+              <button onClick={() => setNewFloorPrompt('above')} title="Add floor"
+                style={{ width: 24, height: 24, borderRadius: 4, border: '1px solid #2a2a40', background: '#12122a', color: '#607080', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+            </div>
+          )
+        })()}
+        {/* Delete floors — only show when multiple floors exist */}
+        {Object.keys(allRoomsData ?? {}).length > 1 && (() => {
           const allFloors = Object.entries(allRoomsData ?? {})
             .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
             .sort((a, b) => a.level - b.level)
@@ -1085,6 +1308,22 @@ export default function FloorPlanPage({
           )
         })()}
 
+        {/* Measurements toggle + unit system */}
+        <div style={{ display: 'flex', gap: 3, margin: '2px 6px' }}>
+          <button onClick={() => setShowMeasurements(v => !v)} style={{
+            flex: 1, padding: '4px 8px', borderRadius: 4,
+            border: `1px solid ${showMeasurements ? '#2a5a4a' : '#2a2a40'}`,
+            background: showMeasurements ? '#1a3a2a' : '#12122a',
+            color: showMeasurements ? '#60d888' : '#505070',
+            cursor: 'pointer', fontSize: 10, fontWeight: 600, fontFamily: 'inherit',
+          }}>📏 {showMeasurements ? 'ON' : 'OFF'}</button>
+          <button onClick={() => setUnitSystem(u => u === 'imperial' ? 'metric' : 'imperial')} style={{
+            padding: '4px 8px', borderRadius: 4, border: '1px solid #2a2a40',
+            background: '#12122a', color: '#8080a0',
+            cursor: 'pointer', fontSize: 10, fontWeight: 700, fontFamily: 'inherit',
+          }}>{unitSystem === 'imperial' ? 'ft' : 'm'}</button>
+        </div>
+
         <div style={{ height: 1, background: '#1e1e30', margin: '2px 10px' }} />
 
         {/* ── 4 Primary tools (2×2 grid) ─────────────────────── */}
@@ -1103,6 +1342,35 @@ export default function FloorPlanPage({
             </button>
           ))}
         </div>
+
+        {/* Shape stamps — visible when Floor Shape tool is active */}
+        {tool === 'shape' && (
+          <div style={{ padding: '2px 8px 4px', flexShrink: 0 }}>
+            <div style={{ fontSize: 9, color: '#505070', marginBottom: 3, fontWeight: 600 }}>SHAPE STAMPS</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+              <button onClick={() => setActiveShape(null)} style={{
+                padding: '3px 7px', borderRadius: 4, border: '1px solid #2a2a40', fontSize: 10,
+                background: !activeShape ? '#2a2a5a' : '#12122a', color: !activeShape ? '#a0a0f0' : '#606080',
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>▦ Rect</button>
+              {SHAPE_STAMPS.map(s => (
+                <button key={s.id} onClick={() => setActiveShape(activeShape === s.id ? null : s.id)} style={{
+                  padding: '3px 7px', borderRadius: 4, border: '1px solid #2a2a40', fontSize: 10,
+                  background: activeShape === s.id ? '#2a2a5a' : '#12122a', color: activeShape === s.id ? '#a0a0f0' : '#606080',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>{s.icon} {s.label}</button>
+              ))}
+            </div>
+            {activeShape && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 9, color: '#505070' }}>Size</span>
+                <input type="range" min={4} max={20} value={shapeSize} onChange={e => setShapeSize(Number(e.target.value))}
+                  style={{ flex: 1, height: 12 }} />
+                <span style={{ fontSize: 10, color: '#808090', minWidth: 20 }}>{shapeSize}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── "More tools" overflow toggle ─────────────────── */}
         <button onClick={() => setShowMoreTools(p => !p)} style={{
@@ -1127,72 +1395,6 @@ export default function FloorPlanPage({
         )}
 
         {/* Divider */}
-        <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
-
-        {/* Import section */}
-        <div style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, color: '#505070', textTransform: 'uppercase', letterSpacing: 0.5 }}>Import</div>
-        <button onClick={() => fileInputRef.current?.click()} style={toolBtn(false)} title="Upload a floor plan image to trace over">
-          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📷</span>
-          <span>Trace Image</span>
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-          onChange={e => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            const img = new Image()
-            img.onload = () => setBgImage({ img, opacity: 0.35 })
-            img.src = URL.createObjectURL(file)
-            e.target.value = ''
-          }}
-        />
-        <button onClick={() => setShowImport('dims')} style={toolBtn(false)} title="Quick-add a room by typing dimensions">
-          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📐</span>
-          <span>Room Size</span>
-        </button>
-        <button onClick={() => roomPlanInputRef.current?.click()} style={toolBtn(false)} title="Import Apple RoomPlan LiDAR scan (JSON)">
-          <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>📱</span>
-          <span>LiDAR Scan</span>
-        </button>
-        <input ref={roomPlanInputRef} type="file" accept=".json,.zip" style={{ display: 'none' }}
-          onChange={e => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            const reader = new FileReader()
-            reader.onload = (ev) => {
-              try {
-                const data = JSON.parse(ev.target.result)
-                // RoomPlan JSON has walls[] with start/end points
-                // Convert to cells by rasterizing wall bounding box
-                const walls = data.walls ?? data.rooms?.[0]?.walls ?? []
-                if (walls.length === 0) { alert('No walls found in scan file'); return }
-                let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity
-                for (const w of walls) {
-                  const pts = w.start ? [w.start, w.end] : w.vertices ?? []
-                  for (const p of pts) {
-                    const x = p.x ?? p[0] ?? 0, z = p.z ?? p[2] ?? p.y ?? 0
-                    minX = Math.min(minX, x); maxX = Math.max(maxX, x)
-                    minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z)
-                  }
-                }
-                // Convert meters to feet, create cells
-                const scale = 3.281  // meters to feet
-                const w = Math.ceil((maxX - minX) * scale)
-                const d = Math.ceil((maxZ - minZ) * scale)
-                if (w > 0 && d > 0 && w < 200 && d < 200) {
-                  onResizeGrid?.(Math.max(gridW, w + 2), Math.max(gridD, d + 2))
-                  // Fill cells for the scanned area
-                  for (let c = 1; c <= w; c++)
-                    for (let r = 1; r <= d; r++)
-                      if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
-                  alert(`Imported ${w}×${d} ft floor plan from scan`)
-                }
-              } catch (err) { alert('Could not parse scan file: ' + err.message) }
-            }
-            reader.readAsText(file)
-            e.target.value = ''
-          }}
-        />
-
         {/* Background image controls */}
         {bgImage && (
           <div style={{ padding: '4px 10px', fontSize: 11, color: '#505070' }}>
@@ -1278,6 +1480,29 @@ export default function FloorPlanPage({
           ))}
         </div>
 
+        {/* Import — collapsible, above export */}
+        <button onClick={() => setShowImport(showImport === 'menu' ? false : 'menu')} style={{
+          ...toolBtn(false), fontSize: 10, padding: '6px 12px', color: '#505070',
+        }}>
+          <span style={{ fontSize: 12 }}>{showImport === 'menu' ? '▼' : '▶'}</span>
+          <span>Import</span>
+        </button>
+        {showImport === 'menu' && <>
+        <button onClick={() => fileInputRef.current?.click()} style={toolBtn(false)} title="Trace over a floor plan image">
+          <span style={{ fontSize: 13, width: 20, textAlign: 'center' }}>📷</span><span>Trace Image</span>
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+          onChange={e => { const file = e.target.files?.[0]; if (!file) return; const img = new Image(); img.onload = () => setBgImage({ img, opacity: 0.35 }); img.src = URL.createObjectURL(file); e.target.value = '' }} />
+        <button onClick={() => setShowImport('dims')} style={toolBtn(false)} title="Add room by dimensions">
+          <span style={{ fontSize: 13, width: 20, textAlign: 'center' }}>📐</span><span>Room Size</span>
+        </button>
+        <button onClick={() => roomPlanInputRef.current?.click()} style={toolBtn(false)} title="Import LiDAR scan">
+          <span style={{ fontSize: 13, width: 20, textAlign: 'center' }}>📱</span><span>LiDAR Scan</span>
+        </button>
+        <input ref={roomPlanInputRef} type="file" accept=".json,.zip" style={{ display: 'none' }}
+          onChange={e => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { try { const data = JSON.parse(ev.target.result); const walls = data.walls ?? data.rooms?.[0]?.walls ?? []; if (walls.length === 0) { alert('No walls found'); return }; let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity; for (const w of walls) { const pts = w.start ? [w.start, w.end] : w.vertices ?? []; for (const p of pts) { const x = p.x ?? p[0] ?? 0, z = p.z ?? p[2] ?? p.y ?? 0; minX = Math.min(minX, x); maxX = Math.max(maxX, x); minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z) } }; const scale = 3.281; const w = Math.ceil((maxX - minX) * scale), d = Math.ceil((maxZ - minZ) * scale); if (w > 0 && d > 0 && w < 200 && d < 200) { onResizeGrid?.(Math.max(gridW, w + 2), Math.max(gridD, d + 2)); for (let c = 1; c <= w; c++) for (let r = 1; r <= d; r++) if (!cells.has(`${c},${r}`)) onToggleCell(c, r); alert(`Imported ${w}×${d} ft`) } } catch (err) { alert('Parse error: ' + err.message) } }; reader.readAsText(file); e.target.value = '' }} />
+        </>}
+
         {/* Export */}
         <div style={{ height: 1, background: '#1e1e30', margin: '6px 10px' }} />
         <button onClick={() => exportFloorPlanPNG(cells, internalWalls, gridW, gridD, roomZones, roomZoneLabels, items)}
@@ -1345,6 +1570,9 @@ export default function FloorPlanPage({
       <div ref={containerRef} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <canvas
           ref={canvasRef}
+          onPointerDown={handleDown}
+          onPointerMove={handleMove}
+          onPointerUp={handleUp}
           onMouseDown={handleDown}
           onMouseMove={handleMove}
           onMouseUp={handleUp}
@@ -1368,13 +1596,133 @@ export default function FloorPlanPage({
             if (!info) return
             const key = `${info.col},${info.row}`
             const zoneIdx = roomZones.findIndex(z => z.cells.has(key))
-            if (zoneIdx >= 0) onEditZone?.(zoneIdx)
+            if (zoneIdx >= 0) {
+              // Check if clicking near the dimension ruler — open size editor
+              const zone = roomZones[zoneIdx]
+              let zMinC = Infinity, zMinR = Infinity, zMaxC = -Infinity, zMaxR = -Infinity
+              for (const k of zone.cells) { const [c, r] = k.split(',').map(Number); zMinC = Math.min(zMinC, c); zMinR = Math.min(zMinR, r); zMaxC = Math.max(zMaxC, c); zMaxR = Math.max(zMaxR, r) }
+              const zW = zMaxC - zMinC + 1, zD = zMaxR - zMinR + 1
+              const rect = canvasRef.current.getBoundingClientRect()
+              setEditingDimension({ zoneIdx, x: e.clientX - rect.left, y: e.clientY - rect.top, w: zW, d: zD, minC: zMinC, minR: zMinR, maxC: zMaxC, maxR: zMaxR })
+            }
           }}
           onWheel={handleWheel}
           onContextMenu={e => e.preventDefault()}
           onMouseLeave={() => { setHoverInfo(null); rectRef.current = null; wallDragRef.current = null; resizeDragRef.current = null; panStartRef.current = null }}
-          style={{ cursor: panStartRef.current ? 'grabbing' : !tool ? 'default' : tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0 }}
+          onTouchStart={(e) => {
+            if (e.touches.length === 2) {
+              // Two-finger: start pan + pinch
+              e.preventDefault()
+              const t1 = e.touches[0], t2 = e.touches[1]
+              const midX = (t1.clientX + t2.clientX) / 2
+              const midY = (t1.clientY + t2.clientY) / 2
+              const dist = Math.sqrt(Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2))
+              panStartRef.current = { x: midX - pan.x, y: midY - pan.y, pinchDist: dist, pinchZoom: zoom }
+            }
+          }}
+          onTouchMove={(e) => {
+            if (e.touches.length === 2 && panStartRef.current?.pinchDist) {
+              e.preventDefault()
+              const t1 = e.touches[0], t2 = e.touches[1]
+              const midX = (t1.clientX + t2.clientX) / 2
+              const midY = (t1.clientY + t2.clientY) / 2
+              const dist = Math.sqrt(Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2))
+              // Pan
+              setPan({ x: midX - panStartRef.current.x, y: midY - panStartRef.current.y })
+              // Pinch zoom
+              const scale = dist / panStartRef.current.pinchDist
+              setZoom(Math.max(0.3, Math.min(5, panStartRef.current.pinchZoom * scale)))
+            }
+          }}
+          onTouchEnd={() => { panStartRef.current = null }}
+          style={{ cursor: panStartRef.current ? 'grabbing' : !tool ? 'default' : tool === 'label' ? 'text' : 'crosshair', display: 'block', position: 'absolute', inset: 0, touchAction: 'none' }}
         />
+
+        {/* Dimension editor — double-click zone OR click wall measurement */}
+        {editingDimension && (
+          <div style={{
+            position: 'absolute', left: Math.min(editingDimension.x - 60, canvasSize.w - 180), top: editingDimension.y - 40,
+            padding: '8px 12px', borderRadius: 8, background: '#14142a', border: '1px solid #3a3a5a',
+            zIndex: 15, fontFamily: 'inherit', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          }}>
+            <div style={{ fontSize: 10, color: '#606080', marginBottom: 6 }}>
+              {editingDimension.wallRun
+                ? `Wall length (${editingDimension.dir} edge) — type ft, ft'in", or inches"`
+                : `Room dimensions — type ft, ft'in", or inches"`}
+            </div>
+            {editingDimension.wallRun ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="text" defaultValue={formatDim(editingDimension.len, unitSystem)}
+                  autoFocus id="dim-wall-input"
+                  onFocus={e => e.target.select()}
+                  onKeyDown={e => { if (e.key === 'Enter') document.getElementById('dim-wall-apply')?.click(); if (e.key === 'Escape') setEditingDimension(null) }}
+                  style={{ width: 80, padding: '5px 8px', borderRadius: 4, border: '1px solid #3a3a5a', background: '#1a1a30', color: '#c0c0f0', fontSize: 14, textAlign: 'center', fontFamily: 'inherit' }}
+                />
+                <button id="dim-wall-apply" onClick={() => {
+                  saveUndoSnapshot()
+                  const rawInput = document.getElementById('dim-wall-input')?.value
+                  const parsed = parseDimInput(rawInput, unitSystem)
+                  const newLen = Math.round(parsed ?? editingDimension.len)
+                  const d = editingDimension
+                  const delta = newLen - d.len
+                  if (delta === 0) { setEditingDimension(null); return }
+                  if (d.isHoriz) {
+                    // Find all rows that share this wall edge
+                    const wallRow = d.dir === 'N' ? d.startR : d.startR
+                    if (delta > 0) {
+                      // Extend: add cells to the right end of the wall run
+                      for (let c = d.startC + d.len; c < d.startC + newLen; c++)
+                        if (!cells.has(`${c},${wallRow}`)) onToggleCell(c, wallRow)
+                    } else {
+                      // Shrink: remove cells from the right end
+                      for (let c = d.startC + newLen; c < d.startC + d.len; c++)
+                        if (cells.has(`${c},${wallRow}`)) onToggleCell(c, wallRow)
+                    }
+                  } else {
+                    // Vertical wall — extend/shrink downward
+                    const wallCol = d.startC
+                    if (delta > 0) {
+                      for (let r = d.startR + d.len; r < d.startR + newLen; r++)
+                        if (!cells.has(`${wallCol},${r}`)) onToggleCell(wallCol, r)
+                    } else {
+                      for (let r = d.startR + newLen; r < d.startR + d.len; r++)
+                        if (cells.has(`${wallCol},${r}`)) onToggleCell(wallCol, r)
+                    }
+                  }
+                  setEditingDimension(null)
+                }} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#2a8a5a', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Apply</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="text" defaultValue={formatDim(editingDimension.w, unitSystem)}
+                  autoFocus id="dim-w-input"
+                  onFocus={e => e.target.select()}
+                  onKeyDown={e => { if (e.key === 'Escape') setEditingDimension(null) }}
+                  style={{ width: 60, padding: '5px 6px', borderRadius: 4, border: '1px solid #3a3a5a', background: '#1a1a30', color: '#c0c0f0', fontSize: 14, textAlign: 'center', fontFamily: 'inherit' }}
+                />
+                <span style={{ color: '#606080' }}>×</span>
+                <input type="text" defaultValue={formatDim(editingDimension.d, unitSystem)}
+                  id="dim-d-input"
+                  onKeyDown={e => { if (e.key === 'Escape') setEditingDimension(null) }}
+                  style={{ width: 60, padding: '5px 6px', borderRadius: 4, border: '1px solid #3a3a5a', background: '#1a1a30', color: '#c0c0f0', fontSize: 14, textAlign: 'center', fontFamily: 'inherit' }}
+                />
+                <button onClick={() => {
+                  saveUndoSnapshot()
+                  const newW = Math.round(parseDimInput(document.getElementById('dim-w-input')?.value, unitSystem) ?? editingDimension.w)
+                  const newD = Math.round(parseDimInput(document.getElementById('dim-d-input')?.value, unitSystem) ?? editingDimension.d)
+                  const { minC, minR, maxC, maxR, w: oldW, d: oldD } = editingDimension
+                  const dW = newW - oldW, dD = newD - oldD
+                  if (dW > 0) for (let c = maxC + 1; c <= maxC + dW; c++) for (let r = minR; r <= maxR; r++) if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
+                  if (dW < 0) for (let c = maxC; c > maxC + dW; c--) for (let r = minR; r <= maxR; r++) if (cells.has(`${c},${r}`)) onToggleCell(c, r)
+                  if (dD > 0) for (let r = maxR + 1; r <= maxR + dD; r++) for (let c = minC; c <= minC + newW - 1; c++) if (!cells.has(`${c},${r}`)) onToggleCell(c, r)
+                  if (dD < 0) for (let r = maxR; r > maxR + dD; r--) for (let c = minC; c <= maxC; c++) if (cells.has(`${c},${r}`)) onToggleCell(c, r)
+                  setEditingDimension(null)
+                }} style={{ padding: '4px 10px', borderRadius: 4, border: 'none', background: '#2a8a5a', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Apply</button>
+              </div>
+            )}
+            <button onClick={() => setEditingDimension(null)} style={{ marginTop: 4, background: 'none', border: 'none', color: '#606080', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel · Esc</button>
+          </div>
+        )}
 
         {/* Inline label editor */}
         {editingLabel && (
@@ -1391,6 +1739,28 @@ export default function FloorPlanPage({
               zIndex: 10,
             }}
           />
+        )}
+
+        {/* Selected door info panel */}
+        {selectedDoor && !tool && (
+          <div style={{
+            position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+            padding: '8px 16px', borderRadius: 10,
+            background: 'rgba(10,8,24,0.92)', backdropFilter: 'blur(8px)',
+            border: '1px solid #3a3a5a', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 10, zIndex: 10,
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#d0d0f0' }}>Door Opening</span>
+            <span style={{ fontSize: 10, color: '#8080a0' }}>{selectedDoor.split(':')[1]} wall</span>
+            <button onClick={() => {
+              const dk = selectedDoor
+              const sep = dk.lastIndexOf(':')
+              const [c, r] = dk.slice(0, sep).split(',').map(Number)
+              onRemoveDoor?.(c, r, dk.slice(sep + 1))
+              setSelectedDoor(null)
+            }}
+              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #5a2a2a', background: '#2a1515', color: '#ff6060', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Remove</button>
+          </div>
         )}
 
         {/* Selected item info panel */}
@@ -1447,6 +1817,33 @@ export default function FloorPlanPage({
           } · Right-click to pan · Scroll to zoom
         </div>
       </div>
+
+      {/* New floor prompt */}
+      {newFloorPrompt && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)',
+        }} onClick={() => setNewFloorPrompt(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#14142a', border: '1px solid #2a2a40', borderRadius: 14,
+            padding: 20, width: 300, fontFamily: 'inherit',
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0', marginBottom: 6 }}>Add Floor {newFloorPrompt === 'above' ? 'Above' : 'Below'}</div>
+            <div style={{ fontSize: 11, color: '#606080', marginBottom: 14 }}>Copy the current floor's layout?</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button onClick={() => { onAddFloor?.(newFloorPrompt, 1, 'empty'); setNewFloorPrompt(null) }} style={{
+                padding: '10px', borderRadius: 8, border: '1px solid #2a2a40', background: '#12122a', color: '#a0a0c0', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>🆕 Empty floor — start fresh</button>
+              <button onClick={() => { onAddFloor?.(newFloorPrompt, 1, 'shape'); setNewFloorPrompt(null) }} style={{
+                padding: '10px', borderRadius: 8, border: '1px solid #2a5a4a', background: '#122a20', color: '#60d888', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>📋 Copy floor shape — same walls, no furniture</button>
+              <button onClick={() => { onAddFloor?.(newFloorPrompt, 1, 'full'); setNewFloorPrompt(null) }} style={{
+                padding: '10px', borderRadius: 8, border: '1px solid #3a3a6a', background: '#1a1a3a', color: '#a0a0f0', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>🏠 Copy everything — shape, walls, and furniture</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dimension input modal */}
       {showImport === 'dims' && (

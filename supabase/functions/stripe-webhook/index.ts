@@ -284,8 +284,95 @@ Deno.serve(async (req) => {
       await sendEmail({ to: customerEmail, subject, html })
     }
 
-    // Group items by seller and email each one (transactional, not Wispy voice)
+    // ────────────────────────────────────────────────────────────────
+    // MULTI-SELLER PAYMENT SPLITTING
+    // Single-seller destination charges are handled at checkout time
+    // (transfer_data.destination). For multi-seller carts the full
+    // payment lands in the platform balance and we split it here
+    // using the Stripe Transfers API — one Transfer per seller.
+    //
+    // Shipping money stays platform-side (platform pays for labels).
+    // Platform fee (PLATFORM_FEE_BPS) is deducted from each seller's
+    // share, same rate as single-seller destination charges.
+    // ────────────────────────────────────────────────────────────────
     const sellerIds = [...new Set(parsedItems.map(i => i.sellerId).filter(Boolean))] as string[]
+
+    // Determine whether checkout used a destination charge (single-seller)
+    // or the platform-only flow (multi-seller / no Connect).
+    const paymentIntentId = session.payment_intent as string
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId)
+    const isDestinationCharge = !!(pi.transfer_data?.destination)
+
+    if (isDestinationCharge) {
+      // Single-seller: Stripe already split funds. Just record the model.
+      await supabase
+        .from('orders')
+        .update({ payment_model: 'destination_charge' })
+        .eq('id', order.id)
+    } else if (sellerIds.length > 0) {
+      // Multi-seller (or single seller who wasn't onboarded at checkout time):
+      // create separate Transfers for each Connect-enabled seller.
+      const PLATFORM_FEE_BPS = parseInt(Deno.env.get('PLATFORM_FEE_BPS') ?? '1000', 10)
+      const chargeId = typeof pi.latest_charge === 'string'
+        ? pi.latest_charge
+        : (pi.latest_charge as { id: string } | null)?.id ?? null
+
+      const { data: sellerProfiles } = await supabase
+        .from('profiles')
+        .select('id, stripe_account_id, stripe_charges_enabled')
+        .in('id', sellerIds)
+
+      let anyTransferCreated = false
+      for (const seller of (sellerProfiles ?? [])) {
+        if (!seller.stripe_account_id || !seller.stripe_charges_enabled) continue
+
+        const sellerItems = parsedItems.filter(i => i.sellerId === seller.id)
+        const sellerItemsCents = sellerItems.reduce((s, i) => s + i.unitPriceCents * i.qty, 0)
+        const platformFee = Math.round(sellerItemsCents * PLATFORM_FEE_BPS / 10000)
+        const transferAmount = sellerItemsCents - platformFee
+
+        if (transferAmount <= 0) continue
+
+        try {
+          const transfer = await stripe.transfers.create({
+            amount:   transferAmount,
+            currency: 'usd',
+            destination: seller.stripe_account_id,
+            // source_transaction links the transfer to the original charge so
+            // it can't exceed the charge amount and reversal works cleanly.
+            ...(chargeId ? { source_transaction: chargeId } : {}),
+            metadata: {
+              order_id:  order.id,
+              seller_id: seller.id,
+              items_cents: String(sellerItemsCents),
+              platform_fee_cents: String(platformFee),
+            },
+          })
+
+          // Stamp transfer ID on this seller's order_items
+          await supabase
+            .from('order_items')
+            .update({ stripe_transfer_id: transfer.id })
+            .eq('order_id', order.id)
+            .eq('seller_id', seller.id)
+
+          anyTransferCreated = true
+          console.log(`[stripe-webhook] Transfer ${transfer.id} → ${seller.stripe_account_id}: $${(transferAmount / 100).toFixed(2)} (order ${order.id})`)
+        } catch (transferErr) {
+          // Don't fail the whole webhook — the order is created, the buyer
+          // paid. Log the error; admin can create the transfer manually or
+          // we can retry.
+          console.error(`[stripe-webhook] Transfer to seller ${seller.id} failed:`, transferErr)
+        }
+      }
+
+      await supabase
+        .from('orders')
+        .update({ payment_model: anyTransferCreated ? 'separate_transfers' : null })
+        .eq('id', order.id)
+    }
+
+    // Group items by seller and email each one (transactional, not Wispy voice)
     if (sellerIds.length > 0) {
       const { data: users } = await supabase.auth.admin.listUsers()
 

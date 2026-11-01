@@ -5,6 +5,7 @@ const MAX_HISTORY = 50
 export default function useHistoryUndo({
   gridW, gridD, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
   setGridW, setGridD, setCells, setItems, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
+  disabled = false,
 }) {
   const historyRef = useRef([])
   const histIdx    = useRef(-1)
@@ -61,13 +62,14 @@ export default function useHistoryUndo({
 
   useEffect(() => {
     const onKey = (e) => {
+      if (disabled) return
       if (!(e.ctrlKey || e.metaKey)) return
       if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo() }
       if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [undo, redo])
+  }, [undo, redo, disabled])
 
   return { undo, redo, onDragStart, onDragEnd, canUndo, canRedo, isDragging }
 }

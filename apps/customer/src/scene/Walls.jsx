@@ -379,6 +379,7 @@ export default function Walls({ cells, gridW, gridD, wallHeight, wallColor, wall
           </group>
         )
       })}
+      {/* Smooth curved walls — planned for dedicated sprint */}
     </group>
   )
 }

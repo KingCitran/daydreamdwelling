@@ -409,6 +409,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const { undo, redo, onDragStart, onDragEnd, canUndo, canRedo } = useHistoryUndo({
     gridW, gridD, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
     setGridW, setGridD, setCells, setItems, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
+    disabled: floorPlanOpen,
   })
 
   // cart must come before usePersistence so importRoom can call setCart
@@ -1183,8 +1184,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             setInternalWalls(prev => { const next = new Set(prev); next.add(key); return next })
             showWispy('Opening removed — wall restored.')
           }}
-          onAddFloor={(direction, count = 1) => {
-            // Save current room state first
+          onAddFloor={(direction, count = 1, copyMode = 'shape') => {
             const currentSnapshot = {
               gridW, gridD, cells: new Set(cells), items: [...items],
               wallHeight, floorColor, floorTexture, wallColor, wallTexture, wallFinish, targetRotation,
@@ -1193,8 +1193,6 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
               level: activeFloorLevel,
             }
             const palette = ['#cec5b8','#b8c8c4','#c4bece','#c8c0ae']
-
-            // Find the highest and lowest existing levels to stack on top/below
             const existingLevels = Object.values(allRooms).map(r => r.level ?? 0)
             existingLevels.push(activeFloorLevel)
             const topLevel = Math.max(...existingLevels)
@@ -1205,12 +1203,14 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             for (let i = 0; i < count; i++) {
               const rid = nextRoomIdRef.current++
               const lvl = direction === 'below' ? bottomLevel - 1 - i : topLevel + 1 + i
+              const copyShape = copyMode === 'shape' || copyMode === 'full'
+              const copyItems = copyMode === 'full'
               newRooms[rid] = {
                 gridW, gridD,
-                cells: new Set(cells), // copy current floor shape
-                items: [],
-                internalWalls: new Set(internalWalls ?? []),
-                doorOpenings: new Set(doorOpenings ?? []),
+                cells: copyShape ? new Set(cells) : new Set(),
+                items: copyItems ? items.map(it => ({ ...it, id: nextItemIdRef.current++ })) : [],
+                internalWalls: copyShape ? new Set(internalWalls ?? []) : new Set(),
+                doorOpenings: copyShape ? new Set(doorOpenings ?? []) : new Set(),
                 wallHeight,
                 floorColor: palette[Math.abs(rid) % 4], floorTexture: 'flat',
                 wallColor: '#d8d0c6', wallTexture: 'flat', wallFinish: 'eggshell',

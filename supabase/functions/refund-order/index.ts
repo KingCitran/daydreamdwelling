@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
     const { data: order, error: lookupErr } = await adminClient
       .from('orders')
-      .select('id, status, total_cents, stripe_payment_id, refunded_at, shipping_address, guest_email, user_id')
+      .select('id, status, total_cents, stripe_payment_id, refunded_at, shipping_address, guest_email, user_id, payment_model')
       .eq('id', orderId)
       .single()
     if (lookupErr || !order) {
@@ -92,20 +92,59 @@ Deno.serve(async (req) => {
 
     // Issue the refund. Full amount = total_cents.
     //
-    // For Connect destination charges the defaults are:
-    //   reverse_transfer:        true  (pulls money back from seller)
-    //   refund_application_fee:  false (platform keeps its cut)
+    // The refund strategy depends on how the original payment was split:
     //
-    // That's not marketplace-symmetric: if a buyer gets a full refund the
-    // platform shouldn't keep its 10% cut on a sale that didn't happen.
-    // Flipping refund_application_fee makes both sides whole.
-    const refund = await stripe.refunds.create({
-      payment_intent: order.stripe_payment_id,
-      reason: 'requested_by_customer',
-      reverse_transfer:       true,
-      refund_application_fee: true,
-      metadata: { order_id: orderId, seller_reason: reason ?? '' },
-    })
+    // DESTINATION CHARGE (single-seller):
+    //   reverse_transfer pulls money back from the seller's connected account.
+    //   refund_application_fee returns the platform's commission too, so
+    //   neither side keeps money from a sale that didn't happen.
+    //
+    // SEPARATE TRANSFERS (multi-seller):
+    //   Stripe's reverse_transfer flag only works with destination charges.
+    //   We refund the buyer's charge normally, then reverse each seller's
+    //   Transfer individually to pull money back from their accounts.
+    let refund: Stripe.Refund
+
+    if (order.payment_model === 'separate_transfers') {
+      // Step 1: Refund the buyer (plain refund, no transfer flags)
+      refund = await stripe.refunds.create({
+        payment_intent: order.stripe_payment_id,
+        reason: 'requested_by_customer',
+        metadata: { order_id: orderId, seller_reason: reason ?? '' },
+      })
+
+      // Step 2: Reverse each seller's Transfer to pull money back
+      const { data: itemsWithTransfers } = await adminClient
+        .from('order_items')
+        .select('stripe_transfer_id')
+        .eq('order_id', orderId)
+        .not('stripe_transfer_id', 'is', null)
+
+      const uniqueTransferIds = [...new Set(
+        (itemsWithTransfers ?? []).map(i => i.stripe_transfer_id).filter(Boolean)
+      )]
+
+      for (const transferId of uniqueTransferIds) {
+        try {
+          await stripe.transfers.createReversal(transferId, {
+            metadata: { order_id: orderId, refund_id: refund.id },
+          })
+        } catch (revErr) {
+          // Log but don't fail — the buyer refund already went through.
+          // Admin can reverse the transfer manually from the Stripe dashboard.
+          console.error(`[refund-order] Transfer reversal failed for ${transferId}:`, revErr)
+        }
+      }
+    } else {
+      // Destination charge (single-seller) or legacy/platform-only
+      refund = await stripe.refunds.create({
+        payment_intent: order.stripe_payment_id,
+        reason: 'requested_by_customer',
+        reverse_transfer:       true,
+        refund_application_fee: true,
+        metadata: { order_id: orderId, seller_reason: reason ?? '' },
+      })
+    }
 
     // Stamp the order — RPC re-checks order_items.seller_id = auth.uid() as
     // defense in depth, but the gate above is the primary authorization.

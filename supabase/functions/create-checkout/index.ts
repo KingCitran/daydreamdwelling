@@ -89,22 +89,43 @@ Deno.serve(async (req) => {
       const qty = Math.max(1, parseInt(raw.qty ?? 1, 10) || 1)
       const typeKey = String(raw.typeKey ?? '')
 
-      if (UUID_RE.test(typeKey)) {
-        // Live product — look up authoritative price + seller from the DB.
-        const { data: product, error: prodErr } = await adminClient
+      // Look up the product by UUID (live listing) or by type_key (catalogue
+      // item that was seeded into the products table). Either way we get an
+      // authoritative server-side price and a real seller_id.
+      const isUuid = UUID_RE.test(typeKey)
+      let product: Record<string, unknown> | null = null
+      let prodErr: unknown = null
+
+      if (isUuid) {
+        const res = await adminClient
           .from('products')
           .select(`
-            id, seller_id, name, label, is_active,
+            id, seller_id, name, label, is_active, type_key,
             product_sizes ( id, label, price, sort_order ),
             product_swatches ( id, name, sort_order )
           `)
           .eq('id', typeKey)
           .single()
-        if (prodErr || !product) {
-          return new Response(JSON.stringify({ error: `Product not found: ${typeKey}` }), {
-            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
+        product = res.data
+        prodErr = res.error
+      } else {
+        // Catalogue item — look up by type_key
+        const res = await adminClient
+          .from('products')
+          .select(`
+            id, seller_id, name, label, is_active, type_key,
+            product_sizes ( id, label, price, sort_order ),
+            product_swatches ( id, name, sort_order )
+          `)
+          .eq('type_key', typeKey)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle()
+        product = res.data
+        prodErr = res.error
+      }
+
+      if (!prodErr && product) {
         if (product.is_active === false) {
           return new Response(JSON.stringify({ error: `Product no longer available: ${product.label || product.name}` }), {
             status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

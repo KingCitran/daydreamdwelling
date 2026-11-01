@@ -322,6 +322,7 @@ export function BuilderTopBar({
           <BudgetChip total={budget} count={itemCount} onClick={onBudget} compact u={u} />
         </div>
         <IconBtn icon={Undo2} onClick={onUndo} label="Undo" size={36} u={u} disabled={!canUndo} />
+        <IconBtn icon={Redo2} onClick={onRedo} label="Redo" size={36} u={u} disabled={!canRedo} />
         <IconBtn icon={ShoppingCart} onClick={onCart} label="Cart" badge={cartCount || null} size={36} u={u} />
       </header>
     )
@@ -482,8 +483,23 @@ export function BuilderViewControls({ zoom, onRotateLeft, onRotateRight, onZoomI
   const u = ui(t)
   const mode = useMode()
   const geom = GEOM[mode]
-  // Mobile has swipe rotate + pinch zoom — no need for buttons
-  if (mode === 'mobile') return null
+  // Mobile: show compact rotate + zoom buttons
+  if (mode === 'mobile') {
+    return (
+      <div style={{
+        position: 'absolute', bottom: 14, right: 14, zIndex: 20,
+        display: 'flex', flexDirection: 'column', gap: 4,
+        background: 'rgba(10,8,24,0.7)', backdropFilter: 'blur(8px)',
+        borderRadius: 12, padding: 4, border: '1px solid rgba(255,255,255,0.1)',
+      }}>
+        <button onClick={onRotateLeft} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: '#c0c0e0', fontSize: 16, cursor: 'pointer' }}>↺</button>
+        <button onClick={onRotateRight} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: '#c0c0e0', fontSize: 16, cursor: 'pointer' }}>↻</button>
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />
+        <button onClick={onZoomIn} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: '#c0c0e0', fontSize: 18, cursor: 'pointer' }}>+</button>
+        <button onClick={onZoomOut} style={{ width: 36, height: 36, border: 'none', borderRadius: 8, background: 'rgba(255,255,255,0.1)', color: '#c0c0e0', fontSize: 18, cursor: 'pointer' }}>−</button>
+      </div>
+    )
+  }
   const bottom = 18
 
   const btn = (icon, label, onClick, extra) => (

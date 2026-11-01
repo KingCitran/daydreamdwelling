@@ -464,7 +464,7 @@ const ItemMesh = memo(function ItemMesh({ item, allItems, isSelected, isCartHigh
       onPointerDown={onPointerDown}
       onClick={e => e.stopPropagation()}
       onDoubleClick={e => { e.stopPropagation(); if (isStairs && onEnterRoom) onEnterRoom(item.id); else onDoubleClick(item.typeKey) }}
-      onPointerEnter={e => { e.stopPropagation(); setIsHovered(true); gl.domElement.style.cursor = item.locked ? 'default' : 'grab' }}
+      onPointerEnter={e => { if (e.pointerType === 'mouse') { e.stopPropagation(); setIsHovered(true); gl.domElement.style.cursor = item.locked ? 'default' : 'grab' } }}
       onPointerLeave={e => { e.stopPropagation(); setIsHovered(false); gl.domElement.style.cursor = '' }}
     >
       {isStairs && item.returnStair ? (
