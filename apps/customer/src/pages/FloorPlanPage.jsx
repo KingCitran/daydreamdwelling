@@ -1192,21 +1192,58 @@ export default function FloorPlanPage({
     setZoom(z => Math.max(0.3, Math.min(5, z * delta)))
   }
 
-  const sideW = 170
+  const isMobile = canvasSize.w < 600
+  const sideW = isMobile ? canvasSize.w : 170
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false)
   const toolBtn = (active) => ({
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '9px 12px', borderRadius: 8, border: 'none', width: '100%',
+    padding: isMobile ? '7px 10px' : '9px 12px', borderRadius: 8, border: 'none', width: '100%',
     background: active ? '#2a8a5a20' : 'transparent',
     color: active ? '#50c878' : '#606080',
-    fontWeight: active ? 700 : 600, fontSize: 12,
+    fontWeight: active ? 700 : 600, fontSize: isMobile ? 11 : 12,
     cursor: 'pointer', fontFamily: "'Outfit',sans-serif",
     textAlign: 'left', outline: active ? '1px solid #2a8a5a40' : 'none',
   })
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0c0c1a', display: 'flex', fontFamily: "'Outfit',sans-serif" }}>
-      {/* Sidebar — scrollable so many floors don't push controls off screen */}
-      <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: '#0c0c1a', display: 'flex', flexDirection: isMobile ? 'column' : 'row', fontFamily: "'Outfit',sans-serif" }}>
+
+      {/* Mobile: compact top toolbar */}
+      {isMobile && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', borderBottom: '1px solid #1a1a2a', flexShrink: 0, overflowX: 'auto' }}>
+          <button onClick={onDone} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: '#2a8a5a', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>← Back</button>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#60d888', padding: '3px 8px', background: '#2a5a4a', borderRadius: 4, flexShrink: 0 }}>
+            {activeFloorLevel === 0 ? 'Ground' : activeFloorLevel < 0 ? `B${-activeFloorLevel}` : `F${activeFloorLevel + 1}`}
+          </span>
+          {PRIMARY_TOOLS.map(t => (
+            <button key={t.id} onClick={() => setTool(tool === t.id ? null : t.id)} style={{
+              padding: '6px 10px', borderRadius: 6, border: 'none', flexShrink: 0,
+              background: tool === t.id ? 'rgba(120,90,238,0.2)' : 'rgba(255,255,255,0.06)',
+              color: tool === t.id ? '#a090ff' : '#7070a0',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}>{t.icon} {t.label}</button>
+          ))}
+          <button onClick={() => setMobileToolsOpen(v => !v)} style={{
+            padding: '6px 10px', borderRadius: 6, border: 'none', flexShrink: 0,
+            background: mobileToolsOpen ? '#1a1a30' : 'rgba(255,255,255,0.06)',
+            color: '#6060a0', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+          }}>···</button>
+        </div>
+      )}
+
+      {/* Mobile: expandable tools panel */}
+      {isMobile && mobileToolsOpen && (
+        <div style={{ maxHeight: '50vh', overflowY: 'auto', borderBottom: '1px solid #1a1a2a', padding: '6px', background: '#0c0c1a' }}>
+          {SECONDARY_TOOLS.map(t => (
+            <button key={t.id} onClick={() => { setTool(tool === t.id ? null : t.id); setMobileToolsOpen(false) }} style={toolBtn(tool === t.id)}>
+              <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{t.icon}</span><span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Desktop: full sidebar */}
+      {!isMobile && <div style={{ width: sideW, borderRight: '1px solid #1a1a2a', padding: '10px 6px', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0, overflowY: 'auto' }}>
         <div style={{ padding: '8px 10px 4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#d0d0e0' }}>Floor Plan</span>
           <span style={{
@@ -1564,7 +1601,7 @@ export default function FloorPlanPage({
           background: '#2a8a5a', color: '#fff', fontSize: 13, fontWeight: 700,
           cursor: 'pointer', fontFamily: 'inherit',
         }}>← Back to Builder</button>
-      </div>
+      </div>}
 
       {/* Canvas */}
       <div ref={containerRef} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
