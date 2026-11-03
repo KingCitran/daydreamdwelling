@@ -29,6 +29,7 @@ export default function DwellingFloor({
   isActive = false,
   showItems = true,
   floorLabel,
+  isTopFloor = false,
 }) {
   const groupRef = useRef()
 
@@ -128,13 +129,43 @@ export default function DwellingFloor({
           catalogue={catalogue}
         />
       )}
-      {/* Floor edge highlight — colored bar on the front edge */}
+      {/* Floor edge highlight */}
       {floorLabel && (
         <mesh position={[0, 0.05, gridD / 2 + 0.3]}>
           <boxGeometry args={[gridW * 0.8, 0.1, 0.3]} />
           <meshBasicMaterial color={isActive ? '#60d888' : '#8080c0'} />
         </mesh>
       )}
+      {/* Simple gable roof on top floor */}
+      {isTopFloor && (() => {
+        // Compute bounding box from cells
+        let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
+        for (const key of cells) { const [c, r] = key.split(',').map(Number); minC = Math.min(minC, c); maxC = Math.max(maxC, c); minR = Math.min(minR, r); maxR = Math.max(maxR, r) }
+        if (!isFinite(minC)) return null
+        const rw = maxC - minC + 1, rd = maxR - minR + 1
+        const cx = (minC + maxC + 1) / 2 - gridW / 2
+        const cz = (minR + maxR + 1) / 2 - gridD / 2
+        const roofH = Math.min(rw, rd) * 0.3
+        return (
+          <group position={[cx, wh, cz]}>
+            {/* Ridge beam */}
+            <mesh position={[0, roofH, 0]}>
+              <boxGeometry args={[rw * 0.02, 0.2, rd + 0.5]} />
+              <meshStandardMaterial color="#7a6a58" roughness={0.7} />
+            </mesh>
+            {/* Left slope */}
+            <mesh position={[-rw / 4, roofH / 2, 0]} rotation={[0, 0, Math.atan2(roofH, rw / 2)]}>
+              <boxGeometry args={[Math.sqrt(roofH * roofH + (rw/2) * (rw/2)), 0.15, rd + 0.3]} />
+              <meshStandardMaterial color="#9a8878" roughness={0.8} transparent opacity={0.85} />
+            </mesh>
+            {/* Right slope */}
+            <mesh position={[rw / 4, roofH / 2, 0]} rotation={[0, 0, -Math.atan2(roofH, rw / 2)]}>
+              <boxGeometry args={[Math.sqrt(roofH * roofH + (rw/2) * (rw/2)), 0.15, rd + 0.3]} />
+              <meshStandardMaterial color="#8a7868" roughness={0.8} transparent opacity={0.85} />
+            </mesh>
+          </group>
+        )
+      })()}
     </group>
   )
 }

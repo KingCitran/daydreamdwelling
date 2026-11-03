@@ -431,8 +431,29 @@ const StairSection = memo(function StairSection({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#8878c8', minWidth: 48 }}>Length</span>
-          <Stepper min={6} max={16} step={1} value={stairD} unit="ft"
+          <Stepper min={4} max={16} step={1} value={stairD} unit="ft"
             onChange={v => onUpdateStairConfig({ stairD: v })} />
+        </div>
+        <div style={{ height: 1, background: '#2a2a40', margin: '4px 0' }} />
+        <div style={{ fontSize: 10, color: '#606080', fontWeight: 600, marginBottom: 2 }}>RAILING</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {['none', 'wood', 'metal', 'glass'].map(style => (
+            <button key={style} onClick={() => onUpdateStairConfig({ railingStyle: style })} style={{
+              flex: 1, padding: '4px', borderRadius: 4, border: '1px solid #2a2a40',
+              background: '#12122a', color: '#808090', fontSize: 9, cursor: 'pointer',
+              fontFamily: 'inherit', textTransform: 'capitalize',
+            }}>{style}</button>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: '#606080', fontWeight: 600, marginTop: 4, marginBottom: 2 }}>UNDER-STAIR</div>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {['open', 'storage', 'closet'].map(opt => (
+            <button key={opt} onClick={() => onUpdateStairConfig({ underStair: opt })} style={{
+              flex: 1, padding: '4px', borderRadius: 4, border: '1px solid #2a2a40',
+              background: '#12122a', color: '#808090', fontSize: 9, cursor: 'pointer',
+              fontFamily: 'inherit', textTransform: 'capitalize',
+            }}>{opt}</button>
+          ))}
         </div>
       </div>
     </Card>

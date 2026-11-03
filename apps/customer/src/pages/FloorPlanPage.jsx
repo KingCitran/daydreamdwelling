@@ -132,7 +132,7 @@ const ZONE_COLORS = ['#3a5a8a40','#8a5a3a40','#3a8a5a40','#8a3a5a40','#5a8a3a40'
 export default function FloorPlanPage({
   gridW, gridD, cells, internalWalls, doorOpenings, items,
   onToggleCell, onToggleWall, onResizeGrid, onDone,
-  onAddStairs, onRemoveStairs, onAddDoor, onRemoveDoor, onAddExteriorDoor,
+  onAddStairs, onRemoveStairs, onAddDoor, onRemoveDoor, onAddExteriorDoor, onSetDoorStyle,
   onBulkAddCells,
   roomZoneLabels, onSetZoneLabel,
   onEditZone,
@@ -1887,8 +1887,14 @@ export default function FloorPlanPage({
             border: '1px solid #3a3a5a', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 10, zIndex: 10,
           }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#d0d0f0' }}>Door Opening</span>
-            <span style={{ fontSize: 10, color: '#8080a0' }}>{selectedDoor.split(':')[1]} wall</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#d0d0f0' }}>Opening</span>
+            <span style={{ fontSize: 10, color: '#8080a0' }}>{selectedDoor.split(':')[1]}</span>
+            {['frameless', 'framed', 'arched'].map(style => (
+              <button key={style} onClick={() => onSetDoorStyle?.(selectedDoor, style)}
+                style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid #3a3a5a', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit',
+                  background: '#1a1a30', color: '#a0a0c0', textTransform: 'capitalize',
+                }}>{style}</button>
+            ))}
             <button onClick={() => {
               const dk = selectedDoor
               const sep = dk.lastIndexOf(':')
@@ -1896,7 +1902,7 @@ export default function FloorPlanPage({
               onRemoveDoor?.(c, r, dk.slice(sep + 1))
               setSelectedDoor(null)
             }}
-              style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #5a2a2a', background: '#2a1515', color: '#ff6060', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>✕ Remove</button>
+              style={{ padding: '3px 8px', borderRadius: 4, border: '1px solid #5a2a2a', background: '#2a1515', color: '#ff6060', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
           </div>
         )}
 

@@ -1198,10 +1198,14 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           }}
           onRemoveDoor={(col, row, dir) => {
             const key = `${col},${row}:${dir}`
-            // Remove from doorOpenings, restore as internal wall
             setDoorOpenings(prev => { const next = new Set(prev); next.delete(key); return next })
             setInternalWalls(prev => { const next = new Set(prev); next.add(key); return next })
             showWispy('Opening removed — wall restored.')
+          }}
+          onSetDoorStyle={(doorKey, style) => {
+            // Store door opening styles (for future 3D rendering)
+            setRoomNamesState(prev => ({ ...prev, [`doorStyle_${doorKey}`]: style }))
+            showWispy(`Opening style: ${style}`)
           }}
           onAddFloor={(direction, count = 1, copyMode = 'shape') => {
             const currentSnapshot = {
@@ -1406,6 +1410,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
                 isActive={f.roomId === currentRoomId}
                 showItems={false}
                 floorLabel={label}
+                isTopFloor={idx === floors.length - 1}
               />
             )
           })
@@ -1614,6 +1619,11 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             background: '#5a3a9a', color: '#fff',
             fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           }}>← Back to Room</button>
+          <button onClick={() => setShareToCommunityOpen(true)} style={{
+            padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.08)', color: '#c0c0e0',
+            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Share to Community</button>
         </div>
       )}
 
