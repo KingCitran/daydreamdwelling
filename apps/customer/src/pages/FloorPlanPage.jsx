@@ -754,7 +754,7 @@ export default function FloorPlanPage({
     if (lockedAxis) edges = edges.filter(e => e.axis === lockedAxis)
     if (edges.length === 0) return null
     const nearest = edges.reduce((a, b) => a.dist < b.dist ? a : b)
-    if (nearest.dist > 0.45) return null
+    if (nearest.dist > (isMobile ? 0.65 : 0.45)) return null
     const nb = nearest.dir === 'N' ? `${col},${row-1}` : nearest.dir === 'S' ? `${col},${row+1}` :
                nearest.dir === 'W' ? `${col-1},${row}` : `${col+1},${row}`
     if (!cells.has(`${col},${row}`)) return null
@@ -1272,6 +1272,25 @@ export default function FloorPlanPage({
               fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             }}>{t.icon} {t.label}</button>
           ))}
+          {/* Action buttons */}
+          {tool === 'stairs' && (
+            <button onClick={() => setStairRotation(r => (r + 90) % 360)} style={{
+              padding: '6px 10px', borderRadius: 6, border: 'none', flexShrink: 0,
+              background: 'rgba(180,140,80,0.2)', color: '#c0a060',
+              fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+            }}>↻ {stairRotation}°</button>
+          )}
+          <button onClick={() => { const snap = undoStackRef.current.pop(); if (snap) { redoStackRef.current.push({ cells: new Set(cells), internalWalls: new Set(internalWalls ?? []), doorOpenings: new Set(doorOpenings ?? []) }); onRestoreSnapshot?.(snap) } }} style={{
+            padding: '6px 8px', borderRadius: 6, border: 'none', flexShrink: 0,
+            background: 'rgba(255,255,255,0.06)', color: '#7070a0',
+            fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+          }}>↩</button>
+          <button onClick={() => setShowMeasurements(v => !v)} style={{
+            padding: '6px 8px', borderRadius: 6, border: 'none', flexShrink: 0,
+            background: showMeasurements ? 'rgba(40,90,70,0.3)' : 'rgba(255,255,255,0.06)',
+            color: showMeasurements ? '#60d888' : '#505070',
+            fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+          }}>📏</button>
           <button onClick={() => setMobileToolsOpen(v => !v)} style={{
             padding: '6px 10px', borderRadius: 6, border: 'none', flexShrink: 0,
             background: mobileToolsOpen ? '#1a1a30' : 'rgba(255,255,255,0.06)',
@@ -1288,6 +1307,38 @@ export default function FloorPlanPage({
               <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>{t.icon}</span><span>{t.label}</span>
             </button>
           ))}
+          <div style={{ height: 1, background: '#1e1e30', margin: '6px 0' }} />
+          {/* Floor management */}
+          {(() => {
+            const allFloors = Object.entries(allRoomsData ?? {})
+              .map(([id, r]) => ({ roomId: Number(id), level: r.level ?? 0 }))
+              .sort((a, b) => a.level - b.level)
+              .filter((f, i, arr) => i === 0 || f.level !== arr[i-1].level)
+            const curIdx = allFloors.findIndex(f => f.level === activeFloorLevel)
+            return (
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '4px 8px' }}>
+                <button onClick={() => { if (curIdx > 0) onSwitchFloor?.(allFloors[curIdx-1].roomId, allFloors[curIdx-1].level) }}
+                  disabled={curIdx <= 0}
+                  style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: curIdx > 0 ? '#2a3a4a' : '#12122a', color: curIdx > 0 ? '#80c0ff' : '#303050', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>▼</button>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#c0c0e0' }}>
+                  {activeFloorLevel === 0 ? 'Ground' : activeFloorLevel < 0 ? `B${-activeFloorLevel}` : `F${activeFloorLevel+1}`}
+                  <span style={{ color: '#606080', fontWeight: 400 }}> · {allFloors.length} floors</span>
+                </span>
+                <button onClick={() => { if (curIdx < allFloors.length - 1) onSwitchFloor?.(allFloors[curIdx+1].roomId, allFloors[curIdx+1].level) }}
+                  disabled={curIdx >= allFloors.length - 1}
+                  style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: curIdx < allFloors.length-1 ? '#2a3a4a' : '#12122a', color: curIdx < allFloors.length-1 ? '#80c0ff' : '#303050', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>▲</button>
+                <button onClick={() => setNewFloorPrompt('above')}
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #2a2a40', background: '#12122a', color: '#607080', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>+</button>
+              </div>
+            )
+          })()}
+          <div style={{ height: 1, background: '#1e1e30', margin: '6px 0' }} />
+          {/* Unit toggle + workspace */}
+          <div style={{ display: 'flex', gap: 4, padding: '4px 8px' }}>
+            <button onClick={() => setUnitSystem(u => u === 'imperial' ? 'metric' : 'imperial')} style={{
+              padding: '6px 12px', borderRadius: 6, border: '1px solid #2a2a40', background: '#12122a', color: '#8080a0', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            }}>{unitSystem === 'imperial' ? 'ft → m' : 'm → ft'}</button>
+          </div>
         </div>
       )}
 
