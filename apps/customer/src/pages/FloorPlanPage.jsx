@@ -1192,7 +1192,7 @@ export default function FloorPlanPage({
     setZoom(z => Math.max(0.3, Math.min(5, z * delta)))
   }
 
-  const isMobile = canvasSize.w < 600
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const sideW = isMobile ? canvasSize.w : 170
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false)
   const toolBtn = (active) => ({
