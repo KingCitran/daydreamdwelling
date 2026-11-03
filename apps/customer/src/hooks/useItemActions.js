@@ -314,14 +314,16 @@ export default function useItemActions({
     setItems(prev => prev.map(it => it.id === id ? { ...it, customW, customH } : it))
   }, [setItems])
 
-  const updateStairConfig = useCallback((id, { stairW, stairD, stairCount }) => {
+  const updateStairConfig = useCallback((id, cfg) => {
     setItems(prev => {
       const item = prev.find(it => it.id === id)
       if (!item || !item.stairs) return prev
       const updated = { ...item }
-      if (stairW != null) updated.stairW = stairW
-      if (stairD != null) updated.stairD = stairD
-      if (stairCount != null) updated.stairCount = stairCount
+      if (cfg.stairW != null) updated.stairW = cfg.stairW
+      if (cfg.stairD != null) updated.stairD = cfg.stairD
+      if (cfg.stairCount != null) updated.stairCount = cfg.stairCount
+      if (cfg.railingStyle != null) updated.railingStyle = cfg.railingStyle
+      if (cfg.underStair != null) updated.underStair = cfg.underStair
       // Displace conflicting items to inventory
       const conflicting = findOverlappingItems(prev, id, updated, catalogueRef.current)
       const conflictSet = new Set(conflicting)

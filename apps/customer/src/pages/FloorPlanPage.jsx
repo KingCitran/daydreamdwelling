@@ -217,7 +217,7 @@ export default function FloorPlanPage({
   // ESC clears clipboard; Ctrl+Z/Y undo/redo floor plan changes
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') { setClipboard(null); setWallStart(null) }
+      if (e.key === 'Escape') { setClipboard(null); setWallStart(null); setEditingDimension(null); setSelectedDoor(null) }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
         const snap = undoStackRef.current.pop()
@@ -775,10 +775,29 @@ export default function FloorPlanPage({
     const info = getCellFromMouse(e)
     if (!info) return
 
-    // No tool: select/drag items (including stairs)
+    // No tool: check doors first, then items
     if (!tool) {
+      // Door check — runs before items so doors are always selectable
+      const doorEdge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
+      if (doorEdge) {
+        const openKey = `${doorEdge.col},${doorEdge.row}:${doorEdge.dir}`
+        if (doorOpenings?.has(openKey)) {
+          setSelectedDoor(openKey); setSelectedZoneIdx(null); onSelectItem?.(null)
+          return
+        }
+      }
+      // Adjacent cell door check
+      for (const dk of (doorOpenings ?? [])) {
+        const sep = dk.lastIndexOf(':')
+        const [dc, dr] = dk.slice(0, sep).split(',').map(Number)
+        if (Math.abs(dc - info.col) <= 1 && Math.abs(dr - info.row) <= 1) {
+          setSelectedDoor(dk); setSelectedZoneIdx(null); onSelectItem?.(null)
+          return
+        }
+      }
+      setSelectedDoor(null)
+
       const ITEM_CAT = catalogue ?? {}
-      // Use fractional position for precise hit testing
       const clickCol = info.col + info.fx
       const clickRow = info.row + info.fy
       const hit = (items ?? []).find(it => {
@@ -843,22 +862,6 @@ export default function FloorPlanPage({
         window.addEventListener('pointerup', handleItemUp)
       } else {
         onSelectItem?.(null)
-        // Check doors first — nearby door openings
-        let foundDoor = false
-        const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
-        if (edge) {
-          const openKey = `${edge.col},${edge.row}:${edge.dir}`
-          if (doorOpenings?.has(openKey)) { setSelectedDoor(openKey); setSelectedZoneIdx(null); foundDoor = true }
-        }
-        if (!foundDoor) {
-          const c = info.col, r = info.row
-          for (const dk of (doorOpenings ?? [])) {
-            const sep = dk.lastIndexOf(':')
-            const [dc, dr] = dk.slice(0, sep).split(',').map(Number)
-            if (Math.abs(dc - c) <= 1 && Math.abs(dr - r) <= 1) { setSelectedDoor(dk); setSelectedZoneIdx(null); foundDoor = true; break }
-          }
-        }
-        if (!foundDoor) setSelectedDoor(null)
         // Check if clicking near any boundary wall — open dimension editor
         if (showMeasurements) {
           const c = info.col, r = info.row
@@ -952,37 +955,34 @@ export default function FloorPlanPage({
     } else if (tool === 'walls') {
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
       if (!edge) return
-      if (!wallStart) {
-        // First tap — set start point
-        const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
-        setWallStart({ col: edge.col, row: edge.row, dir: edge.dir, axis })
-        // Also place the single wall segment immediately
-        saveUndoSnapshot()
-        onToggleWall(`${edge.col},${edge.row}:${edge.dir}`)
-      } else {
-        // Second tap — draw wall line from start to here
+      if (wallStart) {
+        // Second tap — draw wall line from start to end
         saveUndoSnapshot()
         const isHoriz = wallStart.axis === 'h'
         if (isHoriz) {
-          const dir = wallStart.dir
-          const r = wallStart.row
-          const c0 = Math.min(wallStart.col, edge.col)
-          const c1 = Math.max(wallStart.col, edge.col)
-          for (let c = c0; c <= c1; c++) {
-            const key = `${c},${r}:${dir}`
-            if (!internalWalls?.has(key)) onToggleWall(key)
-          }
+          const dir = wallStart.dir, r = wallStart.row
+          const c0 = Math.min(wallStart.col, edge.col), c1 = Math.max(wallStart.col, edge.col)
+          for (let c = c0; c <= c1; c++) { const key = `${c},${r}:${dir}`; if (!internalWalls?.has(key)) onToggleWall(key) }
         } else {
-          const dir = wallStart.dir
-          const c = wallStart.col
-          const r0 = Math.min(wallStart.row, edge.row)
-          const r1 = Math.max(wallStart.row, edge.row)
-          for (let r = r0; r <= r1; r++) {
-            const key = `${c},${r}:${dir}`
-            if (!internalWalls?.has(key)) onToggleWall(key)
-          }
+          const dir = wallStart.dir, c = wallStart.col
+          const r0 = Math.min(wallStart.row, edge.row), r1 = Math.max(wallStart.row, edge.row)
+          for (let r = r0; r <= r1; r++) { const key = `${c},${r}:${dir}`; if (!internalWalls?.has(key)) onToggleWall(key) }
         }
         setWallStart(null)
+      } else {
+        // First click — place single wall + start drag (desktop) or set tap start (mobile)
+        saveUndoSnapshot()
+        const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
+        const key = `${edge.col},${edge.row}:${edge.dir}`
+        const erasing = internalWalls?.has(key)
+        onToggleWall(key)
+        if (isMobile) {
+          // Mobile: set start for tap-tap
+          setWallStart({ col: edge.col, row: edge.row, dir: edge.dir, axis })
+        } else {
+          // Desktop: enable drag to draw more walls along the axis
+          wallDragRef.current = { erasing, placed: new Set([key]), axis }
+        }
       }
     } else if (tool === 'door') {
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
