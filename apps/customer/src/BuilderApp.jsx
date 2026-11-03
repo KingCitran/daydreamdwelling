@@ -10,6 +10,7 @@ import { ITEM_CATALOGUE } from './data/items'
 import { computeRoomLayout } from './overview/layout'
 import ShareModal from './ui/ShareModal'
 import DwellingSelector from './ui/DwellingSelector'
+import { saveProject, loadProject, getActiveProjectId, setActiveProjectId, createProjectId } from './utils/projectManager'
 import WelcomeWizard from './ui/WelcomeWizard'
 import { exportFloorPlanPNG } from './utils/exportFloorPlan'
 import { ROOM_TEMPLATES } from './data/roomTemplates'
@@ -323,6 +324,11 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
   const [displacedCount,   setDisplacedCount]   = useState(0)
   const [ghostPlacement,   setGhostPlacement]   = useState(null)  // { typeKey, stairW, stairD, stairCount, ... }
   const [activeFloorLevel, setActiveFloorLevel] = useState(0)
+  const [projectId, setProjectId] = useState(() => getActiveProjectId())
+  const [projectName, setProjectName] = useState(() => {
+    const saved = loadProject(getActiveProjectId())
+    return saved?.projectName ?? 'My Dwelling'
+  })
   const [activeModal,      setActiveModal]      = useState(null)
   const [cartHighlight,    setCartHighlight]    = useState(null)
   const [musicStation,     setMusicStation]     = useState(initSave?.musicStation ?? null)
@@ -422,6 +428,19 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
     nextItemIdRef,
     setGridW, setGridD, setCells, setItems, setCart, setFloorColor, setFloorTexture, setWallColor, setWallTexture, setWallFinish, setSelectedId,
   })
+
+  // Auto-save current project every 3 seconds when data changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveProject(projectId, projectName, {
+        projectName,
+        gridW, gridD, wallHeight, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
+        internalWalls, doorOpenings, activeFloorLevel,
+        allRooms, currentRoomId, roomNames, musicStation, lightMood,
+      })
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [projectId, projectName, gridW, gridD, cells, items, allRooms, currentRoomId, internalWalls, doorOpenings, activeFloorLevel])
 
   const {
     placeItem, placeItemOnWall, placeCeilingItem,
@@ -1619,6 +1638,54 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
           fontFamily: "'Outfit',sans-serif", pointerEvents: 'auto',
           maxWidth: '85vw', overflowX: 'auto',
         }}>
+          {/* Project switcher */}
+          <DwellingSelector
+            currentName={projectName}
+            currentId={projectId}
+            onSwitch={(id) => {
+              // Save current project first
+              saveProject(projectId, projectName, {
+                projectName, gridW, gridD, wallHeight, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
+                internalWalls, doorOpenings, activeFloorLevel, allRooms, currentRoomId, roomNames, musicStation, lightMood,
+              })
+              // Load target project
+              const data = loadProject(id)
+              if (data) {
+                setGridW(data.gridW ?? 10); setGridD(data.gridD ?? 10)
+                setCells(new Set(data.cells ?? []))
+                setItems(data.items ?? [])
+                setInternalWalls(new Set(data.internalWalls ?? []))
+                setDoorOpenings(new Set(data.doorOpenings ?? []))
+                setAllRooms(Object.fromEntries(Object.entries(data.allRooms ?? {}).map(([k, v]) => [k, { ...v, cells: new Set(v.cells ?? []), internalWalls: new Set(v.internalWalls ?? []), doorOpenings: new Set(v.doorOpenings ?? []) }])))
+                setCurrentRoomId(data.currentRoomId ?? 0)
+                setActiveFloorLevel(data.activeFloorLevel ?? 0)
+                setFloorColor(data.floorColor ?? '#cec5b8')
+                setWallColor(data.wallColor ?? '#d8d0c6')
+                setRoomNamesState(data.roomNames ?? {})
+              }
+              setProjectId(id); setProjectName(data?.projectName ?? 'Untitled')
+              setActiveProjectId(id)
+            }}
+            onNew={(name) => {
+              // Save current, create new empty project
+              saveProject(projectId, projectName, {
+                projectName, gridW, gridD, wallHeight, cells, items, floorColor, floorTexture, wallColor, wallTexture, wallFinish,
+                internalWalls, doorOpenings, activeFloorLevel, allRooms, currentRoomId, roomNames,
+              })
+              const newId = createProjectId()
+              setProjectId(newId); setProjectName(name)
+              setActiveProjectId(newId)
+              // Reset to empty room
+              setGridW(30); setGridD(30); setCells(new Set()); setItems([])
+              setInternalWalls(new Set()); setDoorOpenings(new Set())
+              setAllRooms({}); setCurrentRoomId(0); setActiveFloorLevel(0)
+              setRoomNamesState({})
+              saveProject(newId, name, { projectName: name, gridW: 30, gridD: 30, cells: [], items: [], allRooms: {}, currentRoomId: 0 })
+            }}
+            onDelete={() => {}}
+          />
+          <div style={{ width: 1, height: 20, background: '#ffffff15', flexShrink: 0 }} />
+
           {/* Plan button */}
           <button onClick={() => setFloorPlanOpen(true)} style={{
             padding: '6px 12px', borderRadius: 6, border: 'none',
