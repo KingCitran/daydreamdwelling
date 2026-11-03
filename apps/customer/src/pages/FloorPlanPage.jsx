@@ -159,7 +159,8 @@ export default function FloorPlanPage({
   const [hoverInfo, setHoverInfo] = useState(null)
   const rectRef = useRef(null)
   const wallDragRef = useRef(null)
-  const resizeDragRef = useRef(null) // { wall: 'N'|'S'|'E'|'W', cells: [col,row keys along the wall], startPos: int, currentPos: int }
+  const resizeDragRef = useRef(null)
+  const [wallStart, setWallStart] = useState(null) // { col, row, dir, axis } for tap-tap wall drawing
   // Copy room: { cells: Set of relative "dc,dr", walls: Set of relative edges, w, d }
   const [clipboard, setClipboard] = useState(null)
   const [canvasSize, setCanvasSize] = useState({ w: 800, h: 600 })
@@ -216,7 +217,7 @@ export default function FloorPlanPage({
   // ESC clears clipboard; Ctrl+Z/Y undo/redo floor plan changes
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') setClipboard(null)
+      if (e.key === 'Escape') { setClipboard(null); setWallStart(null) }
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
         const snap = undoStackRef.current.pop()
@@ -624,6 +625,27 @@ export default function FloorPlanPage({
         if (dir === 'W') { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize) }
         if (dir === 'E') { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize) }
         ctx.stroke()
+        // Wall line preview from wallStart to hover
+        if (wallStart && tool === 'walls') {
+          ctx.strokeStyle = '#ffd06080'
+          ctx.lineWidth = 2
+          ctx.setLineDash([4, 4])
+          const isH = wallStart.axis === 'h'
+          if (isH) {
+            const c0 = Math.min(wallStart.col, col), c1 = Math.max(wallStart.col, col)
+            const wy = wallStart.dir === 'N' ? offsetY + wallStart.row * cellSize : offsetY + (wallStart.row + 1) * cellSize
+            ctx.beginPath(); ctx.moveTo(offsetX + c0 * cellSize, wy); ctx.lineTo(offsetX + (c1 + 1) * cellSize, wy); ctx.stroke()
+            ctx.fillStyle = '#ffd060'
+            ctx.font = `bold ${Math.max(9, cellSize * 0.3)}px Outfit, sans-serif`
+            ctx.textAlign = 'center'
+            ctx.fillText(`${c1 - c0 + 1}'`, offsetX + (c0 + c1 + 1) / 2 * cellSize, wy - 5)
+          } else {
+            const r0 = Math.min(wallStart.row, row), r1 = Math.max(wallStart.row, row)
+            const wx = wallStart.dir === 'W' ? offsetX + wallStart.col * cellSize : offsetX + (wallStart.col + 1) * cellSize
+            ctx.beginPath(); ctx.moveTo(wx, offsetY + r0 * cellSize); ctx.lineTo(wx, offsetY + (r1 + 1) * cellSize); ctx.stroke()
+          }
+          ctx.setLineDash([])
+        }
       } else if (tool === 'stairs' && hoverInfo.col != null) {
         const { col, row } = hoverInfo
         const rot90 = stairRotation === 90 || stairRotation === 270
@@ -709,7 +731,7 @@ export default function FloorPlanPage({
     ctx.textAlign = 'left'
     const floorLabel = activeFloorLevel === 0 ? 'Ground Floor' : activeFloorLevel < 0 ? `Basement ${-activeFloorLevel}` : `Floor ${activeFloorLevel + 1}`
     ctx.fillText(`${floorLabel} · ${gridW}×${gridD} ft · ${cells.size} sq ft · ${roomZones.length} rooms · ${Math.round(zoom * 100)}%`, 8, canvasSize.h - 8)
-  }, [canvasSize, gridW, gridD, cells, internalWalls, doorOpenings, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard, stairRotation, selectedId, catalogue, selectedZoneIdx, activeShape, shapeSize, selectedDoor, showMeasurements, unitSystem])
+  }, [canvasSize, gridW, gridD, cells, internalWalls, doorOpenings, items, cellSize, offsetX, offsetY, hoverInfo, tool, zoom, roomZones, roomZoneLabels, ghostFloorData, activeFloorLevel, bgImage, bgScale, clipboard, stairRotation, selectedId, catalogue, selectedZoneIdx, activeShape, shapeSize, selectedDoor, showMeasurements, unitSystem, wallStart])
 
   useEffect(() => { draw() }, [draw])
 
@@ -934,13 +956,40 @@ export default function FloorPlanPage({
       rectRef.current = { startCol: info.col, startRow: info.row, endCol: info.col, endRow: info.row, action }
       setHoverInfo({ rect: rectRef.current })
     } else if (tool === 'walls') {
-      saveUndoSnapshot()
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null)
       if (!edge) return
-      const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
-      const key = `${edge.col},${edge.row}:${edge.dir}`
-      wallDragRef.current = { erasing: internalWalls?.has(key), placed: new Set([key]), axis }
-      onToggleWall(key)
+      if (!wallStart) {
+        // First tap — set start point
+        const axis = (edge.dir === 'N' || edge.dir === 'S') ? 'h' : 'v'
+        setWallStart({ col: edge.col, row: edge.row, dir: edge.dir, axis })
+        // Also place the single wall segment immediately
+        saveUndoSnapshot()
+        onToggleWall(`${edge.col},${edge.row}:${edge.dir}`)
+      } else {
+        // Second tap — draw wall line from start to here
+        saveUndoSnapshot()
+        const isHoriz = wallStart.axis === 'h'
+        if (isHoriz) {
+          const dir = wallStart.dir
+          const r = wallStart.row
+          const c0 = Math.min(wallStart.col, edge.col)
+          const c1 = Math.max(wallStart.col, edge.col)
+          for (let c = c0; c <= c1; c++) {
+            const key = `${c},${r}:${dir}`
+            if (!internalWalls?.has(key)) onToggleWall(key)
+          }
+        } else {
+          const dir = wallStart.dir
+          const c = wallStart.col
+          const r0 = Math.min(wallStart.row, edge.row)
+          const r1 = Math.max(wallStart.row, edge.row)
+          for (let r = r0; r <= r1; r++) {
+            const key = `${c},${r}:${dir}`
+            if (!internalWalls?.has(key)) onToggleWall(key)
+          }
+        }
+        setWallStart(null)
+      }
     } else if (tool === 'door') {
       const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
       if (!edge) return
@@ -1850,8 +1899,12 @@ export default function FloorPlanPage({
               ? 'Click to paste the copied room · ESC to cancel'
               : tool === 'stairs'
                 ? `Click a cell to place stairs · R to rotate (${stairRotation}°)`
-                : TOOLS.find(t => t.id === tool)?.desc ?? ''
-          } · Right-click to pan · Scroll to zoom
+                : tool === 'walls' && wallStart
+                  ? 'Tap second point to draw wall line · ESC to cancel'
+                  : tool === 'walls'
+                    ? 'Tap a wall edge to start · tap again to extend the wall'
+                    : TOOLS.find(t => t.id === tool)?.desc ?? ''
+          } · {isMobile ? 'Two fingers to pan/zoom' : 'Right-click to pan · Scroll to zoom'}
         </div>
       </div>
 
