@@ -23,8 +23,16 @@ export default function DwellingSelector({ currentName, currentId, onSwitch, onN
           fontFamily: "'Outfit',sans-serif",
         }}>
           <div style={{ padding: '4px 8px', fontSize: 9, fontWeight: 700, color: '#505070', textTransform: 'uppercase' }}>Your Projects</div>
-          {projects.length === 0 && (
-            <div style={{ padding: '8px 10px', fontSize: 11, color: '#505060' }}>No saved projects yet</div>
+          {/* Always show current project even if not in index */}
+          {!projects.some(p => p.id === currentId) && (
+            <button onClick={() => setOpen(false)} style={{
+              display: 'block', width: '100%', padding: '8px 10px', borderRadius: 8,
+              border: 'none', background: '#5a3a9a20', color: '#b0a0e0', fontSize: 12,
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            }}>
+              <div style={{ fontWeight: 600 }}>{currentName || 'Current Project'}</div>
+              <div style={{ fontSize: 9, color: '#606080' }}>Active now</div>
+            </button>
           )}
           {projects.map(p => (
             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

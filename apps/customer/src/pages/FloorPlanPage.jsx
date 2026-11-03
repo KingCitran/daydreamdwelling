@@ -843,28 +843,22 @@ export default function FloorPlanPage({
         window.addEventListener('pointerup', handleItemUp)
       } else {
         onSelectItem?.(null)
-        // Check if clicking near a door opening (bigger hitbox)
+        // Check doors first — nearby door openings
+        let foundDoor = false
         const edge = getEdge(info.col, info.row, info.fx, info.fy, null, true)
         if (edge) {
           const openKey = `${edge.col},${edge.row}:${edge.dir}`
-          if (doorOpenings?.has(openKey)) {
-            setSelectedZoneIdx(null)
-            setSelectedDoor(openKey)
-            return
-          }
+          if (doorOpenings?.has(openKey)) { setSelectedDoor(openKey); setSelectedZoneIdx(null); foundDoor = true }
         }
-        // Also check adjacent cells for nearby doors (bigger hitbox)
-        if (!edge) {
+        if (!foundDoor) {
           const c = info.col, r = info.row
           for (const dk of (doorOpenings ?? [])) {
             const sep = dk.lastIndexOf(':')
             const [dc, dr] = dk.slice(0, sep).split(',').map(Number)
-            if (Math.abs(dc - c) <= 1 && Math.abs(dr - r) <= 1) {
-              setSelectedDoor(dk); setSelectedZoneIdx(null); return
-            }
+            if (Math.abs(dc - c) <= 1 && Math.abs(dr - r) <= 1) { setSelectedDoor(dk); setSelectedZoneIdx(null); foundDoor = true; break }
           }
         }
-        setSelectedDoor(null)
+        if (!foundDoor) setSelectedDoor(null)
         // Check if clicking near any boundary wall — open dimension editor
         if (showMeasurements) {
           const c = info.col, r = info.row
@@ -1011,7 +1005,7 @@ export default function FloorPlanPage({
       // Check if clicking on an existing stair — remove it instead
       const existingStair = (items ?? []).find(it => {
         if (!it.stairs || it.returnStair) return false
-        const sw = it.stairW ?? 3, sd = it.stairD ?? 5
+        const sw = it.stairW ?? 3, sd = it.stairD ?? 10
         const rot = isRotatedSideways(it.rotation)
         const ew = rot ? sd : sw, ed = rot ? sw : sd
         return info.col >= it.col && info.col < it.col + ew && info.row >= it.row && info.row < it.row + ed
@@ -1776,7 +1770,8 @@ export default function FloorPlanPage({
         />
 
         {/* Dimension editor — double-click zone OR click wall measurement */}
-        {editingDimension && (
+        {editingDimension && <>
+          <div onClick={() => setEditingDimension(null)} style={{ position: 'absolute', inset: 0, zIndex: 14 }} />
           <div style={{
             position: 'absolute', left: Math.min(editingDimension.x - 60, canvasSize.w - 180), top: editingDimension.y - 40,
             padding: '8px 12px', borderRadius: 8, background: '#14142a', border: '1px solid #3a3a5a',
@@ -1859,7 +1854,7 @@ export default function FloorPlanPage({
             )}
             <button onClick={() => setEditingDimension(null)} style={{ marginTop: 4, background: 'none', border: 'none', color: '#606080', fontSize: 10, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel · Esc</button>
           </div>
-        )}
+        </>}
 
         {/* Inline label editor */}
         {editingLabel && (

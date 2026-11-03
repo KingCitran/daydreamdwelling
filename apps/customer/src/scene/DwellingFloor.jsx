@@ -136,8 +136,8 @@ export default function DwellingFloor({
           <meshBasicMaterial color={isActive ? '#60d888' : '#8080c0'} />
         </mesh>
       )}
-      {/* Simple gable roof on top floor */}
-      {isTopFloor && (() => {
+      {/* Roof — disabled in overview to show contents. Enable for screenshots/sharing */}
+      {false && isTopFloor && (() => {
         // Compute bounding box from cells
         let minC = Infinity, maxC = -Infinity, minR = Infinity, maxR = -Infinity
         for (const key of cells) { const [c, r] = key.split(',').map(Number); minC = Math.min(minC, c); maxC = Math.max(maxC, c); minR = Math.min(minR, r); maxR = Math.max(maxR, r) }

@@ -117,7 +117,7 @@ function PanelLoader() {
 // Renders camera + lights when the normal RoomScene is hidden.
 function OverviewCamera({ zoomRef, panRef, floorCount, wallHeight, rotationRef }) {
   const { camera } = useThree()
-  const floorSep = wallHeight + 2
+  const floorSep = wallHeight + 0.5
   const stackH = Math.max(0, (floorCount - 1)) * floorSep
   const midY = stackH / 2
   const camDist = 22
@@ -1394,7 +1394,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             .sort((a, b) => a.level - b.level)
             .filter((f, i, arr) => i === 0 || f.level !== arr[i - 1].level)
           // Exploded view: gap between floors for clarity
-          const floorSep = wallHeight + 2
+          const floorSep = wallHeight + 0.5
           return floors.map((f, idx) => {
             const rd = allRoomsData[f.roomId]
             if (!rd) return null
@@ -1727,7 +1727,7 @@ export default function BuilderApp({ shopBuilderSellerId = null, exploreRoomId =
             }
             const maxDim = Math.max(isFinite(maxC) ? maxC - minC + 1 : gridW, isFinite(maxR) ? maxR - minR + 1 : gridD, 6)
             const uniqueLevels = new Set(Object.values({ ...allRooms, [currentRoomId]: snapshot }).map(r => r.level ?? 0)).size
-            const stackH = Math.max(0, uniqueLevels - 1) * (wallHeight + 2)
+            const stackH = Math.max(0, uniqueLevels - 1) * (wallHeight + 0.5)
             const fitDim = Math.max(maxDim, stackH + maxDim * 0.4)
             zoomRef.current = Math.max(8, Math.min(40, 480 / fitDim))
             panRef.current = { x: 0, z: 0 }

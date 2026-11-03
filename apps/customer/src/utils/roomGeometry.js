@@ -77,7 +77,8 @@ export function hasOverlap(items, testId, testItem, catalogue = ITEM_CATALOGUE, 
   }
 
   // Internal wall collision: check if the item's footprint crosses any internal wall
-  if (internalWalls && internalWalls.size > 0) {
+  // Stairs are exempt — they span between rooms/floors
+  if (internalWalls && internalWalls.size > 0 && !testItem.stairs) {
     const def = catalogue[testItem.typeKey] ?? ITEM_CATALOGUE[testItem.typeKey]
     const size = def?.sizes?.[testItem.sizeIndex] ?? def?.sizes?.[0]
     const fw = testItem.stairW ?? (size?.footprint ?? [1, 1])[0]
